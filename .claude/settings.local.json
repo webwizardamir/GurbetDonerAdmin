@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp add --transport stdio filesystem -- cmd /c npx -y @modelcontextprotocol/server-filesystem)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp list:*)",
+      "Bash(claude config get:*)",
+      "Bash(echo $env:USERPROFILE)",
+      "Bash(dir:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout 3 bash:*)",
+      "Bash(timeout 2 bash:*)",
+      "Bash(npx vite --host --port 3000 --clearScreen false)",
+      "Bash(curl:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
