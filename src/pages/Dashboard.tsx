@@ -26,7 +26,7 @@ export default function Dashboard() {
           />
           <StatCard
             label="Total Revenue"
-            value="₺125,450"
+            value="€125,450"
             trend={{ value: 8.2, isPositive: true }}
             icon={DollarSign}
             iconColor="text-green-600"
@@ -105,7 +105,7 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-600 dark:text-slate-400">Bank Transfer - Dec 1, 2023</p>
                 </div>
                 <span className="font-semibold text-green-600 dark:text-green-400">
-                  ₺3,405.00
+                  €3,405.00
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-xl">
@@ -114,7 +114,7 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-600 dark:text-slate-400">Cash - Dec 2, 2023</p>
                 </div>
                 <span className="font-semibold text-green-600 dark:text-green-400">
-                  ₺1,850.00
+                  €1,850.00
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-xl">
@@ -123,7 +123,7 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-600 dark:text-slate-400">Bank Transfer - Dec 3, 2023</p>
                 </div>
                 <span className="font-semibold text-green-600 dark:text-green-400">
-                  ₺2,890.00
+                  €2,890.00
                 </span>
               </div>
             </div>

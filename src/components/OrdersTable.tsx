@@ -78,7 +78,7 @@ export default function OrdersTable() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                    ₺{order.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    €{order.total.toLocaleString('de-DE', { minimumFractionDigits: 2 })}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
