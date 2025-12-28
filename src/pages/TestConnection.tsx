@@ -22,7 +22,7 @@ export default function TestConnection() {
       results.push('✓ Supabase client initialized')
 
       // Test 2: Test database connection
-      const { data: testData, error: testError } = await supabase
+      const { error: testError } = await supabase
         .from('products')
         .select('count')
         .limit(1)
