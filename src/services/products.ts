@@ -70,27 +70,37 @@ export async function createProduct(product: {
   category_id?: string
   unit_type: UnitType
   base_price: number // in cents
+  cost_cents?: number // Cost of goods in cents (Owner only)
   tax_rate?: number
   stock_quantity?: number
+  track_stock?: boolean
   description?: string
 }): Promise<Product> {
   const { data: userData } = await supabase.auth.getUser()
   const userId = userData?.user?.id
 
+  const insertData: Record<string, unknown> = {
+    name: product.name,
+    sku: product.sku || null,
+    barcode: product.barcode || null,
+    category_id: product.category_id || null,
+    unit_type: product.unit_type,
+    base_price: product.base_price,
+    tax_rate: product.tax_rate ?? 9.00,
+    stock_quantity: product.stock_quantity ?? 0,
+    track_stock: product.track_stock ?? true,
+    description: product.description || null,
+    created_by: userId,
+  }
+
+  // Only include cost_cents if provided (Owner only field)
+  if (product.cost_cents !== undefined) {
+    insertData.cost_cents = product.cost_cents
+  }
+
   const { data, error } = await supabase
     .from('products')
-    .insert({
-      name: product.name,
-      sku: product.sku || null,
-      barcode: product.barcode || null,
-      category_id: product.category_id || null,
-      unit_type: product.unit_type,
-      base_price: product.base_price,
-      tax_rate: product.tax_rate ?? 9.00,
-      stock_quantity: product.stock_quantity ?? 0,
-      description: product.description || null,
-      created_by: userId,
-    })
+    .insert(insertData)
     .select(`
       *,
       category:categories(*)
@@ -111,8 +121,10 @@ export async function updateProduct(
     category_id?: string | null
     unit_type?: UnitType
     base_price?: number
+    cost_cents?: number
     tax_rate?: number
     stock_quantity?: number
+    track_stock?: boolean
     description?: string
   }
 ): Promise<Product> {

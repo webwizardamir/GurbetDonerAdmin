@@ -7,10 +7,12 @@ import {
   Trash2,
   Loader2,
   Package,
+  PackageX,
 } from 'lucide-react'
 import { useProducts } from '../hooks/useProducts'
 import { useCategories } from '../hooks/useCategories'
 import { usePermission } from '../hooks/usePermission'
+import { useAuth } from '../context/AuthContext'
 import ProductForm, { type ProductFormData } from '../components/products/ProductForm'
 import CategoryManager from '../components/products/CategoryManager'
 import type { Product } from '../types'
@@ -41,6 +43,8 @@ export default function Products() {
   const { canCreate, canEdit, canDelete } = usePermission('products')
   const { products, loading, error, refresh, create, update, remove } = useProducts()
   const { categories } = useCategories({ activeOnly: true })
+  const { profile } = useAuth()
+  const isOwner = profile?.role === 'owner'
 
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
@@ -206,9 +210,19 @@ export default function Products() {
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Stock
                   </th>
+                  {isOwner && (
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Cost
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Price
                   </th>
+                  {isOwner && (
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Margin
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Actions
                   </th>
@@ -254,22 +268,55 @@ export default function Products() {
                       {formatUnitType(product.unit_type)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className={`font-medium ${
-                        product.stock_quantity === 0
-                          ? 'text-red-600 dark:text-red-400'
-                          : product.stock_quantity < 10
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-slate-900 dark:text-white'
-                      }`}>
-                        {product.stock_quantity}
-                      </span>
+                      {product.track_stock ? (
+                        <span className={`font-medium ${
+                          product.stock_quantity === 0
+                            ? 'text-red-600 dark:text-red-400'
+                            : product.stock_quantity < 10
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-slate-900 dark:text-white'
+                        }`}>
+                          {product.stock_quantity}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500" title="Stock tracking disabled">
+                          <PackageX className="w-4 h-4" />
+                          <span className="text-xs">N/A</span>
+                        </span>
+                      )}
                     </td>
+                    {isOwner && (
+                      <td className="px-6 py-4 text-right">
+                        {product.cost_cents ? (
+                          <span className="text-slate-600 dark:text-slate-300">
+                            {formatPrice(product.cost_cents)}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-6 py-4 text-right">
                       <div className="font-medium text-slate-900 dark:text-white">
                         {formatPrice(product.base_price)}
                       </div>
                       <div className="text-xs text-slate-500">BTW {product.tax_rate}%</div>
                     </td>
+                    {isOwner && (
+                      <td className="px-6 py-4 text-right">
+                        {product.cost_cents && product.base_price > 0 ? (
+                          <span className={`font-medium ${
+                            product.base_price > product.cost_cents
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
+                          }`}>
+                            {((1 - product.cost_cents / product.base_price) * 100).toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {canEdit && (
@@ -330,16 +377,41 @@ export default function Products() {
                       <span className="font-mono text-xs">{product.barcode}</span>
                     )}
                   </div>
-                  <div className={`font-medium ${
-                    product.stock_quantity === 0
-                      ? 'text-red-600 dark:text-red-400'
-                      : product.stock_quantity < 10
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : 'text-slate-600 dark:text-slate-300'
-                  }`}>
-                    Stock: {product.stock_quantity}
-                  </div>
+                  {product.track_stock ? (
+                    <div className={`font-medium ${
+                      product.stock_quantity === 0
+                        ? 'text-red-600 dark:text-red-400'
+                        : product.stock_quantity < 10
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-slate-600 dark:text-slate-300'
+                    }`}>
+                      Stock: {product.stock_quantity}
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500">
+                      <PackageX className="w-4 h-4" />
+                      <span className="text-xs">No tracking</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Owner-only: Cost and Margin */}
+                {isOwner && product.cost_cents && (
+                  <div className="flex items-center justify-between text-sm mb-3 py-2 px-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                    <div className="text-slate-500 dark:text-slate-400">
+                      Cost: {formatPrice(product.cost_cents)}
+                    </div>
+                    {product.base_price > 0 && (
+                      <div className={`font-medium ${
+                        product.base_price > product.cost_cents
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        Margin: {((1 - product.cost_cents / product.base_price) * 100).toFixed(1)}%
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {(canEdit || canDelete) && (
                   <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">

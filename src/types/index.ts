@@ -148,8 +148,10 @@ export interface Product {
   category?: Category
   unit_type: UnitType
   base_price: number // stored in cents
+  cost_cents?: number // Cost of goods in cents (Owner only)
   tax_rate: number
   stock_quantity: number
+  track_stock: boolean // Whether stock management is enabled
   description?: string
   created_by?: string
   created_at: string

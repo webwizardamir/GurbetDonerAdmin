@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Loader2, Package } from 'lucide-react'
 import { useCategories } from '../../hooks/useCategories'
+import { useAuth } from '../../context/AuthContext'
 import type { Product, UnitType } from '../../types'
 
 interface ProductFormProps {
@@ -16,8 +17,10 @@ export interface ProductFormData {
   category_id?: string
   unit_type: UnitType
   base_price: number // in cents
+  cost_cents?: number // Cost of goods in cents (Owner only)
   tax_rate: number
   stock_quantity: number
+  track_stock: boolean
   description?: string
 }
 
@@ -35,6 +38,9 @@ const TAX_RATE_OPTIONS = [
 
 export default function ProductForm({ product, onClose, onSave }: ProductFormProps) {
   const { categories } = useCategories({ activeOnly: true })
+  const { profile } = useAuth()
+  const isOwner = profile?.role === 'owner'
+
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,8 +51,10 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
   const [categoryId, setCategoryId] = useState('')
   const [unitType, setUnitType] = useState<UnitType>('package')
   const [priceEuros, setPriceEuros] = useState('') // Display in euros
+  const [costEuros, setCostEuros] = useState('') // Cost in euros (Owner only)
   const [taxRate, setTaxRate] = useState(9)
   const [stockQuantity, setStockQuantity] = useState(0)
+  const [trackStock, setTrackStock] = useState(true)
   const [description, setDescription] = useState('')
 
   // Populate form when editing
@@ -58,8 +66,10 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
       setCategoryId(product.category_id || '')
       setUnitType(product.unit_type)
       setPriceEuros((product.base_price / 100).toFixed(2))
+      setCostEuros(product.cost_cents ? (product.cost_cents / 100).toFixed(2) : '')
       setTaxRate(product.tax_rate)
       setStockQuantity(product.stock_quantity || 0)
+      setTrackStock(product.track_stock ?? true)
       setDescription(product.description || '')
     }
   }, [product])
@@ -80,9 +90,15 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
       return
     }
 
+    const costInCents = costEuros ? Math.round(parseFloat(costEuros) * 100) : undefined
+    if (costEuros && (isNaN(costInCents!) || costInCents! < 0)) {
+      setError('Please enter a valid cost')
+      return
+    }
+
     try {
       setSaving(true)
-      await onSave({
+      const formData: ProductFormData = {
         name: name.trim(),
         sku: sku.trim() || undefined,
         barcode: barcode.trim() || undefined,
@@ -91,8 +107,16 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
         base_price: priceInCents,
         tax_rate: taxRate,
         stock_quantity: stockQuantity,
+        track_stock: trackStock,
         description: description.trim() || undefined,
-      })
+      }
+
+      // Only include cost if owner
+      if (isOwner && costInCents !== undefined) {
+        formData.cost_cents = costInCents
+      }
+
+      await onSave(formData)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save product')
@@ -225,15 +249,35 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                   onChange={e => setStockQuantity(parseInt(e.target.value) || 0)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="0"
+                  disabled={!trackStock}
                 />
               </div>
             </div>
+
+            {/* Track Stock Checkbox */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="trackStock"
+                checked={trackStock}
+                onChange={e => setTrackStock(e.target.checked)}
+                className="w-4 h-4 text-green-600 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded focus:ring-green-500"
+              />
+              <label htmlFor="trackStock" className="text-sm text-slate-700 dark:text-slate-300">
+                Track stock for this product
+              </label>
+            </div>
+            {!trackStock && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2 ml-7">
+                Stock quantity will be ignored when creating orders
+              </p>
+            )}
 
             {/* Price and Tax Rate */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Base Price <span className="text-red-500">*</span>
+                  Selling Price <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
@@ -267,6 +311,36 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                 </select>
               </div>
             </div>
+
+            {/* Cost of Goods (Owner only) */}
+            {isOwner && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Cost of Goods (COGS)
+                  <span className="ml-2 text-xs text-slate-500">(Owner only)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                    &euro;
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={costEuros}
+                    onChange={e => setCostEuros(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="0.00"
+                  />
+                </div>
+                {priceEuros && costEuros && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Margin: &euro;{(parseFloat(priceEuros) - parseFloat(costEuros)).toFixed(2)}
+                    ({((1 - parseFloat(costEuros) / parseFloat(priceEuros)) * 100).toFixed(1)}%)
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Description */}
             <div>

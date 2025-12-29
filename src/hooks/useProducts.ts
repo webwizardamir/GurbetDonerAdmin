@@ -38,8 +38,10 @@ export function useProducts(initialFilters: ProductFilters = {}) {
     category_id?: string
     unit_type: UnitType
     base_price: number
+    cost_cents?: number
     tax_rate?: number
     stock_quantity?: number
+    track_stock?: boolean
     description?: string
   }) => {
     try {
@@ -63,8 +65,10 @@ export function useProducts(initialFilters: ProductFilters = {}) {
       category_id?: string | null
       unit_type?: UnitType
       base_price?: number
+      cost_cents?: number
       tax_rate?: number
       stock_quantity?: number
+      track_stock?: boolean
       description?: string
     }
   ) => {
