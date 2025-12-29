@@ -1,24 +1,27 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
   LayoutDashboard,
   ShoppingCart,
   Users,
+  UserCog,
   Package,
   FileText,
-  CreditCard,
   BarChart3,
   Settings,
   LogOut,
   History,
-  Warehouse,
+  ChevronDown,
 } from 'lucide-react'
+import logoMelek from '../../assets/images/logo-melek.png'
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>
   label: string
   href: string
   ownerOnly?: boolean
+  children?: NavItem[]
 }
 
 const navItems: NavItem[] = [
@@ -26,21 +29,43 @@ const navItems: NavItem[] = [
   { icon: ShoppingCart, label: 'Orders', href: '/orders' },
   { icon: Users, label: 'Customers', href: '/customers' },
   { icon: Package, label: 'Products', href: '/products' },
-  { icon: Warehouse, label: 'Inventory', href: '/inventory' },
   { icon: FileText, label: 'Invoices', href: '/invoices' },
-  { icon: CreditCard, label: 'Payments', href: '/payments' },
   { icon: BarChart3, label: 'Analytics', href: '/analytics', ownerOnly: true },
-  { icon: History, label: 'Audit Log', href: '/audit-log', ownerOnly: true },
-  { icon: Settings, label: 'Settings', href: '/settings', ownerOnly: true },
+  {
+    icon: Settings,
+    label: 'Settings',
+    href: '/settings',
+    ownerOnly: true,
+    children: [
+      { icon: UserCog, label: 'Users', href: '/settings/users', ownerOnly: true },
+      { icon: History, label: 'Audit Log', href: '/settings/audit-log', ownerOnly: true },
+    ]
+  },
 ]
 
 export default function Sidebar() {
   const { profile, signOut, isOwner } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
+    // Auto-expand Settings if we're on a settings sub-page
+    if (location.pathname.startsWith('/settings')) {
+      return ['/settings']
+    }
+    return []
+  })
 
   const handleLogout = async () => {
     await signOut()
     navigate('/login')
+  }
+
+  const toggleExpand = (href: string) => {
+    setExpandedItems(prev =>
+      prev.includes(href)
+        ? prev.filter(h => h !== href)
+        : [...prev, href]
+    )
   }
 
   // Filter nav items based on permissions
@@ -60,45 +85,88 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-72 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-20">
+    <aside className="fixed left-0 top-0 h-screen w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-20">
       {/* Logo Area */}
-      <div className="h-20 flex items-center justify-center px-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-800">
         <NavLink to="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
-            <span className="text-xl font-bold text-white">M</span>
-          </div>
-          <div>
-            <h1 className="font-bold text-slate-900 dark:text-white">MelekHalalFood</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">B2B Portal</p>
-          </div>
+          <img
+            src={logoMelek}
+            alt="Melek Halal Food"
+            className="h-10 w-auto"
+          />
         </NavLink>
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 px-4 py-6 overflow-y-auto">
-        <ul className="space-y-1">
+      <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-thin">
+        <ul className="space-y-0.5">
           {visibleNavItems.map((item) => {
             const Icon = item.icon
+            const hasChildren = item.children && item.children.length > 0
+            const isExpanded = expandedItems.includes(item.href)
+            const isChildActive = hasChildren && item.children?.some(child => location.pathname === child.href)
+            const isActive = location.pathname === item.href || isChildActive
+
+            if (hasChildren) {
+              return (
+                <li key={item.href}>
+                  <button
+                    onClick={() => toggleExpand(item.href)}
+                    className={`
+                      w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm
+                      ${isActive
+                        ? 'bg-green-50 dark:bg-green-600/10 text-green-700 dark:text-green-400'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }
+                    `}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                    <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isExpanded && (
+                    <ul className="mt-0.5 ml-3 space-y-0.5 border-l border-slate-200 dark:border-slate-700">
+                      {item.children?.filter(child => !child.ownerOnly || isOwner).map((child) => {
+                        const ChildIcon = child.icon
+                        return (
+                          <li key={child.href}>
+                            <NavLink
+                              to={child.href}
+                              className={({ isActive }) => `
+                                flex items-center gap-2.5 px-3 py-2 ml-2 rounded-lg transition-all text-sm
+                                ${isActive
+                                  ? 'bg-green-50 dark:bg-green-600/10 text-green-700 dark:text-green-400'
+                                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }
+                              `}
+                            >
+                              <ChildIcon className="w-4 h-4" />
+                              <span className="font-medium">{child.label}</span>
+                            </NavLink>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </li>
+              )
+            }
+
             return (
               <li key={item.href}>
                 <NavLink
                   to={item.href}
                   end={item.href === '/'}
                   className={({ isActive }) => `
-                    flex items-center gap-3 px-4 py-3 rounded-xl transition-all
+                    flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm
                     ${isActive
-                      ? 'bg-green-50 dark:bg-green-600/10 text-green-700 dark:text-green-400 relative before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-8 before:bg-green-600 before:rounded-r'
+                      ? 'bg-green-50 dark:bg-green-600/10 text-green-700 dark:text-green-400'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }
                   `}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
-                  {item.ownerOnly && (
-                    <span className="ml-auto text-xs px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">
-                      Owner
-                    </span>
-                  )}
                 </NavLink>
               </li>
             )
@@ -107,13 +175,13 @@ export default function Sidebar() {
       </nav>
 
       {/* User Profile Footer */}
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
+      <div className="p-3 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-full bg-green-600 flex items-center justify-center text-white font-medium text-sm shrink-0">
             {profile?.full_name ? getInitials(profile.full_name) : 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
               {profile?.full_name || 'User'}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -122,7 +190,7 @@ export default function Sidebar() {
           </div>
           <button
             onClick={handleLogout}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
             title="Logout"
           >
             <LogOut className="w-4 h-4 text-slate-500 dark:text-slate-400" />

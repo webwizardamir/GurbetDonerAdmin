@@ -9,9 +9,9 @@ import OrdersTable from '../components/OrdersTable'
 
 export default function Dashboard() {
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Orders"
           value="1,234"
@@ -47,12 +47,10 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Orders Table */}
-      <div className="mb-8">
-        <OrdersTable />
-      </div>
+      <OrdersTable />
 
       {/* Additional Dashboard Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Low Stock Products */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">

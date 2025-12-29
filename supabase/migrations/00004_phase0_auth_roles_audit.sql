@@ -28,8 +28,8 @@ ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 -- =====================================================
 
 CREATE TABLE IF NOT EXISTS permissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    role user_role NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role TEXT NOT NULL,
     resource TEXT NOT NULL,
     action TEXT NOT NULL,
     allowed BOOLEAN DEFAULT true,
@@ -113,7 +113,7 @@ BEGIN
 END $$;
 
 CREATE TABLE IF NOT EXISTS audit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id),
     user_email TEXT NOT NULL,
     action audit_action NOT NULL,
@@ -140,7 +140,7 @@ CREATE POLICY audit_logs_select_owner ON audit_logs
         EXISTS (
             SELECT 1 FROM profiles
             WHERE profiles.id = auth.uid()
-            AND profiles.role = 'owner'
+            AND profiles.role::text = 'owner'
         )
     );
 
@@ -274,7 +274,7 @@ BEGIN
     RETURN EXISTS (
         SELECT 1 FROM profiles
         WHERE id = auth.uid()
-        AND role = 'owner'
+        AND role::text = 'owner'
         AND is_active = true
     );
 END;
@@ -287,7 +287,7 @@ BEGIN
     RETURN EXISTS (
         SELECT 1 FROM profiles
         WHERE id = auth.uid()
-        AND role = 'shop_manager'
+        AND role::text = 'shop_manager'
         AND is_active = true
     );
 END;
@@ -300,7 +300,7 @@ BEGIN
     RETURN EXISTS (
         SELECT 1 FROM profiles
         WHERE id = auth.uid()
-        AND role IN ('owner', 'shop_manager', 'admin')
+        AND role::text IN ('owner', 'shop_manager', 'admin')
         AND is_active = true
     );
 END;
@@ -336,7 +336,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- =====================================================
 
 CREATE TABLE IF NOT EXISTS user_sessions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     session_token TEXT UNIQUE NOT NULL,
     ip_address INET,
@@ -385,7 +385,7 @@ CREATE POLICY profiles_update_owner ON profiles
 -- =====================================================
 
 CREATE TABLE IF NOT EXISTS login_attempts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL,
     ip_address INET,
     success BOOLEAN NOT NULL,

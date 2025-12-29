@@ -44,12 +44,12 @@ CREATE TYPE user_role AS ENUM ('owner', 'shop_manager');
 ```
 
 **Features:**
-- [ ] Admin login (email + password)
-- [ ] Password reset flow
-- [ ] Session management
+- [x] Admin login (email + password)
+- [x] Password reset flow
+- [x] Session management
 - [ ] Auto-logout after inactivity (configurable)
 - [ ] Rate limiting on login attempts
-- [ ] Secure HTTP-only cookies
+- [x] Secure HTTP-only cookies
 - [ ] Remember me option
 
 **Components:**
@@ -136,12 +136,12 @@ CREATE TYPE audit_action AS ENUM ('create', 'update', 'delete');
 ```
 
 **Features:**
-- [ ] Auto-log all create/update/delete on tracked tables
-- [ ] Store old and new values as JSONB
-- [ ] Include user info, IP, timestamp
-- [ ] Append-only (immutable)
-- [ ] Searchable by entity, user, date range
-- [ ] Export to CSV
+- [x] Auto-log all create/update/delete on tracked tables
+- [x] Store old and new values as JSONB
+- [x] Include user info, IP, timestamp
+- [x] Append-only (immutable)
+- [x] Searchable by entity, user, date range
+- [x] Export to CSV
 
 **Tracked Entities:**
 - customers
@@ -161,7 +161,7 @@ CREATE TYPE audit_action AS ENUM ('create', 'update', 'delete');
 
 ---
 
-## Phase 1: Customers
+## Phase 1: Customers ✅ COMPLETED
 
 **Database Schema:**
 ```sql
@@ -187,28 +187,28 @@ CREATE TABLE customers (
   shipping_country TEXT DEFAULT 'NL',
 
   internal_notes TEXT,
-  is_active BOOLEAN DEFAULT true,
   created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
+**Note:** Removed `is_active` column - simpler to just delete customers when needed.
+
 **Features:**
-- [ ] Customer list with search and filters
-- [ ] Create/edit customer form
-- [ ] Billing + shipping address management
-- [ ] VAT number validation (optional)
-- [ ] Customer order history
-- [ ] Quick reorder from last order
-- [ ] Soft delete (deactivate)
+- [x] Customer list with search and filters
+- [x] Create/edit customer form
+- [x] Billing + shipping address management
+- [x] VAT number field (validation optional)
+- [x] Delete customer functionality
+- [x] CSV Import from WooCommerce
+- [ ] Customer order history (Phase 5)
+- [ ] Quick reorder from last order (Phase 5)
 
 **Components:**
-- `CustomersPage.tsx` - List page with search/filter
-- `CustomerForm.tsx` - Create/edit form
-- `CustomerDetail.tsx` - View customer with history
-- `CustomerCard.tsx` - Mobile-friendly list card
-- `AddressForm.tsx` - Reusable address fields
+- `CustomersPage.tsx` - List page with table (desktop) / cards (mobile)
+- `CustomerForm.tsx` - Create/edit modal form
+- `CustomerImport.tsx` - CSV import modal for WooCommerce data
 - `useCustomers.ts` - CRUD hooks
 
 ---
@@ -728,9 +728,9 @@ CREATE TABLE document_settings (
 - [x] Supabase connection
 - [x] Basic layout (Sidebar, Header)
 - [x] Sample Dashboard
-- [ ] **Phase 0: Core Platform** ← START HERE
-- [ ] Phase 1: Customers
-- [ ] Phase 2: Products
+- [x] **Phase 0: Core Platform** ✅ COMPLETED
+- [x] **Phase 1: Customers** ✅ COMPLETED
+- [ ] **Phase 2: Products** ← NEXT
 - [ ] Phase 3: Inventory
 - [ ] Phase 4: Pricing
 - [ ] Phase 5: Orders
@@ -744,7 +744,9 @@ CREATE TABLE document_settings (
 
 ## Next Steps
 
-1. Start Phase 0.1: Authentication System
-2. Create login/logout UI
-3. Implement role-based access
-4. Set up audit log system
+1. Start Phase 2: Products & Categories
+2. Create products/categories database migration
+3. Build ProductsPage.tsx with list/search/filter
+4. Create ProductForm.tsx for create/edit
+5. Build CategoryManager.tsx for category CRUD
+6. Implement useProducts.ts hook for CRUD operations

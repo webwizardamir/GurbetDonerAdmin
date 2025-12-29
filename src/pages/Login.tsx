@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '../services/supabase'
+import { useAuth } from '../context/AuthContext'
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
+  const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -18,52 +19,21 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const { error: signInError } = await signIn(email, password)
 
       if (signInError) {
-        if (signInError.message.includes('Invalid login credentials')) {
+        if (signInError.includes('Invalid login credentials')) {
           setError('Invalid email or password. Please try again.')
-        } else if (signInError.message.includes('Email not confirmed')) {
+        } else if (signInError.includes('Email not confirmed')) {
           setError('Please verify your email address before logging in.')
         } else {
-          setError(signInError.message)
+          setError(signInError)
         }
         return
       }
 
-      if (data.user) {
-        // Check if user has admin role
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, is_active')
-          .eq('id', data.user.id)
-          .single()
-
-        if (profileError || !profile) {
-          setError('Unable to fetch user profile. Please contact support.')
-          await supabase.auth.signOut()
-          return
-        }
-
-        if (!profile.is_active) {
-          setError('Your account has been deactivated. Please contact support.')
-          await supabase.auth.signOut()
-          return
-        }
-
-        // Only allow owner and shop_manager roles
-        if (!['owner', 'shop_manager', 'admin'].includes(profile.role)) {
-          setError('You do not have permission to access this application.')
-          await supabase.auth.signOut()
-          return
-        }
-
-        // Redirect to dashboard
-        navigate('/')
-      }
+      // Redirect to dashboard on success
+      navigate('/')
     } catch (err) {
       setError('An unexpected error occurred. Please try again.')
       console.error('Login error:', err)

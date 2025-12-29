@@ -117,7 +117,6 @@ export interface Customer {
   shipping_country?: string
   // Other
   internal_notes?: string
-  is_active: boolean
   created_by?: string
   created_at: string
   updated_at: string

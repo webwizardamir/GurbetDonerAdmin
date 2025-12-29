@@ -6,6 +6,48 @@
 -- WARNING: This will add test data to your database!
 
 -- =====================================================
+-- FIX: calculate_order_total function
+-- =====================================================
+CREATE OR REPLACE FUNCTION calculate_order_total()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_order_id UUID;
+    v_tax DECIMAL(10,2);
+    v_discount DECIMAL(10,2);
+BEGIN
+    -- Get the order_id based on operation type
+    IF (TG_OP = 'DELETE') THEN
+        v_order_id := OLD.order_id;
+    ELSE
+        v_order_id := NEW.order_id;
+    END IF;
+
+    -- Get current tax and discount from the order
+    SELECT tax, discount INTO v_tax, v_discount FROM orders WHERE id = v_order_id;
+
+    UPDATE orders
+    SET
+        subtotal = (
+            SELECT COALESCE(SUM(total), 0)
+            FROM order_items
+            WHERE order_id = v_order_id
+        ),
+        total = (
+            SELECT COALESCE(SUM(total), 0)
+            FROM order_items
+            WHERE order_id = v_order_id
+        ) + COALESCE(v_tax, 0) - COALESCE(v_discount, 0)
+    WHERE id = v_order_id;
+
+    IF (TG_OP = 'DELETE') THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =====================================================
 -- SAMPLE PRODUCTS
 -- =====================================================
 INSERT INTO products (sku, name, description, category, unit, price, cost, stock_quantity, low_stock_threshold, is_active) VALUES
@@ -18,7 +60,8 @@ INSERT INTO products (sku, name, description, category, unit, price, cost, stock
     ('TURK-001', 'Halal Turkey Breast', 'Fresh halal turkey breast', 'Poultry', 'kg', 55.00, 40.00, 100, 15, true),
     ('SAUS-001', 'Halal Beef Sausages', 'Premium halal beef sausages', 'Processed', 'kg', 45.00, 30.00, 180, 30, true),
     ('KEBAB-001', 'Ready-made Kebab Mix', 'Seasoned halal kebab meat', 'Processed', 'kg', 65.00, 45.00, 150, 25, true),
-    ('MINCE-001', 'Halal Beef Mince', 'Premium halal beef mince', 'Beef', 'kg', 55.00, 40.00, 220, 35, true);
+    ('MINCE-001', 'Halal Beef Mince', 'Premium halal beef mince', 'Beef', 'kg', 55.00, 40.00, 220, 35, true)
+ON CONFLICT (sku) DO NOTHING;
 
 -- Note: Admin users and customers should be created through the Supabase Auth UI
 -- or through your application's signup flow to ensure proper authentication setup.
@@ -31,7 +74,8 @@ INSERT INTO customers (company_name, contact_name, email, phone, address, city, 
     ('Ankara Restaurant Group', 'Ayse Demir', 'ayse@ankaragroup.com', '+90 312 555 0202', 'Kizilay Cad. 45', 'Ankara', '06420', 'TR2345678901', 75000.00, true),
     ('Izmir Food Services', 'Ali Kaya', 'ali@izmirfood.com', '+90 232 555 0303', 'Kordon Street 78', 'Izmir', '35210', 'TR3456789012', 60000.00, true),
     ('Bursa Meat Market', 'Fatma Celik', 'fatma@bursameat.com', '+90 224 555 0404', 'Heykel Mah. 12', 'Bursa', '16040', 'TR4567890123', 40000.00, true),
-    ('Antalya Grill & BBQ', 'Mustafa Ozturk', 'mustafa@antalyagrill.com', '+90 242 555 0505', 'Kaleici 56', 'Antalya', '07100', 'TR5678901234', 55000.00, true);
+    ('Antalya Grill & BBQ', 'Mustafa Ozturk', 'mustafa@antalyagrill.com', '+90 242 555 0505', 'Kaleici 56', 'Antalya', '07100', 'TR5678901234', 55000.00, true)
+ON CONFLICT (email) DO NOTHING;
 
 -- =====================================================
 -- SAMPLE ORDERS (with realistic data)
@@ -68,13 +112,13 @@ BEGIN
             (v_order_id, v_product_chick_001, 'Halal Chicken Breast', 'CHICK-001', 20, 35.00, 700.00);
 
         -- Create Invoice
-        INSERT INTO invoices (order_id, customer_id, status, subtotal, tax, total, amount_paid, amount_due, due_date)
-        VALUES (v_order_id, v_customer_id, 'paid', 3225.00, 180.00, 3405.00, 3405.00, 0.00, CURRENT_DATE + INTERVAL '30 days')
+        INSERT INTO invoices (invoice_number, order_id, customer_id, status, subtotal, tax, total, amount_paid, amount_due, due_date)
+        VALUES (generate_invoice_number(), v_order_id, v_customer_id, 'paid', 3225.00, 180.00, 3405.00, 3405.00, 0.00, CURRENT_DATE + INTERVAL '30 days')
         RETURNING id INTO v_invoice_id;
 
         -- Create Payment
-        INSERT INTO payments (invoice_id, customer_id, amount, payment_method, reference_number)
-        VALUES (v_invoice_id, v_customer_id, 3405.00, 'Bank Transfer', 'TRF-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-001');
+        INSERT INTO payments (payment_number, invoice_id, customer_id, amount, payment_method, reference_number)
+        VALUES (generate_payment_number(), v_invoice_id, v_customer_id, 3405.00, 'Bank Transfer', 'TRF-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-001');
     END IF;
 END $$;
 
@@ -124,8 +168,8 @@ BEGIN
             (v_order_id, v_product_mince, 'Halal Beef Mince', 'MINCE-001', 30, 55.00, 1650.00);
 
         -- Create Invoice (Unpaid)
-        INSERT INTO invoices (order_id, customer_id, status, subtotal, tax, total, amount_paid, amount_due, due_date)
-        VALUES (v_order_id, v_customer_id, 'unpaid', 2310.00, 125.00, 2435.00, 0.00, 2435.00, CURRENT_DATE + INTERVAL '30 days');
+        INSERT INTO invoices (invoice_number, order_id, customer_id, status, subtotal, tax, total, amount_paid, amount_due, due_date)
+        VALUES (generate_invoice_number(), v_order_id, v_customer_id, 'unpaid', 2310.00, 125.00, 2435.00, 0.00, 2435.00, CURRENT_DATE + INTERVAL '30 days');
     END IF;
 END $$;
 

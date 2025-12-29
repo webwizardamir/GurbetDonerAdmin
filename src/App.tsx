@@ -9,7 +9,9 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Unauthorized from './pages/Unauthorized'
 import Dashboard from './pages/Dashboard'
+import Customers from './pages/Customers'
 import AuditLog from './pages/AuditLog'
+import Users from './pages/Users'
 import TestConnection from './pages/TestConnection'
 
 function App() {
@@ -54,26 +56,16 @@ function App() {
             {/* Dashboard */}
             <Route index element={<Dashboard />} />
 
-            {/* Owner Only Routes */}
-            <Route
-              path="audit-log"
-              element={
-                <OwnerRoute>
-                  <AuditLog />
-                </OwnerRoute>
-              }
-            />
-
             {/* Test Connection (temporary) */}
             <Route path="test-connection" element={<TestConnection />} />
 
+            {/* Customers */}
+            <Route path="customers" element={<Customers />} />
+
             {/* Placeholder routes for future phases */}
-            <Route path="customers" element={<ComingSoon title="Customers" />} />
-            <Route path="products" element={<ComingSoon title="Products" />} />
             <Route path="orders" element={<ComingSoon title="Orders" />} />
+            <Route path="products" element={<ComingSoon title="Products" />} />
             <Route path="invoices" element={<ComingSoon title="Invoices" />} />
-            <Route path="payments" element={<ComingSoon title="Payments" />} />
-            <Route path="inventory" element={<ComingSoon title="Inventory" />} />
             <Route
               path="analytics"
               element={
@@ -82,11 +74,21 @@ function App() {
                 </OwnerRoute>
               }
             />
+
+            {/* Settings Routes (Owner Only) */}
             <Route
-              path="settings"
+              path="settings/users"
               element={
                 <OwnerRoute>
-                  <ComingSoon title="Settings" />
+                  <Users />
+                </OwnerRoute>
+              }
+            />
+            <Route
+              path="settings/audit-log"
+              element={
+                <OwnerRoute>
+                  <AuditLog />
                 </OwnerRoute>
               }
             />
@@ -101,15 +103,15 @@ function App() {
 }
 
 // Temporary coming soon component
-function ComingSoon({ title }: { title: string }) {
+function ComingSoon({ title: _title }: { title: string }) {
   return (
-    <div className="flex-1 flex items-center justify-center p-6">
+    <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-          {title}
-        </h1>
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+          <span className="text-2xl">🚧</span>
+        </div>
         <p className="text-slate-600 dark:text-slate-400">
-          This feature is coming soon in the next phase.
+          This feature is coming soon.
         </p>
       </div>
     </div>

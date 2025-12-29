@@ -1,16 +1,30 @@
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Enable UUID extension (using gen_random_uuid() which is built-in to PostgreSQL 13+)
 
--- Create custom types
-CREATE TYPE user_role AS ENUM ('admin', 'customer');
-CREATE TYPE order_status AS ENUM ('pending', 'processing', 'delivered', 'cancelled');
-CREATE TYPE payment_status AS ENUM ('paid', 'unpaid', 'partial');
-CREATE TYPE stock_status AS ENUM ('in_stock', 'low_stock', 'out_of_stock');
+-- Create custom types (idempotent)
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('admin', 'customer');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE order_status AS ENUM ('pending', 'processing', 'delivered', 'cancelled');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE payment_status AS ENUM ('paid', 'unpaid', 'partial');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE stock_status AS ENUM ('in_stock', 'low_stock', 'out_of_stock');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- =====================================================
 -- PROFILES TABLE (extends auth.users)
 -- =====================================================
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     full_name TEXT NOT NULL,
@@ -24,8 +38,8 @@ CREATE TABLE profiles (
 -- =====================================================
 -- CUSTOMERS TABLE (B2B Clients)
 -- =====================================================
-CREATE TABLE customers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS customers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
     company_name TEXT NOT NULL,
     contact_name TEXT NOT NULL,
@@ -47,8 +61,8 @@ CREATE TABLE customers (
 -- =====================================================
 -- PRODUCTS TABLE
 -- =====================================================
-CREATE TABLE products (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sku TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
@@ -67,8 +81,8 @@ CREATE TABLE products (
 -- =====================================================
 -- ORDERS TABLE
 -- =====================================================
-CREATE TABLE orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_number TEXT UNIQUE NOT NULL,
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
     status order_status NOT NULL DEFAULT 'pending',
@@ -87,8 +101,8 @@ CREATE TABLE orders (
 -- =====================================================
 -- ORDER ITEMS TABLE
 -- =====================================================
-CREATE TABLE order_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS order_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
     product_name TEXT NOT NULL,
@@ -103,8 +117,8 @@ CREATE TABLE order_items (
 -- =====================================================
 -- INVOICES TABLE
 -- =====================================================
-CREATE TABLE invoices (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_number TEXT UNIQUE NOT NULL,
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE RESTRICT,
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
@@ -124,8 +138,8 @@ CREATE TABLE invoices (
 -- =====================================================
 -- PAYMENTS TABLE
 -- =====================================================
-CREATE TABLE payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     payment_number TEXT UNIQUE NOT NULL,
     invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE RESTRICT,
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
@@ -141,33 +155,33 @@ CREATE TABLE payments (
 -- =====================================================
 -- INDEXES for better performance
 -- =====================================================
-CREATE INDEX idx_profiles_role ON profiles(role);
-CREATE INDEX idx_profiles_email ON profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
 
-CREATE INDEX idx_customers_user_id ON customers(user_id);
-CREATE INDEX idx_customers_email ON customers(email);
-CREATE INDEX idx_customers_is_active ON customers(is_active);
+CREATE INDEX IF NOT EXISTS idx_customers_user_id ON customers(user_id);
+CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
+CREATE INDEX IF NOT EXISTS idx_customers_is_active ON customers(is_active);
 
-CREATE INDEX idx_products_sku ON products(sku);
-CREATE INDEX idx_products_category ON products(category);
-CREATE INDEX idx_products_is_active ON products(is_active);
+CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active);
 
-CREATE INDEX idx_orders_customer_id ON orders(customer_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_created_at ON orders(created_at);
-CREATE INDEX idx_orders_order_number ON orders(order_number);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number);
 
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
 
-CREATE INDEX idx_invoices_order_id ON invoices(order_id);
-CREATE INDEX idx_invoices_customer_id ON invoices(customer_id);
-CREATE INDEX idx_invoices_status ON invoices(status);
-CREATE INDEX idx_invoices_invoice_number ON invoices(invoice_number);
+CREATE INDEX IF NOT EXISTS idx_invoices_order_id ON invoices(order_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON invoices(customer_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+CREATE INDEX IF NOT EXISTS idx_invoices_invoice_number ON invoices(invoice_number);
 
-CREATE INDEX idx_payments_invoice_id ON payments(invoice_id);
-CREATE INDEX idx_payments_customer_id ON payments(customer_id);
-CREATE INDEX idx_payments_payment_date ON payments(payment_date);
+CREATE INDEX IF NOT EXISTS idx_payments_invoice_id ON payments(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON payments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_payments_payment_date ON payments(payment_date);
 
 -- =====================================================
 -- FUNCTIONS
@@ -312,36 +326,50 @@ $$ LANGUAGE plpgsql;
 -- =====================================================
 
 -- Updated_at triggers
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_customers_updated_at ON customers;
 CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_products_updated_at ON products;
 CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_invoices_updated_at ON invoices;
 CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Function to set order number on insert
+CREATE OR REPLACE FUNCTION set_order_number_fn()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.order_number IS NULL THEN
+        NEW.order_number := generate_order_number();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Auto-generate numbers
+DROP TRIGGER IF EXISTS set_order_number ON orders;
 CREATE TRIGGER set_order_number BEFORE INSERT ON orders
-    FOR EACH ROW
-    WHEN (NEW.order_number IS NULL)
-    EXECUTE FUNCTION (
-        SELECT generate_order_number() INTO NEW.order_number;
-        RETURN NEW;
-    );
+    FOR EACH ROW EXECUTE FUNCTION set_order_number_fn();
 
 -- Calculate order totals when items change
+DROP TRIGGER IF EXISTS calculate_order_total_on_item_change ON order_items;
 CREATE TRIGGER calculate_order_total_on_item_change
     AFTER INSERT OR UPDATE OR DELETE ON order_items
     FOR EACH ROW EXECUTE FUNCTION calculate_order_total();
 
 -- Update invoice payment status when payment is made
+DROP TRIGGER IF EXISTS update_invoice_on_payment ON payments;
 CREATE TRIGGER update_invoice_on_payment
     AFTER INSERT ON payments
     FOR EACH ROW EXECUTE FUNCTION update_invoice_payment_status();

@@ -2,19 +2,16 @@ import { useLocation } from 'react-router-dom'
 import { Search, Sun, Moon, Bell } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
-// Page title mapping
-const PAGE_TITLES: Record<string, string> = {
-  '/': 'Dashboard',
-  '/orders': 'Orders',
-  '/customers': 'Customers',
-  '/products': 'Products',
-  '/inventory': 'Inventory',
-  '/invoices': 'Invoices',
-  '/payments': 'Payments',
-  '/analytics': 'Analytics',
-  '/audit-log': 'Audit Log',
-  '/settings': 'Settings',
-  '/test-connection': 'Test Connection',
+// Page metadata mapping
+const PAGE_META: Record<string, { title: string; description?: string }> = {
+  '/': { title: 'Dashboard', description: 'Overview of your business' },
+  '/orders': { title: 'Orders', description: 'Manage customer orders' },
+  '/customers': { title: 'Customers', description: 'Manage your customer base' },
+  '/products': { title: 'Products', description: 'Product catalog and inventory' },
+  '/invoices': { title: 'Invoices', description: 'Billing and invoices' },
+  '/analytics': { title: 'Analytics', description: 'Business insights and reports' },
+  '/settings/users': { title: 'User Management', description: 'Manage staff accounts' },
+  '/settings/audit-log': { title: 'Audit Log', description: 'System activity history' },
 }
 
 export default function Header() {
@@ -27,7 +24,8 @@ export default function Header() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
 
-  const title = PAGE_TITLES[location.pathname] || 'MelekHalalFood'
+  const pageMeta = PAGE_META[location.pathname] || { title: 'MelekHalalFood' }
+  const { title, description } = pageMeta
 
   useEffect(() => {
     if (darkMode) {
@@ -50,13 +48,23 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed top-0 right-0 left-72 h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-10">
+    <header className="fixed top-0 right-0 left-64 h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-10">
       <div className="h-full px-6 flex items-center justify-between gap-6">
-        {/* Left: Page Title */}
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-            {title}
-          </h1>
+        {/* Left: Page Title & Description */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+              {title}
+            </h1>
+            {description && (
+              <>
+                <span className="hidden sm:block w-px h-4 bg-slate-300 dark:bg-slate-600" />
+                <span className="hidden sm:block text-sm text-slate-500 dark:text-slate-400 truncate">
+                  {description}
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Right: Search, Theme Toggle, Notifications */}

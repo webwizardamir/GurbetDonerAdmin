@@ -11,23 +11,19 @@ interface AuthContextType {
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
-  // Role checks
   isOwner: boolean
   isShopManager: boolean
   isAdmin: boolean
-  // Permission checks
   hasPermission: (resource: Resource, action: Action) => boolean
   canViewCost: boolean
   canViewAnalytics: boolean
   canAccessSettings: boolean
-  // Session management
   refreshSession: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Auto-logout timeout (30 minutes of inactivity)
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000 // 30 minutes
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -46,7 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Profile fetch error:', error)
+        return null
+      }
       return data as UserProfile
     } catch (error) {
       console.error('Error fetching profile:', error)
@@ -54,15 +53,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Fetch permissions for user's role
+  // Fetch permissions with timeout
   const fetchPermissions = useCallback(async (role: string): Promise<Permission[]> => {
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
       const { data, error } = await supabase
         .from('permissions')
         .select('*')
         .eq('role', role)
+        .abortSignal(controller.signal)
 
-      if (error) throw error
+      clearTimeout(timeoutId)
+
+      if (error) {
+        console.error('Permissions fetch error:', error)
+        return []
+      }
       return (data || []) as Permission[]
     } catch (error) {
       console.error('Error fetching permissions:', error)
@@ -70,125 +78,154 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Initialize auth state
+  // Initialize auth state - runs once on mount
   useEffect(() => {
+    let mounted = true
+
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        console.log('Initializing auth...')
+        const { data: { session: currentSession } } = await supabase.auth.getSession()
 
-        if (session?.user) {
-          setSession(session)
-          setUser(session.user)
+        if (!mounted) return
 
-          const userProfile = await fetchProfile(session.user.id)
+        if (currentSession?.user) {
+          console.log('Session found, fetching profile...')
+          setSession(currentSession)
+          setUser(currentSession.user)
+
+          const userProfile = await fetchProfile(currentSession.user.id)
+
+          if (!mounted) return
+
           if (userProfile) {
+            console.log('Profile loaded:', userProfile.role)
             setProfile(userProfile)
             const userPermissions = await fetchPermissions(userProfile.role)
-            setPermissions(userPermissions)
+            if (mounted) setPermissions(userPermissions)
+          } else {
+            console.log('No profile found, clearing session')
+            // No profile - sign out
+            await supabase.auth.signOut()
+            setSession(null)
+            setUser(null)
           }
+        } else {
+          console.log('No session found')
         }
       } catch (error) {
         console.error('Auth initialization error:', error)
       } finally {
-        setLoading(false)
+        if (mounted) {
+          console.log('Auth init complete, setting loading=false')
+          setLoading(false)
+        }
       }
     }
 
     initAuth()
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
+    // Listen for auth changes (sign in/out only)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _newSession) => {
+      console.log('Auth state changed:', event)
 
-        if (session?.user) {
-          const userProfile = await fetchProfile(session.user.id)
-          if (userProfile) {
-            setProfile(userProfile)
-            const userPermissions = await fetchPermissions(userProfile.role)
-            setPermissions(userPermissions)
-          }
-        } else {
-          setProfile(null)
-          setPermissions([])
-        }
-
-        if (event === 'SIGNED_OUT') {
-          setProfile(null)
-          setPermissions([])
-        }
+      if (event === 'SIGNED_OUT') {
+        setSession(null)
+        setUser(null)
+        setProfile(null)
+        setPermissions([])
       }
-    )
 
-    return () => subscription.unsubscribe()
-  }, [fetchProfile, fetchPermissions])
-
-  // Track user activity for auto-logout
-  useEffect(() => {
-    const updateActivity = () => setLastActivity(Date.now())
-
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
-    events.forEach(event => window.addEventListener(event, updateActivity))
+      // For SIGNED_IN, we handle it in signIn function directly
+      // This prevents double-fetching and race conditions
+    })
 
     return () => {
-      events.forEach(event => window.removeEventListener(event, updateActivity))
+      mounted = false
+      subscription.unsubscribe()
     }
+  }, [fetchProfile, fetchPermissions])
+
+  // Track user activity
+  useEffect(() => {
+    const updateActivity = () => setLastActivity(Date.now())
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    events.forEach(event => window.addEventListener(event, updateActivity))
+    return () => events.forEach(event => window.removeEventListener(event, updateActivity))
   }, [])
 
   // Auto-logout on inactivity
   useEffect(() => {
     if (!session) return
-
     const checkInactivity = setInterval(() => {
       if (Date.now() - lastActivity > INACTIVITY_TIMEOUT) {
         console.log('Auto-logout due to inactivity')
         signOut()
       }
-    }, 60000) // Check every minute
-
+    }, 60000)
     return () => clearInterval(checkInactivity)
   }, [session, lastActivity])
 
   // Sign in
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      console.log('SignIn: Starting sign in process...')
+      setLoading(true)
+
+      console.log('SignIn: Calling signInWithPassword...')
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
+        console.error('SignIn: Auth error:', error.message)
+        setLoading(false)
         return { error: error.message }
       }
 
+      console.log('SignIn: Auth successful, user:', data.user?.id)
+
       if (data.user) {
+        console.log('SignIn: Setting session and user state...')
+        setSession(data.session)
+        setUser(data.user)
+
+        console.log('SignIn: Fetching profile...')
         const userProfile = await fetchProfile(data.user.id)
+        console.log('SignIn: Profile result:', userProfile)
 
         if (!userProfile) {
+          console.error('SignIn: No profile found, signing out')
           await supabase.auth.signOut()
-          return { error: 'Unable to fetch user profile' }
+          setLoading(false)
+          return { error: 'Unable to fetch user profile. Please contact support.' }
         }
 
         if (!userProfile.is_active) {
+          console.log('SignIn: User is inactive, signing out')
           await supabase.auth.signOut()
+          setLoading(false)
           return { error: 'Your account has been deactivated' }
         }
 
-        // Only allow owner, shop_manager, or admin roles
         if (!['owner', 'shop_manager', 'admin'].includes(userProfile.role)) {
+          console.log('SignIn: User role not allowed:', userProfile.role)
           await supabase.auth.signOut()
+          setLoading(false)
           return { error: 'You do not have permission to access this application' }
         }
 
+        console.log('SignIn: Setting profile and fetching permissions...')
         setProfile(userProfile)
         const userPermissions = await fetchPermissions(userProfile.role)
+        console.log('SignIn: Permissions loaded:', userPermissions.length)
         setPermissions(userPermissions)
       }
 
+      console.log('SignIn: Complete, setting loading=false')
+      setLoading(false)
       return { error: null }
     } catch (err) {
-      console.error('Sign in error:', err)
+      console.error('SignIn: Unexpected error:', err)
+      setLoading(false)
       return { error: 'An unexpected error occurred' }
     }
   }
@@ -208,31 +245,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Refresh session
   const refreshSession = async () => {
-    const { data: { session } } = await supabase.auth.refreshSession()
-    if (session) {
-      setSession(session)
-      setUser(session.user)
+    const { data: { session: newSession } } = await supabase.auth.refreshSession()
+    if (newSession) {
+      setSession(newSession)
+      setUser(newSession.user)
     }
   }
 
   // Role checks
   const isOwner = profile?.role === 'owner'
   const isShopManager = profile?.role === 'shop_manager'
-  const isAdmin = profile?.role === 'owner' || profile?.role === 'shop_manager' || profile?.role === 'admin'
+  const isAdmin = ['owner', 'shop_manager', 'admin'].includes(profile?.role || '')
 
-  // Permission check function
+  // Permission check
   const hasPermission = useCallback((resource: Resource, action: Action): boolean => {
-    // Owner has all permissions
     if (isOwner) return true
-
-    // Check permissions table
-    const permission = permissions.find(
-      p => p.resource === resource && p.action === action
-    )
+    const permission = permissions.find(p => p.resource === resource && p.action === action)
     return permission?.allowed ?? false
   }, [permissions, isOwner])
 
-  // Convenience permission checks
   const canViewCost = hasPermission('products', 'view_cost') || hasPermission('inventory', 'view_cost')
   const canViewAnalytics = hasPermission('analytics', 'view')
   const canAccessSettings = hasPermission('settings', 'view')
