@@ -235,7 +235,10 @@ ALTER TABLE products ADD COLUMN category_id UUID REFERENCES categories(id);
 ALTER TABLE products ADD COLUMN barcode TEXT UNIQUE;
 ALTER TABLE products ADD COLUMN unit_type unit_type DEFAULT 'package';
 ALTER TABLE products ADD COLUMN base_price INTEGER DEFAULT 0; -- cents
+ALTER TABLE products ADD COLUMN cost_cents INTEGER DEFAULT 0; -- COGS in cents (Owner only)
 ALTER TABLE products ADD COLUMN tax_rate DECIMAL(5,2) DEFAULT 9.00;
+ALTER TABLE products ADD COLUMN stock_quantity INTEGER DEFAULT 0;
+ALTER TABLE products ADD COLUMN track_stock BOOLEAN DEFAULT true;
 ```
 
 **Note:** Simplified implementation:
@@ -243,6 +246,9 @@ ALTER TABLE products ADD COLUMN tax_rate DECIMAL(5,2) DEFAULT 9.00;
 - Barcode input only (no generation - barcodes already on product boxes)
 - No image upload needed
 - Unit types: package/box, piece, kg (standard food wholesale)
+- No active/inactive system - products are simply deleted when not needed
+- Cost of Goods (COGS) visible only to Owner role
+- Track stock toggle to enable/disable stock management per product
 
 **Features:**
 - [x] Product list with search and category filter
@@ -251,12 +257,15 @@ ALTER TABLE products ADD COLUMN tax_rate DECIMAL(5,2) DEFAULT 9.00;
 - [x] Category management (simple CRUD)
 - [x] Unit type selection (package, piece, kg)
 - [x] Tax rate per product (9% BTW default)
-- [x] Soft delete (deactivate/reactivate)
+- [x] Stock quantity field
+- [x] Cost of Goods (COGS) - Owner only can view/edit
+- [x] Track stock checkbox (enable/disable stock management)
+- [x] Margin column in products list (Owner only)
 - [ ] Image upload (skipped - not needed)
 
 **Components:**
-- `Products.tsx` - List with table (desktop) / cards (mobile)
-- `ProductForm.tsx` - Create/edit modal form
+- `Products.tsx` - List with table (desktop) / cards (mobile), Cost/Margin columns for Owner
+- `ProductForm.tsx` - Create/edit modal form with COGS and track_stock
 - `CategoryManager.tsx` - Category CRUD modal
 - `useProducts.ts` - Products CRUD hooks
 - `useCategories.ts` - Categories CRUD hooks

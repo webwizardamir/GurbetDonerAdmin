@@ -95,24 +95,56 @@ src/
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
 
-## Features (Planned)
+## Features
 
-### Admin Role
-- Dashboard with KPIs overview
-- Order management
-- Customer management with balance tracking
-- Product inventory control
-- Invoice generation (PDF)
-- Payment history
-- Sales reports and analytics
-- App settings
+### Completed (Phases 0-2)
 
-### Customer Role
-- Personal dashboard
-- Order history
-- Invoice access
-- Payment tracking
-- Profile management
+**Phase 0: Core Platform**
+- Authentication system (email + password login)
+- Password reset flow
+- Role-based access control (Owner, Shop Manager)
+- Permission system with resource/action matrix
+- Audit log system (append-only, tracks all changes)
+- Session management with Supabase Auth
+
+**Phase 1: Customers**
+- Customer list with search and filters
+- Create/edit customer with billing + shipping addresses
+- VAT number support
+- CSV import from WooCommerce
+- Delete customer functionality
+
+**Phase 2: Products & Categories**
+- Product list with search and category filter
+- Create/edit products with barcode, SKU, unit type
+- Category management (simple flat list)
+- Tax rate per product (BTW 9%, 21%, 0%)
+- Stock quantity tracking
+- Cost of Goods (COGS) - Owner only
+- Track stock toggle per product
+- Margin display for Owner role
+
+### Planned (Phases 3-10)
+- **Phase 3**: Inventory & Batch/Expiry tracking (FIFO/FEFO)
+- **Phase 4**: Customer-specific pricing
+- **Phase 5**: Order management with discounts and fees
+- **Phase 6**: PDF document generation (Invoice, Proforma, Credit Note)
+- **Phase 7**: Analytics & Reports (Owner only)
+- **Phase 8**: Exports & Workflows
+- **Phase 9**: WooCommerce migration tools
+- **Phase 10**: Customer portal
+
+### Role Permissions
+| Feature | Owner | Shop Manager |
+|---------|-------|--------------|
+| Customers | Full | View/Create/Edit |
+| Products | Full | View/Create/Edit (no COGS) |
+| Orders | Full | View/Create/Edit/Refund |
+| Documents | Full | Generate/Download |
+| Inventory | Full | View/Adjust (no cost) |
+| Analytics | Full | None |
+| Settings | Full | None |
+| Audit Log | View | None |
 
 ## UI Components
 
