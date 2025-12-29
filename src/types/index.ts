@@ -149,8 +149,8 @@ export interface Product {
   unit_type: UnitType
   base_price: number // stored in cents
   tax_rate: number
+  stock_quantity: number
   description?: string
-  is_active: boolean
   created_by?: string
   created_at: string
   updated_at: string

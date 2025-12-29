@@ -7,8 +7,6 @@ import {
   Trash2,
   Loader2,
   Package,
-  ToggleLeft,
-  ToggleRight,
 } from 'lucide-react'
 import { useProducts } from '../hooks/useProducts'
 import { useCategories } from '../hooks/useCategories'
@@ -41,13 +39,11 @@ function formatUnitType(unitType: string): string {
 
 export default function Products() {
   const { canCreate, canEdit, canDelete } = usePermission('products')
-  const { products, loading, error, refresh, create, update, remove, deactivate, reactivate } =
-    useProducts()
+  const { products, loading, error, refresh, create, update, remove } = useProducts()
   const { categories } = useCategories({ activeOnly: true })
 
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
-  const [showInactive, setShowInactive] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [showCategories, setShowCategories] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -71,14 +67,9 @@ export default function Products() {
         return false
       }
 
-      // Active/inactive filter
-      if (!showInactive && !product.is_active) {
-        return false
-      }
-
       return true
     })
-  }, [products, searchQuery, categoryFilter, showInactive])
+  }, [products, searchQuery, categoryFilter])
 
   const handleCreate = () => {
     setEditingProduct(null)
@@ -98,14 +89,6 @@ export default function Products() {
     }
   }
 
-  const handleToggleActive = async (product: Product) => {
-    if (product.is_active) {
-      await deactivate(product.id)
-    } else {
-      await reactivate(product.id)
-    }
-  }
-
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) return
     await remove(id)
@@ -118,36 +101,6 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Products</h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowCategories(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-          >
-            <Tag className="w-5 h-5" />
-            <span className="hidden sm:inline">Categories</span>
-          </button>
-
-          {canCreate && (
-            <button
-              onClick={handleCreate}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Add Product</span>
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Search */}
@@ -176,22 +129,25 @@ export default function Products() {
           ))}
         </select>
 
-        {/* Show Inactive Toggle */}
+        {/* Categories Button */}
         <button
-          onClick={() => setShowInactive(!showInactive)}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-colors ${
-            showInactive
-              ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
-              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
-          }`}
+          onClick={() => setShowCategories(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
         >
-          {showInactive ? (
-            <ToggleRight className="w-5 h-5" />
-          ) : (
-            <ToggleLeft className="w-5 h-5" />
-          )}
-          <span className="hidden sm:inline">Inactive</span>
+          <Tag className="w-5 h-5" />
+          <span className="hidden sm:inline">Categories</span>
         </button>
+
+        {/* Add Product Button */}
+        {canCreate && (
+          <button
+            onClick={handleCreate}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">Add Product</span>
+          </button>
+        )}
       </div>
 
       {/* Error Message */}
@@ -248,6 +204,9 @@ export default function Products() {
                     Unit
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Stock
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Price
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -259,9 +218,7 @@ export default function Products() {
                 {filteredProducts.map(product => (
                   <tr
                     key={product.id}
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
-                      !product.is_active ? 'opacity-60' : ''
-                    }`}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div>
@@ -272,11 +229,6 @@ export default function Products() {
                           <div className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-xs">
                             {product.description}
                           </div>
-                        )}
-                        {!product.is_active && (
-                          <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded">
-                            Inactive
-                          </span>
                         )}
                       </div>
                     </td>
@@ -302,6 +254,17 @@ export default function Products() {
                       {formatUnitType(product.unit_type)}
                     </td>
                     <td className="px-6 py-4 text-right">
+                      <span className={`font-medium ${
+                        product.stock_quantity === 0
+                          ? 'text-red-600 dark:text-red-400'
+                          : product.stock_quantity < 10
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-slate-900 dark:text-white'
+                      }`}>
+                        {product.stock_quantity}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
                       <div className="font-medium text-slate-900 dark:text-white">
                         {formatPrice(product.base_price)}
                       </div>
@@ -310,29 +273,12 @@ export default function Products() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {canEdit && (
-                          <>
-                            <button
-                              onClick={() => handleToggleActive(product)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                product.is_active
-                                  ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20'
-                                  : 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
-                              }`}
-                              title={product.is_active ? 'Deactivate' : 'Activate'}
-                            >
-                              {product.is_active ? (
-                                <ToggleRight className="w-5 h-5" />
-                              ) : (
-                                <ToggleLeft className="w-5 h-5" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleEdit(product)}
-                              className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-                            >
-                              <Pencil className="w-5 h-5" />
-                            </button>
-                          </>
+                          <button
+                            onClick={() => handleEdit(product)}
+                            className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                          >
+                            <Pencil className="w-5 h-5" />
+                          </button>
                         )}
                         {canDelete && (
                           <button
@@ -355,9 +301,7 @@ export default function Products() {
             {filteredProducts.map(product => (
               <div
                 key={product.id}
-                className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 ${
-                  !product.is_active ? 'opacity-60' : ''
-                }`}
+                className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
@@ -365,11 +309,6 @@ export default function Products() {
                     {product.category && (
                       <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded">
                         {product.category.name}
-                      </span>
-                    )}
-                    {!product.is_active && (
-                      <span className="inline-block mt-1 ml-1 px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded">
-                        Inactive
                       </span>
                     )}
                   </div>
@@ -383,48 +322,35 @@ export default function Products() {
                   </div>
                 </div>
 
-                {(product.sku || product.barcode) && (
-                  <div className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                <div className="flex items-center justify-between text-sm mb-3">
+                  <div className="text-slate-500 dark:text-slate-400">
                     {product.sku && <span>SKU: {product.sku}</span>}
                     {product.sku && product.barcode && <span className="mx-2">|</span>}
                     {product.barcode && (
                       <span className="font-mono text-xs">{product.barcode}</span>
                     )}
                   </div>
-                )}
+                  <div className={`font-medium ${
+                    product.stock_quantity === 0
+                      ? 'text-red-600 dark:text-red-400'
+                      : product.stock_quantity < 10
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-slate-600 dark:text-slate-300'
+                  }`}>
+                    Stock: {product.stock_quantity}
+                  </div>
+                </div>
 
                 {(canEdit || canDelete) && (
                   <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
                     {canEdit && (
-                      <>
-                        <button
-                          onClick={() => handleToggleActive(product)}
-                          className={`flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            product.is_active
-                              ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
-                              : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                          }`}
-                        >
-                          {product.is_active ? (
-                            <>
-                              <ToggleRight className="w-4 h-4" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <ToggleLeft className="w-4 h-4" />
-                              Activate
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleEdit(product)}
-                          className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium"
-                        >
-                          <Pencil className="w-4 h-4" />
-                          Edit
-                        </button>
-                      </>
+                      <button
+                        onClick={() => handleEdit(product)}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium"
+                      >
+                        <Pencil className="w-4 h-4" />
+                        Edit
+                      </button>
                     )}
                     {canDelete && (
                       <button
@@ -452,7 +378,7 @@ export default function Products() {
         <CategoryManager
           onClose={() => {
             setShowCategories(false)
-            refresh() // Refresh products in case category changes affected them
+            refresh()
           }}
         />
       )}

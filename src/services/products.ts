@@ -4,7 +4,6 @@ import type { Product, UnitType } from '../types'
 export interface ProductFilters {
   search?: string
   category_id?: string
-  is_active?: boolean
 }
 
 // Fetch products with optional filters
@@ -27,19 +26,10 @@ export async function fetchProducts(filters: ProductFilters = {}): Promise<Produ
     query = query.eq('category_id', filters.category_id)
   }
 
-  if (filters.is_active !== undefined) {
-    query = query.eq('is_active', filters.is_active)
-  }
-
   const { data, error } = await query
 
   if (error) throw error
   return data || []
-}
-
-// Fetch active products only
-export async function fetchActiveProducts(): Promise<Product[]> {
-  return fetchProducts({ is_active: true })
 }
 
 // Fetch single product by ID
@@ -81,6 +71,7 @@ export async function createProduct(product: {
   unit_type: UnitType
   base_price: number // in cents
   tax_rate?: number
+  stock_quantity?: number
   description?: string
 }): Promise<Product> {
   const { data: userData } = await supabase.auth.getUser()
@@ -95,7 +86,8 @@ export async function createProduct(product: {
       category_id: product.category_id || null,
       unit_type: product.unit_type,
       base_price: product.base_price,
-      tax_rate: product.tax_rate ?? 9.00, // Dutch BTW default
+      tax_rate: product.tax_rate ?? 9.00,
+      stock_quantity: product.stock_quantity ?? 0,
       description: product.description || null,
       created_by: userId,
     })
@@ -120,8 +112,8 @@ export async function updateProduct(
     unit_type?: UnitType
     base_price?: number
     tax_rate?: number
+    stock_quantity?: number
     description?: string
-    is_active?: boolean
   }
 ): Promise<Product> {
   const { data, error } = await supabase
@@ -138,27 +130,7 @@ export async function updateProduct(
   return data
 }
 
-// Deactivate product (soft delete)
-export async function deactivateProduct(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('products')
-    .update({ is_active: false })
-    .eq('id', id)
-
-  if (error) throw error
-}
-
-// Reactivate product
-export async function reactivateProduct(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('products')
-    .update({ is_active: true })
-    .eq('id', id)
-
-  if (error) throw error
-}
-
-// Delete product (hard delete - owner only)
+// Delete product
 export async function deleteProduct(id: string): Promise<void> {
   const { error } = await supabase
     .from('products')
@@ -204,16 +176,4 @@ export async function isSkuUnique(sku: string, excludeId?: string): Promise<bool
 
   if (error) throw error
   return !data || data.length === 0
-}
-
-// Get product stats
-export async function getProductStats(): Promise<{
-  total_products: number
-  active_products: number
-  categories_count: number
-}> {
-  const { data, error } = await supabase.rpc('get_product_stats')
-
-  if (error) throw error
-  return data?.[0] || { total_products: 0, active_products: 0, categories_count: 0 }
 }

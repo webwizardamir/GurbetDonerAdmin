@@ -17,6 +17,7 @@ export interface ProductFormData {
   unit_type: UnitType
   base_price: number // in cents
   tax_rate: number
+  stock_quantity: number
   description?: string
 }
 
@@ -45,6 +46,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
   const [unitType, setUnitType] = useState<UnitType>('package')
   const [priceEuros, setPriceEuros] = useState('') // Display in euros
   const [taxRate, setTaxRate] = useState(9)
+  const [stockQuantity, setStockQuantity] = useState(0)
   const [description, setDescription] = useState('')
 
   // Populate form when editing
@@ -57,6 +59,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
       setUnitType(product.unit_type)
       setPriceEuros((product.base_price / 100).toFixed(2))
       setTaxRate(product.tax_rate)
+      setStockQuantity(product.stock_quantity || 0)
       setDescription(product.description || '')
     }
   }, [product])
@@ -87,6 +90,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
         unit_type: unitType,
         base_price: priceInCents,
         tax_rate: taxRate,
+        stock_quantity: stockQuantity,
         description: description.trim() || undefined,
       })
       onClose()
@@ -192,7 +196,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
               </select>
             </div>
 
-            {/* Unit Type and Price */}
+            {/* Unit Type and Stock */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -212,6 +216,23 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Stock Quantity
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={stockQuantity}
+                  onChange={e => setStockQuantity(parseInt(e.target.value) || 0)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            {/* Price and Tax Rate */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Base Price <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -229,24 +250,22 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                   />
                 </div>
               </div>
-            </div>
-
-            {/* Tax Rate */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Tax Rate (BTW)
-              </label>
-              <select
-                value={taxRate}
-                onChange={e => setTaxRate(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                {TAX_RATE_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Tax Rate (BTW)
+                </label>
+                <select
+                  value={taxRate}
+                  onChange={e => setTaxRate(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  {TAX_RATE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Description */}

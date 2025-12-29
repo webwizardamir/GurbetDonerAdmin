@@ -4,8 +4,6 @@ import {
   fetchProducts,
   createProduct,
   updateProduct,
-  deactivateProduct,
-  reactivateProduct,
   deleteProduct,
   type ProductFilters,
 } from '../services/products'
@@ -41,6 +39,7 @@ export function useProducts(initialFilters: ProductFilters = {}) {
     unit_type: UnitType
     base_price: number
     tax_rate?: number
+    stock_quantity?: number
     description?: string
   }) => {
     try {
@@ -65,8 +64,8 @@ export function useProducts(initialFilters: ProductFilters = {}) {
       unit_type?: UnitType
       base_price?: number
       tax_rate?: number
+      stock_quantity?: number
       description?: string
-      is_active?: boolean
     }
   ) => {
     try {
@@ -78,34 +77,6 @@ export function useProducts(initialFilters: ProductFilters = {}) {
       return updatedProduct
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update product'
-      setError(message)
-      throw err
-    }
-  }
-
-  const deactivate = async (id: string) => {
-    try {
-      setError(null)
-      await deactivateProduct(id)
-      setProducts(prev =>
-        prev.map(p => (p.id === id ? { ...p, is_active: false } : p))
-      )
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to deactivate product'
-      setError(message)
-      throw err
-    }
-  }
-
-  const reactivate = async (id: string) => {
-    try {
-      setError(null)
-      await reactivateProduct(id)
-      setProducts(prev =>
-        prev.map(p => (p.id === id ? { ...p, is_active: true } : p))
-      )
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reactivate product'
       setError(message)
       throw err
     }
@@ -132,8 +103,6 @@ export function useProducts(initialFilters: ProductFilters = {}) {
     refresh: loadProducts,
     create,
     update,
-    deactivate,
-    reactivate,
     remove,
   }
 }
