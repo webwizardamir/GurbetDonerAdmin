@@ -69,6 +69,58 @@ ALTER TABLE customers ALTER COLUMN contact_person DROP NOT NULL;
 
 ---
 
+## Phase 2: Products Module
+
+### Bug 4: Table Already Exists Conflict
+
+**Error:**
+```
+NOTICE (42P07): relation "products" already exists, skipping
+ERROR: column "category_id" does not exist (SQLSTATE 42703)
+```
+
+**Cause:**
+The initial schema (`00001_initial_schema.sql`) already created a `products` table with a simpler structure. The Phase 2 migration tried to create the table again with `CREATE TABLE IF NOT EXISTS`, which was skipped. Then the subsequent `CREATE INDEX` on `category_id` failed because that column didn't exist.
+
+**Solution:**
+1. Mark the failed migration as applied: `npx supabase migration repair 00009 --status applied`
+2. Create a new fix migration (`00010_fix_phase2_products.sql`) that uses `ALTER TABLE` to add new columns instead of creating the table
+3. Use `ADD COLUMN IF NOT EXISTS` for idempotent column additions
+
+**Prevention:**
+- Before creating migrations, check if tables already exist in the schema
+- Use `ALTER TABLE ADD COLUMN IF NOT EXISTS` when extending existing tables
+- Review the initial schema before designing new features
+
+---
+
+### Bug 5: Missing Audit Function
+
+**Error:**
+```
+ERROR: function audit_log_changes() does not exist (SQLSTATE 42883)
+```
+
+**Cause:**
+The migration tried to create audit triggers referencing `audit_log_changes()` function, but this function wasn't available in the database.
+
+**Solution:**
+Wrapped the audit trigger creation in a conditional check:
+```sql
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'audit_log_changes') THEN
+    CREATE TRIGGER audit_categories_changes...
+  END IF;
+END $$;
+```
+
+**Prevention:**
+- Make optional features (like audit logging) conditional
+- Check for dependencies before using them in migrations
+
+---
+
 ## Common Supabase Migration Issues
 
 ### Issue: Migration Partially Applied

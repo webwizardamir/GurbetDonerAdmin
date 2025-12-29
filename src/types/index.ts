@@ -126,31 +126,32 @@ export interface Customer {
 // PRODUCT TYPES
 // =====================================================
 
-export type UnitType = 'kg' | 'g' | 'piece' | 'package'
+export type UnitType = 'kg' | 'piece' | 'package'
 
 export interface Category {
   id: string
   name: string
   slug: string
-  parent_id?: string
+  description?: string
   sort_order: number
   is_active: boolean
   created_at: string
+  updated_at: string
 }
 
 export interface Product {
   id: string
   name: string
   sku?: string
-  barcode: string
+  barcode?: string
   category_id?: string
   category?: Category
   unit_type: UnitType
   base_price: number // stored in cents
   tax_rate: number
   description?: string
-  image_url?: string
   is_active: boolean
+  created_by?: string
   created_at: string
   updated_at: string
 }

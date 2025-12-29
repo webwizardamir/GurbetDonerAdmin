@@ -1,0 +1,219 @@
+import { supabase } from './supabase'
+import type { Product, UnitType } from '../types'
+
+export interface ProductFilters {
+  search?: string
+  category_id?: string
+  is_active?: boolean
+}
+
+// Fetch products with optional filters
+export async function fetchProducts(filters: ProductFilters = {}): Promise<Product[]> {
+  let query = supabase
+    .from('products')
+    .select(`
+      *,
+      category:categories(*)
+    `)
+    .order('name', { ascending: true })
+
+  if (filters.search) {
+    query = query.or(
+      `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`
+    )
+  }
+
+  if (filters.category_id) {
+    query = query.eq('category_id', filters.category_id)
+  }
+
+  if (filters.is_active !== undefined) {
+    query = query.eq('is_active', filters.is_active)
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return data || []
+}
+
+// Fetch active products only
+export async function fetchActiveProducts(): Promise<Product[]> {
+  return fetchProducts({ is_active: true })
+}
+
+// Fetch single product by ID
+export async function fetchProductById(id: string): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      *,
+      category:categories(*)
+    `)
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Fetch product by barcode
+export async function fetchProductByBarcode(barcode: string): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      *,
+      category:categories(*)
+    `)
+    .eq('barcode', barcode)
+    .single()
+
+  if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows returned
+  return data
+}
+
+// Create product
+export async function createProduct(product: {
+  name: string
+  sku?: string
+  barcode?: string
+  category_id?: string
+  unit_type: UnitType
+  base_price: number // in cents
+  tax_rate?: number
+  description?: string
+}): Promise<Product> {
+  const { data: userData } = await supabase.auth.getUser()
+  const userId = userData?.user?.id
+
+  const { data, error } = await supabase
+    .from('products')
+    .insert({
+      name: product.name,
+      sku: product.sku || null,
+      barcode: product.barcode || null,
+      category_id: product.category_id || null,
+      unit_type: product.unit_type,
+      base_price: product.base_price,
+      tax_rate: product.tax_rate ?? 9.00, // Dutch BTW default
+      description: product.description || null,
+      created_by: userId,
+    })
+    .select(`
+      *,
+      category:categories(*)
+    `)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Update product
+export async function updateProduct(
+  id: string,
+  updates: {
+    name?: string
+    sku?: string
+    barcode?: string
+    category_id?: string | null
+    unit_type?: UnitType
+    base_price?: number
+    tax_rate?: number
+    description?: string
+    is_active?: boolean
+  }
+): Promise<Product> {
+  const { data, error } = await supabase
+    .from('products')
+    .update(updates)
+    .eq('id', id)
+    .select(`
+      *,
+      category:categories(*)
+    `)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Deactivate product (soft delete)
+export async function deactivateProduct(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('products')
+    .update({ is_active: false })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// Reactivate product
+export async function reactivateProduct(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('products')
+    .update({ is_active: true })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// Delete product (hard delete - owner only)
+export async function deleteProduct(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('products')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// Check if barcode is unique
+export async function isBarcodeUnique(barcode: string, excludeId?: string): Promise<boolean> {
+  if (!barcode) return true
+
+  let query = supabase
+    .from('products')
+    .select('id')
+    .eq('barcode', barcode)
+
+  if (excludeId) {
+    query = query.neq('id', excludeId)
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return !data || data.length === 0
+}
+
+// Check if SKU is unique
+export async function isSkuUnique(sku: string, excludeId?: string): Promise<boolean> {
+  if (!sku) return true
+
+  let query = supabase
+    .from('products')
+    .select('id')
+    .eq('sku', sku)
+
+  if (excludeId) {
+    query = query.neq('id', excludeId)
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return !data || data.length === 0
+}
+
+// Get product stats
+export async function getProductStats(): Promise<{
+  total_products: number
+  active_products: number
+  categories_count: number
+}> {
+  const { data, error } = await supabase.rpc('get_product_stats')
+
+  if (error) throw error
+  return data?.[0] || { total_products: 0, active_products: 0, categories_count: 0 }
+}

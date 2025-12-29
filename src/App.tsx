@@ -10,6 +10,7 @@ import ResetPassword from './pages/ResetPassword'
 import Unauthorized from './pages/Unauthorized'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
+import Products from './pages/Products'
 import AuditLog from './pages/AuditLog'
 import Users from './pages/Users'
 import TestConnection from './pages/TestConnection'
@@ -62,9 +63,11 @@ function App() {
             {/* Customers */}
             <Route path="customers" element={<Customers />} />
 
+            {/* Products */}
+            <Route path="products" element={<Products />} />
+
             {/* Placeholder routes for future phases */}
             <Route path="orders" element={<ComingSoon title="Orders" />} />
-            <Route path="products" element={<ComingSoon title="Products" />} />
             <Route path="invoices" element={<ComingSoon title="Invoices" />} />
             <Route
               path="analytics"

@@ -213,7 +213,7 @@ CREATE TABLE customers (
 
 ---
 
-## Phase 2: Products & Categories
+## Phase 2: Products & Categories ✅ COMPLETED
 
 **Database Schema:**
 ```sql
@@ -221,60 +221,45 @@ CREATE TABLE categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
-  parent_id UUID REFERENCES categories(id),
-  sort_order INTEGER DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TYPE unit_type AS ENUM ('kg', 'g', 'piece', 'package');
-
-CREATE TABLE products (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  sku TEXT UNIQUE,
-  barcode TEXT UNIQUE NOT NULL,
-  category_id UUID REFERENCES categories(id),
-  unit_type unit_type NOT NULL DEFAULT 'kg',
-  base_price INTEGER NOT NULL, -- cents
-  tax_rate DECIMAL(5,2) NOT NULL DEFAULT 9.00, -- Dutch BTW
   description TEXT,
-  image_url TEXT,
+  sort_order INTEGER DEFAULT 0,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Variants (Phase 2 feature, but schema ready)
-CREATE TABLE product_variants (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  name TEXT NOT NULL, -- e.g., "500g", "1kg"
-  sku TEXT UNIQUE,
-  barcode TEXT UNIQUE,
-  price_adjustment INTEGER DEFAULT 0, -- cents
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+CREATE TYPE unit_type AS ENUM ('kg', 'piece', 'package');
+
+-- Products table extended with new columns
+ALTER TABLE products ADD COLUMN category_id UUID REFERENCES categories(id);
+ALTER TABLE products ADD COLUMN barcode TEXT UNIQUE;
+ALTER TABLE products ADD COLUMN unit_type unit_type DEFAULT 'package';
+ALTER TABLE products ADD COLUMN base_price INTEGER DEFAULT 0; -- cents
+ALTER TABLE products ADD COLUMN tax_rate DECIMAL(5,2) DEFAULT 9.00;
 ```
 
+**Note:** Simplified implementation:
+- Flat categories (no nesting) - user creates Supermarkt, Horeca, etc.
+- Barcode input only (no generation - barcodes already on product boxes)
+- No image upload needed
+- Unit types: package/box, piece, kg (standard food wholesale)
+
 **Features:**
-- [ ] Product list with search and category filter
-- [ ] Create/edit product form
-- [ ] Barcode input/generation
-- [ ] Category management
-- [ ] Unit type selection
-- [ ] Tax rate per product
-- [ ] Image upload
-- [ ] Soft delete
+- [x] Product list with search and category filter
+- [x] Create/edit product form
+- [x] Barcode input field
+- [x] Category management (simple CRUD)
+- [x] Unit type selection (package, piece, kg)
+- [x] Tax rate per product (9% BTW default)
+- [x] Soft delete (deactivate/reactivate)
+- [ ] Image upload (skipped - not needed)
 
 **Components:**
-- `ProductsPage.tsx` - List with filters
-- `ProductForm.tsx` - Create/edit form
-- `ProductCard.tsx` - Mobile card view
-- `CategoryManager.tsx` - Category CRUD
-- `BarcodeInput.tsx` - Barcode field with scanner button
-- `useProducts.ts` - CRUD hooks
+- `Products.tsx` - List with table (desktop) / cards (mobile)
+- `ProductForm.tsx` - Create/edit modal form
+- `CategoryManager.tsx` - Category CRUD modal
+- `useProducts.ts` - Products CRUD hooks
+- `useCategories.ts` - Categories CRUD hooks
 
 ---
 
@@ -730,7 +715,7 @@ CREATE TABLE document_settings (
 - [x] Sample Dashboard
 - [x] **Phase 0: Core Platform** ✅ COMPLETED
 - [x] **Phase 1: Customers** ✅ COMPLETED
-- [ ] **Phase 2: Products** ← NEXT
+- [x] **Phase 2: Products & Categories** ✅ COMPLETED
 - [ ] Phase 3: Inventory
 - [ ] Phase 4: Pricing
 - [ ] Phase 5: Orders
@@ -744,9 +729,9 @@ CREATE TABLE document_settings (
 
 ## Next Steps
 
-1. Start Phase 2: Products & Categories
-2. Create products/categories database migration
-3. Build ProductsPage.tsx with list/search/filter
-4. Create ProductForm.tsx for create/edit
-5. Build CategoryManager.tsx for category CRUD
-6. Implement useProducts.ts hook for CRUD operations
+1. Start Phase 3: Inventory & Batch/Expiry System
+2. Create inventory database migration (product_batches, stock_adjustments)
+3. Build InventoryPage.tsx with stock overview
+4. Create ReceiveStockForm.tsx for batch receiving
+5. Implement expiry alerts and low stock warnings
+6. Build batch traceability system
