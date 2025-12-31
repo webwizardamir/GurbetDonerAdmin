@@ -272,7 +272,9 @@ ALTER TABLE products ADD COLUMN track_stock BOOLEAN DEFAULT true;
 
 ---
 
-## Phase 3: Inventory & Batch/Expiry System
+## Phase 3: Inventory & Batch/Expiry System ⏸️ POSTPONED
+
+> **Note:** Phase 3 postponed to prioritize Orders functionality. Current implementation uses simple stock tracking via `stock_quantity` and `track_stock` on products table. Batch/expiry tracking will be added later when needed. Profit calculations use product-level `cost_cents` instead of per-batch costs.
 
 **Database Schema:**
 ```sql
@@ -725,8 +727,8 @@ CREATE TABLE document_settings (
 - [x] **Phase 0: Core Platform** ✅ COMPLETED
 - [x] **Phase 1: Customers** ✅ COMPLETED
 - [x] **Phase 2: Products & Categories** ✅ COMPLETED
-- [ ] Phase 3: Inventory
-- [ ] Phase 4: Pricing
+- [ ] **Phase 3: Inventory** ⏸️ POSTPONED (using simple stock for now)
+- [ ] Phase 4: Pricing ← **NEXT**
 - [ ] Phase 5: Orders
 - [ ] Phase 6: Documents
 - [ ] Phase 7: Analytics
@@ -738,9 +740,9 @@ CREATE TABLE document_settings (
 
 ## Next Steps
 
-1. Start Phase 3: Inventory & Batch/Expiry System
-2. Create inventory database migration (product_batches, stock_adjustments)
-3. Build InventoryPage.tsx with stock overview
-4. Create ReceiveStockForm.tsx for batch receiving
-5. Implement expiry alerts and low stock warnings
-6. Build batch traceability system
+1. Start Phase 4: Customer-Specific Pricing
+2. Create pricing database migration (customer_prices, price_history)
+3. Build CustomerPricing component for setting custom prices
+4. Implement price lookup logic (customer price > base price)
+5. Add price history tracking
+6. Then proceed to Phase 5: Orders
