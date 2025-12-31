@@ -11,12 +11,14 @@ import {
   Loader2,
   Filter,
   Upload,
+  DollarSign,
 } from 'lucide-react'
 import { useCustomers } from '../hooks/useCustomers'
 import { usePermission } from '../hooks/usePermission'
 import { Customer } from '../types'
 import CustomerForm from '../components/customers/CustomerForm'
 import CustomerImport from '../components/customers/CustomerImport'
+import CustomerPricing from '../components/pricing/CustomerPricing'
 
 export default function Customers() {
   const { canCreate, canEdit, canDelete } = usePermission('customers')
@@ -36,6 +38,7 @@ export default function Customers() {
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+  const [pricingCustomer, setPricingCustomer] = useState<Customer | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
   // Filter customers locally for instant feedback
@@ -268,6 +271,13 @@ export default function Customers() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setPricingCustomer(customer)}
+                          className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                          title="Custom Pricing"
+                        >
+                          <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        </button>
                         {canEdit && (
                           <button
                             onClick={() => handleEdit(customer)}
@@ -326,6 +336,7 @@ export default function Customers() {
               deleting={deleting}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onPricing={setPricingCustomer}
             />
           ))
         )}
@@ -349,6 +360,14 @@ export default function Customers() {
           }}
         />
       )}
+
+      {/* Customer Pricing Modal */}
+      {pricingCustomer && (
+        <CustomerPricing
+          customer={pricingCustomer}
+          onClose={() => setPricingCustomer(null)}
+        />
+      )}
     </div>
   )
 }
@@ -361,6 +380,7 @@ interface MobileCustomerCardProps {
   deleting: string | null
   onEdit: (customer: Customer) => void
   onDelete: (customer: Customer) => void
+  onPricing: (customer: Customer) => void
 }
 
 function MobileCustomerCard({
@@ -370,6 +390,7 @@ function MobileCustomerCard({
   deleting,
   onEdit,
   onDelete,
+  onPricing,
 }: MobileCustomerCardProps) {
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
@@ -393,6 +414,12 @@ function MobileCustomerCard({
 
         {/* Actions */}
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPricing(customer)}
+            className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+          >
+            <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
+          </button>
           {canEdit && (
             <button
               onClick={() => onEdit(customer)}
