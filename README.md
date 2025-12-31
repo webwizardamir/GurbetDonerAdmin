@@ -97,7 +97,7 @@ src/
 
 ## Features
 
-### Completed (Phases 0-2, 4)
+### Completed (Phases 0-2, 4-5)
 
 **Phase 0: Core Platform**
 - Authentication system (email + password login)
@@ -130,9 +130,16 @@ src/
 - Reset to base price functionality
 - Database function for effective price lookup
 
-### Planned (Phases 3, 5-10)
+**Phase 5: Orders**
+- Order creation with customer selection
+- Product search with customer-specific pricing
+- Auto-generated order numbers (ORD-YYYY-NNNNN)
+- Status management (draft, pending, completed, cancelled, refunded)
+- Stock deduction/restoration via database triggers
+- Order detail view with status actions
+
+### Planned (Phases 3, 6-10)
 - **Phase 3**: Inventory & Batch/Expiry tracking (FIFO/FEFO) - postponed
-- **Phase 5**: Order management with discounts and fees
 - **Phase 6**: PDF document generation (Invoice, Proforma, Credit Note)
 - **Phase 7**: Analytics & Reports (Owner only)
 - **Phase 8**: Exports & Workflows

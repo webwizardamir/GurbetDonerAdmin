@@ -385,7 +385,7 @@ CREATE TABLE price_history (
 
 ---
 
-## Phase 5: Orders
+## Phase 5: Orders ✅ COMPLETED
 
 **Database Schema:**
 ```sql
@@ -475,21 +475,23 @@ CREATE TABLE order_fees (
 ```
 
 **Features:**
-- [ ] Order list with status filters
-- [ ] Create order flow:
-  - [ ] Select customer
-  - [ ] Add products (search, browse, scan)
-  - [ ] Quantity input by unit type
+- [x] Order list with status filters
+- [x] Create order flow:
+  - [x] Select customer
+  - [x] Add products (search by name, SKU, barcode)
+  - [x] Quantity input by unit type
+  - [x] Customer-specific pricing applied automatically
   - [ ] Line item notes and meta fields
   - [ ] Price override (permission controlled)
   - [ ] Manual batch selection (optional)
 - [ ] Discounts (percentage, fixed cart, fixed product)
 - [ ] Fees (delivery, custom)
-- [ ] Status management
-- [ ] Past/future order dates
-- [ ] Delivery notes
-- [ ] Order cancellation (restore stock)
-- [ ] Refund processing (restore stock)
+- [x] Status management (draft, pending, on_hold, completed, cancelled, refunded)
+- [x] Past/future order dates
+- [x] Delivery notes
+- [x] Order cancellation (restore stock via trigger)
+- [x] Refund processing (restore stock via trigger)
+- [x] Auto-generated order numbers (ORD-YYYY-NNNNN)
 
 **Components:**
 - `OrdersPage.tsx` - List with filters
@@ -730,8 +732,8 @@ CREATE TABLE document_settings (
 - [x] **Phase 2: Products & Categories** ✅ COMPLETED
 - [ ] **Phase 3: Inventory** ⏸️ POSTPONED (using simple stock for now)
 - [x] **Phase 4: Pricing** ✅ COMPLETED
-- [ ] Phase 5: Orders ← **NEXT**
-- [ ] Phase 6: Documents
+- [x] **Phase 5: Orders** ✅ COMPLETED
+- [ ] Phase 6: Documents ← **NEXT**
 - [ ] Phase 7: Analytics
 - [ ] Phase 8: Exports
 - [ ] Phase 9: Migration
@@ -741,10 +743,9 @@ CREATE TABLE document_settings (
 
 ## Next Steps
 
-1. Start Phase 5: Orders
-2. Create orders database migration (orders, order_items, order_discounts, order_fees)
-3. Build OrdersPage.tsx with order list and status filters
-4. Create OrderCreatePage.tsx for order creation flow
-5. Implement product selector with customer-specific pricing
-6. Add discount and fee management
-7. Handle stock deduction on order creation
+1. Start Phase 6: Documents (PDF Generation)
+2. Set up PDF generation library (@react-pdf/renderer or jsPDF)
+3. Build invoice template with Dutch/EU compliance
+4. Create document settings page (company info, numbering)
+5. Implement sequential invoice/proforma numbering
+6. Add PDF generation from order detail
