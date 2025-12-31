@@ -1,0 +1,522 @@
+import { useState, useEffect } from 'react'
+import {
+  X,
+  Loader2,
+  ShoppingCart,
+  Search,
+  Plus,
+  Minus,
+  Trash2,
+  Building2,
+  Package,
+} from 'lucide-react'
+import { useCustomers } from '../../hooks/useCustomers'
+import { useProducts } from '../../hooks/useProducts'
+import { useOrders } from '../../hooks/useOrders'
+import { getEffectivePrice } from '../../services/pricing'
+import type { Customer, Product } from '../../types'
+
+interface OrderFormProps {
+  onClose: () => void
+  onSuccess: () => void
+}
+
+interface OrderLineItem {
+  product: Product
+  quantity: number
+  unit_price: number // cents
+  tax_rate: number
+}
+
+// Format price from cents to euros
+function formatPrice(cents: number): string {
+  return new Intl.NumberFormat('nl-NL', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format(cents / 100)
+}
+
+export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
+  const { customers, loading: customersLoading } = useCustomers()
+  const { products, loading: productsLoading } = useProducts()
+  const { create } = useOrders()
+
+  // Form state
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+  const [items, setItems] = useState<OrderLineItem[]>([])
+  const [deliveryNotes, setDeliveryNotes] = useState('')
+  const [internalNotes, setInternalNotes] = useState('')
+  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0])
+
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [loadingPrices, setLoadingPrices] = useState(false)
+
+  // Filter customers by search
+  const filteredCustomers = customers.filter(c => {
+    if (!customerSearch) return true
+    const query = customerSearch.toLowerCase()
+    return (
+      c.company_name.toLowerCase().includes(query) ||
+      c.contact_person?.toLowerCase().includes(query)
+    )
+  })
+
+  // Filter products by search
+  const filteredProducts = products.filter(p => {
+    if (!productSearch) return true
+    const query = productSearch.toLowerCase()
+    return (
+      p.name.toLowerCase().includes(query) ||
+      p.sku?.toLowerCase().includes(query) ||
+      p.barcode?.toLowerCase().includes(query)
+    )
+  })
+
+  // Add product to order
+  const addProduct = async (product: Product) => {
+    // Check if already in order
+    const existing = items.find(i => i.product.id === product.id)
+    if (existing) {
+      setItems(items.map(i =>
+        i.product.id === product.id
+          ? { ...i, quantity: i.quantity + 1 }
+          : i
+      ))
+      return
+    }
+
+    // Get effective price for customer
+    setLoadingPrices(true)
+    try {
+      let price = product.base_price
+      if (selectedCustomer) {
+        price = await getEffectivePrice(selectedCustomer.id, product.id)
+      }
+
+      setItems([...items, {
+        product,
+        quantity: 1,
+        unit_price: price,
+        tax_rate: product.tax_rate,
+      }])
+    } catch (err) {
+      console.error('Error getting price:', err)
+      // Fall back to base price
+      setItems([...items, {
+        product,
+        quantity: 1,
+        unit_price: product.base_price,
+        tax_rate: product.tax_rate,
+      }])
+    } finally {
+      setLoadingPrices(false)
+    }
+  }
+
+  // Update item quantity
+  const updateQuantity = (productId: string, delta: number) => {
+    setItems(items.map(i => {
+      if (i.product.id !== productId) return i
+      const newQty = Math.max(0, i.quantity + delta)
+      return { ...i, quantity: newQty }
+    }).filter(i => i.quantity > 0))
+  }
+
+  // Remove item
+  const removeItem = (productId: string) => {
+    setItems(items.filter(i => i.product.id !== productId))
+  }
+
+  // Update prices when customer changes
+  useEffect(() => {
+    if (!selectedCustomer || items.length === 0) return
+
+    const updatePrices = async () => {
+      setLoadingPrices(true)
+      try {
+        const updatedItems = await Promise.all(
+          items.map(async item => {
+            const price = await getEffectivePrice(selectedCustomer.id, item.product.id)
+            return { ...item, unit_price: price }
+          })
+        )
+        setItems(updatedItems)
+      } catch (err) {
+        console.error('Error updating prices:', err)
+      } finally {
+        setLoadingPrices(false)
+      }
+    }
+
+    updatePrices()
+  }, [selectedCustomer?.id])
+
+  // Calculate totals
+  const subtotal = items.reduce((sum, i) => sum + (i.unit_price * i.quantity), 0)
+  const taxTotal = items.reduce((sum, i) => {
+    const lineSubtotal = i.unit_price * i.quantity
+    return sum + Math.round(lineSubtotal * (i.tax_rate / 100))
+  }, 0)
+  const total = subtotal + taxTotal
+
+  // Submit order
+  const handleSubmit = async () => {
+    if (!selectedCustomer) {
+      setError('Please select a customer')
+      return
+    }
+    if (items.length === 0) {
+      setError('Please add at least one product')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+
+    try {
+      await create(
+        {
+          customer_id: selectedCustomer.id,
+          order_date: orderDate,
+          delivery_notes: deliveryNotes || undefined,
+          internal_notes: internalNotes || undefined,
+        },
+        items.map(i => ({
+          product_id: i.product.id,
+          product_name: i.product.name,
+          product_sku: i.product.sku,
+          unit_type: i.product.unit_type,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          tax_rate: i.tax_rate,
+        }))
+      )
+      onSuccess()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create order')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      <div className="relative w-full max-w-4xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              New Order
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column - Customer & Products */}
+            <div className="space-y-6">
+              {/* Customer Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Customer <span className="text-red-500">*</span>
+                </label>
+                {selectedCustomer ? (
+                  <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      <div>
+                        <p className="font-medium text-slate-900 dark:text-white">
+                          {selectedCustomer.company_name}
+                        </p>
+                        {selectedCustomer.contact_person && (
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {selectedCustomer.contact_person}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCustomer(null)}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={customerSearch}
+                        onChange={e => setCustomerSearch(e.target.value)}
+                        placeholder="Search customers..."
+                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-lg">
+                      {customersLoading ? (
+                        <div className="p-4 text-center">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400" />
+                        </div>
+                      ) : filteredCustomers.length === 0 ? (
+                        <p className="p-4 text-sm text-slate-500 dark:text-slate-400 text-center">
+                          No customers found
+                        </p>
+                      ) : (
+                        filteredCustomers.slice(0, 10).map(customer => (
+                          <button
+                            key={customer.id}
+                            onClick={() => {
+                              setSelectedCustomer(customer)
+                              setCustomerSearch('')
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <p className="font-medium text-slate-900 dark:text-white">
+                              {customer.company_name}
+                            </p>
+                            {customer.contact_person && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {customer.contact_person}
+                              </p>
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Order Date */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Order Date
+                </label>
+                <input
+                  type="date"
+                  value={orderDate}
+                  onChange={e => setOrderDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              {/* Product Search */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Add Products
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={productSearch}
+                    onChange={e => setProductSearch(e.target.value)}
+                    placeholder="Search by name, SKU, or barcode..."
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                {productSearch && (
+                  <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-lg">
+                    {productsLoading ? (
+                      <div className="p-4 text-center">
+                        <Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400" />
+                      </div>
+                    ) : filteredProducts.length === 0 ? (
+                      <p className="p-4 text-sm text-slate-500 dark:text-slate-400 text-center">
+                        No products found
+                      </p>
+                    ) : (
+                      filteredProducts.slice(0, 10).map(product => (
+                        <button
+                          key={product.id}
+                          onClick={() => {
+                            addProduct(product)
+                            setProductSearch('')
+                          }}
+                          disabled={loadingPrices}
+                          className="w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Package className="w-4 h-4 text-slate-400" />
+                            <div>
+                              <p className="font-medium text-slate-900 dark:text-white">
+                                {product.name}
+                              </p>
+                              {product.sku && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  SKU: {product.sku}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-sm text-slate-600 dark:text-slate-300">
+                            {formatPrice(product.base_price)}
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column - Order Items & Summary */}
+            <div className="space-y-6">
+              {/* Order Items */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Order Items ({items.length})
+                </label>
+                {items.length === 0 ? (
+                  <div className="p-8 text-center border border-dashed border-slate-300 dark:border-slate-600 rounded-xl">
+                    <Package className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Search and add products
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {items.map(item => (
+                      <div
+                        key={item.product.id}
+                        className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900 dark:text-white truncate">
+                            {item.product.name}
+                          </p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.unit_price * item.quantity)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-3">
+                          <button
+                            onClick={() => updateQuantity(item.product.id, -1)}
+                            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="w-8 text-center font-medium text-slate-900 dark:text-white">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(item.product.id, 1)}
+                            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => removeItem(item.product.id)}
+                            className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Order Summary */}
+              {items.length > 0 && (
+                <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
+                    <span className="text-slate-900 dark:text-white">{formatPrice(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">Tax (BTW)</span>
+                    <span className="text-slate-900 dark:text-white">{formatPrice(taxTotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-semibold pt-2 border-t border-slate-200 dark:border-slate-600">
+                    <span className="text-slate-900 dark:text-white">Total</span>
+                    <span className="text-green-600 dark:text-green-400">{formatPrice(total)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Delivery Notes
+                  </label>
+                  <textarea
+                    value={deliveryNotes}
+                    onChange={e => setDeliveryNotes(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                    placeholder="Delivery instructions..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Internal Notes
+                  </label>
+                  <textarea
+                    value={internalNotes}
+                    onChange={e => setInternalNotes(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                    placeholder="Internal notes..."
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || !selectedCustomer || items.length === 0}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-colors"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-5 h-5" />
+                Create Order
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
