@@ -340,7 +340,7 @@ CREATE TABLE low_stock_thresholds (
 
 ---
 
-## Phase 4: Pricing System
+## Phase 4: Pricing System ✅ COMPLETED
 
 **Database Schema:**
 ```sql
@@ -370,17 +370,18 @@ CREATE TABLE price_history (
 ```
 
 **Features:**
-- [ ] View base prices per product
-- [ ] Set customer-specific price per product
-- [ ] Price history tracking
-- [ ] Bulk price update
-- [ ] Price comparison view (base vs customer)
+- [x] View base prices per product
+- [x] Set customer-specific price per product
+- [x] Price history tracking (auto-logged via trigger)
+- [x] Reset to base price functionality
+- [x] get_effective_price() database function for orders
+- [ ] Bulk price update (future enhancement)
 
 **Components:**
-- `CustomerPricing.tsx` - Set prices for customer
+- `CustomerPricing.tsx` - Set prices for customer (accessed from Customers page)
 - `PriceHistoryModal.tsx` - View price changes
-- `BulkPriceEditor.tsx` - Mass update prices
 - `usePricing.ts` - Pricing hooks
+- `pricing.ts` - Pricing service
 
 ---
 
@@ -728,8 +729,8 @@ CREATE TABLE document_settings (
 - [x] **Phase 1: Customers** ✅ COMPLETED
 - [x] **Phase 2: Products & Categories** ✅ COMPLETED
 - [ ] **Phase 3: Inventory** ⏸️ POSTPONED (using simple stock for now)
-- [ ] Phase 4: Pricing ← **NEXT**
-- [ ] Phase 5: Orders
+- [x] **Phase 4: Pricing** ✅ COMPLETED
+- [ ] Phase 5: Orders ← **NEXT**
 - [ ] Phase 6: Documents
 - [ ] Phase 7: Analytics
 - [ ] Phase 8: Exports
@@ -740,9 +741,10 @@ CREATE TABLE document_settings (
 
 ## Next Steps
 
-1. Start Phase 4: Customer-Specific Pricing
-2. Create pricing database migration (customer_prices, price_history)
-3. Build CustomerPricing component for setting custom prices
-4. Implement price lookup logic (customer price > base price)
-5. Add price history tracking
-6. Then proceed to Phase 5: Orders
+1. Start Phase 5: Orders
+2. Create orders database migration (orders, order_items, order_discounts, order_fees)
+3. Build OrdersPage.tsx with order list and status filters
+4. Create OrderCreatePage.tsx for order creation flow
+5. Implement product selector with customer-specific pricing
+6. Add discount and fee management
+7. Handle stock deduction on order creation

@@ -97,7 +97,7 @@ src/
 
 ## Features
 
-### Completed (Phases 0-2)
+### Completed (Phases 0-2, 4)
 
 **Phase 0: Core Platform**
 - Authentication system (email + password login)
@@ -124,9 +124,14 @@ src/
 - Track stock toggle per product
 - Margin display for Owner role
 
-### Planned (Phases 3-10)
-- **Phase 3**: Inventory & Batch/Expiry tracking (FIFO/FEFO)
-- **Phase 4**: Customer-specific pricing
+**Phase 4: Customer-Specific Pricing**
+- Set custom prices per customer per product
+- Price history tracking (auto-logged)
+- Reset to base price functionality
+- Database function for effective price lookup
+
+### Planned (Phases 3, 5-10)
+- **Phase 3**: Inventory & Batch/Expiry tracking (FIFO/FEFO) - postponed
 - **Phase 5**: Order management with discounts and fees
 - **Phase 6**: PDF document generation (Invoice, Proforma, Credit Note)
 - **Phase 7**: Analytics & Reports (Owner only)
