@@ -272,35 +272,35 @@ export default function DocumentGenerator({
         {/* Footer */}
         {!loading && !error && invoiceData && (
           <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setShowPreview(!showPreview)}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap"
               >
                 <Eye className="w-4 h-4" />
-                {showPreview ? 'Hide Preview' : 'Preview'}
+                <span className="hidden sm:inline">{showPreview ? 'Hide' : 'Preview'}</span>
               </button>
 
               <button
                 onClick={handlePrint}
                 disabled={generating}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 <Printer className="w-4 h-4" />
-                Print
+                <span className="hidden sm:inline">Print</span>
               </button>
 
               <button
                 onClick={handleDownload}
                 disabled={generating}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-colors"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-colors whitespace-nowrap"
               >
                 {generating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Download className="w-4 h-4" />
                 )}
-                {generating ? 'Generating...' : 'Download PDF'}
+                {generating ? 'Generating...' : 'Download'}
               </button>
             </div>
           </div>
