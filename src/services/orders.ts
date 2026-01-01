@@ -3,10 +3,13 @@ import type { Order, OrderItem, OrderStatus, PaymentMethod } from '../types'
 
 export interface OrderFilters {
   status?: OrderStatus
+  paymentMethod?: PaymentMethod
   customerId?: string
   dateFrom?: string
   dateTo?: string
   search?: string
+  limit?: number
+  offset?: number
 }
 
 export interface OrderWithItems extends Omit<Order, 'customer'> {
@@ -47,19 +50,79 @@ async function generateOrderNumber(): Promise<string> {
   return data
 }
 
+// Transform database order to TypeScript interface
+// Database stores INTEGER (cents), frontend expects cents
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformOrderFromDb(dbOrder: any): OrderWithItems | null {
+  if (!dbOrder) return null
+
+  return {
+    id: dbOrder.id,
+    order_number: dbOrder.order_number,
+    customer_id: dbOrder.customer_id,
+    status: dbOrder.status,
+    payment_method: dbOrder.payment_method || undefined,
+    // Values are already in cents (INTEGER)
+    subtotal: Number(dbOrder.subtotal) || 0,
+    discount_amount: Number(dbOrder.discount) || 0,
+    tax_amount: Number(dbOrder.tax) || 0,
+    delivery_fee: Number(dbOrder.delivery_fee) || 0,
+    total: Number(dbOrder.total) || 0,
+    order_date: dbOrder.order_date || dbOrder.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+    invoice_date: dbOrder.invoice_date,
+    delivery_notes: dbOrder.delivery_notes || dbOrder.notes || '',
+    internal_notes: dbOrder.internal_notes || '',
+    created_by: dbOrder.created_by,
+    created_at: dbOrder.created_at,
+    updated_at: dbOrder.updated_at,
+    customer: dbOrder.customer || null,
+    items: dbOrder.items ? dbOrder.items.map(transformOrderItemFromDb) : [],
+  }
+}
+
+// Transform database order item to TypeScript interface
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformOrderItemFromDb(dbItem: any) {
+  return {
+    id: dbItem.id,
+    order_id: dbItem.order_id,
+    product_id: dbItem.product_id,
+    product_name: dbItem.product_name,
+    product_sku: dbItem.product_sku,
+    unit_type: dbItem.unit_type || 'piece',
+    quantity: Number(dbItem.quantity) || 0,
+    // Values are already in cents (INTEGER)
+    unit_price: Number(dbItem.unit_price) || 0,
+    discount_amount: Number(dbItem.discount) || 0,
+    tax_rate: Number(dbItem.tax_rate) || 0,
+    tax_amount: Number(dbItem.tax_amount) || 0,
+    line_total: Number(dbItem.total) || 0,
+    notes: dbItem.notes || '',
+    created_at: dbItem.created_at,
+  }
+}
+
 // Fetch orders with filters
 export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWithItems[]> {
+  // Fetch orders with customer and items relations
+  // Only select needed customer fields to reduce payload
   let query = supabase
     .from('orders')
     .select(`
-      *,
-      customer:customers(id, company_name, contact_person, email, phone),
-      items:order_items(*)
+      id, order_number, customer_id, status, payment_method,
+      subtotal, discount, tax, total, order_date, delivery_notes,
+      internal_notes, created_at, updated_at, created_by,
+      customer:customers!customer_id(id, company_name, contact_person),
+      items:order_items(id, product_name, quantity, unit_price, tax_rate, total, unit_type)
     `)
     .order('created_at', { ascending: false })
 
   if (filters.status) {
     query = query.eq('status', filters.status)
+  }
+
+  if (filters.paymentMethod) {
+    query = query.eq('payment_method', filters.paymentMethod)
   }
 
   if (filters.customerId) {
@@ -78,10 +141,19 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
     query = query.or(`order_number.ilike.%${filters.search}%`)
   }
 
+  // Apply pagination
+  if (filters.limit) {
+    query = query.limit(filters.limit)
+  }
+
+  if (filters.offset) {
+    query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1)
+  }
+
   const { data, error } = await query
 
   if (error) throw error
-  return data || []
+  return (data || []).map(transformOrderFromDb).filter((o): o is OrderWithItems => o !== null)
 }
 
 // Fetch single order by ID
@@ -90,14 +162,14 @@ export async function fetchOrderById(id: string): Promise<OrderWithItems | null>
     .from('orders')
     .select(`
       *,
-      customer:customers(id, company_name, contact_person, email, phone),
+      customer:customers!customer_id(id, company_name, contact_person, email, phone),
       items:order_items(*)
     `)
     .eq('id', id)
     .single()
 
   if (error) throw error
-  return data
+  return transformOrderFromDb(data)
 }
 
 // Create order with items
@@ -144,14 +216,12 @@ export async function createOrder(
       order_number: orderNumber,
       customer_id: orderData.customer_id,
       order_date: orderData.order_date || new Date().toISOString().split('T')[0],
-      delivery_notes: orderData.delivery_notes || null,
-      internal_notes: orderData.internal_notes || null,
-      payment_method: orderData.payment_method || null,
-      status: 'draft',
-      subtotal,
-      discount_amount: totalDiscount,
-      tax_amount: totalTax,
-      total,
+      delivery_notes: orderData.delivery_notes || '',
+      internal_notes: orderData.internal_notes || '',
+      subtotal: subtotal,
+      tax: totalTax,
+      discount: totalDiscount,
+      total: total,
       created_by: userId,
     })
     .select()
@@ -164,15 +234,14 @@ export async function createOrder(
     order_id: order.id,
     product_id: item.product_id,
     product_name: item.product_name,
-    product_sku: item.product_sku || null,
+    product_sku: item.product_sku || '',
     unit_type: item.unit_type,
     quantity: item.quantity,
     unit_price: item.unit_price,
     discount_amount: item.discount_amount,
     tax_rate: item.tax_rate,
     tax_amount: item.tax_amount,
-    line_total: item.line_total,
-    notes: item.notes || null,
+    total: item.line_total,
   }))
 
   const { error: itemsError } = await supabase
@@ -185,14 +254,22 @@ export async function createOrder(
   return fetchOrderById(order.id) as Promise<OrderWithItems>
 }
 
-// Update order status
+// Update order status (with optional payment method for completed orders)
 export async function updateOrderStatus(
   id: string,
-  status: OrderStatus
+  status: OrderStatus,
+  paymentMethod?: PaymentMethod
 ): Promise<Order> {
+  const updateData: { status: OrderStatus; payment_method?: PaymentMethod } = { status }
+
+  // If completing an order, include payment method
+  if (status === 'completed' && paymentMethod) {
+    updateData.payment_method = paymentMethod
+  }
+
   const { data, error } = await supabase
     .from('orders')
-    .update({ status })
+    .update(updateData)
     .eq('id', id)
     .select()
     .single()
@@ -249,15 +326,14 @@ export async function addOrderItem(
       order_id: orderId,
       product_id: item.product_id,
       product_name: item.product_name,
-      product_sku: item.product_sku || null,
+      product_sku: item.product_sku || '',
       unit_type: item.unit_type,
       quantity: item.quantity,
       unit_price: item.unit_price,
       discount_amount: discount,
       tax_rate: item.tax_rate,
       tax_amount: tax,
-      line_total: lineTotal,
-      notes: item.notes || null,
+      total: lineTotal,
     })
     .select()
     .single()
@@ -298,24 +374,49 @@ export async function recalculateOrderTotals(orderId: string): Promise<void> {
   let totalDiscount = 0
 
   for (const item of items || []) {
-    subtotal += item.unit_price * item.quantity
-    totalTax += item.tax_amount
-    totalDiscount += item.discount_amount
+    // Values are in cents (INTEGER)
+    const unitPrice = Number(item.unit_price) || 0
+    subtotal += unitPrice * Number(item.quantity)
+    totalTax += Number(item.tax_amount) || 0
+    totalDiscount += Number(item.discount) || 0
   }
 
   const total = subtotal - totalDiscount + totalTax
 
+  // Update with cents values
   const { error: updateError } = await supabase
     .from('orders')
     .update({
-      subtotal,
-      discount_amount: totalDiscount,
-      tax_amount: totalTax,
-      total,
+      subtotal: subtotal,
+      discount: totalDiscount,
+      tax: totalTax,
+      total: total,
     })
     .eq('id', orderId)
 
   if (updateError) throw updateError
+}
+
+// Bulk update order status (for multiple orders)
+export async function bulkUpdateOrderStatus(
+  ids: string[],
+  status: OrderStatus,
+  paymentMethod?: PaymentMethod
+): Promise<void> {
+  if (ids.length === 0) return
+
+  const updateData: { status: OrderStatus; payment_method?: PaymentMethod } = { status }
+
+  if (status === 'completed' && paymentMethod) {
+    updateData.payment_method = paymentMethod
+  }
+
+  const { error } = await supabase
+    .from('orders')
+    .update(updateData)
+    .in('id', ids)
+
+  if (error) throw error
 }
 
 // Get order statistics

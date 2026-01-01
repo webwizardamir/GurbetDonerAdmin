@@ -25,8 +25,8 @@ export interface ProductFormData {
 }
 
 const UNIT_TYPE_OPTIONS: { value: UnitType; label: string }[] = [
-  { value: 'package', label: 'Package / Box' },
-  { value: 'piece', label: 'Piece' },
+  { value: 'package', label: 'Pak / Doos' },
+  { value: 'piece', label: 'Stuk' },
   { value: 'kg', label: 'Kilogram (kg)' },
 ]
 

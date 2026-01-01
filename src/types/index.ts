@@ -241,6 +241,10 @@ export type OrderStatus =
   | 'cancelled'
   | 'refunded'
   | 'completed'
+  // Original schema statuses
+  | 'pending'
+  | 'processing'
+  | 'delivered'
 
 export type PaymentMethod = 'bank' | 'cash' | 'none'
 
@@ -314,42 +318,104 @@ export interface OrderFee {
 // DOCUMENT TYPES
 // =====================================================
 
-export type DocumentType = 'invoice' | 'proforma' | 'credit_note' | 'packing_slip'
+export type DocumentType = 'invoice' | 'proforma' | 'credit_note' | 'packing_slip' | 'order_confirmation' | 'payment_reminder'
 
 export interface Document {
   id: string
-  order_id: string
+  order_id?: string
   document_type: DocumentType
   document_number: string
-  generated_at: string
-  generated_by?: string
+  snapshot?: Record<string, unknown>
   pdf_url?: string
+  file_size?: number
+  generated_by?: string
+  generated_at: string
 }
 
 export interface DocumentSettings {
   id: string
-  // Company info
+
+  // Company Identity
   company_name: string
   company_address?: string
-  company_postal_city?: string
+  company_postal_code?: string
+  company_city?: string
   company_country: string
-  company_vat_number?: string
-  company_kvk_number?: string
   company_phone?: string
   company_email?: string
+  company_website?: string
   company_logo_url?: string
-  // Bank info
+
+  // Legal Registration
+  company_vat_number?: string
+  company_kvk_number?: string
+
+  // Bank Details
   bank_name?: string
   bank_iban?: string
   bank_bic?: string
-  payment_terms?: string
-  // Numbering
+  bank_account_holder?: string
+
+  // Payment Terms
+  payment_terms_days: number
+  payment_terms_text?: string
+
+  // Numbering - Invoice
   invoice_prefix: string
   invoice_next_number: number
+
+  // Numbering - Proforma
   proforma_prefix: string
   proforma_next_number: number
+
+  // Numbering - Credit Note
   credit_note_prefix: string
   credit_note_next_number: number
+
+  // Numbering - Packing Slip
+  packing_slip_prefix: string
+  packing_slip_next_number: number
+
+  // Numbering - Order Confirmation
+  order_confirmation_prefix: string
+  order_confirmation_next_number: number
+
+  // Numbering - Payment Reminder
+  payment_reminder_prefix: string
+  payment_reminder_next_number: number
+
+  // Customizable Labels
+  label_invoice: string
+  label_proforma: string
+  label_credit_note: string
+  label_packing_slip: string
+  label_order_confirmation: string
+  label_payment_reminder: string
+  label_invoice_address: string
+  label_date: string
+  label_customer_number: string
+  label_due_date: string
+  label_description: string
+  label_quantity: string
+  label_unit: string
+  label_unit_price: string
+  label_vat: string
+  label_total: string
+  label_subtotal: string
+  label_grand_total: string
+  label_payment_method: string
+  label_cash: string
+  label_bank: string
+  label_on_account: string
+  label_for_approval: string
+  label_name: string
+  label_signature: string
+
+  // Footer
+  footer_text?: string
+
+  // Timestamps
+  created_at: string
   updated_at: string
 }
 

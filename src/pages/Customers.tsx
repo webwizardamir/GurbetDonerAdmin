@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Search,
   Plus,
@@ -11,7 +12,10 @@ import {
   Loader2,
   Filter,
   Upload,
-  DollarSign,
+  Euro,
+  Eye,
+  Download,
+  MoreVertical,
 } from 'lucide-react'
 import { useCustomers } from '../hooks/useCustomers'
 import { usePermission } from '../hooks/usePermission'
@@ -19,8 +23,10 @@ import { Customer } from '../types'
 import CustomerForm from '../components/customers/CustomerForm'
 import CustomerImport from '../components/customers/CustomerImport'
 import CustomerPricing from '../components/pricing/CustomerPricing'
+import { exportToCSV, customerExportColumns } from '../utils/export'
 
 export default function Customers() {
+  const navigate = useNavigate()
   const { canCreate, canEdit, canDelete } = usePermission('customers')
   const {
     customers,
@@ -40,6 +46,7 @@ export default function Customers() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [pricingCustomer, setPricingCustomer] = useState<Customer | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   // Filter customers locally for instant feedback
   const filteredCustomers = customers.filter(customer => {
@@ -101,61 +108,96 @@ export default function Customers() {
     setEditingCustomer(null)
   }
 
+  const handleExport = () => {
+    const today = new Date().toISOString().split('T')[0]
+    exportToCSV(filteredCustomers, customerExportColumns, `customers-${today}.csv`)
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0">
       {/* Search & Actions Bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search */}
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, email, phone, VAT..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
-
-        {/* City Filter */}
-        {cities.length > 0 && (
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <select
-              value={cityFilter}
-              onChange={(e) => setCityFilter(e.target.value)}
-              className="pl-10 pr-8 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-            >
-              <option value="">All Cities</option>
-              {cities.map(city => (
-                <option key={city} value={city}>{city}</option>
-              ))}
-            </select>
+      <div className="space-y-3">
+        {/* Search Row */}
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, email, phone, VAT..."
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
           </div>
-        )}
-
-        {/* Import & Add Buttons */}
-        {canCreate && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowImport(true)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
-            >
-              <Upload className="w-5 h-5" />
-              Import
-            </button>
+          {/* Add Customer Button - Desktop */}
+          {canCreate && (
             <button
               onClick={() => {
                 setEditingCustomer(null)
                 setShowForm(true)
               }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap"
+              className="hidden sm:inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0"
             >
               <Plus className="w-5 h-5" />
               Add Customer
             </button>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-wrap gap-2">
+          {/* City Filter */}
+          {cities.length > 0 && (
+            <div className="relative flex-1 sm:flex-none">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+              <select
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+                className="w-full sm:w-auto pl-10 pr-8 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+              >
+                <option value="">All Cities</option>
+                {cities.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Export Button */}
+          <button
+            onClick={handleExport}
+            disabled={filteredCustomers.length === 0}
+            className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-colors whitespace-nowrap disabled:opacity-50"
+            title="Export to CSV"
+          >
+            <Download className="w-5 h-5" />
+            <span className="hidden sm:inline">Export</span>
+          </button>
+
+          {/* Import Button */}
+          {canCreate && (
+            <button
+              onClick={() => setShowImport(true)}
+              className="inline-flex items-center justify-center gap-2 px-3 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
+            >
+              <Upload className="w-5 h-5" />
+              <span className="hidden sm:inline">Import</span>
+            </button>
+          )}
+
+          {/* Add Customer Button - Mobile */}
+          {canCreate && (
+            <button
+              onClick={() => {
+                setEditingCustomer(null)
+                setShowForm(true)
+              }}
+              className="sm:hidden inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Error State */}
@@ -206,7 +248,8 @@ export default function Customers() {
                 {filteredCustomers.map((customer) => (
                   <tr
                     key={customer.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                    onClick={() => navigate(`/customers/${customer.id}`)}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -269,39 +312,20 @@ export default function Customers() {
                         <span className="text-sm text-slate-400">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setPricingCustomer(customer)}
-                          className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                          title="Custom Pricing"
-                        >
-                          <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        </button>
-                        {canEdit && (
-                          <button
-                            onClick={() => handleEdit(customer)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDelete(customer)}
-                            disabled={deleting === customer.id}
-                            className="p-2 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            {deleting === customer.id ? (
-                              <Loader2 className="w-4 h-4 text-rose-500 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4 text-rose-500" />
-                            )}
-                          </button>
-                        )}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                      <CustomerActionMenu
+                        customer={customer}
+                        isOpen={openMenuId === customer.id}
+                        onToggle={() => setOpenMenuId(openMenuId === customer.id ? null : customer.id)}
+                        onClose={() => setOpenMenuId(null)}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        deleting={deleting === customer.id}
+                        onView={() => navigate(`/customers/${customer.id}`)}
+                        onPricing={() => setPricingCustomer(customer)}
+                        onEdit={() => handleEdit(customer)}
+                        onDelete={() => handleDelete(customer)}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -333,10 +357,14 @@ export default function Customers() {
               customer={customer}
               canEdit={canEdit}
               canDelete={canDelete}
-              deleting={deleting}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onPricing={setPricingCustomer}
+              deleting={deleting === customer.id}
+              isMenuOpen={openMenuId === customer.id}
+              onMenuToggle={() => setOpenMenuId(openMenuId === customer.id ? null : customer.id)}
+              onMenuClose={() => setOpenMenuId(null)}
+              onEdit={() => handleEdit(customer)}
+              onDelete={() => handleDelete(customer)}
+              onPricing={() => setPricingCustomer(customer)}
+              onView={() => navigate(`/customers/${customer.id}`)}
             />
           ))
         )}
@@ -372,15 +400,119 @@ export default function Customers() {
   )
 }
 
+// Customer Action Menu Component
+interface CustomerActionMenuProps {
+  customer: Customer
+  isOpen: boolean
+  onToggle: () => void
+  onClose: () => void
+  canEdit: boolean
+  canDelete: boolean
+  deleting: boolean
+  onView: () => void
+  onPricing: () => void
+  onEdit: () => void
+  onDelete: () => void
+}
+
+function CustomerActionMenu({
+  isOpen,
+  onToggle,
+  onClose,
+  canEdit,
+  canDelete,
+  deleting,
+  onView,
+  onPricing,
+  onEdit,
+  onDelete,
+}: CustomerActionMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isOpen, onClose])
+
+  return (
+    <div ref={menuRef} className="relative inline-block">
+      <button
+        onClick={onToggle}
+        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+      >
+        <MoreVertical className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
+          <button
+            onClick={() => { onView(); onClose(); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            View Details
+          </button>
+          <button
+            onClick={() => { onPricing(); onClose(); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <Euro className="w-4 h-4 text-green-600 dark:text-green-400" />
+            Custom Pricing
+          </button>
+          {canEdit && (
+            <button
+              onClick={() => { onEdit(); onClose(); }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              Edit Customer
+            </button>
+          )}
+          {canDelete && (
+            <>
+              <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
+              <button
+                onClick={() => { onDelete(); onClose(); }}
+                disabled={deleting}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors disabled:opacity-50"
+              >
+                {deleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                Delete Customer
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Mobile Card Component
 interface MobileCustomerCardProps {
   customer: Customer
   canEdit: boolean
   canDelete: boolean
-  deleting: string | null
-  onEdit: (customer: Customer) => void
-  onDelete: (customer: Customer) => void
-  onPricing: (customer: Customer) => void
+  deleting: boolean
+  isMenuOpen: boolean
+  onMenuToggle: () => void
+  onMenuClose: () => void
+  onEdit: () => void
+  onDelete: () => void
+  onPricing: () => void
+  onView: () => void
 }
 
 function MobileCustomerCard({
@@ -388,59 +520,52 @@ function MobileCustomerCard({
   canEdit,
   canDelete,
   deleting,
+  isMenuOpen,
+  onMenuToggle,
+  onMenuClose,
   onEdit,
   onDelete,
   onPricing,
+  onView,
 }: MobileCustomerCardProps) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+    <div
+      className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50"
+      onClick={onView}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
-          <div>
-            <h3 className="font-semibold text-slate-900 dark:text-white">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-slate-900 dark:text-white truncate">
               {customer.company_name}
             </h3>
             {customer.contact_person && (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
                 {customer.contact_person}
               </p>
             )}
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => onPricing(customer)}
-            className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-          >
-            <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
-          </button>
-          {canEdit && (
-            <button
-              onClick={() => onEdit(customer)}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              <Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            </button>
-          )}
-          {canDelete && (
-            <button
-              onClick={() => onDelete(customer)}
-              disabled={deleting === customer.id}
-              className="p-2 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
-            >
-              {deleting === customer.id ? (
-                <Loader2 className="w-4 h-4 text-rose-500 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 text-rose-500" />
-              )}
-            </button>
-          )}
+        {/* Action Menu */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <CustomerActionMenu
+            customer={customer}
+            isOpen={isMenuOpen}
+            onToggle={onMenuToggle}
+            onClose={onMenuClose}
+            canEdit={canEdit}
+            canDelete={canDelete}
+            deleting={deleting}
+            onView={onView}
+            onPricing={onPricing}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
         </div>
       </div>
 
@@ -448,24 +573,20 @@ function MobileCustomerCard({
       <div className="space-y-1.5 text-sm">
         {customer.email && (
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-            <Mail className="w-4 h-4 text-slate-400" />
-            <a href={`mailto:${customer.email}`} className="truncate hover:text-green-600">
-              {customer.email}
-            </a>
+            <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="truncate">{customer.email}</span>
           </div>
         )}
         {customer.phone && (
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-            <Phone className="w-4 h-4 text-slate-400" />
-            <a href={`tel:${customer.phone}`} className="hover:text-green-600">
-              {customer.phone}
-            </a>
+            <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>{customer.phone}</span>
           </div>
         )}
         {(customer.billing_city || customer.billing_country) && (
           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-500">
-            <MapPin className="w-4 h-4 text-slate-400" />
-            <span>
+            <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="truncate">
               {[customer.billing_city, customer.billing_country].filter(Boolean).join(', ')}
             </span>
           </div>

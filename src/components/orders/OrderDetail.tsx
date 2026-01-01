@@ -11,10 +11,14 @@ import {
   XCircle,
   Clock,
   RefreshCw,
+  Printer,
+  Banknote,
 } from 'lucide-react'
 import { updateOrderStatus } from '../../services/orders'
-import type { OrderStatus } from '../../types'
+import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
+import DocumentGenerator from '../documents/DocumentGenerator'
+import PaymentMethodModal from './PaymentMethodModal'
 
 interface OrderDetailProps {
   order: OrderWithItems
@@ -50,9 +54,23 @@ function formatDateTime(dateString: string): string {
   })
 }
 
-// Status badge component
-function StatusBadge({ status }: { status: OrderStatus }) {
-  const config: Record<OrderStatus, { label: string; className: string }> = {
+// Format unit type to Dutch
+function formatUnitDutch(unitType: string, quantity: number): string {
+  switch (unitType?.toLowerCase()) {
+    case 'kg':
+      return 'kg'
+    case 'piece':
+      return quantity === 1 ? 'stuk' : 'stuks'
+    case 'package':
+      return quantity === 1 ? 'pak' : 'pakken'
+    default:
+      return quantity === 1 ? 'stuk' : 'stuks'
+  }
+}
+
+// Status badge component - supports both original and new schema statuses
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; className: string }> = {
     draft: {
       label: 'Draft',
       className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
@@ -77,13 +95,29 @@ function StatusBadge({ status }: { status: OrderStatus }) {
       label: 'Completed',
       className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     },
+    // Original schema statuses
+    pending: {
+      label: 'Pending',
+      className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+    },
+    processing: {
+      label: 'Processing',
+      className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+    },
+    delivered: {
+      label: 'Delivered',
+      className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    },
   }
 
-  const { label, className } = config[status]
+  const statusConfig = config[status] || {
+    label: status || 'Unknown',
+    className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
+  }
 
   return (
-    <span className={`px-3 py-1 text-sm font-medium rounded-full ${className}`}>
-      {label}
+    <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusConfig.className}`}>
+      {statusConfig.label}
     </span>
   )
 }
@@ -91,29 +125,42 @@ function StatusBadge({ status }: { status: OrderStatus }) {
 export default function OrderDetail({ order, onClose, onStatusChange }: OrderDetailProps) {
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [generatingDoc, setGeneratingDoc] = useState<DocumentType | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
 
-  const handleStatusChange = async (newStatus: OrderStatus) => {
+  const handleStatusChange = async (newStatus: OrderStatus, paymentMethod?: PaymentMethod) => {
     if (order.status === newStatus) return
+
+    // If completing without payment method, show modal
+    if (newStatus === 'completed' && !paymentMethod) {
+      setShowPaymentModal(true)
+      return
+    }
 
     const confirmMessage = newStatus === 'cancelled'
       ? 'Cancel this order? Stock will be restored.'
       : newStatus === 'refunded'
         ? 'Refund this order? Stock will be restored.'
-        : `Change status to ${newStatus}?`
+        : null // No confirmation for completed (already confirmed via modal)
 
-    if (!confirm(confirmMessage)) return
+    if (confirmMessage && !confirm(confirmMessage)) return
 
     setUpdatingStatus(true)
     setError(null)
 
     try {
-      await updateOrderStatus(order.id, newStatus)
+      await updateOrderStatus(order.id, newStatus, paymentMethod)
       onStatusChange()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update status')
     } finally {
       setUpdatingStatus(false)
+      setShowPaymentModal(false)
     }
+  }
+
+  const handlePaymentConfirm = async (method: PaymentMethod) => {
+    await handleStatusChange('completed', method)
   }
 
   // Available status transitions
@@ -163,6 +210,19 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
           {/* Status & Actions */}
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={order.status} />
+            {order.payment_method && order.payment_method !== 'none' && (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${
+                order.payment_method === 'cash'
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+              }`}>
+                {order.payment_method === 'cash' ? (
+                  <><Banknote className="w-3 h-3" /> Cash</>
+                ) : (
+                  <><Building2 className="w-3 h-3" /> Bank</>
+                )}
+              </span>
+            )}
             {order.status !== 'cancelled' && order.status !== 'refunded' && (
               <div className="flex flex-wrap gap-2">
                 {statusActions
@@ -234,7 +294,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                       {item.product_name}
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {formatPrice(item.unit_price)} × {item.quantity} {item.unit_type}
+                      {formatPrice(item.unit_price)} × {item.quantity} {formatUnitDutch(item.unit_type, item.quantity)}
                     </p>
                   </div>
                   <div className="text-right">
@@ -301,6 +361,62 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
               <span className="text-green-600 dark:text-green-400">{formatPrice(order.total)}</span>
             </div>
           </div>
+
+          {/* Document Actions */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Printer className="w-4 h-4 text-slate-400" />
+              <h3 className="font-medium text-slate-900 dark:text-white">
+                Documents
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setGeneratingDoc('invoice')}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Factuur
+              </button>
+              <button
+                onClick={() => setGeneratingDoc('proforma')}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Proforma
+              </button>
+              <button
+                onClick={() => setGeneratingDoc('order_confirmation')}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 font-medium rounded-lg hover:bg-cyan-200 dark:hover:bg-cyan-900/50 transition-colors text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Orderbevestiging
+              </button>
+              <button
+                onClick={() => setGeneratingDoc('packing_slip')}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Pakbon
+              </button>
+              <button
+                onClick={() => setGeneratingDoc('payment_reminder')}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Herinnering
+              </button>
+              {(order.status === 'refunded' || order.status === 'cancelled') && (
+                <button
+                  onClick={() => setGeneratingDoc('credit_note')}
+                  className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors text-sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  Credit Nota
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
@@ -313,6 +429,27 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
           </button>
         </div>
       </div>
+
+      {/* Document Generator Modal */}
+      {generatingDoc && (
+        <DocumentGenerator
+          orderId={order.id}
+          orderNumber={order.order_number}
+          documentType={generatingDoc}
+          onClose={() => setGeneratingDoc(null)}
+          onGenerated={() => setGeneratingDoc(null)}
+        />
+      )}
+
+      {/* Payment Method Modal */}
+      {showPaymentModal && (
+        <PaymentMethodModal
+          orderNumber={order.order_number}
+          onConfirm={handlePaymentConfirm}
+          onCancel={() => setShowPaymentModal(false)}
+          loading={updatingStatus}
+        />
+      )}
     </div>
   )
 }

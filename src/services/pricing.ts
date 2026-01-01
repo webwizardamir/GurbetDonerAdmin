@@ -41,7 +41,7 @@ export async function getEffectivePrice(customerId: string, productId: string): 
     .select('custom_price')
     .eq('customer_id', customerId)
     .eq('product_id', productId)
-    .single()
+    .maybeSingle() // Use maybeSingle to return null when no row exists
 
   if (customerPrice) {
     return customerPrice.custom_price
@@ -52,7 +52,7 @@ export async function getEffectivePrice(customerId: string, productId: string): 
     .from('products')
     .select('base_price')
     .eq('id', productId)
-    .single()
+    .maybeSingle() // Use maybeSingle for consistency
 
   return product?.base_price || 0
 }

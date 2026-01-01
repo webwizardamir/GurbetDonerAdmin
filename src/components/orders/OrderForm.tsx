@@ -116,13 +116,24 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
     }
   }
 
-  // Update item quantity
+  // Update item quantity by delta (+/-)
   const updateQuantity = (productId: string, delta: number) => {
     setItems(items.map(i => {
       if (i.product.id !== productId) return i
       const newQty = Math.max(0, i.quantity + delta)
       return { ...i, quantity: newQty }
     }).filter(i => i.quantity > 0))
+  }
+
+  // Set item quantity directly
+  const setQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeItem(productId)
+      return
+    }
+    setItems(items.map(i =>
+      i.product.id === productId ? { ...i, quantity } : i
+    ))
   }
 
   // Remove item
@@ -412,16 +423,27 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                             {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.unit_price * item.quantity)}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2 ml-3">
+                        <div className="flex items-center gap-1 ml-3">
                           <button
                             onClick={() => updateQuantity(item.product.id, -1)}
                             className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
                           >
                             <Minus className="w-4 h-4" />
                           </button>
-                          <span className="w-8 text-center font-medium text-slate-900 dark:text-white">
-                            {item.quantity}
-                          </span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={e => {
+                              const val = parseInt(e.target.value) || 0
+                              if (val > 0) setQuantity(item.product.id, val)
+                            }}
+                            onBlur={e => {
+                              const val = parseInt(e.target.value) || 0
+                              if (val <= 0) removeItem(item.product.id)
+                            }}
+                            className="w-14 text-center font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-green-500"
+                          />
                           <button
                             onClick={() => updateQuantity(item.product.id, 1)}
                             className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
@@ -430,7 +452,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                           </button>
                           <button
                             onClick={() => removeItem(item.product.id)}
-                            className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-2"
+                            className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-1"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

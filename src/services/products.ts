@@ -4,6 +4,7 @@ import type { Product, UnitType } from '../types'
 export interface ProductFilters {
   search?: string
   category_id?: string
+  limit?: number
 }
 
 // Fetch products with optional filters
@@ -24,6 +25,11 @@ export async function fetchProducts(filters: ProductFilters = {}): Promise<Produ
 
   if (filters.category_id) {
     query = query.eq('category_id', filters.category_id)
+  }
+
+  // Apply limit for performance
+  if (filters.limit) {
+    query = query.limit(filters.limit)
   }
 
   const { data, error } = await query

@@ -14,11 +14,17 @@ import {
   type CreateOrderItemData,
 } from '../services/orders'
 
+// Default limit for performance - can be overridden via filters
+const DEFAULT_LIMIT = 100
+
 export function useOrders(initialFilters: OrderFilters = {}) {
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filters, setFilters] = useState<OrderFilters>(initialFilters)
+  const [filters, setFilters] = useState<OrderFilters>({
+    limit: DEFAULT_LIMIT,
+    ...initialFilters,
+  })
 
   const loadOrders = useCallback(async () => {
     try {

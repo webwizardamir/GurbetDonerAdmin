@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Search,
   Plus,
@@ -9,13 +9,22 @@ import {
   Calendar,
   Building2,
   ChevronDown,
+  Banknote,
+  Download,
+  CheckCircle,
+  FileText,
+  X,
+  Check,
 } from 'lucide-react'
 import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
-import type { OrderStatus } from '../types'
+import type { OrderStatus, PaymentMethod } from '../types'
 import type { OrderWithItems } from '../services/orders'
+import { bulkUpdateOrderStatus } from '../services/orders'
+import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
 import OrderForm from '../components/orders/OrderForm'
 import OrderDetail from '../components/orders/OrderDetail'
+import { exportToCSV, orderExportColumns } from '../utils/export'
 
 // Format price from cents to euros
 function formatPrice(cents: number): string {
@@ -34,15 +43,16 @@ function formatDate(dateString: string): string {
   })
 }
 
-// Status badge component
-function StatusBadge({ status }: { status: OrderStatus }) {
-  const config: Record<OrderStatus, { label: string; className: string }> = {
+// Status badge component - supports both original and new schema statuses
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; className: string }> = {
+    // New schema statuses
     draft: {
       label: 'Draft',
       className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
     },
     pending_payment: {
-      label: 'Pending',
+      label: 'Pending Payment',
       className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
     },
     on_hold: {
@@ -61,13 +71,58 @@ function StatusBadge({ status }: { status: OrderStatus }) {
       label: 'Completed',
       className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     },
+    // Original schema statuses
+    pending: {
+      label: 'Pending',
+      className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+    },
+    processing: {
+      label: 'Processing',
+      className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+    },
+    delivered: {
+      label: 'Delivered',
+      className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    },
   }
 
-  const { label, className } = config[status]
+  const statusConfig = config[status] || {
+    label: status || 'Unknown',
+    className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
+  }
 
   return (
-    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${className}`}>
-      {label}
+    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusConfig.className}`}>
+      {statusConfig.label}
+    </span>
+  )
+}
+
+// Payment method badge component
+function PaymentBadge({ method }: { method?: PaymentMethod }) {
+  if (!method || method === 'none') return null
+
+  const config = {
+    cash: {
+      label: 'Cash',
+      className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+      icon: Banknote,
+    },
+    bank: {
+      label: 'Bank',
+      className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+      icon: Building2,
+    },
+  }
+
+  const cfg = config[method]
+  if (!cfg) return null
+
+  const Icon = cfg.icon
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${cfg.className}`}>
+      <Icon className="w-3 h-3" />
+      {cfg.label}
     </span>
   )
 }
@@ -81,15 +136,47 @@ export default function Orders() {
   const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  // Filter orders locally for search
-  const filteredOrders = orders.filter(order => {
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkProcessing, setBulkProcessing] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState<'single' | 'bulk' | null>(null)
+  const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null)
+
+  // Document info per order (count + invoice number)
+  const [documentInfo, setDocumentInfo] = useState<Map<string, OrderDocumentInfo>>(new Map())
+
+  // Filter orders locally for search (order number, customer name, or invoice number)
+  const filteredOrders = useMemo(() => orders.filter(order => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
+    const invoiceNum = documentInfo.get(order.id)?.invoiceNumber?.toLowerCase() || ''
     return (
       order.order_number.toLowerCase().includes(query) ||
-      order.customer?.company_name?.toLowerCase().includes(query)
+      order.customer?.company_name?.toLowerCase().includes(query) ||
+      invoiceNum.includes(query)
     )
-  })
+  }), [orders, searchQuery, documentInfo])
+
+  // Fetch document info (count + invoice numbers) when orders change
+  useEffect(() => {
+    const orderIds = orders.map(o => o.id)
+    if (orderIds.length > 0) {
+      fetchDocumentInfoByOrder(orderIds)
+        .then(info => setDocumentInfo(info))
+        .catch(console.error)
+    }
+  }, [orders])
+
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [filters, searchQuery])
+
+  // Get selected orders that can be bulk completed
+  const selectedOrders = filteredOrders.filter(o => selectedIds.has(o.id))
+  const completableSelected = selectedOrders.filter(o =>
+    ['draft', 'pending_payment', 'on_hold'].includes(o.status)
+  )
 
   const handleDelete = async (order: OrderWithItems) => {
     if (!confirm(`Delete order ${order.order_number}? This cannot be undone.`)) return
@@ -108,56 +195,220 @@ export default function Orders() {
     setFilters({ ...filters, status: status || undefined })
   }
 
+  const handlePaymentFilter = (method: PaymentMethod | '') => {
+    setFilters({ ...filters, paymentMethod: method || undefined })
+  }
+
+  const handleExport = () => {
+    const today = new Date().toISOString().split('T')[0]
+    exportToCSV(filteredOrders, orderExportColumns, `orders-${today}.csv`)
+  }
+
+  // Selection handlers
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds)
+    if (newSet.has(id)) {
+      newSet.delete(id)
+    } else {
+      newSet.add(id)
+    }
+    setSelectedIds(newSet)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredOrders.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredOrders.map(o => o.id)))
+    }
+  }
+
+  // Quick complete single order
+  const handleQuickComplete = (orderId: string) => {
+    setPendingCompleteId(orderId)
+    setShowPaymentModal('single')
+  }
+
+  // Bulk complete
+  const handleBulkComplete = () => {
+    if (completableSelected.length === 0) return
+    setShowPaymentModal('bulk')
+  }
+
+  // Handle payment method selection
+  const handlePaymentConfirm = async (method: PaymentMethod) => {
+    try {
+      setBulkProcessing(true)
+
+      if (showPaymentModal === 'single' && pendingCompleteId) {
+        await bulkUpdateOrderStatus([pendingCompleteId], 'completed', method)
+      } else if (showPaymentModal === 'bulk') {
+        const ids = completableSelected.map(o => o.id)
+        await bulkUpdateOrderStatus(ids, 'completed', method)
+        setSelectedIds(new Set())
+      }
+
+      refresh()
+    } catch (err) {
+      console.error('Failed to complete order(s):', err)
+    } finally {
+      setBulkProcessing(false)
+      setShowPaymentModal(null)
+      setPendingCompleteId(null)
+    }
+  }
+
+  // Bulk cancel
+  const handleBulkCancel = async () => {
+    const cancellable = selectedOrders.filter(o =>
+      ['draft', 'pending_payment', 'on_hold'].includes(o.status)
+    )
+    if (cancellable.length === 0) return
+
+    if (!confirm(`Cancel ${cancellable.length} order(s)? This will restore stock for tracked items.`)) return
+
+    try {
+      setBulkProcessing(true)
+      await bulkUpdateOrderStatus(cancellable.map(o => o.id), 'cancelled')
+      setSelectedIds(new Set())
+      refresh()
+    } catch (err) {
+      console.error('Failed to cancel orders:', err)
+    } finally {
+      setBulkProcessing(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search */}
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search by order number or customer..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
+      <div className="space-y-3">
+        {/* Search Row */}
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search by order, customer, or invoice..."
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+          {/* Create Order Button - Desktop */}
+          {canCreate && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="hidden sm:inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0"
+            >
+              <Plus className="w-5 h-5" />
+              New Order
+            </button>
+          )}
         </div>
 
-        {/* Status Filter */}
-        <div className="relative">
-          <select
-            value={filters.status || ''}
-            onChange={e => handleStatusFilter(e.target.value as OrderStatus | '')}
-            className="pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-          >
-            <option value="">All Status</option>
-            <option value="draft">Draft</option>
-            <option value="pending_payment">Pending Payment</option>
-            <option value="on_hold">On Hold</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="refunded">Refunded</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-        </div>
+        {/* Filters Row */}
+        <div className="flex flex-wrap gap-2">
+          {/* Status Filter */}
+          <div className="relative flex-1 sm:flex-none">
+            <select
+              value={filters.status || ''}
+              onChange={e => handleStatusFilter(e.target.value as OrderStatus | '')}
+              className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+            >
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="pending_payment">Pending</option>
+              <option value="on_hold">On Hold</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="refunded">Refunded</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
 
-        {/* Create Order Button */}
-        {canCreate && (
+          {/* Payment Method Filter */}
+          <div className="relative flex-1 sm:flex-none">
+            <select
+              value={filters.paymentMethod || ''}
+              onChange={e => handlePaymentFilter(e.target.value as PaymentMethod | '')}
+              className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+            >
+              <option value="">All Pay</option>
+              <option value="cash">Cash</option>
+              <option value="bank">Bank</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Export Button */}
           <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap"
+            onClick={handleExport}
+            disabled={filteredOrders.length === 0}
+            className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-colors whitespace-nowrap disabled:opacity-50"
+            title="Export to CSV"
           >
-            <Plus className="w-5 h-5" />
-            New Order
+            <Download className="w-5 h-5" />
+            <span className="hidden sm:inline">Export</span>
           </button>
-        )}
+
+          {/* Create Order Button - Mobile */}
+          {canCreate && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="sm:hidden inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Error Message */}
       {error && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
           <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-green-800 dark:text-green-300">
+              {selectedIds.size} selected
+            </span>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-sm text-green-600 dark:text-green-400 hover:underline"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            {completableSelected.length > 0 && (
+              <button
+                onClick={handleBulkComplete}
+                disabled={bulkProcessing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                {bulkProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                Complete ({completableSelected.length})
+              </button>
+            )}
+            <button
+              onClick={handleBulkCancel}
+              disabled={bulkProcessing || completableSelected.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -181,96 +432,159 @@ export default function Orders() {
             <table className="w-full">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="pl-4 pr-2 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === filteredOrders.length && filteredOrders.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500"
+                    />
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     Order
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     Customer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Invoice
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     Total
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {filteredOrders.map(order => (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-                          <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
+                {filteredOrders.map(order => {
+                  const docInfo = documentInfo.get(order.id) || { count: 0 }
+                  const canComplete = ['draft', 'pending_payment', 'on_hold'].includes(order.status)
+
+                  return (
+                    <tr
+                      key={order.id}
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
+                        selectedIds.has(order.id) ? 'bg-green-50/50 dark:bg-green-900/10' : ''
+                      }`}
+                    >
+                      <td className="pl-4 pr-2 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(order.id)}
+                          onChange={() => toggleSelect(order.id)}
+                          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500"
+                        />
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+                            <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-white">
+                              {order.order_number}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-slate-900 dark:text-white">
-                            {order.order_number}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
-                          </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-slate-400" />
+                          <span className="text-slate-700 dark:text-slate-300">
+                            {order.customer?.company_name || '-'}
+                          </span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-slate-400" />
-                        <span className="text-slate-700 dark:text-slate-300">
-                          {order.customer?.company_name || '-'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                        <Calendar className="w-4 h-4" />
-                        {formatDate(order.order_date)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={order.status} />
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-semibold text-slate-900 dark:text-white">
-                        {formatPrice(order.total)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setViewingOrder(order)}
-                          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                        </button>
-                        {canDelete && order.status === 'draft' && (
-                          <button
-                            onClick={() => handleDelete(order)}
-                            disabled={deleting === order.id}
-                            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            {deleting === order.id ? (
-                              <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            )}
-                          </button>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                          <Calendar className="w-4 h-4" />
+                          {formatDate(order.order_date)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={order.status} />
+                          <PaymentBadge method={order.payment_method} />
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {docInfo.invoiceNumber ? (
+                          <div className="flex items-center gap-1.5">
+                            <FileText className="w-4 h-4 text-violet-500" />
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                              {docInfo.invoiceNumber}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-slate-400 dark:text-slate-500">-</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-semibold text-slate-900 dark:text-white">
+                          {formatPrice(order.total)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Document indicator - show count if multiple docs */}
+                          {docInfo.count > 1 && (
+                            <div
+                              className="relative p-2"
+                              title={`${docInfo.count} documents generated`}
+                            >
+                              <FileText className="w-4 h-4 text-violet-500" />
+                              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-violet-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                {docInfo.count}
+                              </span>
+                            </div>
+                          )}
+                          {/* Quick complete button */}
+                          {canComplete && (
+                            <button
+                              onClick={() => handleQuickComplete(order.id)}
+                              className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors cursor-pointer"
+                              title="Mark as Complete"
+                            >
+                              <Check className="w-4 h-4 text-green-600" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setViewingOrder(order)}
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                          </button>
+                          {canDelete && ['draft', 'pending', 'pending_payment', 'on_hold'].includes(order.status) && (
+                            <button
+                              onClick={() => handleDelete(order)}
+                              disabled={deleting === order.id}
+                              className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors cursor-pointer"
+                              title="Delete"
+                            >
+                              {deleting === order.id ? (
+                                <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -293,70 +607,92 @@ export default function Orders() {
             </p>
           </div>
         ) : (
-          filteredOrders.map(order => (
-            <div
-              key={order.id}
-              className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4"
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-                    <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      {order.order_number}
-                    </p>
+          filteredOrders.map(order => {
+            const docInfo = documentInfo.get(order.id) || { count: 0 }
+            const canComplete = ['draft', 'pending_payment', 'on_hold'].includes(order.status)
+
+            return (
+              <div
+                key={order.id}
+                className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 ${
+                  selectedIds.has(order.id) ? 'ring-2 ring-green-500' : ''
+                }`}
+              >
+                {/* Top row: checkbox, order number + date, status + total */}
+                <div className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(order.id)}
+                    onChange={() => toggleSelect(order.id)}
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-slate-900 dark:text-white truncate">
+                        {order.order_number}
+                      </p>
+                      {docInfo.invoiceNumber && (
+                        <span className="text-xs text-violet-600 dark:text-violet-400 font-medium shrink-0">
+                          {docInfo.invoiceNumber}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {formatDate(order.order_date)}
+                      {formatDate(order.order_date)} · {order.items?.length || 0} items
                     </p>
                   </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-semibold text-green-600 dark:text-green-400">
+                      {formatPrice(order.total)}
+                    </p>
+                    <StatusBadge status={order.status} />
+                  </div>
                 </div>
-                <StatusBadge status={order.status} />
-              </div>
 
-              {/* Customer & Total */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                  <Building2 className="w-4 h-4" />
-                  {order.customer?.company_name || '-'}
+                {/* Customer + Payment */}
+                <div className="flex items-center justify-between mb-3 pl-7">
+                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 truncate">
+                    <Building2 className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{order.customer?.company_name || '-'}</span>
+                  </div>
+                  <PaymentBadge method={order.payment_method} />
                 </div>
-                <span className="font-semibold text-green-600 dark:text-green-400">
-                  {formatPrice(order.total)}
-                </span>
-              </div>
 
-              {/* Items count */}
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
-              </p>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
-                <button
-                  onClick={() => setViewingOrder(order)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium"
-                >
-                  <Eye className="w-4 h-4" />
-                  View
-                </button>
-                {canDelete && order.status === 'draft' && (
+                {/* Actions */}
+                <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+                  {canComplete && (
+                    <button
+                      onClick={() => handleQuickComplete(order.id)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium"
+                    >
+                      <Check className="w-4 h-4" />
+                      Complete
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleDelete(order)}
-                    disabled={deleting === order.id}
-                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                    onClick={() => setViewingOrder(order)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium"
                   >
-                    {deleting === order.id ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-5 h-5" />
-                    )}
+                    <Eye className="w-4 h-4" />
+                    View
                   </button>
-                )}
+                  {canDelete && ['draft', 'pending', 'pending_payment', 'on_hold'].includes(order.status) && (
+                    <button
+                      onClick={() => handleDelete(order)}
+                      disabled={deleting === order.id}
+                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                    >
+                      {deleting === order.id ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-5 h-5" />
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
 
@@ -381,6 +717,59 @@ export default function Orders() {
             refresh()
           }}
         />
+      )}
+
+      {/* Payment Method Selection Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              setShowPaymentModal(null)
+              setPendingCompleteId(null)
+            }}
+          />
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95 fade-in duration-200">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              Select Payment Method
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+              {showPaymentModal === 'bulk'
+                ? `Complete ${completableSelected.length} order(s) as:`
+                : 'Complete this order as:'}
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <button
+                onClick={() => handlePaymentConfirm('cash')}
+                disabled={bulkProcessing}
+                className="flex flex-col items-center gap-3 p-6 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 border-2 border-green-200 dark:border-green-800 rounded-xl transition-colors disabled:opacity-50"
+              >
+                <Banknote className="w-10 h-10 text-green-600" />
+                <span className="font-semibold text-green-700 dark:text-green-300">Cash</span>
+              </button>
+              <button
+                onClick={() => handlePaymentConfirm('bank')}
+                disabled={bulkProcessing}
+                className="flex flex-col items-center gap-3 p-6 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 rounded-xl transition-colors disabled:opacity-50"
+              >
+                <Building2 className="w-10 h-10 text-blue-600" />
+                <span className="font-semibold text-blue-700 dark:text-blue-300">Bank</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowPaymentModal(null)
+                setPendingCompleteId(null)
+              }}
+              disabled={bulkProcessing}
+              className="w-full px-4 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Edit2, UserX, UserCheck, X, Users as UsersIcon, Shield, ShieldCheck, ExternalLink } from 'lucide-react'
+import { Edit2, UserX, UserCheck, X, Users as UsersIcon, Shield, ShieldCheck, Plus, Eye, EyeOff } from 'lucide-react'
 import { UserProfile } from '../types'
-import { fetchStaffProfiles, updateUserProfile } from '../services/users'
+import { fetchStaffProfiles, updateUserProfile, inviteUser } from '../services/users'
 import { useAuth } from '../context/AuthContext'
 
 type UserRole = 'owner' | 'shop_manager'
@@ -12,8 +12,11 @@ export default function Users() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
   const [editFormData, setEditFormData] = useState<{ fullName: string; role: UserRole }>({ fullName: '', role: 'shop_manager' })
+  const [createFormData, setCreateFormData] = useState({ email: '', password: '', fullName: '', role: 'shop_manager' as UserRole })
+  const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -69,6 +72,35 @@ export default function Users() {
     }
   }
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormError(null)
+    setSubmitting(true)
+
+    try {
+      const result = await inviteUser({
+        email: createFormData.email,
+        password: createFormData.password,
+        fullName: createFormData.fullName,
+        role: createFormData.role,
+      })
+
+      if (!result.success) {
+        setFormError(result.error || 'Failed to create user')
+        return
+      }
+
+      setShowCreateModal(false)
+      setCreateFormData({ email: '', password: '', fullName: '', role: 'shop_manager' })
+      loadUsers()
+    } catch (err) {
+      console.error('Failed to create user:', err)
+      setFormError('Failed to create user')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const openEditModal = (user: UserProfile) => {
     setSelectedUser(user)
     setEditFormData({
@@ -114,20 +146,23 @@ export default function Users() {
 
   return (
     <div className="space-y-4">
-      {/* Info banner with action */}
-      <div className="flex items-center justify-between gap-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <p className="text-sm text-blue-800 dark:text-blue-300">
-          <strong>To add a new staff member:</strong> Create the user in Supabase Auth, then change their role here.
-        </p>
-        <a
-          href="https://supabase.com/dashboard/project/pnimvwconhhmcwxcuxcz/auth/users"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+      {/* Header with create button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Staff Members</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Manage user accounts and permissions</p>
+        </div>
+        <button
+          onClick={() => {
+            setCreateFormData({ email: '', password: '', fullName: '', role: 'shop_manager' })
+            setFormError(null)
+            setShowCreateModal(true)
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
         >
-          <ExternalLink className="w-4 h-4" />
+          <Plus className="w-4 h-4" />
           Add User
-        </a>
+        </button>
       </div>
 
       {/* Error */}
@@ -331,6 +366,123 @@ export default function Users() {
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                 >
                   {submitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add New User</h2>
+              <button
+                onClick={() => {
+                  setShowCreateModal(false)
+                  setFormError(null)
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-gray-500 dark:text-gray-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
+              {formError && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+                  {formError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={createFormData.email}
+                  onChange={(e) => setCreateFormData({ ...createFormData, email: e.target.value })}
+                  required
+                  placeholder="user@example.com"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={createFormData.fullName}
+                  onChange={(e) => setCreateFormData({ ...createFormData, fullName: e.target.value })}
+                  required
+                  placeholder="John Doe"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Password *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={createFormData.password}
+                    onChange={(e) => setCreateFormData({ ...createFormData, password: e.target.value })}
+                    required
+                    minLength={6}
+                    placeholder="Minimum 6 characters"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Role *
+                </label>
+                <select
+                  value={createFormData.role}
+                  onChange={(e) => setCreateFormData({ ...createFormData, role: e.target.value as UserRole })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="shop_manager">Shop Manager</option>
+                  <option value="owner">Owner</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Owners have full access including analytics and settings
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false)
+                    setFormError(null)
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {submitting ? 'Creating...' : 'Create User'}
                 </button>
               </div>
             </form>

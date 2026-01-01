@@ -7,12 +7,14 @@ import {
   Users,
   UserCog,
   Package,
+  PackageSearch,
   FileText,
   BarChart3,
   Settings,
   LogOut,
   History,
   ChevronDown,
+  X,
 } from 'lucide-react'
 import logoMelek from '../../assets/images/logo-melek.png'
 
@@ -29,6 +31,7 @@ const navItems: NavItem[] = [
   { icon: ShoppingCart, label: 'Orders', href: '/orders' },
   { icon: Users, label: 'Customers', href: '/customers' },
   { icon: Package, label: 'Products', href: '/products' },
+  { icon: PackageSearch, label: 'Sold Products', href: '/sold-products' },
   { icon: FileText, label: 'Invoices', href: '/invoices' },
   { icon: BarChart3, label: 'Analytics', href: '/analytics', ownerOnly: true },
   {
@@ -37,13 +40,19 @@ const navItems: NavItem[] = [
     href: '/settings',
     ownerOnly: true,
     children: [
+      { icon: FileText, label: 'Documents', href: '/settings/documents', ownerOnly: true },
       { icon: UserCog, label: 'Users', href: '/settings/users', ownerOnly: true },
       { icon: History, label: 'Audit Log', href: '/settings/audit-log', ownerOnly: true },
     ]
   },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { profile, signOut, isOwner } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -85,9 +94,17 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-20">
+    <aside
+      className={`
+        fixed left-0 top-0 h-screen w-64 border-r border-slate-200 dark:border-slate-800
+        bg-white dark:bg-slate-900 flex flex-col z-40
+        transform transition-transform duration-300 ease-in-out
+        lg:translate-x-0
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}
+    >
       {/* Logo Area */}
-      <div className="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
         <NavLink to="/" className="flex items-center gap-3">
           <img
             src={logoMelek}
@@ -95,6 +112,13 @@ export default function Sidebar() {
             className="h-10 w-auto"
           />
         </NavLink>
+        {/* Mobile close button */}
+        <button
+          onClick={onClose}
+          className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+        >
+          <X className="w-5 h-5 text-slate-500" />
+        </button>
       </div>
 
       {/* Navigation Menu */}

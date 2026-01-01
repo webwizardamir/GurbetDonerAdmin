@@ -1,0 +1,451 @@
+import { useState, useMemo } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Building2,
+  Loader2,
+  AlertCircle,
+  DollarSign,
+  ShoppingCart,
+  TrendingUp,
+  Package,
+  Banknote,
+  Phone,
+  Mail,
+  MapPin,
+  FileText,
+  User,
+  Search,
+  Calendar,
+} from 'lucide-react'
+import { useCustomerDetail } from '../hooks/useCustomerDetail'
+import CustomerOrderRow from '../components/customers/CustomerOrderRow'
+import { formatPrice } from '../utils/format'
+
+type TabType = 'orders' | 'details'
+type DateRangeKey = 'all' | 'last7' | 'last30' | 'last90' | 'thisYear'
+
+const DATE_RANGES: Record<DateRangeKey, { label: string; days: number | null }> = {
+  all: { label: 'All Time', days: null },
+  last7: { label: 'Last 7 Days', days: 7 },
+  last30: { label: 'Last 30 Days', days: 30 },
+  last90: { label: 'Last 90 Days', days: 90 },
+  thisYear: { label: 'This Year', days: 365 },
+}
+
+export default function CustomerDetail() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { loading, error, customer, orders, stats, refresh, hasDocument } = useCustomerDetail(id)
+  const [activeTab, setActiveTab] = useState<TabType>('orders')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [dateRange, setDateRange] = useState<DateRangeKey>('all')
+
+  // Filter orders based on search and date range
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        const matchesSearch =
+          order.order_number.toLowerCase().includes(query) ||
+          order.items.some(item => item.product_name.toLowerCase().includes(query))
+        if (!matchesSearch) return false
+      }
+
+      // Date range filter
+      if (dateRange !== 'all') {
+        const range = DATE_RANGES[dateRange]
+        if (range.days) {
+          const orderDate = new Date(order.order_date)
+          const cutoffDate = new Date()
+          cutoffDate.setDate(cutoffDate.getDate() - range.days)
+          if (orderDate < cutoffDate) return false
+        }
+      }
+
+      return true
+    })
+  }, [orders, searchQuery, dateRange])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+      </div>
+    )
+  }
+
+  if (error || !customer) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <AlertCircle className="w-12 h-12 text-red-500" />
+        <p className="text-slate-600 dark:text-slate-400">
+          {error || 'Customer not found'}
+        </p>
+        <button
+          onClick={() => navigate('/customers')}
+          className="text-green-600 hover:text-green-700 font-medium"
+        >
+          Back to Customers
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <button
+          onClick={() => navigate('/customers')}
+          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+              <Building2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                {customer.company_name}
+              </h1>
+              {customer.contact_person && (
+                <p className="text-slate-500 dark:text-slate-400">
+                  {customer.contact_person}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Revenue</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">
+                {formatPrice(stats.totalRevenue)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Orders</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">
+                {stats.totalOrders}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Avg Value</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">
+                {formatPrice(stats.avgOrderValue)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
+              <Package className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Items</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">
+                {stats.totalItems}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Breakdown */}
+      {(stats.paymentBreakdown.cash > 0 || stats.paymentBreakdown.bank > 0) && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 flex items-center gap-3">
+            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <Banknote className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Cash</p>
+              <p className="font-semibold text-slate-900 dark:text-white">
+                {formatPrice(stats.paymentBreakdown.cash)}
+              </p>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 flex items-center gap-3">
+            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Bank</p>
+              <p className="font-semibold text-slate-900 dark:text-white">
+                {formatPrice(stats.paymentBreakdown.bank)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-200 dark:border-slate-700">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'orders'
+                ? 'border-green-600 text-green-600 dark:text-green-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Orders ({orders.length})
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'details'
+                ? 'border-green-600 text-green-600 dark:text-green-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Details
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'orders' ? (
+        <div className="space-y-4">
+          {/* Search and Filter Bar */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search orders or products..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Date Range Filter */}
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value as DateRangeKey)}
+                className="pl-10 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+              >
+                {Object.entries(DATE_RANGES).map(([key, { label }]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Orders List */}
+          <div className="space-y-3">
+            {orders.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-500 dark:text-slate-400">
+                  No orders yet for this customer
+                </p>
+              </div>
+            ) : filteredOrders.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                <Search className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-500 dark:text-slate-400">
+                  No orders match your search
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Showing {filteredOrders.length} of {orders.length} orders
+                </p>
+                {filteredOrders.map(order => (
+                  <CustomerOrderRow
+                    key={order.id}
+                    order={order}
+                    hasDocument={hasDocument}
+                    onDocumentGenerated={refresh}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Contact Information */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-900 dark:text-white">
+                Contact Information
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              {customer.contact_person && (
+                <div className="flex items-start gap-3">
+                  <User className="w-5 h-5 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Contact Person</p>
+                    <p className="text-slate-900 dark:text-white">{customer.contact_person}</p>
+                  </div>
+                </div>
+              )}
+              {customer.email && (
+                <div className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Email</p>
+                    <a
+                      href={`mailto:${customer.email}`}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      {customer.email}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {customer.phone && (
+                <div className="flex items-start gap-3">
+                  <Phone className="w-5 h-5 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Phone</p>
+                    <a
+                      href={`tel:${customer.phone}`}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      {customer.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {customer.vat_number && (
+                <div className="flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">VAT Number</p>
+                    <p className="text-slate-900 dark:text-white font-mono">{customer.vat_number}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Billing Address */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-900 dark:text-white">
+                Billing Address
+              </h3>
+            </div>
+            <div className="p-6">
+              {customer.billing_street || customer.billing_city ? (
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
+                  <div className="space-y-1">
+                    {customer.billing_street && (
+                      <p className="text-slate-900 dark:text-white">{customer.billing_street}</p>
+                    )}
+                    {(customer.billing_postal_code || customer.billing_city) && (
+                      <p className="text-slate-900 dark:text-white">
+                        {[customer.billing_postal_code, customer.billing_city]
+                          .filter(Boolean)
+                          .join(' ')}
+                      </p>
+                    )}
+                    {customer.billing_country && (
+                      <p className="text-slate-500 dark:text-slate-400">{customer.billing_country}</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-slate-500 dark:text-slate-400">No address on file</p>
+              )}
+            </div>
+          </div>
+
+          {/* Shipping Address (if different) */}
+          {!customer.shipping_same_as_billing && (customer.shipping_street || customer.shipping_city) && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+                <h3 className="font-semibold text-slate-900 dark:text-white">
+                  Shipping Address
+                </h3>
+              </div>
+              <div className="p-6">
+                <div className="flex items-start gap-3">
+                  <Package className="w-5 h-5 text-slate-400 mt-0.5" />
+                  <div className="space-y-1">
+                    {customer.shipping_street && (
+                      <p className="text-slate-900 dark:text-white">{customer.shipping_street}</p>
+                    )}
+                    {(customer.shipping_postal_code || customer.shipping_city) && (
+                      <p className="text-slate-900 dark:text-white">
+                        {[customer.shipping_postal_code, customer.shipping_city]
+                          .filter(Boolean)
+                          .join(' ')}
+                      </p>
+                    )}
+                    {customer.shipping_country && (
+                      <p className="text-slate-500 dark:text-slate-400">{customer.shipping_country}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Internal Notes */}
+          {customer.internal_notes && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden lg:col-span-2">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+                <h3 className="font-semibold text-slate-900 dark:text-white">
+                  Internal Notes
+                </h3>
+              </div>
+              <div className="p-6">
+                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                  {customer.internal_notes}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -8,6 +8,7 @@ import {
   Loader2,
   Package,
   PackageX,
+  Download,
 } from 'lucide-react'
 import { useProducts } from '../hooks/useProducts'
 import { useCategories } from '../hooks/useCategories'
@@ -16,6 +17,7 @@ import { useAuth } from '../context/AuthContext'
 import ProductForm, { type ProductFormData } from '../components/products/ProductForm'
 import CategoryManager from '../components/products/CategoryManager'
 import type { Product } from '../types'
+import { exportToCSV, productExportColumns } from '../utils/export'
 
 // Format price from cents to euros
 function formatPrice(cents: number): string {
@@ -25,13 +27,13 @@ function formatPrice(cents: number): string {
   }).format(cents / 100)
 }
 
-// Format unit type for display
+// Format unit type for display (Dutch)
 function formatUnitType(unitType: string): string {
   switch (unitType) {
     case 'package':
-      return 'Package'
+      return 'Pak'
     case 'piece':
-      return 'Piece'
+      return 'Stuk'
     case 'kg':
       return 'Per kg'
     default:
@@ -103,55 +105,85 @@ export default function Products() {
     setEditingProduct(null)
   }
 
+  const handleExport = () => {
+    const today = new Date().toISOString().split('T')[0]
+    exportToCSV(filteredProducts, productExportColumns, `products-${today}.csv`)
+  }
+
   return (
     <div className="space-y-6">
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+      <div className="space-y-3">
+        {/* Search Row */}
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+          {/* Add Product Button - Desktop */}
+          {canCreate && (
+            <button
+              onClick={handleCreate}
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors shrink-0"
+            >
+              <Plus className="w-5 h-5" />
+              Add Product
+            </button>
+          )}
         </div>
 
-        {/* Category Filter */}
-        <select
-          value={categoryFilter}
-          onChange={e => setCategoryFilter(e.target.value)}
-          className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-        >
-          <option value="">All Categories</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Categories Button */}
-        <button
-          onClick={() => setShowCategories(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-        >
-          <Tag className="w-5 h-5" />
-          <span className="hidden sm:inline">Categories</span>
-        </button>
-
-        {/* Add Product Button */}
-        {canCreate && (
-          <button
-            onClick={handleCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
+        {/* Filters Row */}
+        <div className="flex flex-wrap gap-2">
+          {/* Category Filter */}
+          <select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            className="flex-1 sm:flex-none px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
           >
-            <Plus className="w-5 h-5" />
-            <span className="hidden sm:inline">Add Product</span>
+            <option value="">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Categories Button */}
+          <button
+            onClick={() => setShowCategories(true)}
+            className="inline-flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+          >
+            <Tag className="w-5 h-5" />
+            <span className="hidden sm:inline">Categories</span>
           </button>
-        )}
+
+          {/* Export Button */}
+          <button
+            onClick={handleExport}
+            disabled={filteredProducts.length === 0}
+            className="inline-flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+            title="Export to CSV"
+          >
+            <Download className="w-5 h-5" />
+            <span className="hidden sm:inline">Export</span>
+          </button>
+
+          {/* Add Product Button - Mobile */}
+          {canCreate && (
+            <button
+              onClick={handleCreate}
+              className="sm:hidden inline-flex items-center gap-2 px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Error Message */}

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute, OwnerRoute, PublicRoute } from './components/auth'
 import Layout from './components/layout/Layout'
+import ReminderAlert from './components/ReminderAlert'
 
 // Pages
 import Login from './pages/Login'
@@ -10,16 +11,22 @@ import ResetPassword from './pages/ResetPassword'
 import Unauthorized from './pages/Unauthorized'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
+import CustomerDetail from './pages/CustomerDetail'
 import Products from './pages/Products'
 import Orders from './pages/Orders'
 import AuditLog from './pages/AuditLog'
 import Users from './pages/Users'
+import DocumentSettings from './pages/DocumentSettings'
+import Invoices from './pages/Invoices'
+import Analytics from './pages/Analytics'
+import SoldProducts from './pages/SoldProducts'
 import TestConnection from './pages/TestConnection'
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ReminderAlert />
         <Routes>
           {/* Public Routes */}
           <Route
@@ -63,18 +70,20 @@ function App() {
 
             {/* Customers */}
             <Route path="customers" element={<Customers />} />
+            <Route path="customers/:id" element={<CustomerDetail />} />
 
             {/* Products */}
             <Route path="products" element={<Products />} />
+            <Route path="sold-products" element={<SoldProducts />} />
 
             {/* Orders */}
             <Route path="orders" element={<Orders />} />
-            <Route path="invoices" element={<ComingSoon title="Invoices" />} />
+            <Route path="invoices" element={<Invoices />} />
             <Route
               path="analytics"
               element={
                 <OwnerRoute>
-                  <ComingSoon title="Analytics" />
+                  <Analytics />
                 </OwnerRoute>
               }
             />
@@ -96,6 +105,14 @@ function App() {
                 </OwnerRoute>
               }
             />
+            <Route
+              path="settings/documents"
+              element={
+                <OwnerRoute>
+                  <DocumentSettings />
+                </OwnerRoute>
+              }
+            />
           </Route>
 
           {/* 404 */}
@@ -103,22 +120,6 @@ function App() {
         </Routes>
       </AuthProvider>
     </BrowserRouter>
-  )
-}
-
-// Temporary coming soon component
-function ComingSoon({ title: _title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
-      <div className="text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-          <span className="text-2xl">🚧</span>
-        </div>
-        <p className="text-slate-600 dark:text-slate-400">
-          This feature is coming soon.
-        </p>
-      </div>
-    </div>
   )
 }
 

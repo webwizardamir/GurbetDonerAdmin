@@ -51,12 +51,20 @@ CREATE TYPE user_role AS ENUM ('owner', 'shop_manager');
 - [ ] Rate limiting on login attempts
 - [x] Secure HTTP-only cookies
 - [ ] Remember me option
+- [x] **User Management** (Owner only):
+  - [x] Create users from app (no Supabase dashboard needed)
+  - [x] Supabase Edge Function for secure user creation
+  - [x] Set email, password, full name, and role
+  - [x] Edit user name and role
+  - [x] Activate/deactivate users
 
 **Components:**
 - `LoginPage.tsx` - Login form
 - `ForgotPasswordPage.tsx` - Password reset request
 - `ResetPasswordPage.tsx` - New password form
 - `AuthProvider.tsx` - Auth context with session management
+- `Users.tsx` - User management page (Owner only)
+- `supabase/functions/create-user/` - Edge Function for user creation
 
 ---
 
@@ -202,14 +210,23 @@ CREATE TABLE customers (
 - [x] VAT number field (validation optional)
 - [x] Delete customer functionality
 - [x] CSV Import from WooCommerce
-- [ ] Customer order history (Phase 5)
-- [ ] Quick reorder from last order (Phase 5)
+- [x] Customer Detail page (/customers/:id) with:
+  - [x] Customer info header (company, contact)
+  - [x] Revenue stats (total revenue, orders, avg value, items, payment breakdown)
+  - [x] Orders tab with expandable order rows
+  - [x] Search and date range filter for orders
+  - [x] Document buttons per order (6 types with checkmarks for existing)
+  - [x] Details tab (contact info, addresses, notes)
+- [ ] Quick reorder from last order (future enhancement)
 
 **Components:**
 - `CustomersPage.tsx` - List page with table (desktop) / cards (mobile)
 - `CustomerForm.tsx` - Create/edit modal form
 - `CustomerImport.tsx` - CSV import modal for WooCommerce data
+- `CustomerDetail.tsx` - Full customer detail page with tabs
+- `CustomerOrderRow.tsx` - Expandable order row with document buttons
 - `useCustomers.ts` - CRUD hooks
+- `useCustomerDetail.ts` - Customer detail with orders and stats
 
 ---
 
@@ -399,6 +416,7 @@ CREATE TYPE order_status AS ENUM (
 );
 
 CREATE TYPE payment_method AS ENUM ('bank', 'cash', 'none');
+-- payment_method is required when completing an order (Cash or Bank selection modal)
 
 CREATE TABLE orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -487,6 +505,9 @@ CREATE TABLE order_fees (
 - [ ] Discounts (percentage, fixed cart, fixed product)
 - [ ] Fees (delivery, custom)
 - [x] Status management (draft, pending, on_hold, completed, cancelled, refunded)
+- [x] Payment method selection modal (Cash/Bank) when completing orders
+- [x] Payment method filter in Orders list
+- [x] Payment badge display (Cash/Bank) next to status
 - [x] Past/future order dates
 - [x] Delivery notes
 - [x] Order cancellation (restore stock via trigger)
@@ -494,7 +515,8 @@ CREATE TABLE order_fees (
 - [x] Auto-generated order numbers (ORD-YYYY-NNNNN)
 
 **Components:**
-- `OrdersPage.tsx` - List with filters
+- `OrdersPage.tsx` - List with filters (status, payment method)
+- `PaymentMethodModal.tsx` - Cash/Bank selection when completing order
 - `OrderCreatePage.tsx` - Create order flow
 - `OrderDetailPage.tsx` - View/edit order
 - `OrderItemRow.tsx` - Line item display
@@ -508,131 +530,272 @@ CREATE TABLE order_fees (
 
 ---
 
-## Phase 6: Documents (PDF)
+## Phase 6: Documents (PDF) ✅ COMPLETED
 
 **Database Schema:**
 ```sql
-CREATE TYPE document_type AS ENUM ('invoice', 'proforma', 'credit_note', 'packing_slip');
+CREATE TYPE document_type AS ENUM ('invoice', 'proforma', 'credit_note', 'packing_slip', 'order_confirmation', 'payment_reminder');
 
 CREATE TABLE documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id UUID REFERENCES orders(id),
   document_type document_type NOT NULL,
   document_number TEXT NOT NULL,
-
-  generated_at TIMESTAMPTZ DEFAULT NOW(),
+  snapshot JSONB, -- Full data snapshot at generation time
+  pdf_url TEXT,
+  file_size INTEGER,
   generated_by UUID REFERENCES profiles(id),
-
-  pdf_url TEXT, -- Supabase storage URL
-
+  generated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(document_type, document_number)
 );
 
 CREATE TABLE document_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  -- Company info
+  -- Company Identity
   company_name TEXT NOT NULL,
   company_address TEXT,
-  company_postal_city TEXT,
+  company_postal_code TEXT,
+  company_city TEXT,
   company_country TEXT DEFAULT 'Netherlands',
-  company_vat_number TEXT,
-  company_kvk_number TEXT,
   company_phone TEXT,
   company_email TEXT,
+  company_website TEXT,
   company_logo_url TEXT,
-
-  -- Bank info
+  -- Legal Registration
+  company_vat_number TEXT,
+  company_kvk_number TEXT,
+  -- Bank Details
   bank_name TEXT,
   bank_iban TEXT,
   bank_bic TEXT,
-  payment_terms TEXT,
-
-  -- Numbering
+  bank_account_holder TEXT,
+  -- Payment Terms
+  payment_terms_days INTEGER DEFAULT 14,
+  payment_terms_text TEXT,
+  -- Numbering (per document type)
   invoice_prefix TEXT DEFAULT 'INV-',
   invoice_next_number INTEGER DEFAULT 1,
   proforma_prefix TEXT DEFAULT 'PRO-',
   proforma_next_number INTEGER DEFAULT 1,
   credit_note_prefix TEXT DEFAULT 'CN-',
   credit_note_next_number INTEGER DEFAULT 1,
-
+  packing_slip_prefix TEXT DEFAULT 'PS-',
+  packing_slip_next_number INTEGER DEFAULT 1,
+  -- Customizable Labels (all document text is configurable)
+  label_invoice TEXT DEFAULT 'FACTUUR',
+  label_proforma TEXT DEFAULT 'PROFORMA',
+  -- ... (full set of customizable labels)
+  footer_text TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
 **Features:**
-- [ ] Generate Invoice PDF
-- [ ] Generate Proforma PDF
-- [ ] Generate Credit Note PDF
-- [ ] Generate Packing Slip PDF
-- [ ] Customizable templates
-- [ ] Company logo and info
-- [ ] Bank details and payment terms
-- [ ] Sequential numbering (configurable prefix)
-- [ ] NL/EU legal compliance
-- [ ] PDF storage in Supabase
+- [x] Generate Invoice PDF (@react-pdf/renderer)
+- [x] Generate Proforma PDF (unique template with validity period)
+- [x] Generate Credit Note PDF (unique template with negative amounts)
+- [x] Generate Packing Slip PDF (no prices, delivery-focused)
+- [x] Generate Order Confirmation (Orderbevestiging) PDF
+- [x] Generate Payment Reminder (Betalingsherinnering) PDF
+- [x] Each document type has unique design and Dutch content
+- [x] Dutch unit types: kg, stuk/stuks, pak/pakken
+- [x] Company logo and info from settings
+- [x] Bank details and payment terms
+- [x] Sequential numbering (configurable prefix per document type)
+- [x] NL/EU legal compliance (KVK, BTW, IBAN)
+- [x] All text labels customizable (Dutch defaults)
+- [x] PDF preview before download
+- [x] Print functionality
+- [x] Payment method checkboxes (Contant, PIN, Open/Bank, Oude Facturen)
+- [x] Signature/receipt fields (Ontvangst)
+- [x] Payment terms message display
+- [x] Table with VAT breakdown (Excl. BTW, BTW bedrag, Incl. BTW)
+- [ ] PDF storage in Supabase (local download only for now)
 
 **Components:**
-- `DocumentGenerator.tsx` - Generate PDFs
-- `InvoiceTemplate.tsx` - Invoice PDF template
-- `ProformaTemplate.tsx` - Proforma template
-- `CreditNoteTemplate.tsx` - Credit note template
-- `PackingSlipTemplate.tsx` - Packing slip template
-- `DocumentSettings.tsx` - Owner settings page
-- `DocumentPreview.tsx` - Preview before generate
-- `useDocuments.ts` - Document hooks
+- `DocumentGenerator.tsx` - Modal for preview/download/print
+- `InvoiceTemplate.tsx` - Full invoice (green theme):
+  - Payment method checkboxes, signature fields
+  - Bank details, due date, VAT breakdown
+- `ProformaTemplate.tsx` - Quote/Offerte (blue theme):
+  - "Dit is geen factuur" disclaimer
+  - Validity period (Geldig tot), conditions section
+  - No payment checkboxes
+- `OrderConfirmationTemplate.tsx` - Order confirmation (cyan theme):
+  - "Bedankt voor uw bestelling" banner
+  - Order summary, next steps section
+  - Contact info, no payment details
+- `PaymentReminderTemplate.tsx` - Payment reminder (red theme):
+  - Days overdue calculation
+  - Escalating urgency messages (1st, 2nd, final notice)
+  - Prominent bank details
+- `CreditNoteTemplate.tsx` - Credit note (purple theme):
+  - Negative amounts shown in green
+  - Reference to original order
+  - Processing/refund info
+- `PackingSlipTemplate.tsx` - Delivery slip (blue theme):
+  - No prices, item checkboxes
+  - Sender/receiver signature fields
+- `DocumentSettings.tsx` - Settings page with tabs:
+  - Company (name, address, logo, registration)
+  - Bank & Payment (IBAN, BIC, payment terms)
+  - Numbering (prefix and next number per type)
+  - Labels (all customizable text)
+- `useDocumentSettings.ts` - Settings hook
 
 ---
 
-## Phase 7: Analytics & Reports (Owner Only)
+## Phase 7: Analytics & Reports ✅ COMPLETED
 
 **Features:**
-- [ ] Dashboard with KPIs:
-  - [ ] Sales revenue (gross)
-  - [ ] VAT totals
-  - [ ] Order count
-  - [ ] Items sold
-  - [ ] Net profit (from batch costs)
-- [ ] Top customers
-- [ ] Top products
-- [ ] Top categories
-- [ ] Date range filters
-- [ ] Sales by date/customer/product/category
-- [ ] Margin report
-- [ ] Stock valuation report
-- [ ] Expiry reports
+- [x] Dashboard with KPIs:
+  - [x] Total revenue (from completed/delivered orders)
+  - [x] Total orders count
+  - [x] Items sold count
+  - [x] Average order value
+  - [x] Period-over-period growth indicators
+- [x] Payment method breakdown (Cash vs Bank revenue/order counts)
+- [x] Revenue chart (area chart with gradient, daily data)
+- [x] Orders by status (donut chart with status colors)
+- [x] Top customers by revenue (horizontal bar chart)
+- [x] Top products by revenue (horizontal bar chart)
+- [x] Date range picker with presets (Today, 7/30/90 days, month, year, custom)
+- [x] Full dark/light mode support with theme-aware chart colors
+- [x] Responsive layout (mobile-first grid)
+- [x] Owner-only access (non-owners redirected)
+- [ ] Margin report (requires batch costs - postponed with Phase 3)
+- [ ] Stock valuation report (future enhancement)
 
 **Components:**
-- `AnalyticsDashboard.tsx` - Main dashboard
-- `SalesChart.tsx` - Revenue over time
-- `TopCustomersChart.tsx` - Customer ranking
-- `TopProductsChart.tsx` - Product ranking
-- `ProfitReport.tsx` - Margin analysis
-- `StockValuationReport.tsx` - Inventory value
-- `DateRangePicker.tsx` - Filter component
-- `useAnalytics.ts` - Analytics hooks
+- `Analytics.tsx` - Main dashboard page (Owner only)
+- `RevenueChart.tsx` - Area chart with gradient fill
+- `OrdersChart.tsx` - Donut chart for orders by status
+- `TopCustomersChart.tsx` - Horizontal bar chart ranking
+- `TopProductsChart.tsx` - Horizontal bar chart ranking
+- `DateRangePicker.tsx` - Date range selector with custom option
+- `ChartColors.ts` - Chart color palette for light/dark modes
+- `useAnalytics.ts` - Analytics data hook
+- `analytics.ts` - Supabase analytics service
 
 ---
 
-## Phase 8: Exports & Workflows
+## Phase 8: Exports & Workflows (Partial)
 
 **Features:**
-- [ ] Export to CSV/Excel:
-  - [ ] Orders
-  - [ ] Products
-  - [ ] Customers
-  - [ ] Stock
-  - [ ] Expiry list
-  - [ ] Audit log
-- [ ] "Yesterday sold" refill report:
-  - [ ] Items sold yesterday
-  - [ ] Current stock
-  - [ ] Suggested refill amount
+- [x] "Sold Products" refill report page:
+  - [x] Items sold in date range (default: yesterday)
+  - [x] Date range presets (yesterday, today, last 7 days, this week, last week)
+  - [x] Custom date range filter (start/end date picker)
+  - [x] Includes all orders except cancelled/refunded (for accurate refill planning)
+  - [x] Summary cards (products, total qty, low stock) - revenue Owner-only
+  - [x] Desktop table view with product details
+  - [x] Mobile card view for responsive design
+  - [x] Revenue column/card hidden from Shop Manager (Owner-only)
+  - [x] Current stock display (if track_stock enabled)
+  - [x] Stock status indicators (Critical, Low, OK, Not Tracked)
+  - [x] Suggested refill amounts (3-day buffer)
+  - [x] Copy to clipboard functionality
+  - [x] Print functionality
+  - [x] PDF export (no revenue - refill workflow only)
+- [x] Export to CSV:
+  - [x] Orders (with filters applied)
+  - [x] Products (with filters applied)
+  - [x] Customers (with filters applied)
+  - [ ] Stock (pending - Phase 3 postponed)
+  - [ ] Expiry list (pending - Phase 3 postponed)
+  - [ ] Audit log (pending - low priority)
 
 **Components:**
-- `ExportButton.tsx` - Generic export component
-- `RefillReport.tsx` - Yesterday sold report
-- `useExport.ts` - Export utilities
+- `SoldProducts.tsx` - Sold products report page
+- `SoldProductsTemplate.tsx` - PDF template for sold products export
+- `soldProducts.ts` - Service functions (getSoldProducts, getStockStatus, getSuggestedRefill)
+- `useSoldProducts.ts` - Hook for state management
+- `export.ts` - CSV export utilities (toCSV, downloadCSV, exportToCSV, column configs)
+
+---
+
+## Global Features: Search, Reminders & UI ✅ COMPLETED
+
+### Global Search
+- [x] Search bar in header
+- [x] Search across orders, customers, products, invoice numbers
+- [x] Debounced queries (300ms) for performance
+- [x] Results dropdown with type icons
+- [x] Click-to-navigate functionality
+
+**Components:**
+- `Header.tsx` - Global search implementation
+- `search.ts` - Search service with globalSearch()
+
+### Reminder System ✅ COMPLETED
+
+**Database Schema:**
+```sql
+CREATE TABLE reminders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  title TEXT NOT NULL,
+  notes TEXT,
+  remind_at TIMESTAMPTZ NOT NULL,
+  is_read BOOLEAN DEFAULT false,
+  is_dismissed BOOLEAN DEFAULT false,
+  order_id UUID REFERENCES orders(id),
+  customer_id UUID REFERENCES customers(id),
+  product_id UUID REFERENCES products(id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+**Features:**
+- [x] Create reminders with title, notes, date, time
+- [x] Notification dropdown in header with badge count
+- [x] On-screen toast alerts when due
+- [x] Notification sound (Web Audio API melody)
+- [x] Custom snooze durations (5m, 15m, 30m, 1h, 2h, 1 day)
+- [x] Edit reminders (title, notes, reschedule)
+- [x] Dismissed reminders visible for 24 hours
+- [x] Reactivate dismissed reminders
+- [x] Auto-polling every 30 seconds
+- [x] Past-due reminders appear when user comes online
+
+**Components:**
+- `Header.tsx` - Notification dropdown with reminder management
+- `ReminderAlert.tsx` - Toast-style on-screen alerts
+- `reminders.ts` - CRUD service for reminders
+- `useReminders.ts` - Hook with polling and alert events
+- `notificationSound.ts` - Web Audio API sound utility
+
+### UI/UX Enhancements ✅ COMPLETED
+- [x] Custom scrollbars (light & dark mode)
+- [x] Thin, rounded scrollbar design
+- [x] Hover effects on scrollbar thumb
+- [x] Firefox and WebKit browser support
+- [x] Utility classes: `.scrollbar-thin`, `.scrollbar-hidden`
+
+**Files:**
+- `index.css` - Custom scrollbar styles
+
+### Mobile Responsive Design ✅ COMPLETED
+- [x] Collapsible sidebar with slide-in/out animation
+- [x] Mobile hamburger menu in header
+- [x] Mobile search overlay (full-width)
+- [x] Responsive notification dropdown
+- [x] Mobile card views for all data tables:
+  - [x] Orders (with simplified layout)
+  - [x] Customers (with three-dot action menu)
+  - [x] Products
+  - [x] Invoices
+- [x] Responsive filter rows (`flex-wrap` for mobile)
+- [x] Three-dot action menus (icon + text dropdown)
+- [x] Overflow protection (`overflow-x-hidden`, `min-w-0`)
+- [x] Auto-close sidebar on route change and Escape key
+
+**Components:**
+- `Layout.tsx` - Sidebar state, overflow handling
+- `Sidebar.tsx` - Mobile slide animation, close button
+- `Header.tsx` - Hamburger menu, mobile search overlay
+- `Customers.tsx` - CustomerActionMenu dropdown component
 
 ---
 
@@ -733,19 +896,54 @@ CREATE TABLE document_settings (
 - [ ] **Phase 3: Inventory** ⏸️ POSTPONED (using simple stock for now)
 - [x] **Phase 4: Pricing** ✅ COMPLETED
 - [x] **Phase 5: Orders** ✅ COMPLETED
-- [ ] Phase 6: Documents ← **NEXT**
-- [ ] Phase 7: Analytics
-- [ ] Phase 8: Exports
-- [ ] Phase 9: Migration
-- [ ] Phase 10: Customer Portal
+- [x] **Phase 6: Documents** ✅ COMPLETED
+- [x] **Phase 7: Analytics** ✅ COMPLETED
+- [x] **Phase 8: Exports** ✅ COMPLETED
+- [ ] Phase 9: Migration ⏳ (after full testing - large data import)
+- [ ] Phase 10: Customer Portal 🔽 LOW PRIORITY (may not implement)
 
 ---
 
 ## Next Steps
 
-1. Start Phase 6: Documents (PDF Generation)
-2. Set up PDF generation library (@react-pdf/renderer or jsPDF)
-3. Build invoice template with Dutch/EU compliance
-4. Create document settings page (company info, numbering)
-5. Implement sequential invoice/proforma numbering
-6. Add PDF generation from order detail
+1. ~~Complete Phase 8: Exports & Workflows~~ ✅ DONE
+   - [x] "Sold Products" refill report with PDF export ✅
+   - [x] CSV export for orders, products, customers ✅
+2. ~~Global Features~~ ✅ DONE
+   - [x] Global search bar
+   - [x] Reminder system with notifications
+   - [x] User management from app (Edge Function)
+   - [x] Custom scrollbar styling
+3. Phase 9: WooCommerce migration - **after all features tested and stable**
+   - Large data import (~6000 orders) requires stable system first
+   - Need thorough testing of all features before migration
+4. Future optimizations (after web app complete):
+   - Code-splitting for PDF/Recharts (lazy loading for faster initial load)
+   - Mobile barcode scanning for order creation
+
+---
+
+## Bug Fixes & Issues Resolved
+
+### Analytics - Top Products Chart (Fixed)
+- **Issue**: Chart showed €0-4 range with empty bars, tooltip showed "revenue: 0"
+- **Cause**: Analytics service was querying `line_total` column but data is stored in `total` column in `order_items` table
+- **Fix**: Updated `getTopProducts()` in `analytics.ts` to select `total` instead of `line_total`
+
+### User Creation (Fixed)
+- **Issue**: Could not create users from app, required going to Supabase dashboard
+- **Cause**: Client-side Supabase uses anon key which can't create auth users
+- **Fix**: Created Supabase Edge Function (`create-user`) that runs server-side with service_role key
+
+### Notification Sound (Fixed)
+- **Issue**: No sound played when reminder alerts appeared
+- **Cause**: Browser autoplay policy blocks audio until user interaction
+- **Fix**: Created `notificationSound.ts` utility that initializes AudioContext on first user interaction
+
+### Mobile Horizontal Scroll (Fixed)
+- **Issue**: Customers page (and others) caused horizontal scroll on mobile
+- **Cause**: Action icon buttons in rows caused content to overflow viewport width
+- **Fix**:
+  - Added `overflow-x-hidden` and `min-w-0` to Layout.tsx containers
+  - Replaced action icon rows with three-dot dropdown menus
+  - Added `truncate` and `min-w-0` to text containers

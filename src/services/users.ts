@@ -39,18 +39,33 @@ export async function updateUserProfile(
   return true
 }
 
-// Create user via database function (bypasses the session switch issue)
+// Create user via Edge Function (has admin privileges to create auth users)
 export async function inviteUser(data: CreateUserData): Promise<{ success: boolean; error?: string }> {
   try {
-    // Use the create_staff_user function which handles user creation server-side
-    const { error } = await supabase.rpc('create_staff_user', {
-      p_email: data.email,
-      p_password: data.password,
-      p_full_name: data.fullName,
-      p_role: data.role
+    // Get the current session to pass auth token
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    // Call the Edge Function
+    const { data: result, error } = await supabase.functions.invoke('create-user', {
+      body: {
+        email: data.email,
+        password: data.password,
+        fullName: data.fullName,
+        role: data.role,
+      },
     })
 
-    if (error) throw error
+    if (error) {
+      console.error('Edge function error:', error)
+      return { success: false, error: error.message }
+    }
+
+    if (result?.error) {
+      return { success: false, error: result.error }
+    }
 
     return { success: true }
   } catch (error) {
