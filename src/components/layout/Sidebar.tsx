@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import {
   LayoutDashboard,
@@ -20,29 +21,29 @@ import logoMelek from '../../assets/images/logo-melek.png'
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>
-  label: string
+  labelKey: string
   href: string
   ownerOnly?: boolean
   children?: NavItem[]
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-  { icon: ShoppingCart, label: 'Orders', href: '/orders' },
-  { icon: Users, label: 'Customers', href: '/customers' },
-  { icon: Package, label: 'Products', href: '/products' },
-  { icon: PackageSearch, label: 'Sold Products', href: '/sold-products' },
-  { icon: FileText, label: 'Invoices', href: '/invoices' },
-  { icon: BarChart3, label: 'Analytics', href: '/analytics', ownerOnly: true },
+  { icon: LayoutDashboard, labelKey: 'nav.dashboard', href: '/' },
+  { icon: ShoppingCart, labelKey: 'nav.orders', href: '/orders' },
+  { icon: Users, labelKey: 'nav.customers', href: '/customers' },
+  { icon: Package, labelKey: 'nav.products', href: '/products' },
+  { icon: PackageSearch, labelKey: 'nav.soldProducts', href: '/sold-products' },
+  { icon: FileText, labelKey: 'nav.invoices', href: '/invoices' },
+  { icon: BarChart3, labelKey: 'nav.analytics', href: '/analytics', ownerOnly: true },
   {
     icon: Settings,
-    label: 'Settings',
+    labelKey: 'nav.settings',
     href: '/settings',
     ownerOnly: true,
     children: [
-      { icon: FileText, label: 'Documents', href: '/settings/documents', ownerOnly: true },
-      { icon: UserCog, label: 'Users', href: '/settings/users', ownerOnly: true },
-      { icon: History, label: 'Audit Log', href: '/settings/audit-log', ownerOnly: true },
+      { icon: FileText, labelKey: 'nav.documents', href: '/settings/documents', ownerOnly: true },
+      { icon: UserCog, labelKey: 'nav.users', href: '/settings/users', ownerOnly: true },
+      { icon: History, labelKey: 'nav.auditLog', href: '/settings/audit-log', ownerOnly: true },
     ]
   },
 ]
@@ -53,6 +54,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { t } = useTranslation()
   const { profile, signOut, isOwner } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -145,7 +147,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     `}
                   >
                     <Icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
+                    <span className="font-medium">{t(item.labelKey)}</span>
                     <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </button>
                   {isExpanded && (
@@ -165,7 +167,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                               `}
                             >
                               <ChildIcon className="w-4 h-4" />
-                              <span className="font-medium">{child.label}</span>
+                              <span className="font-medium">{t(child.labelKey)}</span>
                             </NavLink>
                           </li>
                         )
@@ -190,7 +192,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   `}
                 >
                   <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-medium">{t(item.labelKey)}</span>
                 </NavLink>
               </li>
             )
@@ -209,13 +211,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               {profile?.full_name || 'User'}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {profile?.role === 'owner' ? 'Owner' : profile?.role === 'shop_manager' ? 'Shop Manager' : profile?.role}
+              {profile?.role === 'owner' ? t('settings.users.roles.owner') : profile?.role === 'shop_manager' ? t('settings.users.roles.shop_manager') : profile?.role}
             </p>
           </div>
           <button
             onClick={handleLogout}
             className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            title="Logout"
+            title={t('nav.signOut')}
           >
             <LogOut className="w-4 h-4 text-slate-500 dark:text-slate-400" />
           </button>

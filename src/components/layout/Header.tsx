@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Search,
   Sun,
@@ -21,19 +22,20 @@ import {
 import { globalSearch, type SearchResult } from '../../services/search'
 import { useReminders } from '../../hooks/useReminders'
 import type { Reminder } from '../../services/reminders'
+import LanguageSelector from '../LanguageSelector'
 
-// Page metadata mapping
-const PAGE_META: Record<string, { title: string; description?: string }> = {
-  '/': { title: 'Dashboard', description: 'Overview of your business' },
-  '/orders': { title: 'Orders', description: 'Manage customer orders' },
-  '/customers': { title: 'Customers', description: 'Manage your customer base' },
-  '/products': { title: 'Products', description: 'Product catalog and inventory' },
-  '/sold-products': { title: 'Sold Products', description: 'Daily sales and refill planning' },
-  '/invoices': { title: 'Invoices', description: 'Billing and invoices' },
-  '/analytics': { title: 'Analytics', description: 'Business insights and reports' },
-  '/settings/documents': { title: 'Document Settings', description: 'Invoice and document configuration' },
-  '/settings/users': { title: 'User Management', description: 'Manage staff accounts' },
-  '/settings/audit-log': { title: 'Audit Log', description: 'System activity history' },
+// Page metadata mapping - using translation keys
+const PAGE_META: Record<string, { titleKey: string; descKey?: string }> = {
+  '/': { titleKey: 'nav.dashboard', descKey: 'dashboard.welcome' },
+  '/orders': { titleKey: 'nav.orders', descKey: 'orders.title' },
+  '/customers': { titleKey: 'nav.customers', descKey: 'customers.title' },
+  '/products': { titleKey: 'nav.products', descKey: 'products.title' },
+  '/sold-products': { titleKey: 'nav.soldProducts', descKey: 'soldProducts.subtitle' },
+  '/invoices': { titleKey: 'nav.invoices', descKey: 'documents.title' },
+  '/analytics': { titleKey: 'nav.analytics', descKey: 'analytics.title' },
+  '/settings/documents': { titleKey: 'settings.documents.title' },
+  '/settings/users': { titleKey: 'settings.users.title' },
+  '/settings/audit-log': { titleKey: 'settings.auditLog.title' },
 }
 
 // Icon mapping for search results
@@ -76,6 +78,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
+  const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -107,8 +110,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
   // Reminders
   const { reminders, dueReminders, unreadCount, create, update, markRead, dismiss, remove } = useReminders()
 
-  const pageMeta = PAGE_META[location.pathname] || { title: 'MelekHalalFood' }
-  const { title, description } = pageMeta
+  const pageMeta = PAGE_META[location.pathname] || { titleKey: 'common.name' }
+  const title = t(pageMeta.titleKey)
+  const description = pageMeta.descKey ? t(pageMeta.descKey) : undefined
 
   // Apply dark mode on mount
   useEffect(() => {
@@ -366,6 +370,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
+          {/* Language Selector */}
+          <LanguageSelector />
+
           {/* Notifications */}
           <div ref={notifRef} className="relative">
             <button
@@ -392,7 +399,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             {showNotifications && (
               <div className="absolute top-full right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-50">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Reminders</h3>
+                  <h3 className="font-semibold text-slate-900 dark:text-white">{t('reminders.title')}</h3>
                   <button
                     onClick={() => {
                       setShowAddReminder(!showAddReminder)

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { Eye, EyeOff, Loader2, AlertCircle, Leaf } from 'lucide-react'
 import logoMelek from '../assets/images/logo-melek.png'
 
 export default function Login() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
@@ -24,9 +26,9 @@ export default function Login() {
 
       if (signInError) {
         if (signInError.includes('Invalid login credentials')) {
-          setError('Invalid email or password. Please try again.')
+          setError(t('auth.invalidCredentials'))
         } else if (signInError.includes('Email not confirmed')) {
-          setError('Please verify your email address before logging in.')
+          setError(t('auth.emailNotConfirmed'))
         } else {
           setError(signInError)
         }
@@ -36,7 +38,7 @@ export default function Login() {
       // Redirect to dashboard on success
       navigate('/')
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
+      setError(t('auth.unexpectedError'))
       console.error('Login error:', err)
     } finally {
       setLoading(false)
@@ -73,12 +75,11 @@ export default function Login() {
             />
           </div>
           <h1 className="text-4xl xl:text-5xl font-bold text-white mb-4 leading-tight">
-            Welcome to<br />
-            <span className="text-green-200">Melek Halal Food</span>
+            {t('auth.welcome')}<br />
+            <span className="text-green-200">{t('auth.companyName')}</span>
           </h1>
           <p className="text-lg text-green-100/80 max-w-md leading-relaxed">
-            Your trusted B2B wholesale partner for premium halal food products.
-            Manage orders, track inventory, and grow your business.
+            {t('auth.tagline')} {t('auth.manageOrders')}
           </p>
 
           {/* Features list */}
@@ -89,7 +90,7 @@ export default function Login() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span>Real-time order management</span>
+              <span>{t('auth.features.realTimeOrders')}</span>
             </div>
             <div className="flex items-center gap-3 text-green-100/90">
               <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
@@ -97,7 +98,7 @@ export default function Login() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span>Customer-specific pricing</span>
+              <span>{t('auth.features.customerPricing')}</span>
             </div>
             <div className="flex items-center gap-3 text-green-100/90">
               <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
@@ -105,7 +106,7 @@ export default function Login() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span>Professional invoicing</span>
+              <span>{t('auth.features.professionalInvoicing')}</span>
             </div>
           </div>
         </div>
@@ -122,7 +123,7 @@ export default function Login() {
               className="h-16 w-auto mx-auto mb-4"
             />
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              Melek Halal Food
+              {t('auth.companyName')}
             </h1>
             <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
               B2B Wholesale Portal
@@ -133,10 +134,10 @@ export default function Login() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-none p-8">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                Sign in
+                {t('auth.signIn')}
               </h2>
               <p className="text-slate-600 dark:text-slate-400 mt-1">
-                Enter your credentials to access your account
+                {t('auth.enterCredentials')}
               </p>
             </div>
 
@@ -154,7 +155,7 @@ export default function Login() {
                   htmlFor="email"
                   className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
                 >
-                  Email address
+                  {t('auth.email')}
                 </label>
                 <input
                   id="email"
@@ -174,7 +175,7 @@ export default function Login() {
                   htmlFor="password"
                   className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
                 >
-                  Password
+                  {t('auth.password')}
                 </label>
                 <div className="relative">
                   <input
@@ -211,14 +212,14 @@ export default function Login() {
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500 focus:ring-offset-0"
                   />
                   <span className="text-sm text-slate-600 dark:text-slate-400">
-                    Remember me
+                    {t('auth.rememberMe')}
                   </span>
                 </label>
                 <Link
                   to="/forgot-password"
                   className="text-sm text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium transition-colors"
                 >
-                  Forgot password?
+                  {t('auth.forgotPassword')}
                 </Link>
               </div>
 
@@ -231,10 +232,10 @@ export default function Login() {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Signing in...
+                    {t('auth.signingIn')}
                   </>
                 ) : (
-                  'Sign in'
+                  t('auth.signIn')
                 )}
               </button>
             </form>
@@ -242,18 +243,18 @@ export default function Login() {
 
           {/* Footer */}
           <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
-            Having trouble signing in?{' '}
+            {t('auth.troubleSigningIn')}{' '}
             <a
               href="mailto:support@melekhalalfood.com"
               className="text-green-600 hover:text-green-700 dark:text-green-400 font-medium"
             >
-              Contact support
+              {t('auth.contactSupport')}
             </a>
           </p>
 
           {/* Copyright */}
           <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-4">
-            © {new Date().getFullYear()} Melek Halal Food. All rights reserved.
+            {t('auth.copyright', { year: new Date().getFullYear() })}
           </p>
         </div>
       </div>
