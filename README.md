@@ -13,6 +13,7 @@ A modern B2B e-commerce portal built with React, Vite, Tailwind CSS, and Supabas
 - **PDF Generation**: @react-pdf/renderer
 - **Charts**: Recharts
 - **Deployment**: Vercel Edge Functions
+- **Internationalization**: react-i18next (Dutch default, English secondary)
 
 ## Design Philosophy
 
@@ -151,6 +152,7 @@ src/
 - Payment method filter and badge display
 - Stock deduction/restoration via database triggers
 - Order detail view with status actions
+- **Decimal quantities** for all product types (1.5 packages, 0.75 kg, etc.)
 
 **Phase 6: Documents (PDF)**
 - Professional A4 templates with @react-pdf/renderer
@@ -218,6 +220,13 @@ src/
 - Thin, rounded scrollbars with hover effects
 - Utility classes: `.scrollbar-thin`, `.scrollbar-hidden`
 
+**Multi-Language Support (i18n)**
+- Dutch (NL) as default language
+- English (EN) as secondary language
+- Language selector in header (globe icon)
+- All UI text translatable via translation keys
+- **Important**: PDF documents (invoices, proforma, etc.) always remain in Dutch regardless of app language setting (Dutch legal compliance)
+
 **Mobile Responsive Design**
 - Collapsible sidebar navigation with slide-in animation
 - Mobile hamburger menu in header
@@ -227,6 +236,7 @@ src/
 - Three-dot action menus replacing icon rows (cleaner UI)
 - Overflow protection preventing horizontal scroll
 - Touch-friendly UI elements and spacing
+- **Desktop optimization**: Combined search + filters in single row (Orders, Customers, Products)
 
 ### Planned (Phases 3, 9-10)
 - **Phase 3**: Inventory & Batch/Expiry tracking (FIFO/FEFO) - postponed

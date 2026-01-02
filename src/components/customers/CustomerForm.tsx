@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Loader2, Building2, User, Mail, Phone, MapPin, FileText, CreditCard } from 'lucide-react'
 import { Customer } from '../../types'
 import { CustomerFormData } from '../../services/customers'
@@ -10,6 +11,7 @@ interface CustomerFormProps {
 }
 
 export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFormProps) {
+  const { t } = useTranslation()
   const isEditing = !!customer
 
   const [formData, setFormData] = useState<CustomerFormData>({
@@ -49,7 +51,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
 
     // Validation
     if (!formData.company_name.trim()) {
-      setError('Company name is required')
+      setError(t('customers.form.companyNameRequired'))
       return
     }
 
@@ -57,7 +59,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
     try {
       await onSubmit(formData)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save customer')
+      setError(err instanceof Error ? err.message : t('customers.form.saveError'))
     } finally {
       setSaving(false)
     }
@@ -76,7 +78,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {isEditing ? 'Edit Customer' : 'Add Customer'}
+            {isEditing ? t('customers.editCustomer') : t('customers.addCustomer')}
           </h2>
           <button
             onClick={onClose}
@@ -100,13 +102,13 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
             <div className="space-y-4">
               <h3 className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <Building2 className="w-4 h-4" />
-                Company Information
+                {t('customers.form.companyInfo')}
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Company Name *
+                    {t('customers.companyName')} *
                   </label>
                   <input
                     type="text"
@@ -115,7 +117,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     onChange={handleChange}
                     required
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Enter company name"
+                    placeholder={t('customers.form.enterCompanyName')}
                   />
                 </div>
 
@@ -123,7 +125,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     <span className="flex items-center gap-1.5">
                       <CreditCard className="w-3.5 h-3.5" />
-                      VAT Number
+                      {t('customers.vatNumber')}
                     </span>
                   </label>
                   <input
@@ -142,13 +144,13 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
             <div className="space-y-4">
               <h3 className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <User className="w-4 h-4" />
-                Contact Information
+                {t('customers.form.contactInfo')}
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Contact Person
+                    {t('customers.contactPerson')}
                   </label>
                   <input
                     type="text"
@@ -156,14 +158,14 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     value={formData.contact_person}
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="John Doe"
+                    placeholder={t('customers.form.enterContactPerson')}
                   />
                 </div>
 
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     <Mail className="w-3.5 h-3.5" />
-                    Email
+                    {t('customers.email')}
                   </label>
                   <input
                     type="email"
@@ -171,14 +173,14 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     value={formData.email}
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="contact@company.com"
+                    placeholder={t('customers.form.enterEmail')}
                   />
                 </div>
 
                 <div className="sm:col-span-2">
                   <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     <Phone className="w-3.5 h-3.5" />
-                    Phone
+                    {t('customers.phone')}
                   </label>
                   <input
                     type="tel"
@@ -186,7 +188,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     value={formData.phone}
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="+31 6 12345678"
+                    placeholder={t('customers.form.enterPhone')}
                   />
                 </div>
               </div>
@@ -196,13 +198,13 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
             <div className="space-y-4">
               <h3 className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <MapPin className="w-4 h-4" />
-                Billing Address
+                {t('customers.billingAddress')}
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Street Address
+                    {t('customers.street')}
                   </label>
                   <input
                     type="text"
@@ -210,13 +212,13 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     value={formData.billing_street}
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="123 Main Street"
+                    placeholder={t('customers.form.enterStreet')}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    City
+                    {t('customers.city')}
                   </label>
                   <input
                     type="text"
@@ -224,13 +226,13 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     value={formData.billing_city}
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Amsterdam"
+                    placeholder={t('customers.form.enterCity')}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Postal Code
+                    {t('customers.postalCode')}
                   </label>
                   <input
                     type="text"
@@ -238,13 +240,13 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     value={formData.billing_postal_code}
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="1234 AB"
+                    placeholder={t('customers.form.enterPostalCode')}
                   />
                 </div>
 
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Country
+                    {t('customers.country')}
                   </label>
                   <select
                     name="billing_country"
@@ -252,11 +254,11 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
                   >
-                    <option value="NL">Netherlands</option>
-                    <option value="BE">Belgium</option>
-                    <option value="DE">Germany</option>
-                    <option value="FR">France</option>
-                    <option value="UK">United Kingdom</option>
+                    <option value="NL">{t('customers.countries.NL')}</option>
+                    <option value="BE">{t('customers.countries.BE')}</option>
+                    <option value="DE">{t('customers.countries.DE')}</option>
+                    <option value="FR">{t('customers.countries.FR')}</option>
+                    <option value="UK">{t('customers.countries.UK')}</option>
                   </select>
                 </div>
               </div>
@@ -267,7 +269,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
               <div className="flex items-center justify-between">
                 <h3 className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                   <MapPin className="w-4 h-4" />
-                  Shipping Address
+                  {t('customers.shippingAddress')}
                 </h3>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -278,7 +280,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500"
                   />
                   <span className="text-sm text-slate-600 dark:text-slate-400">
-                    Same as billing
+                    {t('customers.sameAsBilling')}
                   </span>
                 </label>
               </div>
@@ -287,7 +289,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Street Address
+                      {t('customers.street')}
                     </label>
                     <input
                       type="text"
@@ -295,13 +297,13 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                       value={formData.shipping_street}
                       onChange={handleChange}
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="456 Delivery Ave"
+                      placeholder={t('customers.form.enterStreet')}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      City
+                      {t('customers.city')}
                     </label>
                     <input
                       type="text"
@@ -309,13 +311,13 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                       value={formData.shipping_city}
                       onChange={handleChange}
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="Rotterdam"
+                      placeholder={t('customers.form.enterCity')}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Postal Code
+                      {t('customers.postalCode')}
                     </label>
                     <input
                       type="text"
@@ -323,13 +325,13 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                       value={formData.shipping_postal_code}
                       onChange={handleChange}
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="5678 CD"
+                      placeholder={t('customers.form.enterPostalCode')}
                     />
                   </div>
 
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Country
+                      {t('customers.country')}
                     </label>
                     <select
                       name="shipping_country"
@@ -337,11 +339,11 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                       onChange={handleChange}
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
                     >
-                      <option value="NL">Netherlands</option>
-                      <option value="BE">Belgium</option>
-                      <option value="DE">Germany</option>
-                      <option value="FR">France</option>
-                      <option value="UK">United Kingdom</option>
+                      <option value="NL">{t('customers.countries.NL')}</option>
+                      <option value="BE">{t('customers.countries.BE')}</option>
+                      <option value="DE">{t('customers.countries.DE')}</option>
+                      <option value="FR">{t('customers.countries.FR')}</option>
+                      <option value="UK">{t('customers.countries.UK')}</option>
                     </select>
                   </div>
                 </div>
@@ -352,7 +354,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
             <div className="space-y-4">
               <h3 className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <FileText className="w-4 h-4" />
-                Internal Notes
+                {t('customers.form.internalNotes')}
               </h3>
 
               <textarea
@@ -361,7 +363,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                 onChange={handleChange}
                 rows={3}
                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-                placeholder="Private notes about this customer..."
+                placeholder={t('customers.form.enterNotes')}
               />
             </div>
           </div>
@@ -373,7 +375,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -383,10 +385,10 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
+                  {t('common.saving')}
                 </>
               ) : (
-                isEditing ? 'Save Changes' : 'Add Customer'
+                isEditing ? t('customers.form.saveChanges') : t('customers.addCustomer')
               )}
             </button>
           </div>

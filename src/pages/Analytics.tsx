@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   DollarSign,
   ShoppingCart,
@@ -21,8 +22,10 @@ import OrdersChart from '../components/analytics/OrdersChart'
 import TopCustomersChart from '../components/analytics/TopCustomersChart'
 import TopProductsChart from '../components/analytics/TopProductsChart'
 import { formatChartCurrency } from '../components/analytics/ChartColors'
+import { formatQuantityWithUnit } from '../utils/format'
 
 export default function Analytics() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { isOwner, loading: authLoading } = useAuth()
   const {
@@ -70,7 +73,6 @@ export default function Analytics() {
           className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
         </button>
         <DateRangePicker
           currentKey={dateRangeKey}
@@ -90,7 +92,7 @@ export default function Analytics() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Total Revenue"
+          label={t('analytics.revenue')}
           value={kpis ? formatChartCurrency(kpis.totalRevenue) : '€0'}
           trend={kpis ? {
             value: Math.abs(kpis.revenueGrowth),
@@ -101,7 +103,7 @@ export default function Analytics() {
           iconBg="bg-green-50 dark:bg-green-900/20"
         />
         <StatCard
-          label="Total Orders"
+          label={t('analytics.orders')}
           value={kpis?.totalOrders.toLocaleString('nl-NL') || '0'}
           trend={kpis ? {
             value: Math.abs(kpis.ordersGrowth),
@@ -112,14 +114,14 @@ export default function Analytics() {
           iconBg="bg-blue-50 dark:bg-blue-900/20"
         />
         <StatCard
-          label="Items Sold"
+          label={t('analytics.itemsSold')}
           value={kpis?.totalItems.toLocaleString('nl-NL') || '0'}
           icon={Package}
           iconColor="text-violet-600 dark:text-violet-400"
           iconBg="bg-violet-50 dark:bg-violet-900/20"
         />
         <StatCard
-          label="Avg Order Value"
+          label={t('analytics.averageOrder')}
           value={kpis ? formatChartCurrency(kpis.averageOrderValue) : '€0'}
           icon={TrendingUp}
           iconColor="text-amber-600 dark:text-amber-400"
@@ -146,7 +148,7 @@ export default function Analytics() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {isCash ? 'Cash Payments' : 'Bank Transfers'}
+                    {isCash ? t('orders.payment.cash') : t('orders.payment.bank')}
                   </p>
                   <p className="text-lg font-semibold text-slate-900 dark:text-white">
                     {formatChartCurrency(item.revenue)}
@@ -158,7 +160,7 @@ export default function Analytics() {
                       ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                       : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                   }`}>
-                    {item.count} {item.count === 1 ? 'order' : 'orders'}
+                    {item.count}
                   </span>
                 </div>
               </div>
@@ -175,11 +177,8 @@ export default function Analytics() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Revenue Overview
+              {t('analytics.revenueOverTime')}
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Daily revenue for selected period
-            </p>
           </div>
         </div>
         <RevenueChart data={revenueData} loading={loading} />
@@ -194,7 +193,7 @@ export default function Analytics() {
               <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Orders by Status
+              {t('analytics.ordersByStatus')}
             </h2>
           </div>
           <OrdersChart data={ordersByStatus} loading={loading} />
@@ -207,7 +206,7 @@ export default function Analytics() {
               <Users className="w-5 h-5 text-violet-600 dark:text-violet-400" />
             </div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Top Customers
+              {t('analytics.topCustomers')}
             </h2>
           </div>
           <TopCustomersChart data={topCustomers} loading={loading} />
@@ -220,7 +219,7 @@ export default function Analytics() {
               <Package className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Top Products
+              {t('analytics.topProducts')}
             </h2>
           </div>
           <TopProductsChart data={topProducts} loading={loading} />
@@ -232,7 +231,7 @@ export default function Analytics() {
         {/* Top Customers Table */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-            <h3 className="font-semibold text-slate-900 dark:text-white">All Top Customers</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white">{t('analytics.topCustomers')}</h3>
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {loading ? (
@@ -241,7 +240,7 @@ export default function Analytics() {
               </div>
             ) : topCustomers.length === 0 ? (
               <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-                No customer data available
+                {t('common.noResults')}
               </div>
             ) : (
               topCustomers.map((customer, index) => (
@@ -274,7 +273,7 @@ export default function Analytics() {
         {/* Top Products Table */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-            <h3 className="font-semibold text-slate-900 dark:text-white">All Top Products</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white">{t('analytics.topProducts')}</h3>
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {loading ? (
@@ -283,7 +282,7 @@ export default function Analytics() {
               </div>
             ) : topProducts.length === 0 ? (
               <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-                No product data available
+                {t('common.noResults')}
               </div>
             ) : (
               topProducts.map((product, index) => (
@@ -300,7 +299,7 @@ export default function Analytics() {
                         {product.productName}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {product.totalQuantity.toFixed(product.unitType === 'kg' ? 1 : 0)} {product.unitType === 'kg' ? 'kg' : product.totalQuantity === 1 ? 'stuk' : 'stuks'}
+                        {formatQuantityWithUnit(product.totalQuantity, product.unitType, t)}
                       </p>
                     </div>
                   </div>

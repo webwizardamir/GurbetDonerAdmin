@@ -92,12 +92,26 @@
     "welcome": "Welcome back",
     "todaysSales": "Today's Sales",
     "pendingOrders": "Pending Orders",
+    "totalOrders": "Total Orders",
+    "totalRevenue": "Total Revenue",
     "totalCustomers": "Total Customers",
     "lowStock": "Low Stock",
+    "lowStockAlert": "Low Stock Alert",
     "recentOrders": "Recent Orders",
     "topProducts": "Top Products",
     "noOrders": "No orders yet",
-    "viewAll": "View all"
+    "noOrdersToday": "No orders for today yet",
+    "noCompletedOrdersToday": "No completed orders today yet",
+    "viewAll": "View all",
+    "viewProducts": "View Products",
+    "todaysPayments": "Today's Payments",
+    "todaysOrders": "Today's Orders",
+    "totalToday": "Total Today",
+    "allStockOk": "All products have sufficient stock",
+    "moreOrders": "+{{count}} more orders",
+    "unitsLeft": "{{count}} {{unit}} left",
+    "critical": "Critical",
+    "low": "Low"
   },
   "customers": {
     "title": "Customers",
@@ -131,7 +145,52 @@
     "totalOrders": "Total Orders",
     "avgOrderValue": "Avg. Order Value",
     "details": "Details",
-    "contactInfo": "Contact Info"
+    "contactInfo": "Contact Info",
+    "form": {
+      "companyInfo": "Company Information",
+      "contactInfo": "Contact Information",
+      "internalNotes": "Internal Notes",
+      "enterCompanyName": "Enter company name",
+      "enterContactPerson": "John Doe",
+      "enterEmail": "contact@company.com",
+      "enterPhone": "+31 6 12345678",
+      "enterStreet": "123 Main Street",
+      "enterCity": "Amsterdam",
+      "enterPostalCode": "1234 AB",
+      "enterNotes": "Private notes about this customer...",
+      "companyNameRequired": "Company name is required",
+      "saveError": "Failed to save customer",
+      "saveChanges": "Save Changes"
+    },
+    "countries": {
+      "NL": "Netherlands",
+      "BE": "Belgium",
+      "DE": "Germany",
+      "FR": "France",
+      "UK": "United Kingdom"
+    }
+  },
+  "customerDetail": {
+    "notFound": "Customer not found",
+    "backToCustomers": "Back to Customers",
+    "items": "Items",
+    "details": "Details",
+    "searchPlaceholder": "Search orders or products...",
+    "noOrdersYet": "No orders yet for this customer",
+    "noOrdersMatch": "No orders match your search",
+    "showingOrders": "Showing {{showing}} of {{total}} orders",
+    "contactInfo": "Contact Information",
+    "billingAddress": "Billing Address",
+    "shippingAddress": "Shipping Address",
+    "internalNotes": "Internal Notes",
+    "noAddress": "No address on file",
+    "dateRanges": {
+      "all": "All Time",
+      "last7": "Last 7 Days",
+      "last30": "Last 30 Days",
+      "last90": "Last 90 Days",
+      "thisYear": "This Year"
+    }
   },
   "products": {
     "title": "Products",
@@ -160,13 +219,43 @@
     "units": {
       "kg": "Per kg",
       "piece": "Piece",
-      "package": "Package"
+      "package": "Package",
+      "pieceSingular": "piece",
+      "piecePlural": "pieces",
+      "packageSingular": "package",
+      "packagePlural": "packages"
     },
     "stockStatus": {
       "inStock": "In Stock",
       "lowStock": "Low Stock",
       "outOfStock": "Out of Stock",
       "notTracked": "Not Tracked"
+    },
+    "form": {
+      "productNameRequired": "Product name is required",
+      "invalidPrice": "Please enter a valid price",
+      "invalidCost": "Please enter a valid cost",
+      "enterProductName": "e.g., Halal Chicken Breast 1kg",
+      "enterSku": "e.g., CHK-001",
+      "scanBarcode": "Scan or enter barcode",
+      "noCategory": "No category",
+      "sellingPrice": "Selling Price",
+      "cogs": "Cost of Goods (COGS)",
+      "ownerOnly": "Owner only",
+      "trackStockLabel": "Track stock for this product",
+      "stockIgnored": "Stock quantity will be ignored when creating orders",
+      "updateProduct": "Update Product",
+      "createProduct": "Create Product",
+      "unitTypes": {
+        "package": "Package / Box",
+        "piece": "Piece",
+        "kg": "Kilogram (kg)"
+      },
+      "taxRates": {
+        "food": "9% (Food - Low VAT)",
+        "high": "21% (High VAT)",
+        "none": "0% (No VAT)"
+      }
     }
   },
   "orders": {
@@ -219,7 +308,43 @@
     },
     "selected": "selected",
     "clear": "Clear",
-    "invoice": "Invoice"
+    "invoice": "Invoice",
+    "form": {
+      "searchCustomers": "Search customers...",
+      "noCustomersFound": "No customers found",
+      "searchProducts": "Search by name, SKU, or barcode...",
+      "noProductsFound": "No products found",
+      "addProducts": "Add Products",
+      "searchAndAdd": "Search and add products",
+      "selectCustomerError": "Please select a customer",
+      "addProductError": "Please add at least one product",
+      "createError": "Failed to create order",
+      "creating": "Creating...",
+      "deliveryNotes": "Delivery Notes",
+      "deliveryPlaceholder": "Delivery instructions...",
+      "internalNotes": "Internal Notes",
+      "internalPlaceholder": "Internal notes..."
+    },
+    "detail": {
+      "created": "Created",
+      "confirmCancel": "Cancel this order? Stock will be restored.",
+      "confirmRefund": "Refund this order? Stock will be restored.",
+      "updateError": "Failed to update status",
+      "documents": "Documents",
+      "discount": "Discount",
+      "delivery": "Delivery"
+    },
+    "paymentModal": {
+      "title": "Complete Order",
+      "orderLabel": "Order",
+      "selectMethod": "Select the payment method used for this order",
+      "cashTitle": "Cash",
+      "cashDesc": "Paid in cash",
+      "bankTitle": "Bank Transfer",
+      "bankDesc": "Paid by bank transfer",
+      "completing": "Completing...",
+      "completeOrder": "Complete Order"
+    }
   },
   "documents": {
     "title": "Documents",

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   X,
   Loader2,
@@ -19,6 +20,7 @@ import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import DocumentGenerator from '../documents/DocumentGenerator'
 import PaymentMethodModal from './PaymentMethodModal'
+import { formatQuantity } from '../../utils/format'
 
 interface OrderDetailProps {
   order: OrderWithItems
@@ -54,75 +56,86 @@ function formatDateTime(dateString: string): string {
   })
 }
 
-// Format unit type to Dutch
-function formatUnitDutch(unitType: string, quantity: number): string {
+// Format unit type with translation support
+function formatUnitDutch(unitType: string, quantity: number, t?: (key: string) => string): string {
   switch (unitType?.toLowerCase()) {
     case 'kg':
       return 'kg'
     case 'piece':
+      if (t) {
+        return quantity === 1 ? t('products.units.pieceSingular') : t('products.units.piecePlural')
+      }
       return quantity === 1 ? 'stuk' : 'stuks'
     case 'package':
+      if (t) {
+        return quantity === 1 ? t('products.units.packageSingular') : t('products.units.packagePlural')
+      }
       return quantity === 1 ? 'pak' : 'pakken'
     default:
+      if (t) {
+        return quantity === 1 ? t('products.units.pieceSingular') : t('products.units.piecePlural')
+      }
       return quantity === 1 ? 'stuk' : 'stuks'
   }
 }
 
 // Status badge component - supports both original and new schema statuses
 function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { label: string; className: string }> = {
+  const { t } = useTranslation()
+  const config: Record<string, { labelKey: string; className: string }> = {
     draft: {
-      label: 'Draft',
+      labelKey: 'orders.status.draft',
       className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
     },
     pending_payment: {
-      label: 'Pending Payment',
+      labelKey: 'orders.status.pending_payment',
       className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
     },
     on_hold: {
-      label: 'On Hold',
+      labelKey: 'orders.status.on_hold',
       className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
     },
     cancelled: {
-      label: 'Cancelled',
+      labelKey: 'orders.status.cancelled',
       className: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
     },
     refunded: {
-      label: 'Refunded',
+      labelKey: 'orders.status.refunded',
       className: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
     },
     completed: {
-      label: 'Completed',
+      labelKey: 'orders.status.completed',
       className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     },
     // Original schema statuses
     pending: {
-      label: 'Pending',
+      labelKey: 'orders.status.pending',
       className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
     },
     processing: {
-      label: 'Processing',
+      labelKey: 'orders.status.processing',
       className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
     },
     delivered: {
-      label: 'Delivered',
+      labelKey: 'orders.status.delivered',
       className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     },
   }
 
   const statusConfig = config[status] || {
-    label: status || 'Unknown',
+    labelKey: '',
     className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
   }
 
   return (
     <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusConfig.className}`}>
-      {statusConfig.label}
+      {statusConfig.labelKey ? t(statusConfig.labelKey) : (status || 'Unknown')}
     </span>
   )
 }
 
 export default function OrderDetail({ order, onClose, onStatusChange }: OrderDetailProps) {
+  const { t } = useTranslation()
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generatingDoc, setGeneratingDoc] = useState<DocumentType | null>(null)
@@ -138,9 +151,9 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
     }
 
     const confirmMessage = newStatus === 'cancelled'
-      ? 'Cancel this order? Stock will be restored.'
+      ? t('orders.detail.confirmCancel')
       : newStatus === 'refunded'
-        ? 'Refund this order? Stock will be restored.'
+        ? t('orders.detail.confirmRefund')
         : null // No confirmation for completed (already confirmed via modal)
 
     if (confirmMessage && !confirm(confirmMessage)) return
@@ -152,7 +165,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
       await updateOrderStatus(order.id, newStatus, paymentMethod)
       onStatusChange()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update status')
+      setError(err instanceof Error ? err.message : t('orders.detail.updateError'))
     } finally {
       setUpdatingStatus(false)
       setShowPaymentModal(false)
@@ -164,11 +177,11 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
   }
 
   // Available status transitions
-  const statusActions: { status: OrderStatus; label: string; icon: React.ReactNode; color: string }[] = [
-    { status: 'pending_payment', label: 'Pending', icon: <Clock className="w-4 h-4" />, color: 'amber' },
-    { status: 'on_hold', label: 'On Hold', icon: <RefreshCw className="w-4 h-4" />, color: 'blue' },
-    { status: 'completed', label: 'Complete', icon: <CheckCircle className="w-4 h-4" />, color: 'green' },
-    { status: 'cancelled', label: 'Cancel', icon: <XCircle className="w-4 h-4" />, color: 'red' },
+  const statusActions: { status: OrderStatus; labelKey: string; icon: React.ReactNode; color: string }[] = [
+    { status: 'pending_payment', labelKey: 'orders.status.pending', icon: <Clock className="w-4 h-4" />, color: 'amber' },
+    { status: 'on_hold', labelKey: 'orders.status.on_hold', icon: <RefreshCw className="w-4 h-4" />, color: 'blue' },
+    { status: 'completed', labelKey: 'orders.actions.complete', icon: <CheckCircle className="w-4 h-4" />, color: 'green' },
+    { status: 'cancelled', labelKey: 'orders.actions.cancel', icon: <XCircle className="w-4 h-4" />, color: 'red' },
   ]
 
   return (
@@ -187,7 +200,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                 {order.order_number}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Created {formatDateTime(order.created_at)}
+                {t('orders.detail.created')} {formatDateTime(order.created_at)}
               </p>
             </div>
           </div>
@@ -217,9 +230,9 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                   : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
               }`}>
                 {order.payment_method === 'cash' ? (
-                  <><Banknote className="w-3 h-3" /> Cash</>
+                  <><Banknote className="w-3 h-3" /> {t('orders.payment.cash')}</>
                 ) : (
-                  <><Building2 className="w-3 h-3" /> Bank</>
+                  <><Building2 className="w-3 h-3" /> {t('orders.payment.bank')}</>
                 )}
               </span>
             )}
@@ -241,7 +254,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                       `}
                     >
                       {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : action.icon}
-                      {action.label}
+                      {t(action.labelKey)}
                     </button>
                   ))}
               </div>
@@ -253,7 +266,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
             <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
               <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
                 <Building2 className="w-4 h-4" />
-                <span className="text-xs uppercase font-medium">Customer</span>
+                <span className="text-xs uppercase font-medium">{t('orders.customer')}</span>
               </div>
               <p className="font-semibold text-slate-900 dark:text-white">
                 {order.customer?.company_name || '-'}
@@ -267,7 +280,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
             <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
               <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
                 <Calendar className="w-4 h-4" />
-                <span className="text-xs uppercase font-medium">Order Date</span>
+                <span className="text-xs uppercase font-medium">{t('orders.orderDate')}</span>
               </div>
               <p className="font-semibold text-slate-900 dark:text-white">
                 {formatDate(order.order_date)}
@@ -280,7 +293,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
             <div className="flex items-center gap-2 mb-3">
               <Package className="w-4 h-4 text-slate-400" />
               <h3 className="font-medium text-slate-900 dark:text-white">
-                Items ({order.items?.length || 0})
+                {t('orders.orderItems')} ({order.items?.length || 0})
               </h3>
             </div>
             <div className="space-y-2">
@@ -294,7 +307,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                       {item.product_name}
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {formatPrice(item.unit_price)} × {item.quantity} {formatUnitDutch(item.unit_type, item.quantity)}
+                      {formatPrice(item.unit_price)} × {formatQuantity(item.quantity)} {formatUnitDutch(item.unit_type, item.quantity, t)}
                     </p>
                   </div>
                   <div className="text-right">
@@ -317,7 +330,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                 <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
                   <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
                     <FileText className="w-4 h-4" />
-                    <span className="text-xs uppercase font-medium">Delivery Notes</span>
+                    <span className="text-xs uppercase font-medium">{t('orders.form.deliveryNotes')}</span>
                   </div>
                   <p className="text-slate-700 dark:text-slate-300">{order.delivery_notes}</p>
                 </div>
@@ -326,7 +339,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
                   <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1">
                     <FileText className="w-4 h-4" />
-                    <span className="text-xs uppercase font-medium">Internal Notes</span>
+                    <span className="text-xs uppercase font-medium">{t('orders.form.internalNotes')}</span>
                   </div>
                   <p className="text-amber-700 dark:text-amber-300">{order.internal_notes}</p>
                 </div>
@@ -337,27 +350,27 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
           {/* Order Summary */}
           <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
+              <span className="text-slate-600 dark:text-slate-400">{t('orders.subtotal')}</span>
               <span className="text-slate-900 dark:text-white">{formatPrice(order.subtotal)}</span>
             </div>
             {order.discount_amount > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">Discount</span>
+                <span className="text-slate-600 dark:text-slate-400">{t('orders.detail.discount')}</span>
                 <span className="text-red-600 dark:text-red-400">-{formatPrice(order.discount_amount)}</span>
               </div>
             )}
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">Tax (BTW)</span>
+              <span className="text-slate-600 dark:text-slate-400">{t('orders.tax')}</span>
               <span className="text-slate-900 dark:text-white">{formatPrice(order.tax_amount)}</span>
             </div>
             {order.delivery_fee > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">Delivery</span>
+                <span className="text-slate-600 dark:text-slate-400">{t('orders.detail.delivery')}</span>
                 <span className="text-slate-900 dark:text-white">{formatPrice(order.delivery_fee)}</span>
               </div>
             )}
             <div className="flex justify-between text-lg font-semibold pt-2 border-t border-slate-200 dark:border-slate-600">
-              <span className="text-slate-900 dark:text-white">Total</span>
+              <span className="text-slate-900 dark:text-white">{t('orders.total')}</span>
               <span className="text-green-600 dark:text-green-400">{formatPrice(order.total)}</span>
             </div>
           </div>
@@ -367,7 +380,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
             <div className="flex items-center gap-2 mb-3">
               <Printer className="w-4 h-4 text-slate-400" />
               <h3 className="font-medium text-slate-900 dark:text-white">
-                Documents
+                {t('orders.detail.documents')}
               </h3>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -425,7 +438,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
             onClick={onClose}
             className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

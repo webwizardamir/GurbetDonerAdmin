@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
   Building2,
   Loader2,
   AlertCircle,
-  DollarSign,
+  Euro,
   ShoppingCart,
   TrendingUp,
   Package,
@@ -25,18 +26,19 @@ import { formatPrice } from '../utils/format'
 type TabType = 'orders' | 'details'
 type DateRangeKey = 'all' | 'last7' | 'last30' | 'last90' | 'thisYear'
 
-const DATE_RANGES: Record<DateRangeKey, { label: string; days: number | null }> = {
-  all: { label: 'All Time', days: null },
-  last7: { label: 'Last 7 Days', days: 7 },
-  last30: { label: 'Last 30 Days', days: 30 },
-  last90: { label: 'Last 90 Days', days: 90 },
-  thisYear: { label: 'This Year', days: 365 },
-}
-
 export default function CustomerDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { loading, error, customer, orders, stats, refresh, hasDocument } = useCustomerDetail(id)
+
+  const DATE_RANGES: Record<DateRangeKey, { labelKey: string; days: number | null }> = {
+    all: { labelKey: 'customerDetail.dateRanges.all', days: null },
+    last7: { labelKey: 'customerDetail.dateRanges.last7', days: 7 },
+    last30: { labelKey: 'customerDetail.dateRanges.last30', days: 30 },
+    last90: { labelKey: 'customerDetail.dateRanges.last90', days: 90 },
+    thisYear: { labelKey: 'customerDetail.dateRanges.thisYear', days: 365 },
+  }
   const [activeTab, setActiveTab] = useState<TabType>('orders')
   const [searchQuery, setSearchQuery] = useState('')
   const [dateRange, setDateRange] = useState<DateRangeKey>('all')
@@ -81,13 +83,13 @@ export default function CustomerDetail() {
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <AlertCircle className="w-12 h-12 text-red-500" />
         <p className="text-slate-600 dark:text-slate-400">
-          {error || 'Customer not found'}
+          {error || t('customerDetail.notFound')}
         </p>
         <button
           onClick={() => navigate('/customers')}
           className="text-green-600 hover:text-green-700 font-medium"
         >
-          Back to Customers
+          {t('customerDetail.backToCustomers')}
         </button>
       </div>
     )
@@ -127,10 +129,10 @@ export default function CustomerDetail() {
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <Euro className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Revenue</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.totalRevenue')}</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">
                 {formatPrice(stats.totalRevenue)}
               </p>
@@ -144,7 +146,7 @@ export default function CustomerDetail() {
               <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Orders</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.totalOrders')}</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">
                 {stats.totalOrders}
               </p>
@@ -158,7 +160,7 @@ export default function CustomerDetail() {
               <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Avg Value</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.avgOrderValue')}</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">
                 {formatPrice(stats.avgOrderValue)}
               </p>
@@ -172,7 +174,7 @@ export default function CustomerDetail() {
               <Package className="w-5 h-5 text-violet-600 dark:text-violet-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Items</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('customerDetail.items')}</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">
                 {stats.totalItems}
               </p>
@@ -189,7 +191,7 @@ export default function CustomerDetail() {
               <Banknote className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Cash</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('orders.paymentModal.cashTitle')}</p>
               <p className="font-semibold text-slate-900 dark:text-white">
                 {formatPrice(stats.paymentBreakdown.cash)}
               </p>
@@ -200,7 +202,7 @@ export default function CustomerDetail() {
               <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Bank</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('orders.paymentModal.bankTitle')}</p>
               <p className="font-semibold text-slate-900 dark:text-white">
                 {formatPrice(stats.paymentBreakdown.bank)}
               </p>
@@ -222,7 +224,7 @@ export default function CustomerDetail() {
           >
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              Orders ({orders.length})
+              {t('nav.orders')} ({orders.length})
             </div>
           </button>
           <button
@@ -235,7 +237,7 @@ export default function CustomerDetail() {
           >
             <div className="flex items-center gap-2">
               <User className="w-4 h-4" />
-              Details
+              {t('customerDetail.details')}
             </div>
           </button>
         </div>
@@ -253,7 +255,7 @@ export default function CustomerDetail() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search orders or products..."
+                placeholder={t('customerDetail.searchPlaceholder')}
                 className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
@@ -266,8 +268,8 @@ export default function CustomerDetail() {
                 onChange={(e) => setDateRange(e.target.value as DateRangeKey)}
                 className="pl-10 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
               >
-                {Object.entries(DATE_RANGES).map(([key, { label }]) => (
-                  <option key={key} value={key}>{label}</option>
+                {Object.entries(DATE_RANGES).map(([key, { labelKey }]) => (
+                  <option key={key} value={key}>{t(labelKey)}</option>
                 ))}
               </select>
             </div>
@@ -279,20 +281,20 @@ export default function CustomerDetail() {
               <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-500 dark:text-slate-400">
-                  No orders yet for this customer
+                  {t('customerDetail.noOrdersYet')}
                 </p>
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <Search className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-500 dark:text-slate-400">
-                  No orders match your search
+                  {t('customerDetail.noOrdersMatch')}
                 </p>
               </div>
             ) : (
               <>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Showing {filteredOrders.length} of {orders.length} orders
+                  {t('customerDetail.showingOrders', { showing: filteredOrders.length, total: orders.length })}
                 </p>
                 {filteredOrders.map(order => (
                   <CustomerOrderRow
@@ -312,7 +314,7 @@ export default function CustomerDetail() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
               <h3 className="font-semibold text-slate-900 dark:text-white">
-                Contact Information
+                {t('customerDetail.contactInfo')}
               </h3>
             </div>
             <div className="p-6 space-y-4">
@@ -320,7 +322,7 @@ export default function CustomerDetail() {
                 <div className="flex items-start gap-3">
                   <User className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Contact Person</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.contactPerson')}</p>
                     <p className="text-slate-900 dark:text-white">{customer.contact_person}</p>
                   </div>
                 </div>
@@ -329,7 +331,7 @@ export default function CustomerDetail() {
                 <div className="flex items-start gap-3">
                   <Mail className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Email</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.email')}</p>
                     <a
                       href={`mailto:${customer.email}`}
                       className="text-green-600 hover:text-green-700"
@@ -343,7 +345,7 @@ export default function CustomerDetail() {
                 <div className="flex items-start gap-3">
                   <Phone className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Phone</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.phone')}</p>
                     <a
                       href={`tel:${customer.phone}`}
                       className="text-green-600 hover:text-green-700"
@@ -357,7 +359,7 @@ export default function CustomerDetail() {
                 <div className="flex items-start gap-3">
                   <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">VAT Number</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.vatNumber')}</p>
                     <p className="text-slate-900 dark:text-white font-mono">{customer.vat_number}</p>
                   </div>
                 </div>
@@ -369,7 +371,7 @@ export default function CustomerDetail() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
               <h3 className="font-semibold text-slate-900 dark:text-white">
-                Billing Address
+                {t('customerDetail.billingAddress')}
               </h3>
             </div>
             <div className="p-6">
@@ -393,7 +395,7 @@ export default function CustomerDetail() {
                   </div>
                 </div>
               ) : (
-                <p className="text-slate-500 dark:text-slate-400">No address on file</p>
+                <p className="text-slate-500 dark:text-slate-400">{t('customerDetail.noAddress')}</p>
               )}
             </div>
           </div>
@@ -403,7 +405,7 @@ export default function CustomerDetail() {
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
                 <h3 className="font-semibold text-slate-900 dark:text-white">
-                  Shipping Address
+                  {t('customerDetail.shippingAddress')}
                 </h3>
               </div>
               <div className="p-6">
@@ -434,7 +436,7 @@ export default function CustomerDetail() {
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden lg:col-span-2">
               <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
                 <h3 className="font-semibold text-slate-900 dark:text-white">
-                  Internal Notes
+                  {t('customerDetail.internalNotes')}
                 </h3>
               </div>
               <div className="p-6">

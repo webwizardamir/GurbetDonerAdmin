@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   BarChart,
   Bar,
@@ -10,6 +11,7 @@ import {
 } from 'recharts'
 import { CHART_COLORS, formatChartCurrency } from './ChartColors'
 import type { TopProduct } from '../../services/analytics'
+import { formatQuantity } from '../../utils/format'
 
 interface TopProductsChartProps {
   data: TopProduct[]
@@ -17,6 +19,7 @@ interface TopProductsChartProps {
 }
 
 export default function TopProductsChart({ data, loading }: TopProductsChartProps) {
+  const { t } = useTranslation()
   const [isDark, setIsDark] = useState(false)
 
   // Watch for dark mode changes
@@ -34,17 +37,17 @@ export default function TopProductsChart({ data, loading }: TopProductsChartProp
 
   const colors = isDark ? CHART_COLORS.dark : CHART_COLORS.light
 
-  // Format unit type to Dutch
+  // Format unit type with translation support
   const formatUnit = (unitType: string, quantity: number) => {
     switch (unitType?.toLowerCase()) {
       case 'kg':
         return 'kg'
       case 'piece':
-        return quantity === 1 ? 'stuk' : 'stuks'
+        return quantity === 1 ? t('products.units.pieceSingular') : t('products.units.piecePlural')
       case 'package':
-        return quantity === 1 ? 'pak' : 'pakken'
+        return quantity === 1 ? t('products.units.packageSingular') : t('products.units.packagePlural')
       default:
-        return quantity === 1 ? 'stuk' : 'stuks'
+        return quantity === 1 ? t('products.units.pieceSingular') : t('products.units.piecePlural')
     }
   }
 
@@ -72,7 +75,7 @@ export default function TopProductsChart({ data, loading }: TopProductsChartProp
           Revenue: <span className="font-semibold text-green-600 dark:text-green-400">{formatChartCurrency(item.totalRevenue)}</span>
         </p>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          Sold: <span className="font-semibold">{item.totalQuantity.toFixed(item.unitType === 'kg' ? 1 : 0)} {formatUnit(item.unitType, item.totalQuantity)}</span>
+          Sold: <span className="font-semibold">{formatQuantity(item.totalQuantity)} {formatUnit(item.unitType, item.totalQuantity)}</span>
         </p>
       </div>
     )

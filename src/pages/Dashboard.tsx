@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   ShoppingCart,
   DollarSign,
@@ -67,6 +68,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { data, loading, error, refresh } = useDashboard()
   const { isOwner } = useAuth()
@@ -93,7 +95,7 @@ export default function Dashboard() {
           onClick={refresh}
           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
-          Retry
+          {t('common.tryAgain')}
         </button>
       </div>
     )
@@ -104,7 +106,7 @@ export default function Dashboard() {
       {/* Header with refresh */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('nav.dashboard')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             {new Date().toLocaleDateString('nl-NL', {
               weekday: 'long',
@@ -126,7 +128,7 @@ export default function Dashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Total Orders"
+          label={t('dashboard.totalOrders')}
           value={data?.stats.totalOrders.toLocaleString('nl-NL') || '0'}
           icon={ShoppingCart}
           iconColor="text-blue-600"
@@ -134,7 +136,7 @@ export default function Dashboard() {
         />
         {isOwner && (
           <StatCard
-            label="Total Revenue"
+            label={t('dashboard.totalRevenue')}
             value={formatPrice(data?.stats.totalRevenue || 0)}
             icon={DollarSign}
             iconColor="text-green-600"
@@ -142,14 +144,14 @@ export default function Dashboard() {
           />
         )}
         <StatCard
-          label="Total Customers"
+          label={t('dashboard.totalCustomers')}
           value={data?.stats.totalCustomers.toLocaleString('nl-NL') || '0'}
           icon={Users}
           iconColor="text-violet-600"
           iconBg="bg-violet-50 dark:bg-violet-900/20"
         />
         <StatCard
-          label="Pending Orders"
+          label={t('dashboard.pendingOrders')}
           value={data?.stats.pendingOrders.toString() || '0'}
           icon={Clock}
           iconColor="text-amber-600"
@@ -165,13 +167,13 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-5 h-5 text-green-600" />
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Today's Payments
+                {t('dashboard.todaysPayments')}
               </h3>
             </div>
 
             {todayTotal === 0 ? (
               <p className="text-slate-500 dark:text-slate-400 text-sm">
-                No completed orders today yet
+                {t('dashboard.noCompletedOrdersToday')}
               </p>
             ) : (
               <>
@@ -181,7 +183,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 mb-2">
                       <Banknote className="w-5 h-5 text-green-600" />
                       <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                        Cash
+                        {t('orders.payment.cash')}
                       </span>
                     </div>
                     <p className="text-2xl font-bold text-green-700 dark:text-green-300">
@@ -197,7 +199,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 mb-2">
                       <Building2 className="w-5 h-5 text-blue-600" />
                       <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        Bank
+                        {t('orders.payment.bank')}
                       </span>
                     </div>
                     <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
@@ -212,7 +214,7 @@ export default function Dashboard() {
                 {/* Total */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    Total Today
+                    {t('dashboard.totalToday')}
                   </span>
                   <span className="text-lg font-bold text-slate-900 dark:text-white">
                     {formatPrice(todayTotal)}
@@ -229,7 +231,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-blue-600" />
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Today's Orders
+                {t('dashboard.todaysOrders')}
               </h3>
               <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
                 {data?.todaysOrders.length || 0}
@@ -239,13 +241,13 @@ export default function Dashboard() {
               onClick={() => navigate('/orders')}
               className="text-sm text-green-600 hover:text-green-700 font-medium"
             >
-              View All
+              {t('dashboard.viewAll')}
             </button>
           </div>
 
           {(data?.todaysOrders.length || 0) === 0 ? (
             <p className="text-slate-500 dark:text-slate-400 text-sm py-4 text-center">
-              No orders for today yet
+              {t('dashboard.noOrdersToday')}
             </p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -295,20 +297,20 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <Package className="w-5 h-5 text-rose-600" />
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Low Stock Alert
+              {t('dashboard.lowStockAlert')}
             </h3>
           </div>
           <button
             onClick={() => navigate('/products')}
             className="text-sm text-green-600 hover:text-green-700 font-medium"
           >
-            View Products
+            {t('dashboard.viewProducts')}
           </button>
         </div>
 
         {(data?.lowStockProducts.length || 0) === 0 ? (
           <p className="text-slate-500 dark:text-slate-400 text-sm py-4 text-center">
-            All products have sufficient stock
+            {t('dashboard.allStockOk')}
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -342,11 +344,11 @@ export default function Dashboard() {
                           : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
                       }`}
                     >
-                      {isCritical ? 'Critical' : 'Low'}
+                      {isCritical ? t('dashboard.critical') : t('dashboard.low')}
                     </span>
                   </div>
                   <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    {product.stockQuantity} {product.unitType === 'kg' ? 'kg' : 'units'} left
+                    {product.stockQuantity} {product.unitType === 'kg' ? 'kg' : t('common.items')}
                   </p>
                 </div>
               )

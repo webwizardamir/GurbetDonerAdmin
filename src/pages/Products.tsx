@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Search,
   Plus,
@@ -27,21 +28,22 @@ function formatPrice(cents: number): string {
   }).format(cents / 100)
 }
 
-// Format unit type for display (Dutch)
-function formatUnitType(unitType: string): string {
+// Format unit type for display
+function formatUnitType(unitType: string, t: (key: string) => string): string {
   switch (unitType) {
     case 'package':
-      return 'Pak'
+      return t('products.units.package')
     case 'piece':
-      return 'Stuk'
+      return t('products.units.piece')
     case 'kg':
-      return 'Per kg'
+      return t('products.units.kg')
     default:
       return unitType
   }
 }
 
 export default function Products() {
+  const { t } = useTranslation()
   const { canCreate, canEdit, canDelete } = usePermission('products')
   const { products, loading, error, refresh, create, update, remove } = useProducts()
   const { categories } = useCategories({ activeOnly: true })
@@ -96,7 +98,7 @@ export default function Products() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) return
+    if (!confirm(t('products.confirmDelete'))) return
     await remove(id)
   }
 
@@ -112,41 +114,29 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      {/* Search and Filters */}
-      <div className="space-y-3">
-        {/* Search Row */}
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-          {/* Add Product Button - Desktop */}
-          {canCreate && (
-            <button
-              onClick={handleCreate}
-              className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors shrink-0"
-            >
-              <Plus className="w-5 h-5" />
-              Add Product
-            </button>
-          )}
+      {/* Search & Filters - Combined on desktop, stacked on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        {/* Search Bar */}
+        <div className="relative w-full sm:w-64 lg:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder={t('products.searchPlaceholder')}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
         </div>
 
-        {/* Filters Row */}
-        <div className="flex flex-wrap gap-2">
+        {/* Filters & Actions */}
+        <div className="flex flex-wrap items-center gap-2 flex-1">
           {/* Category Filter */}
           <select
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
-            className="flex-1 sm:flex-none px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="flex-1 sm:flex-none px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
           >
-            <option value="">All Categories</option>
+            <option value="">{t('products.allCategories')}</option>
             {categories.map(cat => (
               <option key={cat.id} value={cat.id}>
                 {cat.name}
@@ -160,7 +150,7 @@ export default function Products() {
             className="inline-flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
             <Tag className="w-5 h-5" />
-            <span className="hidden sm:inline">Categories</span>
+            <span className="hidden lg:inline">{t('products.categories')}</span>
           </button>
 
           {/* Export Button */}
@@ -168,19 +158,23 @@ export default function Products() {
             onClick={handleExport}
             disabled={filteredProducts.length === 0}
             className="inline-flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
-            title="Export to CSV"
+            title={t('common.export')}
           >
             <Download className="w-5 h-5" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden lg:inline">{t('common.export')}</span>
           </button>
 
-          {/* Add Product Button - Mobile */}
+          {/* Spacer to push button right on desktop */}
+          <div className="hidden sm:block flex-1" />
+
+          {/* Add Product Button */}
           {canCreate && (
             <button
               onClick={handleCreate}
-              className="sm:hidden inline-flex items-center gap-2 px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors shrink-0"
             >
               <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">{t('products.addProduct')}</span>
             </button>
           )}
         </div>
@@ -203,12 +197,12 @@ export default function Products() {
         <div className="text-center py-12">
           <Package className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
           <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-            No products found
+            {t('products.noProductsMatch')}
           </h3>
           <p className="text-slate-500 dark:text-slate-400 mb-4">
             {searchQuery || categoryFilter
-              ? 'Try adjusting your search or filters'
-              : 'Get started by adding your first product'}
+              ? t('common.noResults')
+              : t('products.addFirstProduct')}
           </p>
           {canCreate && !searchQuery && !categoryFilter && (
             <button
@@ -216,7 +210,7 @@ export default function Products() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
             >
               <Plus className="w-5 h-5" />
-              Add Product
+              {t('products.addProduct')}
             </button>
           )}
         </div>
@@ -229,35 +223,35 @@ export default function Products() {
               <thead className="bg-slate-50 dark:bg-slate-700/50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Product
+                    {t('products.productName')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Category
+                    {t('products.category')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    SKU / Barcode
+                    {t('products.sku')} / {t('products.barcode')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Unit
+                    {t('products.unitType')}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Stock
+                    {t('products.stock')}
                   </th>
                   {isOwner && (
                     <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Cost
+                      {t('products.costPrice')}
                     </th>
                   )}
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Price
+                    {t('common.price')}
                   </th>
                   {isOwner && (
                     <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Margin
+                      {t('products.margin')}
                     </th>
                   )}
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Actions
+                    {t('common.actions')}
                   </th>
                 </tr>
               </thead>
@@ -298,7 +292,7 @@ export default function Products() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {formatUnitType(product.unit_type)}
+                      {formatUnitType(product.unit_type, t)}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {product.track_stock ? (
@@ -312,7 +306,7 @@ export default function Products() {
                           {product.stock_quantity}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500" title="Stock tracking disabled">
+                        <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500" title={t('products.stockStatus.notTracked')}>
                           <PackageX className="w-4 h-4" />
                           <span className="text-xs">N/A</span>
                         </span>
@@ -398,7 +392,7 @@ export default function Products() {
                       {formatPrice(product.base_price)}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {formatUnitType(product.unit_type)}
+                      {formatUnitType(product.unit_type, t)}
                     </div>
                   </div>
                 </div>
@@ -419,12 +413,12 @@ export default function Products() {
                           ? 'text-amber-600 dark:text-amber-400'
                           : 'text-slate-600 dark:text-slate-300'
                     }`}>
-                      Stock: {product.stock_quantity}
+                      {t('products.stock')}: {product.stock_quantity}
                     </div>
                   ) : (
                     <div className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500">
                       <PackageX className="w-4 h-4" />
-                      <span className="text-xs">No tracking</span>
+                      <span className="text-xs">{t('products.stockStatus.notTracked')}</span>
                     </div>
                   )}
                 </div>
@@ -433,7 +427,7 @@ export default function Products() {
                 {isOwner && product.cost_cents && (
                   <div className="flex items-center justify-between text-sm mb-3 py-2 px-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                     <div className="text-slate-500 dark:text-slate-400">
-                      Cost: {formatPrice(product.cost_cents)}
+                      {t('products.costPrice')}: {formatPrice(product.cost_cents)}
                     </div>
                     {product.base_price > 0 && (
                       <div className={`font-medium ${
@@ -441,7 +435,7 @@ export default function Products() {
                           ? 'text-green-600 dark:text-green-400'
                           : 'text-red-600 dark:text-red-400'
                       }`}>
-                        Margin: {((1 - product.cost_cents / product.base_price) * 100).toFixed(1)}%
+                        {t('products.margin')}: {((1 - product.cost_cents / product.base_price) * 100).toFixed(1)}%
                       </div>
                     )}
                   </div>
@@ -455,7 +449,7 @@ export default function Products() {
                         className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium"
                       >
                         <Pencil className="w-4 h-4" />
-                        Edit
+                        {t('common.edit')}
                       </button>
                     )}
                     {canDelete && (

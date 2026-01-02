@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Edit2, UserX, UserCheck, X, Users as UsersIcon, Shield, ShieldCheck, Plus, Eye, EyeOff } from 'lucide-react'
 import { UserProfile } from '../types'
 import { fetchStaffProfiles, updateUserProfile, inviteUser } from '../services/users'
@@ -7,6 +8,7 @@ import { useAuth } from '../context/AuthContext'
 type UserRole = 'owner' | 'shop_manager'
 
 export default function Users() {
+  const { t } = useTranslation()
   const { profile: currentUser } = useAuth()
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -117,14 +119,14 @@ export default function Users() {
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded-full">
             <ShieldCheck className="w-3 h-3" />
-            Owner
+            {t('settings.users.roles.owner')}
           </span>
         )
       case 'shop_manager':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full">
             <Shield className="w-3 h-3" />
-            Shop Manager
+            {t('settings.users.roles.shop_manager')}
           </span>
         )
       default:
@@ -149,8 +151,7 @@ export default function Users() {
       {/* Header with create button */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Staff Members</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Manage user accounts and permissions</p>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('settings.users.title')}</h2>
         </div>
         <button
           onClick={() => {
@@ -161,7 +162,7 @@ export default function Users() {
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Add User
+          {t('settings.users.addUser')}
         </button>
       </div>
 
@@ -179,19 +180,19 @@ export default function Users() {
           <thead className="bg-gray-50 dark:bg-slate-900">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                User
+                {t('settings.users.name')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Role
+                {t('settings.users.role')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Status
+                {t('settings.users.status')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Last Login
+                {t('settings.users.lastLogin')}
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Actions
+                {t('common.actions')}
               </th>
             </tr>
           </thead>
@@ -200,8 +201,7 @@ export default function Users() {
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                   <UsersIcon className="w-12 h-12 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-                  <p>No staff users found</p>
-                  <p className="text-sm mt-1">Create users in Supabase Dashboard first</p>
+                  <p>{t('settings.users.noUsers')}</p>
                 </td>
               </tr>
             ) : (
@@ -226,11 +226,11 @@ export default function Users() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     {user.is_active ? (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full">
-                        Active
+                        {t('settings.users.active')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 rounded-full">
-                        Inactive
+                        {t('settings.users.inactive')}
                       </span>
                     )}
                   </td>
@@ -285,7 +285,7 @@ export default function Users() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('settings.users.editUser')}</h2>
               <button
                 onClick={() => {
                   setShowEditModal(false)
@@ -307,7 +307,7 @@ export default function Users() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email
+                  {t('settings.users.email')}
                 </label>
                 <input
                   type="email"
@@ -320,7 +320,7 @@ export default function Users() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Full Name
+                  {t('settings.users.name')}
                 </label>
                 <input
                   type="text"
@@ -332,7 +332,7 @@ export default function Users() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Role
+                  {t('settings.users.role')}
                 </label>
                 <select
                   value={editFormData.role}
@@ -340,8 +340,8 @@ export default function Users() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   disabled={selectedUser.id === currentUser?.id}
                 >
-                  <option value="shop_manager">Shop Manager</option>
-                  <option value="owner">Owner</option>
+                  <option value="shop_manager">{t('settings.users.roles.shop_manager')}</option>
+                  <option value="owner">{t('settings.users.roles.owner')}</option>
                 </select>
                 {selectedUser.id === currentUser?.id && (
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">You cannot change your own role</p>
@@ -358,14 +358,14 @@ export default function Users() {
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Saving...' : 'Save Changes'}
+                  {submitting ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </form>
@@ -378,7 +378,7 @@ export default function Users() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add New User</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('settings.users.addUser')}</h2>
               <button
                 onClick={() => {
                   setShowCreateModal(false)
@@ -399,7 +399,7 @@ export default function Users() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email *
+                  {t('settings.users.email')} *
                 </label>
                 <input
                   type="email"
@@ -413,7 +413,7 @@ export default function Users() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Full Name *
+                  {t('settings.users.name')} *
                 </label>
                 <input
                   type="text"
@@ -451,19 +451,16 @@ export default function Users() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Role *
+                  {t('settings.users.role')} *
                 </label>
                 <select
                   value={createFormData.role}
                   onChange={(e) => setCreateFormData({ ...createFormData, role: e.target.value as UserRole })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="shop_manager">Shop Manager</option>
-                  <option value="owner">Owner</option>
+                  <option value="shop_manager">{t('settings.users.roles.shop_manager')}</option>
+                  <option value="owner">{t('settings.users.roles.owner')}</option>
                 </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Owners have full access including analytics and settings
-                </p>
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -475,14 +472,14 @@ export default function Users() {
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Creating...' : 'Create User'}
+                  {submitting ? t('common.saving') : t('common.create')}
                 </button>
               </div>
             </form>

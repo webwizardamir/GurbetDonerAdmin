@@ -32,6 +32,7 @@ A comprehensive B2B wholesale management platform for halal food distribution. T
 | Charts | Recharts |
 | Icons | Lucide React |
 | Routing | React Router DOM v7 |
+| Internationalization | react-i18next (NL default, EN secondary) |
 
 ---
 
@@ -113,6 +114,25 @@ src/
 - Store as `timestamptz` in database
 - Display in Dutch format: `DD-MM-YYYY`
 - Support past/future order dates
+
+### Internationalization (i18n)
+- **Languages**: Dutch (NL) as default, English (EN) as secondary
+- **Library**: react-i18next with i18next-browser-languagedetector
+- **Translation files**: `src/i18n/locales/nl.json` and `src/i18n/locales/en.json`
+- **IMPORTANT**: When creating or modifying features, ALWAYS add translations to BOTH language files
+  - Add Dutch (NL) translations FIRST
+  - Add English (EN) translations SECOND
+- **PDF Documents**: Always remain in Dutch regardless of app language (legal compliance)
+- **Key naming**: Use nested keys like `section.subsection.key` (e.g., `orders.status.completed`)
+- **Usage**:
+  ```typescript
+  import { useTranslation } from 'react-i18next'
+
+  function MyComponent() {
+    const { t } = useTranslation()
+    return <button>{t('common.save')}</button>
+  }
+  ```
 
 ---
 

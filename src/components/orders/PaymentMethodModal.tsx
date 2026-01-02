@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Banknote, Building2, Loader2 } from 'lucide-react'
 import type { PaymentMethod } from '../../types'
 
@@ -15,6 +16,7 @@ export default function PaymentMethodModal({
   onCancel,
   loading = false,
 }: PaymentMethodModalProps) {
+  const { t } = useTranslation()
   const [selected, setSelected] = useState<PaymentMethod | null>(null)
 
   const handleConfirm = () => {
@@ -36,7 +38,7 @@ export default function PaymentMethodModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Complete Order
+            {t('orders.paymentModal.title')}
           </h3>
           <button
             onClick={onCancel}
@@ -50,10 +52,10 @@ export default function PaymentMethodModal({
         {/* Content */}
         <div className="p-6">
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-            Order <span className="font-semibold text-slate-900 dark:text-white">{orderNumber}</span>
+            {t('orders.paymentModal.orderLabel')} <span className="font-semibold text-slate-900 dark:text-white">{orderNumber}</span>
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-            Select the payment method used for this order
+            {t('orders.paymentModal.selectMethod')}
           </p>
 
           {/* Payment Options */}
@@ -85,10 +87,10 @@ export default function PaymentMethodModal({
                     ? 'text-green-700 dark:text-green-300'
                     : 'text-slate-900 dark:text-white'
                 }`}>
-                  Cash
+                  {t('orders.paymentModal.cashTitle')}
                 </p>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Contant betaald
+                  {t('orders.paymentModal.cashDesc')}
                 </p>
               </div>
             </button>
@@ -120,10 +122,10 @@ export default function PaymentMethodModal({
                     ? 'text-blue-700 dark:text-blue-300'
                     : 'text-slate-900 dark:text-white'
                 }`}>
-                  Bank Transfer
+                  {t('orders.paymentModal.bankTitle')}
                 </p>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Per bank betaald
+                  {t('orders.paymentModal.bankDesc')}
                 </p>
               </div>
             </button>
@@ -137,7 +139,7 @@ export default function PaymentMethodModal({
             disabled={loading}
             className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleConfirm}
@@ -147,10 +149,10 @@ export default function PaymentMethodModal({
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Completing...
+                {t('orders.paymentModal.completing')}
               </>
             ) : (
-              'Complete Order'
+              t('orders.paymentModal.completeOrder')
             )}
           </button>
         </div>

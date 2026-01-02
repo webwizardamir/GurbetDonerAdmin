@@ -138,7 +138,7 @@ export default function CustomerPricing({ customer, onClose }: CustomerPricingPr
               placeholder="Search products..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function CustomerPricing({ customer, onClose }: CustomerPricingPr
                             min="0"
                             value={editPrice}
                             onChange={e => setEditPrice(e.target.value)}
-                            className="w-28 pl-8 pr-3 py-2 bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-right"
+                            className="w-28 pl-8 pr-3 py-2 bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-right"
                             autoFocus
                             onKeyDown={e => {
                               if (e.key === 'Enter') handleSavePrice(product)

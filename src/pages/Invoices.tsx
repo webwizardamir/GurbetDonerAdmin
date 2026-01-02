@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   FileText,
   Search,
@@ -69,6 +70,7 @@ function TypeBadge({ type }: { type: DocumentType }) {
 }
 
 export default function Invoices() {
+  const { t } = useTranslation()
   const { canDelete } = usePermission('documents')
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
@@ -105,7 +107,7 @@ export default function Invoices() {
   })
 
   const handleDelete = async (doc: Document) => {
-    if (!confirm(`Delete ${doc.document_number}? This cannot be undone.`)) return
+    if (!confirm(t('documents.confirmDelete', { number: doc.document_number }))) return
 
     setDeleting(doc.id)
     try {
@@ -192,7 +194,7 @@ export default function Invoices() {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search by document number..."
+            placeholder={t('common.search') + '...'}
             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
           />
         </div>
@@ -204,11 +206,11 @@ export default function Invoices() {
             onChange={e => setTypeFilter(e.target.value as DocumentType | '')}
             className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
           >
-            <option value="">All Types</option>
-            <option value="invoice">Invoices</option>
-            <option value="proforma">Proformas</option>
-            <option value="credit_note">Credit Notes</option>
-            <option value="packing_slip">Packing Slips</option>
+            <option value="">{t('documents.allTypes')}</option>
+            <option value="invoice">{t('documents.types.invoice')}</option>
+            <option value="proforma">{t('documents.types.proforma')}</option>
+            <option value="credit_note">{t('documents.types.credit_note')}</option>
+            <option value="packing_slip">{t('documents.types.packing_slip')}</option>
           </select>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
         </div>
@@ -232,9 +234,12 @@ export default function Invoices() {
             <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-600 dark:text-slate-400">
               {searchQuery || typeFilter
-                ? 'No documents match your filters'
-                : 'No documents yet. Generate documents from order details.'}
+                ? t('documents.noDocumentsMatch')
+                : t('documents.noDocuments')}
             </p>
+            {!searchQuery && !typeFilter && (
+              <p className="text-sm text-slate-500 mt-1">{t('documents.generateFromOrder')}</p>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -242,16 +247,16 @@ export default function Invoices() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                    Document
+                    {t('documents.documentNumber')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                    Generated
+                    {t('documents.documentDate')}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                    Actions
+                    {t('common.actions')}
                   </th>
                 </tr>
               </thead>
@@ -331,8 +336,8 @@ export default function Invoices() {
             <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-600 dark:text-slate-400">
               {searchQuery || typeFilter
-                ? 'No documents match your filters'
-                : 'No documents yet'}
+                ? t('documents.noDocumentsMatch')
+                : t('documents.noDocuments')}
             </p>
           </div>
         ) : (
@@ -357,7 +362,7 @@ export default function Invoices() {
                   <button
                     onClick={() => handleDownload(doc)}
                     className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                    title="Download"
+                    title={t('common.download')}
                   >
                     <Download className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                   </button>
@@ -366,7 +371,7 @@ export default function Invoices() {
                       onClick={() => handleDelete(doc)}
                       disabled={deleting === doc.id}
                       className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      title="Delete"
+                      title={t('common.delete')}
                     >
                       {deleting === doc.id ? (
                         <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
@@ -389,7 +394,7 @@ export default function Invoices() {
       {/* Info */}
       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
         <p className="text-sm text-blue-700 dark:text-blue-300">
-          To generate new documents, go to <strong>Orders</strong>, open an order, and click the document buttons (Invoice, Proforma, Packing Slip).
+          {t('documents.generateFromOrder')}
         </p>
       </div>
     </div>

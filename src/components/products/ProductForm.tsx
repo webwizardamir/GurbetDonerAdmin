@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Loader2, Package } from 'lucide-react'
 import { useCategories } from '../../hooks/useCategories'
 import { useAuth } from '../../context/AuthContext'
@@ -24,22 +25,23 @@ export interface ProductFormData {
   description?: string
 }
 
-const UNIT_TYPE_OPTIONS: { value: UnitType; label: string }[] = [
-  { value: 'package', label: 'Pak / Doos' },
-  { value: 'piece', label: 'Stuk' },
-  { value: 'kg', label: 'Kilogram (kg)' },
-]
-
-const TAX_RATE_OPTIONS = [
-  { value: 9, label: '9% (Food - BTW laag)' },
-  { value: 21, label: '21% (BTW hoog)' },
-  { value: 0, label: '0% (No VAT)' },
-]
-
 export default function ProductForm({ product, onClose, onSave }: ProductFormProps) {
+  const { t } = useTranslation()
   const { categories } = useCategories({ activeOnly: true })
   const { profile } = useAuth()
   const isOwner = profile?.role === 'owner'
+
+  const UNIT_TYPE_OPTIONS: { value: UnitType; label: string }[] = [
+    { value: 'package', label: t('products.form.unitTypes.package') },
+    { value: 'piece', label: t('products.form.unitTypes.piece') },
+    { value: 'kg', label: t('products.form.unitTypes.kg') },
+  ]
+
+  const TAX_RATE_OPTIONS = [
+    { value: 9, label: t('products.form.taxRates.food') },
+    { value: 21, label: t('products.form.taxRates.high') },
+    { value: 0, label: t('products.form.taxRates.none') },
+  ]
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -80,19 +82,19 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
 
     // Validation
     if (!name.trim()) {
-      setError('Product name is required')
+      setError(t('products.form.productNameRequired'))
       return
     }
 
     const priceInCents = Math.round(parseFloat(priceEuros || '0') * 100)
     if (isNaN(priceInCents) || priceInCents < 0) {
-      setError('Please enter a valid price')
+      setError(t('products.form.invalidPrice'))
       return
     }
 
     const costInCents = costEuros ? Math.round(parseFloat(costEuros) * 100) : undefined
     if (costEuros && (isNaN(costInCents!) || costInCents! < 0)) {
-      setError('Please enter a valid cost')
+      setError(t('products.form.invalidCost'))
       return
     }
 
@@ -119,7 +121,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
       await onSave(formData)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save product')
+      setError(err instanceof Error ? err.message : t('common.error'))
     } finally {
       setSaving(false)
     }
@@ -137,7 +139,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
               <Package className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              {product ? 'Edit Product' : 'Add Product'}
+              {product ? t('products.editProduct') : t('products.addProduct')}
             </h2>
           </div>
           <button
@@ -161,14 +163,14 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
             {/* Product Name */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Product Name <span className="text-red-500">*</span>
+                {t('products.productName')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="e.g., Halal Chicken Breast 1kg"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder={t('products.form.enterProductName')}
                 required
               />
             </div>
@@ -177,26 +179,26 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  SKU
+                  {t('products.sku')}
                 </label>
                 <input
                   type="text"
                   value={sku}
                   onChange={e => setSku(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="e.g., CHK-001"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder={t('products.form.enterSku')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Barcode
+                  {t('products.barcode')}
                 </label>
                 <input
                   type="text"
                   value={barcode}
                   onChange={e => setBarcode(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="Scan or enter barcode"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder={t('products.form.scanBarcode')}
                 />
               </div>
             </div>
@@ -204,14 +206,14 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Category
+                {t('products.category')}
               </label>
               <select
                 value={categoryId}
                 onChange={e => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                <option value="">No category</option>
+                <option value="">{t('products.form.noCategory')}</option>
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -224,12 +226,12 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Unit Type <span className="text-red-500">*</span>
+                  {t('products.unitType')} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={unitType}
                   onChange={e => setUnitType(e.target.value as UnitType)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   {UNIT_TYPE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>
@@ -240,14 +242,15 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Stock Quantity
+                  {t('products.stock')}
                 </label>
                 <input
                   type="number"
                   min="0"
+                  step="any"
                   value={stockQuantity}
-                  onChange={e => setStockQuantity(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  onChange={e => setStockQuantity(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="0"
                   disabled={!trackStock}
                 />
@@ -264,12 +267,12 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                 className="w-4 h-4 text-green-600 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded focus:ring-green-500"
               />
               <label htmlFor="trackStock" className="text-sm text-slate-700 dark:text-slate-300">
-                Track stock for this product
+                {t('products.form.trackStockLabel')}
               </label>
             </div>
             {!trackStock && (
               <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2 ml-7">
-                Stock quantity will be ignored when creating orders
+                {t('products.form.stockIgnored')}
               </p>
             )}
 
@@ -277,7 +280,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Selling Price <span className="text-red-500">*</span>
+                  {t('products.form.sellingPrice')} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
@@ -289,19 +292,19 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                     min="0"
                     value={priceEuros}
                     onChange={e => setPriceEuros(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="0.00"
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Tax Rate (BTW)
+                  {t('products.taxRate')}
                 </label>
                 <select
                   value={taxRate}
                   onChange={e => setTaxRate(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   {TAX_RATE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>
@@ -316,8 +319,8 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
             {isOwner && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Cost of Goods (COGS)
-                  <span className="ml-2 text-xs text-slate-500">(Owner only)</span>
+                  {t('products.form.cogs')}
+                  <span className="ml-2 text-xs text-slate-500">({t('products.form.ownerOnly')})</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
@@ -329,13 +332,13 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                     min="0"
                     value={costEuros}
                     onChange={e => setCostEuros(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="0.00"
                   />
                 </div>
                 {priceEuros && costEuros && (
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Margin: &euro;{(parseFloat(priceEuros) - parseFloat(costEuros)).toFixed(2)}
+                    {t('products.margin')}: &euro;{(parseFloat(priceEuros) - parseFloat(costEuros)).toFixed(2)}
                     ({((1 - parseFloat(costEuros) / parseFloat(priceEuros)) * 100).toFixed(1)}%)
                   </p>
                 )}
@@ -345,14 +348,14 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Description
+                {t('common.description')}
               </label>
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 rows={3}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                placeholder="Optional product description..."
+                placeholder={t('common.optional') + '...'}
               />
             </div>
           </div>
@@ -364,7 +367,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
               onClick={onClose}
               className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -374,10 +377,10 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
               {saving ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Saving...
+                  {t('common.saving')}
                 </>
               ) : (
-                <>{product ? 'Update' : 'Create'} Product</>
+                product ? t('products.form.updateProduct') : t('products.form.createProduct')
               )}
             </button>
           </div>

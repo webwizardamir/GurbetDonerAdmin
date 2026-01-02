@@ -92,12 +92,26 @@
     "welcome": "Welkom terug",
     "todaysSales": "Verkoop vandaag",
     "pendingOrders": "Openstaande bestellingen",
+    "totalOrders": "Totaal bestellingen",
+    "totalRevenue": "Totale omzet",
     "totalCustomers": "Totaal klanten",
     "lowStock": "Lage voorraad",
+    "lowStockAlert": "Lage voorraad waarschuwing",
     "recentOrders": "Recente bestellingen",
     "topProducts": "Top producten",
     "noOrders": "Nog geen bestellingen",
-    "viewAll": "Bekijk alles"
+    "noOrdersToday": "Nog geen bestellingen vandaag",
+    "noCompletedOrdersToday": "Nog geen voltooide bestellingen vandaag",
+    "viewAll": "Bekijk alles",
+    "viewProducts": "Bekijk producten",
+    "todaysPayments": "Betalingen vandaag",
+    "todaysOrders": "Bestellingen vandaag",
+    "totalToday": "Totaal vandaag",
+    "allStockOk": "Alle producten hebben voldoende voorraad",
+    "moreOrders": "+{{count}} meer bestellingen",
+    "unitsLeft": "{{count}} {{unit}} over",
+    "critical": "Kritiek",
+    "low": "Laag"
   },
   "customers": {
     "title": "Klanten",
@@ -131,7 +145,52 @@
     "totalOrders": "Totaal bestellingen",
     "avgOrderValue": "Gem. bestelwaarde",
     "details": "Details",
-    "contactInfo": "Contactgegevens"
+    "contactInfo": "Contactgegevens",
+    "form": {
+      "companyInfo": "Bedrijfsgegevens",
+      "contactInfo": "Contactgegevens",
+      "internalNotes": "Interne notities",
+      "enterCompanyName": "Voer bedrijfsnaam in",
+      "enterContactPerson": "Jan Jansen",
+      "enterEmail": "contact@bedrijf.nl",
+      "enterPhone": "+31 6 12345678",
+      "enterStreet": "Hoofdstraat 123",
+      "enterCity": "Amsterdam",
+      "enterPostalCode": "1234 AB",
+      "enterNotes": "Privénotities over deze klant...",
+      "companyNameRequired": "Bedrijfsnaam is verplicht",
+      "saveError": "Kan klant niet opslaan",
+      "saveChanges": "Wijzigingen opslaan"
+    },
+    "countries": {
+      "NL": "Nederland",
+      "BE": "België",
+      "DE": "Duitsland",
+      "FR": "Frankrijk",
+      "UK": "Verenigd Koninkrijk"
+    }
+  },
+  "customerDetail": {
+    "notFound": "Klant niet gevonden",
+    "backToCustomers": "Terug naar klanten",
+    "items": "Artikelen",
+    "details": "Details",
+    "searchPlaceholder": "Zoek bestellingen of producten...",
+    "noOrdersYet": "Nog geen bestellingen voor deze klant",
+    "noOrdersMatch": "Geen bestellingen gevonden",
+    "showingOrders": "{{showing}} van {{total}} bestellingen weergeven",
+    "contactInfo": "Contactgegevens",
+    "billingAddress": "Factuuradres",
+    "shippingAddress": "Verzendadres",
+    "internalNotes": "Interne notities",
+    "noAddress": "Geen adres geregistreerd",
+    "dateRanges": {
+      "all": "Alle tijd",
+      "last7": "Laatste 7 dagen",
+      "last30": "Laatste 30 dagen",
+      "last90": "Laatste 90 dagen",
+      "thisYear": "Dit jaar"
+    }
   },
   "products": {
     "title": "Producten",
@@ -160,13 +219,43 @@
     "units": {
       "kg": "Per kg",
       "piece": "Stuk",
-      "package": "Pak"
+      "package": "Pak",
+      "pieceSingular": "stuk",
+      "piecePlural": "stuks",
+      "packageSingular": "pak",
+      "packagePlural": "pakken"
     },
     "stockStatus": {
       "inStock": "Op voorraad",
       "lowStock": "Lage voorraad",
       "outOfStock": "Niet op voorraad",
       "notTracked": "Niet bijgehouden"
+    },
+    "form": {
+      "productNameRequired": "Productnaam is verplicht",
+      "invalidPrice": "Voer een geldige prijs in",
+      "invalidCost": "Voer een geldige kostprijs in",
+      "enterProductName": "bijv. Halal Kipfilet 1kg",
+      "enterSku": "bijv. KIP-001",
+      "scanBarcode": "Scan of voer barcode in",
+      "noCategory": "Geen categorie",
+      "sellingPrice": "Verkoopprijs",
+      "cogs": "Kostprijs (COGS)",
+      "ownerOnly": "Alleen eigenaar",
+      "trackStockLabel": "Voorraad bijhouden voor dit product",
+      "stockIgnored": "Voorraad wordt genegeerd bij het maken van bestellingen",
+      "updateProduct": "Product bijwerken",
+      "createProduct": "Product aanmaken",
+      "unitTypes": {
+        "package": "Pak / Doos",
+        "piece": "Stuk",
+        "kg": "Kilogram (kg)"
+      },
+      "taxRates": {
+        "food": "9% (Voedsel - BTW laag)",
+        "high": "21% (BTW hoog)",
+        "none": "0% (Geen BTW)"
+      }
     }
   },
   "orders": {
@@ -219,7 +308,43 @@
     },
     "selected": "geselecteerd",
     "clear": "Wissen",
-    "invoice": "Factuur"
+    "invoice": "Factuur",
+    "form": {
+      "searchCustomers": "Zoek klanten...",
+      "noCustomersFound": "Geen klanten gevonden",
+      "searchProducts": "Zoeken op naam, SKU of barcode...",
+      "noProductsFound": "Geen producten gevonden",
+      "addProducts": "Producten toevoegen",
+      "searchAndAdd": "Zoek en voeg producten toe",
+      "selectCustomerError": "Selecteer een klant",
+      "addProductError": "Voeg minimaal één product toe",
+      "createError": "Kan bestelling niet aanmaken",
+      "creating": "Aanmaken...",
+      "deliveryNotes": "Bezorgnotities",
+      "deliveryPlaceholder": "Bezorginstructies...",
+      "internalNotes": "Interne notities",
+      "internalPlaceholder": "Interne notities..."
+    },
+    "detail": {
+      "created": "Aangemaakt",
+      "confirmCancel": "Deze bestelling annuleren? Voorraad wordt hersteld.",
+      "confirmRefund": "Deze bestelling terugbetalen? Voorraad wordt hersteld.",
+      "updateError": "Kan status niet bijwerken",
+      "documents": "Documenten",
+      "discount": "Korting",
+      "delivery": "Bezorging"
+    },
+    "paymentModal": {
+      "title": "Bestelling voltooien",
+      "orderLabel": "Bestelling",
+      "selectMethod": "Selecteer de betaalmethode voor deze bestelling",
+      "cashTitle": "Contant",
+      "cashDesc": "Contant betaald",
+      "bankTitle": "Bankoverschrijving",
+      "bankDesc": "Per bank betaald",
+      "completing": "Voltooien...",
+      "completeOrder": "Bestelling voltooien"
+    }
   },
   "documents": {
     "title": "Documenten",

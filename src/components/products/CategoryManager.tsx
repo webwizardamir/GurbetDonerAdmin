@@ -99,7 +99,7 @@ export default function CategoryManager({ onClose }: CategoryManagerProps) {
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 placeholder="New category name..."
-                className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <button
                 type="submit"
@@ -141,7 +141,7 @@ export default function CategoryManager({ onClose }: CategoryManagerProps) {
                         type="text"
                         value={editName}
                         onChange={e => setEditName(e.target.value)}
-                        className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                         autoFocus
                         onKeyDown={e => {
                           if (e.key === 'Enter') handleUpdate(category.id)

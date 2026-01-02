@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Search,
   Plus,
@@ -45,71 +46,73 @@ function formatDate(dateString: string): string {
 
 // Status badge component - supports both original and new schema statuses
 function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { label: string; className: string }> = {
+  const { t } = useTranslation()
+  const config: Record<string, { labelKey: string; className: string }> = {
     // New schema statuses
     draft: {
-      label: 'Draft',
+      labelKey: 'orders.status.draft',
       className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
     },
     pending_payment: {
-      label: 'Pending Payment',
+      labelKey: 'orders.status.pending_payment',
       className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
     },
     on_hold: {
-      label: 'On Hold',
+      labelKey: 'orders.status.on_hold',
       className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
     },
     cancelled: {
-      label: 'Cancelled',
+      labelKey: 'orders.status.cancelled',
       className: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
     },
     refunded: {
-      label: 'Refunded',
+      labelKey: 'orders.status.refunded',
       className: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
     },
     completed: {
-      label: 'Completed',
+      labelKey: 'orders.status.completed',
       className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     },
     // Original schema statuses
     pending: {
-      label: 'Pending',
+      labelKey: 'orders.status.pending',
       className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
     },
     processing: {
-      label: 'Processing',
+      labelKey: 'orders.status.processing',
       className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
     },
     delivered: {
-      label: 'Delivered',
+      labelKey: 'orders.status.delivered',
       className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     },
   }
 
   const statusConfig = config[status] || {
-    label: status || 'Unknown',
+    labelKey: status || 'Unknown',
     className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
   }
 
   return (
     <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusConfig.className}`}>
-      {statusConfig.label}
+      {t(statusConfig.labelKey)}
     </span>
   )
 }
 
 // Payment method badge component
 function PaymentBadge({ method }: { method?: PaymentMethod }) {
+  const { t } = useTranslation()
   if (!method || method === 'none') return null
 
   const config = {
     cash: {
-      label: 'Cash',
+      labelKey: 'orders.payment.cash',
       className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
       icon: Banknote,
     },
     bank: {
-      label: 'Bank',
+      labelKey: 'orders.payment.bank',
       className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
       icon: Building2,
     },
@@ -122,12 +125,13 @@ function PaymentBadge({ method }: { method?: PaymentMethod }) {
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${cfg.className}`}>
       <Icon className="w-3 h-3" />
-      {cfg.label}
+      {t(cfg.labelKey)}
     </span>
   )
 }
 
 export default function Orders() {
+  const { t } = useTranslation()
   const { canCreate, canDelete } = usePermission('orders')
   const { orders, loading, error, filters, setFilters, refresh, remove } = useOrders()
 
@@ -179,7 +183,7 @@ export default function Orders() {
   )
 
   const handleDelete = async (order: OrderWithItems) => {
-    if (!confirm(`Delete order ${order.order_number}? This cannot be undone.`)) return
+    if (!confirm(t('orders.confirmDelete', { number: order.order_number }))) return
 
     setDeleting(order.id)
     try {
@@ -265,7 +269,7 @@ export default function Orders() {
     )
     if (cancellable.length === 0) return
 
-    if (!confirm(`Cancel ${cancellable.length} order(s)? This will restore stock for tracked items.`)) return
+    if (!confirm(t('orders.confirmCancel', { count: cancellable.length }))) return
 
     try {
       setBulkProcessing(true)
@@ -281,34 +285,22 @@ export default function Orders() {
 
   return (
     <div className="space-y-4">
-      {/* Search & Filters */}
-      <div className="space-y-3">
-        {/* Search Row */}
-        <div className="flex gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by order, customer, or invoice..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-          </div>
-          {/* Create Order Button - Desktop */}
-          {canCreate && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="hidden sm:inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0"
-            >
-              <Plus className="w-5 h-5" />
-              New Order
-            </button>
-          )}
+      {/* Search & Filters - Combined on desktop, stacked on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        {/* Search Bar */}
+        <div className="relative w-full sm:w-64 lg:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder={t('orders.searchPlaceholder')}
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
         </div>
 
-        {/* Filters Row */}
-        <div className="flex flex-wrap gap-2">
+        {/* Filters & Actions */}
+        <div className="flex flex-wrap items-center gap-2 flex-1">
           {/* Status Filter */}
           <div className="relative flex-1 sm:flex-none">
             <select
@@ -316,13 +308,13 @@ export default function Orders() {
               onChange={e => handleStatusFilter(e.target.value as OrderStatus | '')}
               className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
             >
-              <option value="">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="pending_payment">Pending</option>
-              <option value="on_hold">On Hold</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="refunded">Refunded</option>
+              <option value="">{t('orders.allStatus')}</option>
+              <option value="draft">{t('orders.status.draft')}</option>
+              <option value="pending_payment">{t('orders.status.pending_payment')}</option>
+              <option value="on_hold">{t('orders.status.on_hold')}</option>
+              <option value="completed">{t('orders.status.completed')}</option>
+              <option value="cancelled">{t('orders.status.cancelled')}</option>
+              <option value="refunded">{t('orders.status.refunded')}</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
@@ -334,9 +326,9 @@ export default function Orders() {
               onChange={e => handlePaymentFilter(e.target.value as PaymentMethod | '')}
               className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
             >
-              <option value="">All Pay</option>
-              <option value="cash">Cash</option>
-              <option value="bank">Bank</option>
+              <option value="">{t('orders.allPayment')}</option>
+              <option value="cash">{t('orders.payment.cash')}</option>
+              <option value="bank">{t('orders.payment.bank')}</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
@@ -346,19 +338,23 @@ export default function Orders() {
             onClick={handleExport}
             disabled={filteredOrders.length === 0}
             className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-colors whitespace-nowrap disabled:opacity-50"
-            title="Export to CSV"
+            title={t('common.export')}
           >
             <Download className="w-5 h-5" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden lg:inline">{t('common.export')}</span>
           </button>
 
-          {/* Create Order Button - Mobile */}
+          {/* Spacer to push button right on desktop */}
+          <div className="hidden sm:block flex-1" />
+
+          {/* Create Order Button */}
           {canCreate && (
             <button
               onClick={() => setShowForm(true)}
-              className="sm:hidden inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0"
             >
               <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">{t('orders.newOrder')}</span>
             </button>
           )}
         </div>
@@ -376,13 +372,13 @@ export default function Orders() {
         <div className="flex items-center justify-between px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-green-800 dark:text-green-300">
-              {selectedIds.size} selected
+              {selectedIds.size} {t('orders.selected')}
             </span>
             <button
               onClick={() => setSelectedIds(new Set())}
               className="text-sm text-green-600 dark:text-green-400 hover:underline"
             >
-              Clear
+              {t('orders.clear')}
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -397,7 +393,7 @@ export default function Orders() {
                 ) : (
                   <CheckCircle className="w-4 h-4" />
                 )}
-                Complete ({completableSelected.length})
+                {t('orders.actions.complete')} ({completableSelected.length})
               </button>
             )}
             <button
@@ -406,7 +402,7 @@ export default function Orders() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
             >
               <X className="w-4 h-4" />
-              Cancel
+              {t('orders.actions.cancel')}
             </button>
           </div>
         </div>
@@ -423,9 +419,12 @@ export default function Orders() {
             <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-600 dark:text-slate-400">
               {searchQuery || filters.status
-                ? 'No orders match your filters'
-                : 'No orders yet. Create your first order!'}
+                ? t('orders.noOrdersMatch')
+                : t('orders.noOrders')}
             </p>
+            {!searchQuery && !filters.status && canCreate && (
+              <p className="text-sm text-slate-500 mt-1">{t('orders.createFirstOrder')}</p>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -441,25 +440,25 @@ export default function Orders() {
                     />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Order
+                    {t('orders.orderNumber')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Customer
+                    {t('orders.customer')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Date
+                    {t('common.date')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Status
+                    {t('common.status')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Invoice
+                    {t('orders.invoice')}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Total
+                    {t('common.total')}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Actions
+                    {t('common.actions')}
                   </th>
                 </tr>
               </thead>
@@ -554,7 +553,7 @@ export default function Orders() {
                             <button
                               onClick={() => handleQuickComplete(order.id)}
                               className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors cursor-pointer"
-                              title="Mark as Complete"
+                              title={t('orders.actions.markComplete')}
                             >
                               <Check className="w-4 h-4 text-green-600" />
                             </button>
@@ -562,7 +561,7 @@ export default function Orders() {
                           <button
                             onClick={() => setViewingOrder(order)}
                             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
-                            title="View Details"
+                            title={t('orders.actions.view')}
                           >
                             <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                           </button>
@@ -571,7 +570,7 @@ export default function Orders() {
                               onClick={() => handleDelete(order)}
                               disabled={deleting === order.id}
                               className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors cursor-pointer"
-                              title="Delete"
+                              title={t('orders.actions.delete')}
                             >
                               {deleting === order.id ? (
                                 <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
@@ -602,8 +601,8 @@ export default function Orders() {
             <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-600 dark:text-slate-400">
               {searchQuery || filters.status
-                ? 'No orders match your filters'
-                : 'No orders yet'}
+                ? t('orders.noOrdersMatch')
+                : t('orders.noOrders')}
             </p>
           </div>
         ) : (
@@ -666,7 +665,7 @@ export default function Orders() {
                       className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium"
                     >
                       <Check className="w-4 h-4" />
-                      Complete
+                      {t('orders.actions.complete')}
                     </button>
                   )}
                   <button
@@ -674,7 +673,7 @@ export default function Orders() {
                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium"
                   >
                     <Eye className="w-4 h-4" />
-                    View
+                    {t('orders.actions.view')}
                   </button>
                   {canDelete && ['draft', 'pending', 'pending_payment', 'on_hold'].includes(order.status) && (
                     <button
@@ -731,12 +730,11 @@ export default function Orders() {
           />
           <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95 fade-in duration-200">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-              Select Payment Method
+              {t('orders.payment.selectMethod')}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-              {showPaymentModal === 'bulk'
-                ? `Complete ${completableSelected.length} order(s) as:`
-                : 'Complete this order as:'}
+              {t('orders.payment.completeAs')}
+              {showPaymentModal === 'bulk' && ` (${completableSelected.length})`}
             </p>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -746,7 +744,7 @@ export default function Orders() {
                 className="flex flex-col items-center gap-3 p-6 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 border-2 border-green-200 dark:border-green-800 rounded-xl transition-colors disabled:opacity-50"
               >
                 <Banknote className="w-10 h-10 text-green-600" />
-                <span className="font-semibold text-green-700 dark:text-green-300">Cash</span>
+                <span className="font-semibold text-green-700 dark:text-green-300">{t('orders.payment.cash')}</span>
               </button>
               <button
                 onClick={() => handlePaymentConfirm('bank')}
@@ -754,7 +752,7 @@ export default function Orders() {
                 className="flex flex-col items-center gap-3 p-6 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 rounded-xl transition-colors disabled:opacity-50"
               >
                 <Building2 className="w-10 h-10 text-blue-600" />
-                <span className="font-semibold text-blue-700 dark:text-blue-300">Bank</span>
+                <span className="font-semibold text-blue-700 dark:text-blue-300">{t('orders.payment.bank')}</span>
               </button>
             </div>
 
@@ -766,7 +764,7 @@ export default function Orders() {
               disabled={bulkProcessing}
               className="w-full px-4 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Search,
   Plus,
@@ -26,6 +27,7 @@ import CustomerPricing from '../components/pricing/CustomerPricing'
 import { exportToCSV, customerExportColumns } from '../utils/export'
 
 export default function Customers() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { canCreate, canEdit, canDelete } = usePermission('customers')
   const {
@@ -74,7 +76,7 @@ export default function Customers() {
   }
 
   const handleDelete = async (customer: Customer) => {
-    if (!confirm(`Are you sure you want to delete "${customer.company_name}"? This action cannot be undone.`)) {
+    if (!confirm(t('customers.confirmDelete', { name: customer.company_name }))) {
       return
     }
     setDeleting(customer.id)
@@ -82,7 +84,7 @@ export default function Customers() {
       await remove(customer.id)
     } catch (err) {
       console.error('Error deleting customer:', err)
-      alert('Failed to delete customer. They may have associated orders.')
+      alert(t('customers.deleteError'))
     } finally {
       setDeleting(null)
     }
@@ -115,37 +117,22 @@ export default function Customers() {
 
   return (
     <div className="space-y-4 min-w-0">
-      {/* Search & Actions Bar */}
-      <div className="space-y-3">
-        {/* Search Row */}
-        <div className="flex gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, email, phone, VAT..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-          {/* Add Customer Button - Desktop */}
-          {canCreate && (
-            <button
-              onClick={() => {
-                setEditingCustomer(null)
-                setShowForm(true)
-              }}
-              className="hidden sm:inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0"
-            >
-              <Plus className="w-5 h-5" />
-              Add Customer
-            </button>
-          )}
+      {/* Search & Filters - Combined on desktop, stacked on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        {/* Search Bar */}
+        <div className="relative w-full sm:w-64 lg:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('customers.searchPlaceholder')}
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
         </div>
 
-        {/* Filters Row */}
-        <div className="flex flex-wrap gap-2">
+        {/* Filters & Actions */}
+        <div className="flex flex-wrap items-center gap-2 flex-1">
           {/* City Filter */}
           {cities.length > 0 && (
             <div className="relative flex-1 sm:flex-none">
@@ -155,7 +142,7 @@ export default function Customers() {
                 onChange={(e) => setCityFilter(e.target.value)}
                 className="w-full sm:w-auto pl-10 pr-8 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
               >
-                <option value="">All Cities</option>
+                <option value="">{t('customers.allCities')}</option>
                 {cities.map(city => (
                   <option key={city} value={city}>{city}</option>
                 ))}
@@ -171,7 +158,7 @@ export default function Customers() {
             title="Export to CSV"
           >
             <Download className="w-5 h-5" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden lg:inline">{t('common.export')}</span>
           </button>
 
           {/* Import Button */}
@@ -181,20 +168,24 @@ export default function Customers() {
               className="inline-flex items-center justify-center gap-2 px-3 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
             >
               <Upload className="w-5 h-5" />
-              <span className="hidden sm:inline">Import</span>
+              <span className="hidden lg:inline">{t('common.import')}</span>
             </button>
           )}
 
-          {/* Add Customer Button - Mobile */}
+          {/* Spacer to push button right on desktop */}
+          <div className="hidden sm:block flex-1" />
+
+          {/* Add Customer Button */}
           {canCreate && (
             <button
               onClick={() => {
                 setEditingCustomer(null)
                 setShowForm(true)
               }}
-              className="sm:hidden inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0"
             >
               <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">{t('customers.addCustomer')}</span>
             </button>
           )}
         </div>
@@ -208,7 +199,7 @@ export default function Customers() {
       )}
 
       {/* Desktop Table View */}
-      <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+      <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
@@ -218,9 +209,14 @@ export default function Customers() {
             <Building2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-600 dark:text-slate-400">
               {searchQuery || cityFilter
-                ? 'No customers match your search'
-                : 'No customers yet. Add your first customer!'}
+                ? t('customers.noCustomersMatch')
+                : t('customers.noCustomers')}
             </p>
+            {!searchQuery && !cityFilter && canCreate && (
+              <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
+                {t('customers.addFirstCustomer')}
+              </p>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -228,19 +224,19 @@ export default function Customers() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700">
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Company
+                    {t('customers.companyName')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Contact
+                    {t('customers.contactPerson')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Location
+                    {t('customers.city')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    VAT Number
+                    {t('customers.vatNumber')}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Actions
+                    {t('common.actions')}
                   </th>
                 </tr>
               </thead>
@@ -346,8 +342,8 @@ export default function Customers() {
             <Building2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-600 dark:text-slate-400">
               {searchQuery || cityFilter
-                ? 'No customers match your search'
-                : 'No customers yet'}
+                ? t('customers.noCustomersMatch')
+                : t('customers.noCustomers')}
             </p>
           </div>
         ) : (
@@ -427,6 +423,7 @@ function CustomerActionMenu({
   onEdit,
   onDelete,
 }: CustomerActionMenuProps) {
+  const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Close menu when clicking outside
@@ -439,8 +436,8 @@ function CustomerActionMenu({
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
   }, [isOpen, onClose])
 
   return (
@@ -455,33 +452,33 @@ function CustomerActionMenu({
       {isOpen && (
         <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
           <button
-            onClick={() => { onView(); onClose(); }}
+            onClick={(e) => { e.stopPropagation(); onView(); onClose(); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
           >
             <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            View Details
+            {t('customers.viewDetails')}
           </button>
           <button
-            onClick={() => { onPricing(); onClose(); }}
+            onClick={(e) => { e.stopPropagation(); onPricing(); onClose(); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
           >
             <Euro className="w-4 h-4 text-green-600 dark:text-green-400" />
-            Custom Pricing
+            {t('customers.customPricing')}
           </button>
           {canEdit && (
             <button
-              onClick={() => { onEdit(); onClose(); }}
+              onClick={(e) => { e.stopPropagation(); onEdit(); onClose(); }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               <Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              Edit Customer
+              {t('customers.editCustomer')}
             </button>
           )}
           {canDelete && (
             <>
               <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
               <button
-                onClick={() => { onDelete(); onClose(); }}
+                onClick={(e) => { e.stopPropagation(); onDelete(); onClose(); }}
                 disabled={deleting}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors disabled:opacity-50"
               >
@@ -490,7 +487,7 @@ function CustomerActionMenu({
                 ) : (
                   <Trash2 className="w-4 h-4" />
                 )}
-                Delete Customer
+                {t('customers.deleteCustomer')}
               </button>
             </>
           )}

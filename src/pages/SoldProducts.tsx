@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Package,
   Loader2,
@@ -17,10 +18,11 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useSoldProducts, type DateRangeKey } from '../hooks/useSoldProducts'
 import { getStockStatus, getSuggestedRefill, type SoldProductItem } from '../services/soldProducts'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatQuantityWithUnit } from '../utils/format'
 import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
 
 export default function SoldProducts() {
+  const { t } = useTranslation()
   const { isOwner } = useAuth()
   const {
     loading,
@@ -39,19 +41,14 @@ export default function SoldProducts() {
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
 
-  // Format quantity with unit
-  const formatQuantity = (qty: number, unit: string) => {
-    if (unit === 'kg') {
-      return `${qty.toFixed(1)} kg`
-    }
-    return `${Math.round(qty)} ${unit === 'piece' ? (qty === 1 ? 'stuk' : 'stuks') : (qty === 1 ? 'pak' : 'pakken')}`
-  }
+  // Helper to format quantity with translation support
+  const formatQty = (qty: number, unit: string) => formatQuantityWithUnit(qty, unit, t)
 
   // Copy to clipboard
   const handleCopy = () => {
     const lines = items.map(item => {
       const stockText = item.track_stock ? `Stock: ${item.current_stock}` : ''
-      return `${item.product_name}: ${formatQuantity(item.total_quantity, item.unit_type)} ${stockText}`.trim()
+      return `${item.product_name}: ${formatQty(item.total_quantity, item.unit_type)} ${stockText}`.trim()
     })
 
     const text = `Sold Products (${dateRange.label})\n${'='.repeat(30)}\n${lines.join('\n')}`
@@ -85,13 +82,7 @@ export default function SoldProducts() {
   return (
     <div className="space-y-6">
       {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Products shipped/sold in selected period
-          </p>
-        </div>
-
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Date Range Selector */}
           <div className="relative">
@@ -109,12 +100,12 @@ export default function SoldProducts() {
               }}
               className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
             >
-              <option value="yesterday">Yesterday</option>
-              <option value="today">Today</option>
-              <option value="last7Days">Last 7 days</option>
-              <option value="thisWeek">This week</option>
-              <option value="lastWeek">Last week</option>
-              <option value="custom">Custom...</option>
+              <option value="yesterday">{t('soldProducts.yesterday')}</option>
+              <option value="today">{t('soldProducts.today')}</option>
+              <option value="last7Days">{t('analytics.last7Days')}</option>
+              <option value="thisWeek">{t('soldProducts.thisWeek')}</option>
+              <option value="lastWeek">{t('analytics.last7Days')}</option>
+              <option value="custom">{t('soldProducts.custom')}</option>
             </select>
           </div>
 
@@ -185,7 +176,7 @@ export default function SoldProducts() {
             className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
           >
             <FileText className="w-4 h-4" />
-            Export PDF
+            {t('soldProducts.actions.exportPdf')}
           </button>
         </div>
       </div>
@@ -206,7 +197,7 @@ export default function SoldProducts() {
                 <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Products</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.products')}</p>
                 <p className="text-xl font-bold text-slate-900 dark:text-white">{summary.totalProducts}</p>
               </div>
             </div>
@@ -218,7 +209,7 @@ export default function SoldProducts() {
                 <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Total Qty</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.totalQty')}</p>
                 <p className="text-xl font-bold text-slate-900 dark:text-white">{Math.round(summary.totalQuantity)}</p>
               </div>
             </div>
@@ -232,7 +223,7 @@ export default function SoldProducts() {
                   <DollarSign className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Revenue</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.revenue')}</p>
                   <p className="text-xl font-bold text-slate-900 dark:text-white">{formatPrice(summary.totalRevenue)}</p>
                 </div>
               </div>
@@ -249,7 +240,7 @@ export default function SoldProducts() {
                 )}
               </div>
               <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Low Stock</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.lowStock')}</p>
                 <p className="text-xl font-bold text-slate-900 dark:text-white">{summary.lowStockCount}</p>
               </div>
             </div>
@@ -267,7 +258,7 @@ export default function SoldProducts() {
           <div className="text-center py-12">
             <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-600 dark:text-slate-400">
-              No products sold in this period
+              {t('soldProducts.noData')}
             </p>
           </div>
         ) : (
@@ -278,27 +269,27 @@ export default function SoldProducts() {
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700">
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Product
+                      {t('soldProducts.table.product')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Category
+                      {t('soldProducts.table.category')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Sold
+                      {t('soldProducts.table.qtySold')}
                     </th>
                     {isOwner && (
                       <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                        Revenue
+                        {t('soldProducts.table.revenue')}
                       </th>
                     )}
                     <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Stock
+                      {t('soldProducts.table.currentStock')}
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Status
+                      {t('common.status')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Refill
+                      {t('soldProducts.table.suggestedRefill')}
                     </th>
                   </tr>
                 </thead>
@@ -339,7 +330,7 @@ export default function SoldProducts() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <span className="font-semibold text-slate-900 dark:text-white">
-                            {formatQuantity(item.total_quantity, item.unit_type)}
+                            {formatQty(item.total_quantity, item.unit_type)}
                           </span>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             {item.order_count} order{item.order_count !== 1 ? 's' : ''}
@@ -355,7 +346,7 @@ export default function SoldProducts() {
                         <td className="px-6 py-4 text-right">
                           {item.track_stock ? (
                             <span className="font-medium text-slate-900 dark:text-white">
-                              {formatQuantity(item.current_stock || 0, item.unit_type)}
+                              {formatQty(item.current_stock || 0, item.unit_type)}
                             </span>
                           ) : (
                             <span className="text-slate-400">—</span>
@@ -377,7 +368,7 @@ export default function SoldProducts() {
                         <td className="px-6 py-4 text-right">
                           {refill !== null && refill > 0 ? (
                             <span className="inline-flex items-center px-2 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium">
-                              +{formatQuantity(refill, item.unit_type)}
+                              +{formatQty(refill, item.unit_type)}
                             </span>
                           ) : refill === 0 ? (
                             <span className="text-slate-400">—</span>
@@ -431,7 +422,7 @@ export default function SoldProducts() {
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Sold</p>
                         <p className="font-semibold text-slate-900 dark:text-white">
-                          {formatQuantity(item.total_quantity, item.unit_type)}
+                          {formatQty(item.total_quantity, item.unit_type)}
                         </p>
                       </div>
                       {isOwner && (
@@ -445,13 +436,13 @@ export default function SoldProducts() {
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Stock</p>
                         <p className="font-medium text-slate-900 dark:text-white">
-                          {item.track_stock ? formatQuantity(item.current_stock || 0, item.unit_type) : '—'}
+                          {item.track_stock ? formatQty(item.current_stock || 0, item.unit_type) : '—'}
                         </p>
                       </div>
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Refill</p>
                         <p className="font-medium text-blue-600 dark:text-blue-400">
-                          {refill !== null && refill > 0 ? `+${formatQuantity(refill, item.unit_type)}` : '—'}
+                          {refill !== null && refill > 0 ? `+${formatQty(refill, item.unit_type)}` : '—'}
                         </p>
                       </div>
                     </div>

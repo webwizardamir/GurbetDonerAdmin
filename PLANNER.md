@@ -799,6 +799,46 @@ CREATE TABLE reminders (
 
 ---
 
+### Multi-Language Support (i18n) ✅ COMPLETED
+
+**Features:**
+- [x] Dutch (NL) as default language
+- [x] English (EN) as secondary language
+- [x] Language selector in header (globe icon with flag indicators)
+- [x] Language preference stored in localStorage
+- [x] All UI components translated (pages, modals, forms, buttons)
+- [x] **PDF documents always remain in Dutch** (legal compliance)
+
+**Translation Files:**
+- `src/i18n/locales/nl.json` - Dutch translations (primary)
+- `src/i18n/locales/en.json` - English translations (secondary)
+- `src/i18n/index.ts` - i18n configuration
+
+**Translated Components:**
+- All pages (Dashboard, Customers, Products, Orders, etc.)
+- All forms (CustomerForm, ProductForm, OrderForm, etc.)
+- All modals (OrderDetail, PaymentMethodModal, etc.)
+- Navigation (Sidebar, Header)
+- Status badges and action buttons
+- Validation messages and error messages
+
+**Usage in Components:**
+```typescript
+import { useTranslation } from 'react-i18next'
+
+function MyComponent() {
+  const { t } = useTranslation()
+  return <h1>{t('page.title')}</h1>
+}
+```
+
+**Important Notes:**
+- PDF templates (invoices, proforma, etc.) are NOT translated - they always use Dutch text for legal compliance
+- When adding new features, always add translations to BOTH nl.json (first) and en.json (second)
+- Use nested keys: `section.subsection.key` (e.g., `orders.status.completed`)
+
+---
+
 ## Phase 9: Migration Tools
 
 **Features:**
@@ -947,3 +987,29 @@ CREATE TABLE reminders (
   - Added `overflow-x-hidden` and `min-w-0` to Layout.tsx containers
   - Replaced action icon rows with three-dot dropdown menus
   - Added `truncate` and `min-w-0` to text containers
+
+---
+
+## Recent Enhancements
+
+### Decimal Quantities Support ✅
+- **Feature**: All product types now support decimal quantities (not just kg)
+- **Use Cases**: 1.5 packages, 0.75 kg, 2.25 pieces
+- **Database Changes**:
+  - `products.stock_quantity`: Changed from INTEGER to DECIMAL(10,3)
+  - `order_items.quantity`: Changed from INTEGER to DECIMAL(10,3)
+- **Smart Formatting** (`src/utils/format.ts`):
+  - `formatQuantity()`: Trims trailing zeros, max 3 decimals
+  - `formatQuantityWithUnit()`: Adds translated unit labels (singular/plural)
+  - Examples: "5" (not "5.000"), "1.5 kg", "2 stuks", "1 pak"
+- **Updated Components**: OrderForm, ProductForm, SoldProducts, Analytics, OrderDetail, TopProductsChart
+
+### Desktop Layout Optimization ✅
+- **Feature**: Combined search bar and filters into single row on desktop
+- **Pages Updated**: Orders, Customers, Products
+- **Layout**:
+  - Search bar: Fixed width (sm:w-64 lg:w-80) instead of full width
+  - Filters: Inline next to search on desktop
+  - Action buttons: Export, Import, Categories inline
+  - Green main button: Pushed to far right via flex spacer
+- **Mobile**: Still stacks vertically for touch-friendly interaction

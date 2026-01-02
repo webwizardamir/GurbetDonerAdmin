@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   X,
   Loader2,
@@ -37,6 +38,7 @@ function formatPrice(cents: number): string {
 }
 
 export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
+  const { t } = useTranslation()
   const { customers, loading: customersLoading } = useCustomers()
   const { products, loading: productsLoading } = useProducts()
   const { create } = useOrders()
@@ -120,7 +122,8 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
   const updateQuantity = (productId: string, delta: number) => {
     setItems(items.map(i => {
       if (i.product.id !== productId) return i
-      const newQty = Math.max(0, i.quantity + delta)
+      // Round to 3 decimal places to avoid floating point issues
+      const newQty = Math.round(Math.max(0, i.quantity + delta) * 1000) / 1000
       return { ...i, quantity: newQty }
     }).filter(i => i.quantity > 0))
   }
@@ -131,8 +134,10 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
       removeItem(productId)
       return
     }
+    // Round to 3 decimal places
+    const roundedQty = Math.round(quantity * 1000) / 1000
     setItems(items.map(i =>
-      i.product.id === productId ? { ...i, quantity } : i
+      i.product.id === productId ? { ...i, quantity: roundedQty } : i
     ))
   }
 
@@ -176,11 +181,11 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
   // Submit order
   const handleSubmit = async () => {
     if (!selectedCustomer) {
-      setError('Please select a customer')
+      setError(t('orders.form.selectCustomerError'))
       return
     }
     if (items.length === 0) {
-      setError('Please add at least one product')
+      setError(t('orders.form.addProductError'))
       return
     }
 
@@ -207,7 +212,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
       )
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create order')
+      setError(err instanceof Error ? err.message : t('orders.form.createError'))
     } finally {
       setSaving(false)
     }
@@ -225,7 +230,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
               <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              New Order
+              {t('orders.newOrder')}
             </h2>
           </div>
           <button
@@ -250,7 +255,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
               {/* Customer Selection */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Customer <span className="text-red-500">*</span>
+                  {t('orders.customer')} <span className="text-red-500">*</span>
                 </label>
                 {selectedCustomer ? (
                   <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
@@ -282,8 +287,8 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                         type="text"
                         value={customerSearch}
                         onChange={e => setCustomerSearch(e.target.value)}
-                        placeholder="Search customers..."
-                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder={t('orders.form.searchCustomers')}
+                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                       />
                     </div>
                     <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-lg">
@@ -293,7 +298,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                         </div>
                       ) : filteredCustomers.length === 0 ? (
                         <p className="p-4 text-sm text-slate-500 dark:text-slate-400 text-center">
-                          No customers found
+                          {t('orders.form.noCustomersFound')}
                         </p>
                       ) : (
                         filteredCustomers.slice(0, 10).map(customer => (
@@ -324,20 +329,20 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
               {/* Order Date */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Order Date
+                  {t('orders.orderDate')}
                 </label>
                 <input
                   type="date"
                   value={orderDate}
                   onChange={e => setOrderDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
 
               {/* Product Search */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Add Products
+                  {t('orders.form.addProducts')}
                 </label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -345,7 +350,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                     type="text"
                     value={productSearch}
                     onChange={e => setProductSearch(e.target.value)}
-                    placeholder="Search by name, SKU, or barcode..."
+                    placeholder={t('orders.form.searchProducts')}
                     className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
@@ -357,7 +362,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                       </div>
                     ) : filteredProducts.length === 0 ? (
                       <p className="p-4 text-sm text-slate-500 dark:text-slate-400 text-center">
-                        No products found
+                        {t('orders.form.noProductsFound')}
                       </p>
                     ) : (
                       filteredProducts.slice(0, 10).map(product => (
@@ -399,13 +404,13 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
               {/* Order Items */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Order Items ({items.length})
+                  {t('orders.orderItems')} ({items.length})
                 </label>
                 {items.length === 0 ? (
                   <div className="p-8 text-center border border-dashed border-slate-300 dark:border-slate-600 rounded-xl">
                     <Package className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Search and add products
+                      {t('orders.form.searchAndAdd')}
                     </p>
                   </div>
                 ) : (
@@ -427,26 +432,29 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                           <button
                             onClick={() => updateQuantity(item.product.id, -1)}
                             className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                            title="-1"
                           >
                             <Minus className="w-4 h-4" />
                           </button>
                           <input
                             type="number"
-                            min="1"
+                            min="0.001"
+                            step="any"
                             value={item.quantity}
                             onChange={e => {
-                              const val = parseInt(e.target.value) || 0
+                              const val = parseFloat(e.target.value) || 0
                               if (val > 0) setQuantity(item.product.id, val)
                             }}
                             onBlur={e => {
-                              const val = parseInt(e.target.value) || 0
+                              const val = parseFloat(e.target.value) || 0
                               if (val <= 0) removeItem(item.product.id)
                             }}
-                            className="w-14 text-center font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-green-500"
+                            className="w-16 text-center font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-green-500"
                           />
                           <button
                             onClick={() => updateQuantity(item.product.id, 1)}
                             className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                            title="+1"
                           >
                             <Plus className="w-4 h-4" />
                           </button>
@@ -467,15 +475,15 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
               {items.length > 0 && (
                 <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
+                    <span className="text-slate-600 dark:text-slate-400">{t('orders.subtotal')}</span>
                     <span className="text-slate-900 dark:text-white">{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600 dark:text-slate-400">Tax (BTW)</span>
+                    <span className="text-slate-600 dark:text-slate-400">{t('orders.tax')}</span>
                     <span className="text-slate-900 dark:text-white">{formatPrice(taxTotal)}</span>
                   </div>
                   <div className="flex justify-between text-lg font-semibold pt-2 border-t border-slate-200 dark:border-slate-600">
-                    <span className="text-slate-900 dark:text-white">Total</span>
+                    <span className="text-slate-900 dark:text-white">{t('orders.total')}</span>
                     <span className="text-green-600 dark:text-green-400">{formatPrice(total)}</span>
                   </div>
                 </div>
@@ -485,26 +493,26 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Delivery Notes
+                    {t('orders.form.deliveryNotes')}
                   </label>
                   <textarea
                     value={deliveryNotes}
                     onChange={e => setDeliveryNotes(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                    placeholder="Delivery instructions..."
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                    placeholder={t('orders.form.deliveryPlaceholder')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Internal Notes
+                    {t('orders.form.internalNotes')}
                   </label>
                   <textarea
                     value={internalNotes}
                     onChange={e => setInternalNotes(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                    placeholder="Internal notes..."
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                    placeholder={t('orders.form.internalPlaceholder')}
                   />
                 </div>
               </div>
@@ -518,7 +526,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
             onClick={onClose}
             className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSubmit}
@@ -528,12 +536,12 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
             {saving ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Creating...
+                {t('orders.form.creating')}
               </>
             ) : (
               <>
                 <ShoppingCart className="w-5 h-5" />
-                Create Order
+                {t('orders.newOrder')}
               </>
             )}
           </button>
