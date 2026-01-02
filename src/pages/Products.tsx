@@ -224,7 +224,8 @@ export default function Products() {
         <>
           {/* Desktop Table */}
           <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px]">
               <thead className="bg-slate-50 dark:bg-slate-700/50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -373,6 +374,7 @@ export default function Products() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Mobile Cards */}

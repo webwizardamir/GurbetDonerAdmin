@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute, OwnerRoute, PublicRoute } from './components/auth'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import Layout from './components/layout/Layout'
 import ReminderAlert from './components/ReminderAlert'
 
@@ -24,10 +25,11 @@ import TestConnection from './pages/TestConnection'
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ReminderAlert />
-        <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <ReminderAlert />
+          <Routes>
           {/* Public Routes */}
           <Route
             path="/login"
@@ -117,9 +119,10 @@ function App() {
 
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 
