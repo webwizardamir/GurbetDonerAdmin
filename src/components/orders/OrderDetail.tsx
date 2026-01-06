@@ -66,11 +66,16 @@ function formatUnitDutch(unitType: string, quantity: number, t?: (key: string) =
         return quantity === 1 ? t('products.units.pieceSingular') : t('products.units.piecePlural')
       }
       return quantity === 1 ? 'stuk' : 'stuks'
-    case 'package':
+    case 'zak':
       if (t) {
-        return quantity === 1 ? t('products.units.packageSingular') : t('products.units.packagePlural')
+        return quantity === 1 ? t('products.units.zakSingular') : t('products.units.zakPlural')
       }
-      return quantity === 1 ? 'pak' : 'pakken'
+      return quantity === 1 ? 'zak' : 'zakken'
+    case 'doos':
+      if (t) {
+        return quantity === 1 ? t('products.units.doosSingular') : t('products.units.doosPlural')
+      }
+      return quantity === 1 ? 'doos' : 'dozen'
     default:
       if (t) {
         return quantity === 1 ? t('products.units.pieceSingular') : t('products.units.piecePlural')

@@ -44,8 +44,10 @@ export default function TopProductsChart({ data, loading }: TopProductsChartProp
         return 'kg'
       case 'piece':
         return quantity === 1 ? t('products.units.pieceSingular') : t('products.units.piecePlural')
-      case 'package':
-        return quantity === 1 ? t('products.units.packageSingular') : t('products.units.packagePlural')
+      case 'zak':
+        return quantity === 1 ? t('products.units.zakSingular') : t('products.units.zakPlural')
+      case 'doos':
+        return quantity === 1 ? t('products.units.doosSingular') : t('products.units.doosPlural')
       default:
         return quantity === 1 ? t('products.units.pieceSingular') : t('products.units.piecePlural')
     }

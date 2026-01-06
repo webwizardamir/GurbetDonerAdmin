@@ -225,12 +225,21 @@ function formatDate(dateString: string): string {
   })
 }
 
-// Format quantity with unit
+// Format quantity with unit (Dutch for PDFs)
 function formatQuantity(qty: number, unit: string): string {
   if (unit === 'kg') {
     return `${qty.toFixed(1)} kg`
   }
-  return `${Math.round(qty)} ${unit === 'piece' ? (qty === 1 ? 'stuk' : 'stuks') : (qty === 1 ? 'pak' : 'pakken')}`
+  if (unit === 'piece') {
+    return `${Math.round(qty)} ${qty === 1 ? 'stuk' : 'stuks'}`
+  }
+  if (unit === 'zak') {
+    return `${Math.round(qty)} ${qty === 1 ? 'zak' : 'zakken'}`
+  }
+  if (unit === 'doos') {
+    return `${Math.round(qty)} ${qty === 1 ? 'doos' : 'dozen'}`
+  }
+  return `${Math.round(qty)} ${unit}`
 }
 
 interface DateRange {

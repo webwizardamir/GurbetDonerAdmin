@@ -126,7 +126,7 @@ export interface Customer {
 // PRODUCT TYPES
 // =====================================================
 
-export type UnitType = 'kg' | 'piece' | 'package'
+export type UnitType = 'kg' | 'piece' | 'zak' | 'doos'
 
 export interface Category {
   id: string

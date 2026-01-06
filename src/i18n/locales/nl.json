@@ -219,11 +219,14 @@
     "units": {
       "kg": "Per kg",
       "piece": "Stuk",
-      "package": "Pak",
+      "zak": "Zak",
+      "doos": "Doos",
       "pieceSingular": "stuk",
       "piecePlural": "stuks",
-      "packageSingular": "pak",
-      "packagePlural": "pakken"
+      "zakSingular": "zak",
+      "zakPlural": "zakken",
+      "doosSingular": "doos",
+      "doosPlural": "dozen"
     },
     "stockStatus": {
       "inStock": "Op voorraad",
@@ -247,7 +250,8 @@
       "updateProduct": "Product bijwerken",
       "createProduct": "Product aanmaken",
       "unitTypes": {
-        "package": "Pak / Doos",
+        "zak": "Zak",
+        "doos": "Doos",
         "piece": "Stuk",
         "kg": "Kilogram (kg)"
       },

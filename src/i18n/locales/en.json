@@ -219,11 +219,14 @@
     "units": {
       "kg": "Per kg",
       "piece": "Piece",
-      "package": "Package",
+      "zak": "Bag",
+      "doos": "Box",
       "pieceSingular": "piece",
       "piecePlural": "pieces",
-      "packageSingular": "package",
-      "packagePlural": "packages"
+      "zakSingular": "bag",
+      "zakPlural": "bags",
+      "doosSingular": "box",
+      "doosPlural": "boxes"
     },
     "stockStatus": {
       "inStock": "In Stock",
@@ -247,7 +250,8 @@
       "updateProduct": "Update Product",
       "createProduct": "Create Product",
       "unitTypes": {
-        "package": "Package / Box",
+        "zak": "Bag",
+        "doos": "Box",
         "piece": "Piece",
         "kg": "Kilogram (kg)"
       },

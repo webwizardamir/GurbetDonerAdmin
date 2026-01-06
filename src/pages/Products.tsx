@@ -31,8 +31,10 @@ function formatPrice(cents: number): string {
 // Format unit type for display
 function formatUnitType(unitType: string, t: (key: string) => string): string {
   switch (unitType) {
-    case 'package':
-      return t('products.units.package')
+    case 'zak':
+      return t('products.units.zak')
+    case 'doos':
+      return t('products.units.doos')
     case 'piece':
       return t('products.units.piece')
     case 'kg':

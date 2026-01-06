@@ -32,7 +32,8 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
   const isOwner = profile?.role === 'owner'
 
   const UNIT_TYPE_OPTIONS: { value: UnitType; label: string }[] = [
-    { value: 'package', label: t('products.form.unitTypes.package') },
+    { value: 'zak', label: t('products.form.unitTypes.zak') },
+    { value: 'doos', label: t('products.form.unitTypes.doos') },
     { value: 'piece', label: t('products.form.unitTypes.piece') },
     { value: 'kg', label: t('products.form.unitTypes.kg') },
   ]
@@ -51,7 +52,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
   const [sku, setSku] = useState('')
   const [barcode, setBarcode] = useState('')
   const [categoryId, setCategoryId] = useState('')
-  const [unitType, setUnitType] = useState<UnitType>('package')
+  const [unitType, setUnitType] = useState<UnitType>('doos')
   const [priceEuros, setPriceEuros] = useState('') // Display in euros
   const [costEuros, setCostEuros] = useState('') // Cost in euros (Owner only)
   const [taxRate, setTaxRate] = useState(9)

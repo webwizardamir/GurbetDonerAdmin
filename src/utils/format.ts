@@ -57,7 +57,7 @@ export function formatQuantity(qty: number): string {
 /**
  * Format quantity with unit type for display
  * @param qty - The quantity
- * @param unitType - 'kg', 'piece', or 'package'
+ * @param unitType - 'kg', 'piece', 'zak', or 'doos'
  * @param t - Translation function (optional, for translated unit labels)
  */
 export function formatQuantityWithUnit(
@@ -71,17 +71,22 @@ export function formatQuantityWithUnit(
     return `${formattedQty} kg`
   }
 
-  // For pieces and packages, use singular/plural forms
+  // For pieces, zak, and doos, use singular/plural forms
   if (t) {
     if (unitType === 'piece') {
       return qty === 1
         ? `${formattedQty} ${t('products.units.pieceSingular')}`
         : `${formattedQty} ${t('products.units.piecePlural')}`
     }
-    if (unitType === 'package') {
+    if (unitType === 'zak') {
       return qty === 1
-        ? `${formattedQty} ${t('products.units.packageSingular')}`
-        : `${formattedQty} ${t('products.units.packagePlural')}`
+        ? `${formattedQty} ${t('products.units.zakSingular')}`
+        : `${formattedQty} ${t('products.units.zakPlural')}`
+    }
+    if (unitType === 'doos') {
+      return qty === 1
+        ? `${formattedQty} ${t('products.units.doosSingular')}`
+        : `${formattedQty} ${t('products.units.doosPlural')}`
     }
   }
 
@@ -89,8 +94,11 @@ export function formatQuantityWithUnit(
   if (unitType === 'piece') {
     return qty === 1 ? `${formattedQty} stuk` : `${formattedQty} stuks`
   }
-  if (unitType === 'package') {
-    return qty === 1 ? `${formattedQty} pak` : `${formattedQty} pakken`
+  if (unitType === 'zak') {
+    return qty === 1 ? `${formattedQty} zak` : `${formattedQty} zakken`
+  }
+  if (unitType === 'doos') {
+    return qty === 1 ? `${formattedQty} doos` : `${formattedQty} dozen`
   }
 
   return `${formattedQty} ${unitType}`
