@@ -1,11 +1,12 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext'
 import { ProtectedRoute, OwnerRoute, PublicRoute } from './components/auth'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import Layout from './components/layout/Layout'
 import ReminderAlert from './components/ReminderAlert'
 
-// Pages
+// Admin Pages
 import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
@@ -23,103 +24,190 @@ import Analytics from './pages/Analytics'
 import SoldProducts from './pages/SoldProducts'
 import TestConnection from './pages/TestConnection'
 
+// Portal Pages
+import PortalLogin from './portal/PortalLogin'
+import PortalLayout from './portal/PortalLayout'
+import PortalHome from './portal/PortalHome'
+import PortalOrders from './portal/PortalOrders'
+import PortalOrderDetail from './portal/PortalOrderDetail'
+import PortalDocuments from './portal/PortalDocuments'
+import PortalAccount from './portal/PortalAccount'
+
+// Portal Protected Route
+function PortalProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = usePortalAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/portal/login" replace />
+  }
+
+  return <>{children}</>
+}
+
+// Portal Public Route (redirect to portal home if logged in)
+function PortalPublicRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = usePortalAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (user) {
+    return <Navigate to="/portal" replace />
+  }
+
+  return <>{children}</>
+}
+
+// Wrapper component for portal routes with its own auth provider
+function PortalRoutes() {
+  return (
+    <PortalAuthProvider>
+      <Routes>
+        <Route
+          path="login"
+          element={
+            <PortalPublicRoute>
+              <PortalLogin />
+            </PortalPublicRoute>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <PortalProtectedRoute>
+              <PortalLayout />
+            </PortalProtectedRoute>
+          }
+        >
+          <Route index element={<PortalHome />} />
+          <Route path="orders" element={<PortalOrders />} />
+          <Route path="orders/:id" element={<PortalOrderDetail />} />
+          <Route path="documents" element={<PortalDocuments />} />
+          <Route path="account" element={<PortalAccount />} />
+        </Route>
+      </Routes>
+    </PortalAuthProvider>
+  )
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <ReminderAlert />
-          <Routes>
-          {/* Public Routes */}
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/forgot-password"
-            element={
-              <PublicRoute>
-                <ForgotPassword />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/reset-password"
-            element={
-              <ResetPassword />
-            }
-          />
-          <Route path="/unauthorized" element={<Unauthorized />} />
+            <ReminderAlert />
+            <Routes>
+              {/* ======================== */}
+              {/* CUSTOMER PORTAL ROUTES */}
+              {/* ======================== */}
+              <Route path="/portal/*" element={<PortalRoutes />} />
 
-          {/* Protected Routes - wrapped in Layout */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            {/* Dashboard */}
-            <Route index element={<Dashboard />} />
+              {/* ======================== */}
+              {/* ADMIN ROUTES */}
+              {/* ======================== */}
+              {/* Public Routes */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicRoute>
+                    <ForgotPassword />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <ResetPassword />
+                }
+              />
+              <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* Test Connection (temporary) */}
-            <Route path="test-connection" element={<TestConnection />} />
+              {/* Protected Routes - wrapped in Layout */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }
+              >
+                {/* Dashboard */}
+                <Route index element={<Dashboard />} />
 
-            {/* Customers */}
-            <Route path="customers" element={<Customers />} />
-            <Route path="customers/:id" element={<CustomerDetail />} />
+                {/* Test Connection (temporary) */}
+                <Route path="test-connection" element={<TestConnection />} />
 
-            {/* Products */}
-            <Route path="products" element={<Products />} />
-            <Route path="sold-products" element={<SoldProducts />} />
+                {/* Customers */}
+                <Route path="customers" element={<Customers />} />
+                <Route path="customers/:id" element={<CustomerDetail />} />
 
-            {/* Orders */}
-            <Route path="orders" element={<Orders />} />
-            <Route path="invoices" element={<Invoices />} />
-            <Route
-              path="analytics"
-              element={
-                <OwnerRoute>
-                  <Analytics />
-                </OwnerRoute>
-              }
-            />
+                {/* Products */}
+                <Route path="products" element={<Products />} />
+                <Route path="sold-products" element={<SoldProducts />} />
 
-            {/* Settings Routes (Owner Only) */}
-            <Route
-              path="settings/users"
-              element={
-                <OwnerRoute>
-                  <Users />
-                </OwnerRoute>
-              }
-            />
-            <Route
-              path="settings/audit-log"
-              element={
-                <OwnerRoute>
-                  <AuditLog />
-                </OwnerRoute>
-              }
-            />
-            <Route
-              path="settings/documents"
-              element={
-                <OwnerRoute>
-                  <DocumentSettings />
-                </OwnerRoute>
-              }
-            />
-          </Route>
+                {/* Orders */}
+                <Route path="orders" element={<Orders />} />
+                <Route path="invoices" element={<Invoices />} />
+                <Route
+                  path="analytics"
+                  element={
+                    <OwnerRoute>
+                      <Analytics />
+                    </OwnerRoute>
+                  }
+                />
 
-          {/* 404 */}
-          <Route path="*" element={<NotFound />} />
-          </Routes>
+                {/* Settings Routes (Owner Only) */}
+                <Route
+                  path="settings/users"
+                  element={
+                    <OwnerRoute>
+                      <Users />
+                    </OwnerRoute>
+                  }
+                />
+                <Route
+                  path="settings/audit-log"
+                  element={
+                    <OwnerRoute>
+                      <AuditLog />
+                    </OwnerRoute>
+                  }
+                />
+                <Route
+                  path="settings/documents"
+                  element={
+                    <OwnerRoute>
+                      <DocumentSettings />
+                    </OwnerRoute>
+                  }
+                />
+              </Route>
+
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

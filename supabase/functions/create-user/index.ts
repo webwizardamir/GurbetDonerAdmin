@@ -13,7 +13,7 @@ interface CreateUserRequest {
   email: string
   password: string
   fullName: string
-  role: 'owner' | 'shop_manager'
+  role: 'owner' | 'shop_manager' | 'customer'
 }
 
 serve(async (req) => {
@@ -76,9 +76,9 @@ serve(async (req) => {
       )
     }
 
-    if (!['owner', 'shop_manager'].includes(role)) {
+    if (!['owner', 'shop_manager', 'customer'].includes(role)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid role. Must be owner or shop_manager' }),
+        JSON.stringify({ error: 'Invalid role. Must be owner, shop_manager, or customer' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -116,20 +116,22 @@ serve(async (req) => {
       )
     }
 
-    // Create the profile (the trigger should do this, but let's ensure it's correct)
-    const { error: profileInsertError } = await adminClient
-      .from('profiles')
-      .upsert({
-        id: newUser.user.id,
-        email: email,
-        full_name: fullName,
-        role: role,
-        is_active: true,
-      })
+    // Create the profile for admin users (skip for customers - they use customer_accounts)
+    if (role !== 'customer') {
+      const { error: profileInsertError } = await adminClient
+        .from('profiles')
+        .upsert({
+          id: newUser.user.id,
+          email: email,
+          full_name: fullName,
+          role: role,
+          is_active: true,
+        })
 
-    if (profileInsertError) {
-      console.error('Error creating profile:', profileInsertError)
-      // Don't fail - the trigger might have created it
+      if (profileInsertError) {
+        console.error('Error creating profile:', profileInsertError)
+        // Don't fail - the trigger might have created it
+      }
     }
 
     return new Response(

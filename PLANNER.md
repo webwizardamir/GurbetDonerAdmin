@@ -863,14 +863,48 @@ function MyComponent() {
 
 ---
 
-## Phase 10: Customer Portal (Phase 2)
+## Phase 10: Customer Portal ✅ COMPLETED
+
+**Database Schema:**
+```sql
+CREATE TABLE customer_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  is_active BOOLEAN DEFAULT true,
+  last_login_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(customer_id),
+  UNIQUE(user_id)
+);
+```
 
 **Features:**
-- [ ] Customer login
-- [ ] View order history
-- [ ] View order status
-- [ ] Download invoices/proformas
-- [ ] Reorder from previous orders
+- [x] Customer portal login (/portal/login)
+- [x] Separate auth session from admin (different storage key)
+- [x] Portal home with stats (total orders, pending, completed, total spent)
+- [x] View order history with search and status filters
+- [x] Order detail view with items and totals
+- [x] Download documents (invoices, proforma, etc.) per order
+- [x] Account page with company info and addresses
+- [x] Password change functionality
+- [x] Forgot password flow
+- [x] Portal access management (admin side):
+  - [x] Enable/disable portal access per customer
+  - [x] Create portal user with email and password
+  - [x] Random password generator
+  - [x] Show/hide password toggle
+  - [x] Copy credentials (link, email, password, or all)
+  - [x] Send via email button (opens email client with pre-filled message)
+  - [x] Last login tracking
+- [ ] Reorder from previous orders (future enhancement)
+
+**Components:**
+- `src/pages/portal/` - Portal pages (Login, Home, Orders, OrderDetail, Documents, Account)
+- `src/services/portalAuth.ts` - Portal authentication service
+- `src/services/portalOrders.ts` - Portal orders/documents service
+- `src/components/customers/PortalAccessModal.tsx` - Admin portal management modal
+- `supabase/functions/create-user/` - Edge Function (supports 'customer' role)
 
 ---
 
@@ -940,7 +974,7 @@ function MyComponent() {
 - [x] **Phase 7: Analytics** ✅ COMPLETED
 - [x] **Phase 8: Exports** ✅ COMPLETED
 - [ ] Phase 9: Migration ⏳ (after full testing - large data import)
-- [ ] Phase 10: Customer Portal 🔽 LOW PRIORITY (may not implement)
+- [x] **Phase 10: Customer Portal** ✅ COMPLETED
 
 ---
 
@@ -954,12 +988,18 @@ function MyComponent() {
    - [x] Reminder system with notifications
    - [x] User management from app (Edge Function)
    - [x] Custom scrollbar styling
-3. Phase 9: WooCommerce migration - **after all features tested and stable**
+3. ~~Phase 10: Customer Portal~~ ✅ DONE
+   - [x] Customer login and session management
+   - [x] Order history and document download
+   - [x] Portal access management from admin
+   - [x] Email credentials to customers
+4. Phase 9: WooCommerce migration - **after all features tested and stable**
    - Large data import (~6000 orders) requires stable system first
    - Need thorough testing of all features before migration
-4. Future optimizations (after web app complete):
+5. Future optimizations (after web app complete):
    - Code-splitting for PDF/Recharts (lazy loading for faster initial load)
    - Mobile barcode scanning for order creation
+   - Reorder from previous orders in customer portal
 
 ---
 
@@ -987,6 +1027,19 @@ function MyComponent() {
   - Added `overflow-x-hidden` and `min-w-0` to Layout.tsx containers
   - Replaced action icon rows with three-dot dropdown menus
   - Added `truncate` and `min-w-0` to text containers
+
+### Audit Log Empty (Fixed)
+- **Issue**: Audit log page showed no entries even after creating/updating data
+- **Cause**: Migration 00010 checked for `audit_log_changes` function, but actual function was named `log_audit_event`. Triggers were never attached to tables.
+- **Fix**: Created migration 00028 that:
+  - Creates the `log_audit_event()` function if not exists
+  - Creates `audit_logs` table with proper RLS policies
+  - Attaches audit triggers to all tables (profiles, customers, products, orders, order_items, customer_prices, documents, reminders, customer_accounts, categories)
+
+### Dropdown Overflow on Customers Page (Fixed)
+- **Issue**: Three-dot action menu went below container when only one search result, causing scroll
+- **Cause**: Dropdown with `absolute` positioning was constrained by parent's `overflow-x-auto`
+- **Fix**: Implemented React Portal to render dropdown at `document.body` level with `position: fixed` and viewport boundary calculations
 
 ---
 

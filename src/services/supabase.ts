@@ -8,8 +8,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables. Please check your .env file.')
 }
 
-// Create client with placeholder values if missing - will fail gracefully when used
+// Admin client - uses default storage key
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-key'
+)
+
+// Portal client - uses separate storage key to avoid session conflicts
+export const portalSupabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key',
+  {
+    auth: {
+      storageKey: 'sb-portal-auth-token', // Different key than admin
+      autoRefreshToken: true,
+      persistSession: true,
+    }
+  }
 )

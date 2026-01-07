@@ -238,10 +238,24 @@ src/
 - Touch-friendly UI elements and spacing
 - **Desktop optimization**: Combined search + filters in single row (Orders, Customers, Products)
 
-### Planned (Phases 3, 9-10)
+**Phase 10: Customer Portal**
+- Customer login at `/portal/login` (separate session from admin)
+- Portal home with stats (total orders, pending, completed, total spent)
+- Order history with search and status filters
+- Order detail view with items and totals
+- Document download (invoices, proforma, etc.)
+- Account page with company info
+- Password change and forgot password flows
+- Portal access management (admin side):
+  - Enable/disable portal per customer
+  - Create portal user with email/password
+  - Random password generator with show/hide
+  - Copy credentials (link, email, password)
+  - Send via email button (opens email client)
+
+### Planned (Phases 3, 9)
 - **Phase 3**: Inventory & Batch/Expiry tracking (FIFO/FEFO) - postponed
 - **Phase 9**: WooCommerce migration tools
-- **Phase 10**: Customer portal
 
 ### Role Permissions
 | Feature | Owner | Shop Manager |

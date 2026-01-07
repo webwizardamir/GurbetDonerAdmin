@@ -18,9 +18,14 @@ import {
   User,
   Search,
   Calendar,
+  Globe,
+  Pencil,
 } from 'lucide-react'
 import { useCustomerDetail } from '../hooks/useCustomerDetail'
 import CustomerOrderRow from '../components/customers/CustomerOrderRow'
+import CustomerForm from '../components/customers/CustomerForm'
+import PortalAccessModal from '../components/customers/PortalAccessModal'
+import { updateCustomer } from '../services/customers'
 import { formatPrice } from '../utils/format'
 
 type TabType = 'orders' | 'details'
@@ -42,6 +47,15 @@ export default function CustomerDetail() {
   const [activeTab, setActiveTab] = useState<TabType>('orders')
   const [searchQuery, setSearchQuery] = useState('')
   const [dateRange, setDateRange] = useState<DateRangeKey>('all')
+  const [showPortalModal, setShowPortalModal] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+
+  const handleEditSubmit = async (data: any) => {
+    if (!customer) return
+    await updateCustomer(customer.id, data)
+    setShowEditForm(false)
+    refresh()
+  }
 
   // Filter orders based on search and date range
   const filteredOrders = useMemo(() => {
@@ -122,7 +136,44 @@ export default function CustomerDetail() {
             </div>
           </div>
         </div>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Edit Button */}
+          <button
+            onClick={() => setShowEditForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+            <span className="hidden sm:inline">{t('common.edit')}</span>
+          </button>
+          {/* Portal Access Button */}
+          <button
+            onClick={() => setShowPortalModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-400 rounded-xl transition-colors"
+          >
+            <Globe className="w-4 h-4" />
+            <span className="hidden sm:inline">{t('portal.access.title')}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Portal Access Modal */}
+      {showPortalModal && customer && (
+        <PortalAccessModal
+          customer={customer}
+          onClose={() => setShowPortalModal(false)}
+          onUpdate={refresh}
+        />
+      )}
+
+      {/* Edit Customer Modal */}
+      {showEditForm && customer && (
+        <CustomerForm
+          customer={customer}
+          onSubmit={handleEditSubmit}
+          onClose={() => setShowEditForm(false)}
+        />
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
