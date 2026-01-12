@@ -561,6 +561,27 @@
     "nl": "Nederlands",
     "en": "English"
   },
+  "scanner": {
+    "title": "Barcode scannen",
+    "scanBarcode": "Scan barcode",
+    "scanning": "Scannen...",
+    "starting": "Camera starten...",
+    "searching": "Product zoeken...",
+    "permissionDenied": "Camera toegang geweigerd. Sta camera toe in browserinstellingen.",
+    "productNotFound": "Product niet gevonden voor barcode: {{barcode}}",
+    "productAdded": "{{product}} toegevoegd",
+    "quantityIncreased": "Aantal verhoogd naar {{quantity}}",
+    "manualInput": "Handmatig invoeren",
+    "useCamera": "Camera gebruiken",
+    "enterBarcode": "Voer barcode in",
+    "submit": "Zoeken",
+    "scanMode": "Scanmodus",
+    "singleScan": "Enkel",
+    "continuousScan": "Doorlopend",
+    "switchCamera": "Camera wisselen",
+    "cameraNotSupported": "Camera niet ondersteund in deze browser",
+    "tryManualInput": "Gebruik handmatige invoer hieronder."
+  },
   "portal": {
     "title": "Klantenportaal",
     "signOut": "Uitloggen",

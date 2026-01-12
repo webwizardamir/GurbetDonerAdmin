@@ -13,6 +13,7 @@
     "@react-pdf/renderer": "^4.3.2",
     "@supabase/supabase-js": "^2.86.2",
     "buffer": "^6.0.3",
+    "html5-qrcode": "^2.3.8",
     "i18next": "^25.7.3",
     "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^0.556.0",

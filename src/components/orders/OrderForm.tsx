@@ -10,11 +10,13 @@ import {
   Trash2,
   Building2,
   Package,
+  ScanBarcode,
 } from 'lucide-react'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
 import { useOrders } from '../../hooks/useOrders'
 import { getEffectivePrice } from '../../services/pricing'
+import BarcodeScanner from './BarcodeScanner'
 import type { Customer, Product } from '../../types'
 
 interface OrderFormProps {
@@ -55,6 +57,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loadingPrices, setLoadingPrices] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
 
   // Filter customers by search
   const filteredCustomers = customers.filter(c => {
@@ -344,15 +347,26 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   {t('orders.form.addProducts')}
                 </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={productSearch}
-                    onChange={e => setProductSearch(e.target.value)}
-                    placeholder={t('orders.form.searchProducts')}
-                    className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={productSearch}
+                      onChange={e => setProductSearch(e.target.value)}
+                      placeholder={t('orders.form.searchProducts')}
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowScanner(true)}
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                    title={t('scanner.scanBarcode')}
+                  >
+                    <ScanBarcode className="w-5 h-5" />
+                    <span className="hidden sm:inline">{t('scanner.scanBarcode')}</span>
+                  </button>
                 </div>
                 {productSearch && (
                   <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-lg">
@@ -547,6 +561,15 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
           </button>
         </div>
       </div>
+
+      {/* Barcode Scanner Modal */}
+      <BarcodeScanner
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onProductFound={(product) => {
+          addProduct(product)
+        }}
+      />
     </div>
   )
 }

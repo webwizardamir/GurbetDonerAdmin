@@ -561,6 +561,27 @@
     "nl": "Nederlands",
     "en": "English"
   },
+  "scanner": {
+    "title": "Scan Barcode",
+    "scanBarcode": "Scan barcode",
+    "scanning": "Scanning...",
+    "starting": "Starting camera...",
+    "searching": "Searching product...",
+    "permissionDenied": "Camera access denied. Allow camera in browser settings.",
+    "productNotFound": "Product not found for barcode: {{barcode}}",
+    "productAdded": "{{product}} added",
+    "quantityIncreased": "Quantity increased to {{quantity}}",
+    "manualInput": "Enter manually",
+    "useCamera": "Use camera",
+    "enterBarcode": "Enter barcode",
+    "submit": "Search",
+    "scanMode": "Scan Mode",
+    "singleScan": "Single",
+    "continuousScan": "Continuous",
+    "switchCamera": "Switch Camera",
+    "cameraNotSupported": "Camera not supported in this browser",
+    "tryManualInput": "Use manual input below."
+  },
   "portal": {
     "title": "Customer Portal",
     "signOut": "Sign Out",
