@@ -140,3 +140,20 @@ export async function getCustomerCities(): Promise<string[]> {
   const cities = [...new Set(data?.map(c => c.billing_city).filter(Boolean))]
   return cities as string[]
 }
+
+// Check if email is already used by another customer
+export async function checkEmailExists(email: string, excludeCustomerId?: string): Promise<boolean> {
+  if (!email || email.trim() === '') return false
+
+  let query = supabase
+    .from('customers')
+    .select('id')
+    .ilike('email', email.trim())
+
+  if (excludeCustomerId) {
+    query = query.neq('id', excludeCustomerId)
+  }
+
+  const { data } = await query.limit(1)
+  return (data?.length || 0) > 0
+}

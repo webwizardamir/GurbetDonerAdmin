@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Loader2, Building2, User, Mail, Phone, MapPin, FileText, CreditCard } from 'lucide-react'
 import { Customer } from '../../types'
-import { CustomerFormData } from '../../services/customers'
+import { CustomerFormData, checkEmailExists } from '../../services/customers'
 
 interface CustomerFormProps {
   customer?: Customer | null
@@ -53,6 +53,15 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
     if (!formData.company_name.trim()) {
       setError(t('customers.form.companyNameRequired'))
       return
+    }
+
+    // Check for duplicate email
+    if (formData.email && formData.email.trim()) {
+      const emailExists = await checkEmailExists(formData.email, customer?.id)
+      if (emailExists) {
+        setError(t('customers.form.emailExists'))
+        return
+      }
     }
 
     setSaving(true)

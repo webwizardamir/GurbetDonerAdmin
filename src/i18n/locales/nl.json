@@ -159,6 +159,7 @@
       "enterPostalCode": "1234 AB",
       "enterNotes": "Privénotities over deze klant...",
       "companyNameRequired": "Bedrijfsnaam is verplicht",
+      "emailExists": "Er bestaat al een klant met dit e-mailadres",
       "saveError": "Kan klant niet opslaan",
       "saveChanges": "Wijzigingen opslaan"
     },
@@ -742,6 +743,7 @@
       "sendEmail": "Verstuur via e-mail",
       "sendResetLink": "Wachtwoord reset link versturen",
       "resetSent": "Reset link verstuurd!",
+      "emailAlreadyRegistered": "Dit e-mailadres is al geregistreerd. Gebruik een ander e-mailadres.",
       "emailSubject": "Uw {{company}} Portaal Toegang",
       "emailGreeting": "Beste {{name}},",
       "emailIntro": "Uw klantenportaal account is aangemaakt. U kunt nu uw bestellingen, facturen en documenten online bekijken.",

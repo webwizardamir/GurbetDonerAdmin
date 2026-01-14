@@ -116,7 +116,13 @@ export default function PortalAccessModal({
       await loadAccountStatus()
       onUpdate()
     } catch (err: any) {
-      setError(err.message || 'Failed to enable portal access')
+      // Check if error is about email already registered
+      const errorMsg = err.message || 'Failed to enable portal access'
+      if (errorMsg.toLowerCase().includes('already') && errorMsg.toLowerCase().includes('registered')) {
+        setError(t('portal.access.emailAlreadyRegistered'))
+      } else {
+        setError(errorMsg)
+      }
     } finally {
       setActionLoading(false)
     }
