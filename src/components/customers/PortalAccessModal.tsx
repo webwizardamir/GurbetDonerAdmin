@@ -17,12 +17,14 @@ import {
   EyeOff,
   RefreshCw,
   Send,
+  KeyRound,
 } from 'lucide-react'
 import {
   enablePortalAccess,
   disablePortalAccess,
   reEnablePortalAccess,
   getPortalAccountStatus,
+  sendPortalPasswordReset,
   type CustomerAccount,
 } from '../../services/portalAuth'
 import type { Customer } from '../../types'
@@ -52,6 +54,8 @@ export default function PortalAccessModal({
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [sendingReset, setSendingReset] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   const portalUrl = `${window.location.origin}/portal/login`
 
@@ -178,6 +182,21 @@ ${t('portal.access.password')}: ${createdCredentials.password}`
       setError(err.message || 'Failed to re-enable portal access')
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  const handleSendPasswordReset = async () => {
+    if (!account?.email) return
+    setError(null)
+    setSendingReset(true)
+    try {
+      await sendPortalPasswordReset(account.email)
+      setResetSent(true)
+      setTimeout(() => setResetSent(false), 5000)
+    } catch (err: any) {
+      setError(err.message || 'Failed to send password reset')
+    } finally {
+      setSendingReset(false)
     }
   }
 
@@ -503,32 +522,97 @@ ${t('portal.access.password')}: ${createdCredentials.password}`
               {account && account.is_active && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                    <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                    <div>
+                    <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 shrink-0" />
+                    <div className="min-w-0">
                       <p className="font-medium text-green-700 dark:text-green-400">
                         {t('portal.access.enabled')}
                       </p>
                       <div className="flex items-center gap-1 text-sm text-green-600 dark:text-green-500">
-                        <Clock className="w-3.5 h-3.5" />
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
                         {t('portal.access.lastLogin')}: {formatLastLogin(account.last_login_at)}
                       </div>
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleDisableAccess}
-                    disabled={actionLoading}
-                    className="w-full py-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
-                  >
-                    {actionLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <XCircle className="w-4 h-4" />
-                        {t('portal.access.disable')}
-                      </>
+                  {/* Portal Email Display */}
+                  {account.email && (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+                          {t('portal.access.portalEmail')}
+                        </span>
+                        <button
+                          onClick={() => copyToClipboard(account.email!, 'portal-email')}
+                          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                          title={t('common.copy')}
+                        >
+                          {copiedField === 'portal-email' ? (
+                            <Check className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <Copy className="w-4 h-4 text-slate-400" />
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="text-sm text-slate-900 dark:text-white break-all">
+                          {account.email}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reset Sent Success */}
+                  {resetSent && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center gap-2">
+                      <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        {t('portal.access.resetSent')}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    {/* Send Password Reset */}
+                    {account.email && (
+                      <button
+                        onClick={handleSendPasswordReset}
+                        disabled={sendingReset || resetSent}
+                        className="w-full py-2.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {sendingReset ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : resetSent ? (
+                          <>
+                            <Check className="w-4 h-4" />
+                            {t('portal.access.resetSent')}
+                          </>
+                        ) : (
+                          <>
+                            <KeyRound className="w-4 h-4" />
+                            {t('portal.access.sendResetLink')}
+                          </>
+                        )}
+                      </button>
                     )}
-                  </button>
+
+                    {/* Disable Access */}
+                    <button
+                      onClick={handleDisableAccess}
+                      disabled={actionLoading}
+                      className="w-full py-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                    >
+                      {actionLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <XCircle className="w-4 h-4" />
+                          {t('portal.access.disable')}
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -536,17 +620,45 @@ ${t('portal.access.password')}: ${createdCredentials.password}`
               {account && !account.is_active && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 p-4 bg-slate-100 dark:bg-slate-700 rounded-xl">
-                    <XCircle className="w-6 h-6 text-slate-500" />
-                    <div>
+                    <XCircle className="w-6 h-6 text-slate-500 shrink-0" />
+                    <div className="min-w-0">
                       <p className="font-medium text-slate-700 dark:text-slate-300">
                         {t('portal.access.disabled')}
                       </p>
                       <div className="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
-                        <Clock className="w-3.5 h-3.5" />
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
                         {t('portal.access.lastLogin')}: {formatLastLogin(account.last_login_at)}
                       </div>
                     </div>
                   </div>
+
+                  {/* Portal Email Display */}
+                  {account.email && (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+                          {t('portal.access.portalEmail')}
+                        </span>
+                        <button
+                          onClick={() => copyToClipboard(account.email!, 'portal-email-disabled')}
+                          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                          title={t('common.copy')}
+                        >
+                          {copiedField === 'portal-email-disabled' ? (
+                            <Check className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <Copy className="w-4 h-4 text-slate-400" />
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="text-sm text-slate-900 dark:text-white break-all">
+                          {account.email}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     onClick={handleReEnableAccess}

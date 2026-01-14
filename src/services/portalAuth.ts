@@ -10,6 +10,7 @@ export interface CustomerAccount {
   created_at: string
   updated_at: string
   customer?: Customer
+  email?: string // Portal user email (from auth.users via edge function)
 }
 
 export interface PortalUser {
@@ -214,6 +215,7 @@ export async function enablePortalAccess(
     .insert({
       customer_id: customerId,
       user_id: user.id,
+      email: email, // Store the portal email
       is_active: true,
     })
     .select()
@@ -287,4 +289,14 @@ export async function getCustomersWithPortalStatus(): Promise<(Customer & { port
     ...customer,
     portal_account: accountMap.get(customer.id),
   }))
+}
+
+/**
+ * Send password reset link for a customer's portal account (admin action)
+ */
+export async function sendPortalPasswordReset(email: string): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/portal/reset-password`,
+  })
+  if (error) throw error
 }

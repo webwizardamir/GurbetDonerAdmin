@@ -18,6 +18,7 @@ import {
   Eye,
   Download,
   MoreVertical,
+  Globe,
 } from 'lucide-react'
 import { useCustomers } from '../hooks/useCustomers'
 import { usePermission } from '../hooks/usePermission'
@@ -26,6 +27,8 @@ import CustomerForm from '../components/customers/CustomerForm'
 import CustomerImport from '../components/customers/CustomerImport'
 import CustomerPricing from '../components/pricing/CustomerPricing'
 import { exportToCSV, customerExportColumns } from '../utils/export'
+import { supabase } from '../services/supabase'
+import type { CustomerAccount } from '../services/portalAuth'
 
 export default function Customers() {
   const { t } = useTranslation()
@@ -50,6 +53,20 @@ export default function Customers() {
   const [pricingCustomer, setPricingCustomer] = useState<Customer | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [portalAccounts, setPortalAccounts] = useState<Map<string, CustomerAccount>>(new Map())
+
+  // Fetch portal accounts
+  useEffect(() => {
+    const fetchPortalAccounts = async () => {
+      const { data } = await supabase
+        .from('customer_accounts')
+        .select('*')
+      if (data) {
+        setPortalAccounts(new Map(data.map(a => [a.customer_id, a])))
+      }
+    }
+    fetchPortalAccounts()
+  }, [customers]) // Refresh when customers change
 
   // Filter customers locally for instant feedback
   const filteredCustomers = customers.filter(customer => {
@@ -254,9 +271,16 @@ export default function Customers() {
                           <Building2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                            {customer.company_name}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                              {customer.company_name}
+                            </p>
+                            {portalAccounts.get(customer.id)?.is_active && (
+                              <span title={t('portal.access.enabled')} className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                <Globe className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                              </span>
+                            )}
+                          </div>
                           {customer.contact_person && (
                             <p className="text-xs text-slate-500 dark:text-slate-400">
                               {customer.contact_person}
@@ -356,6 +380,7 @@ export default function Customers() {
               canDelete={canDelete}
               deleting={deleting === customer.id}
               isMenuOpen={openMenuId === customer.id}
+              hasPortalAccess={portalAccounts.get(customer.id)?.is_active || false}
               onMenuToggle={() => setOpenMenuId(openMenuId === customer.id ? null : customer.id)}
               onMenuClose={() => setOpenMenuId(null)}
               onEdit={() => handleEdit(customer)}
@@ -559,6 +584,7 @@ interface MobileCustomerCardProps {
   canDelete: boolean
   deleting: boolean
   isMenuOpen: boolean
+  hasPortalAccess: boolean
   onMenuToggle: () => void
   onMenuClose: () => void
   onEdit: () => void
@@ -573,6 +599,7 @@ function MobileCustomerCard({
   canDelete,
   deleting,
   isMenuOpen,
+  hasPortalAccess,
   onMenuToggle,
   onMenuClose,
   onEdit,
@@ -580,6 +607,7 @@ function MobileCustomerCard({
   onPricing,
   onView,
 }: MobileCustomerCardProps) {
+  const { t } = useTranslation()
   return (
     <div
       className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50"
@@ -592,9 +620,16 @@ function MobileCustomerCard({
             <Building2 className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-semibold text-slate-900 dark:text-white truncate">
-              {customer.company_name}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                {customer.company_name}
+              </h3>
+              {hasPortalAccess && (
+                <span title={t('portal.access.enabled')} className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 dark:bg-blue-900/30 rounded-full shrink-0">
+                  <Globe className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                </span>
+              )}
+            </div>
             {customer.contact_person && (
               <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
                 {customer.contact_person}
