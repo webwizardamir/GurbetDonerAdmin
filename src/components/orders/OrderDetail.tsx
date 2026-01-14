@@ -20,7 +20,7 @@ import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import DocumentGenerator from '../documents/DocumentGenerator'
 import PaymentMethodModal from './PaymentMethodModal'
-import { formatQuantity } from '../../utils/format'
+import { formatQuantity, formatPrice, formatDateTime } from '../../utils/format'
 
 interface OrderDetailProps {
   order: OrderWithItems
@@ -28,31 +28,12 @@ interface OrderDetailProps {
   onStatusChange: () => void
 }
 
-// Format price from cents to euros
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(cents / 100)
-}
-
-// Format date
-function formatDate(dateString: string): string {
+// Format date with long month name
+function formatDateLong(dateString: string): string {
   return new Date(dateString).toLocaleDateString('nl-NL', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
-  })
-}
-
-// Format datetime
-function formatDateTime(dateString: string): string {
-  return new Date(dateString).toLocaleString('nl-NL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
   })
 }
 
@@ -288,7 +269,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                 <span className="text-xs uppercase font-medium">{t('orders.orderDate')}</span>
               </div>
               <p className="font-semibold text-slate-900 dark:text-white">
-                {formatDate(order.order_date)}
+                {formatDateLong(order.order_date)}
               </p>
             </div>
           </div>

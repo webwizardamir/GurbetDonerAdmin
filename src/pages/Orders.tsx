@@ -26,23 +26,7 @@ import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/do
 import OrderForm from '../components/orders/OrderForm'
 import OrderDetail from '../components/orders/OrderDetail'
 import { exportToCSV, orderExportColumns } from '../utils/export'
-
-// Format price from cents to euros
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(cents / 100)
-}
-
-// Format date
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('nl-NL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
+import { formatPrice, formatDate } from '../utils/format'
 
 // Status badge component - supports both original and new schema statuses
 function StatusBadge({ status }: { status: string }) {

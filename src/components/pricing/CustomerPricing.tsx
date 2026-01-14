@@ -11,18 +11,11 @@ import {
 import { useCustomerPricing, type ProductWithPrice } from '../../hooks/usePricing'
 import type { Customer } from '../../types'
 import PriceHistoryModal from './PriceHistoryModal'
+import { formatPrice } from '../../utils/format'
 
 interface CustomerPricingProps {
   customer: Customer
   onClose: () => void
-}
-
-// Format price from cents to euros
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(cents / 100)
 }
 
 export default function CustomerPricing({ customer, onClose }: CustomerPricingProps) {

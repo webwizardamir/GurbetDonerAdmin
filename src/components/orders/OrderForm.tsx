@@ -18,6 +18,7 @@ import { useOrders } from '../../hooks/useOrders'
 import { getEffectivePrice } from '../../services/pricing'
 import BarcodeScanner from './BarcodeScanner'
 import type { Customer, Product } from '../../types'
+import { formatPrice } from '../../utils/format'
 
 interface OrderFormProps {
   onClose: () => void
@@ -29,14 +30,6 @@ interface OrderLineItem {
   quantity: number
   unit_price: number // cents
   tax_rate: number
-}
-
-// Format price from cents to euros
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(cents / 100)
 }
 
 export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {

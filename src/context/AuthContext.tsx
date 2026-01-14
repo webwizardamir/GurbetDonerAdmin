@@ -3,6 +3,10 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../services/supabase'
 import { UserProfile, Permission, Resource, Action } from '../types'
 
+// Debug logging - only in development
+const DEBUG = import.meta.env.DEV
+const log = (...args: unknown[]): void => { if (DEBUG) console.log('[Auth]', ...args) }
+
 interface AuthContextType {
   user: User | null
   profile: UserProfile | null
@@ -84,13 +88,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initAuth = async () => {
       try {
-        console.log('Initializing auth...')
+        log('Initializing auth...')
         const { data: { session: currentSession } } = await supabase.auth.getSession()
 
         if (!mounted) return
 
         if (currentSession?.user) {
-          console.log('Session found, fetching profile...')
+          log('Session found, fetching profile...')
           setSession(currentSession)
           setUser(currentSession.user)
 
@@ -99,25 +103,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!mounted) return
 
           if (userProfile) {
-            console.log('Profile loaded:', userProfile.role)
+            log('Profile loaded:', userProfile.role)
             setProfile(userProfile)
             const userPermissions = await fetchPermissions(userProfile.role)
             if (mounted) setPermissions(userPermissions)
           } else {
-            console.log('No profile found, clearing session')
+            log('No profile found, clearing session')
             // No profile - sign out
             await supabase.auth.signOut()
             setSession(null)
             setUser(null)
           }
         } else {
-          console.log('No session found')
+          log('No session found')
         }
       } catch (error) {
         console.error('Auth initialization error:', error)
       } finally {
         if (mounted) {
-          console.log('Auth init complete, setting loading=false')
+          log('Auth init complete, setting loading=false')
           setLoading(false)
         }
       }
@@ -127,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth changes (sign in/out only)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _newSession) => {
-      console.log('Auth state changed:', event)
+      log('Auth state changed:', event)
 
       if (event === 'SIGNED_OUT') {
         setSession(null)
@@ -159,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!session) return
     const checkInactivity = setInterval(() => {
       if (Date.now() - lastActivity > INACTIVITY_TIMEOUT) {
-        console.log('Auto-logout due to inactivity')
+        log('Auto-logout due to inactivity')
         signOut()
       }
     }, 60000)
@@ -169,10 +173,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign in
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
-      console.log('SignIn: Starting sign in process...')
+      log('SignIn: Starting sign in process...')
       setLoading(true)
 
-      console.log('SignIn: Calling signInWithPassword...')
+      log('SignIn: Calling signInWithPassword...')
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
@@ -181,16 +185,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error.message }
       }
 
-      console.log('SignIn: Auth successful, user:', data.user?.id)
+      log('SignIn: Auth successful, user:', data.user?.id)
 
       if (data.user) {
-        console.log('SignIn: Setting session and user state...')
+        log('SignIn: Setting session and user state...')
         setSession(data.session)
         setUser(data.user)
 
-        console.log('SignIn: Fetching profile...')
+        log('SignIn: Fetching profile...')
         const userProfile = await fetchProfile(data.user.id)
-        console.log('SignIn: Profile result:', userProfile)
+        log('SignIn: Profile result:', userProfile)
 
         if (!userProfile) {
           console.error('SignIn: No profile found, signing out')
@@ -200,27 +204,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (!userProfile.is_active) {
-          console.log('SignIn: User is inactive, signing out')
+          log('SignIn: User is inactive, signing out')
           await supabase.auth.signOut()
           setLoading(false)
           return { error: 'Your account has been deactivated' }
         }
 
         if (!['owner', 'shop_manager', 'admin'].includes(userProfile.role)) {
-          console.log('SignIn: User role not allowed:', userProfile.role)
+          log('SignIn: User role not allowed:', userProfile.role)
           await supabase.auth.signOut()
           setLoading(false)
           return { error: 'You do not have permission to access this application' }
         }
 
-        console.log('SignIn: Setting profile and fetching permissions...')
+        log('SignIn: Setting profile and fetching permissions...')
         setProfile(userProfile)
         const userPermissions = await fetchPermissions(userProfile.role)
-        console.log('SignIn: Permissions loaded:', userPermissions.length)
+        log('SignIn: Permissions loaded:', userPermissions.length)
         setPermissions(userPermissions)
       }
 
-      console.log('SignIn: Complete, setting loading=false')
+      log('SignIn: Complete, setting loading=false')
       setLoading(false)
       return { error: null }
     } catch (err) {

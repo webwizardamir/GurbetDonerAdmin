@@ -17,14 +17,7 @@ import {
 import StatCard from '../components/StatCard'
 import { useDashboard } from '../hooks/useDashboard'
 import { useAuth } from '../context/AuthContext'
-
-// Format price from cents to euros
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(cents / 100)
-}
+import { formatPrice } from '../utils/format'
 
 // Status badge for orders
 function StatusBadge({ status }: { status: string }) {

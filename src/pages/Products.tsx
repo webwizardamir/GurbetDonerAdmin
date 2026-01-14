@@ -19,14 +19,7 @@ import ProductForm, { type ProductFormData } from '../components/products/Produc
 import CategoryManager from '../components/products/CategoryManager'
 import type { Product } from '../types'
 import { exportToCSV, productExportColumns } from '../utils/export'
-
-// Format price from cents to euros
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(cents / 100)
-}
+import { formatPrice } from '../utils/format'
 
 // Format unit type for display
 function formatUnitType(unitType: string, t: (key: string) => string): string {

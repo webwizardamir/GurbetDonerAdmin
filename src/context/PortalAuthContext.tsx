@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useState, useRef, type ReactNode 
 import { portalSupabase } from '../services/supabase'
 import { getPortalUser, portalSignIn, portalSignOut, type PortalUser } from '../services/portalAuth'
 
+// Debug logging - only in development
+const DEBUG = import.meta.env.DEV
+const log = (...args: unknown[]): void => { if (DEBUG) console.log('[PortalAuth]', ...args) }
+
 interface PortalAuthContextType {
   user: PortalUser | null
   loading: boolean
@@ -26,14 +30,14 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     const checkSession = async () => {
       // Skip if already initialized (React Strict Mode)
       if (initializedRef.current) {
-        console.log('[PortalAuth] Already initialized, skipping')
+        log(' Already initialized, skipping')
         return
       }
 
-      console.log('[PortalAuth] Starting session check...')
+      log(' Starting session check...')
       try {
         const portalUser = await getPortalUser()
-        console.log('[PortalAuth] Session check complete, user:', portalUser ? 'found' : 'null')
+        log(' Session check complete, user:', portalUser ? 'found' : 'null')
         if (mounted) {
           setUser(portalUser)
           initializedRef.current = true
@@ -43,7 +47,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
         initializedRef.current = true // Mark as initialized even on error
       } finally {
         if (mounted) {
-          console.log('[PortalAuth] Setting loading to false')
+          log(' Setting loading to false')
           setLoading(false)
         }
       }
@@ -57,18 +61,18 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
 
       // Only handle SIGNED_IN and SIGNED_OUT
       if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') {
-        console.log('[PortalAuth] Ignoring auth event:', event)
+        log(' Ignoring auth event:', event)
         return
       }
 
       // Ignore SIGNED_IN events that fire before initialization completes
       // (Supabase fires SIGNED_IN on subscription if session exists)
       if (event === 'SIGNED_IN' && !initializedRef.current) {
-        console.log('[PortalAuth] Ignoring early SIGNED_IN event (still initializing)')
+        log(' Ignoring early SIGNED_IN event (still initializing)')
         return
       }
 
-      console.log('[PortalAuth] Auth state changed:', event)
+      log(' Auth state changed:', event)
 
       if (event === 'SIGNED_OUT') {
         setUser(null)

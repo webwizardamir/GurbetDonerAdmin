@@ -1,29 +1,14 @@
 import { X, Loader2, History, ArrowRight } from 'lucide-react'
 import { usePriceHistory } from '../../hooks/usePricing'
+import { formatPrice, formatDateTime } from '../../utils/format'
 
 interface PriceHistoryModalProps {
   customerPriceId: string
   onClose: () => void
 }
 
-// Format price from cents to euros
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(cents / 100)
-}
-
-// Format date
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('nl-NL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+// Alias for clarity in this component
+const formatDate = formatDateTime
 
 export default function PriceHistoryModal({ customerPriceId, onClose }: PriceHistoryModalProps) {
   const { history, loading, error } = usePriceHistory(customerPriceId)
