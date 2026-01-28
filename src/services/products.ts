@@ -9,31 +9,43 @@ export interface ProductFilters {
 
 // Fetch products with optional filters
 export async function fetchProducts(filters: ProductFilters = {}): Promise<Product[]> {
-  let query = supabase
-    .from('products')
-    .select(`
-      *,
-      category:categories(*),
-      unit_prices:product_unit_prices(*)
-    `)
-    .order('name', { ascending: true })
+  // Try with unit_prices first
+  const buildQuery = (includeUnitPrices: boolean) => {
+    const selectQuery = includeUnitPrices
+      ? `*, category:categories(*), unit_prices:product_unit_prices(*)`
+      : `*, category:categories(*)`
 
-  if (filters.search) {
-    query = query.or(
-      `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`
-    )
+    let query = supabase
+      .from('products')
+      .select(selectQuery)
+      .order('name', { ascending: true })
+
+    if (filters.search) {
+      query = query.or(
+        `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`
+      )
+    }
+
+    if (filters.category_id) {
+      query = query.eq('category_id', filters.category_id)
+    }
+
+    if (filters.limit) {
+      query = query.limit(filters.limit)
+    }
+
+    return query
   }
 
-  if (filters.category_id) {
-    query = query.eq('category_id', filters.category_id)
-  }
+  // Try with unit_prices first, fall back without if table doesn't exist
+  let { data, error } = await buildQuery(true)
 
-  // Apply limit for performance
-  if (filters.limit) {
-    query = query.limit(filters.limit)
+  if (error && error.message?.includes('product_unit_prices')) {
+    // Table doesn't exist yet, retry without unit_prices
+    const result = await buildQuery(false)
+    data = result.data
+    error = result.error
   }
-
-  const { data, error } = await query
 
   if (error) throw error
   return data || []
@@ -41,15 +53,23 @@ export async function fetchProducts(filters: ProductFilters = {}): Promise<Produ
 
 // Fetch single product by ID
 export async function fetchProductById(id: string): Promise<Product | null> {
-  const { data, error } = await supabase
+  // Try with unit_prices first
+  let { data, error } = await supabase
     .from('products')
-    .select(`
-      *,
-      category:categories(*),
-      unit_prices:product_unit_prices(*)
-    `)
+    .select(`*, category:categories(*), unit_prices:product_unit_prices(*)`)
     .eq('id', id)
     .single()
+
+  if (error && error.message?.includes('product_unit_prices')) {
+    // Table doesn't exist yet, retry without unit_prices
+    const result = await supabase
+      .from('products')
+      .select(`*, category:categories(*)`)
+      .eq('id', id)
+      .single()
+    data = result.data
+    error = result.error
+  }
 
   if (error) throw error
   return data
@@ -57,15 +77,23 @@ export async function fetchProductById(id: string): Promise<Product | null> {
 
 // Fetch product by barcode
 export async function fetchProductByBarcode(barcode: string): Promise<Product | null> {
-  const { data, error } = await supabase
+  // Try with unit_prices first
+  let { data, error } = await supabase
     .from('products')
-    .select(`
-      *,
-      category:categories(*),
-      unit_prices:product_unit_prices(*)
-    `)
+    .select(`*, category:categories(*), unit_prices:product_unit_prices(*)`)
     .eq('barcode', barcode)
     .single()
+
+  if (error && error.message?.includes('product_unit_prices')) {
+    // Table doesn't exist yet, retry without unit_prices
+    const result = await supabase
+      .from('products')
+      .select(`*, category:categories(*)`)
+      .eq('barcode', barcode)
+      .single()
+    data = result.data
+    error = result.error
+  }
 
   if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows returned
   return data
@@ -109,15 +137,23 @@ export async function createProduct(product: {
     insertData.cost_cents = product.cost_cents
   }
 
-  const { data, error } = await supabase
+  // Try with unit_prices first
+  let { data, error } = await supabase
     .from('products')
     .insert(insertData)
-    .select(`
-      *,
-      category:categories(*),
-      unit_prices:product_unit_prices(*)
-    `)
+    .select(`*, category:categories(*), unit_prices:product_unit_prices(*)`)
     .single()
+
+  if (error && error.message?.includes('product_unit_prices')) {
+    // Table doesn't exist yet, retry without unit_prices
+    const result = await supabase
+      .from('products')
+      .insert(insertData)
+      .select(`*, category:categories(*)`)
+      .single()
+    data = result.data
+    error = result.error
+  }
 
   if (error) throw error
   return data
@@ -141,16 +177,25 @@ export async function updateProduct(
     description?: string
   }
 ): Promise<Product> {
-  const { data, error } = await supabase
+  // Try with unit_prices first
+  let { data, error } = await supabase
     .from('products')
     .update(updates)
     .eq('id', id)
-    .select(`
-      *,
-      category:categories(*),
-      unit_prices:product_unit_prices(*)
-    `)
+    .select(`*, category:categories(*), unit_prices:product_unit_prices(*)`)
     .single()
+
+  if (error && error.message?.includes('product_unit_prices')) {
+    // Table doesn't exist yet, retry without unit_prices
+    const result = await supabase
+      .from('products')
+      .update(updates)
+      .eq('id', id)
+      .select(`*, category:categories(*)`)
+      .single()
+    data = result.data
+    error = result.error
+  }
 
   if (error) throw error
   return data

@@ -68,17 +68,21 @@ export async function getEffectivePrice(
     return customerPrice.custom_price
   }
 
-  // Try product unit price for this specific unit type
+  // Try product unit price for this specific unit type (if table exists)
   if (unitType) {
-    const { data: unitPrice } = await supabase
-      .from('product_unit_prices')
-      .select('price')
-      .eq('product_id', productId)
-      .eq('unit_type', unitType)
-      .maybeSingle()
+    try {
+      const { data: unitPrice, error } = await supabase
+        .from('product_unit_prices')
+        .select('price')
+        .eq('product_id', productId)
+        .eq('unit_type', unitType)
+        .maybeSingle()
 
-    if (unitPrice?.price !== null && unitPrice?.price !== undefined) {
-      return unitPrice.price
+      if (!error && unitPrice?.price !== null && unitPrice?.price !== undefined) {
+        return unitPrice.price
+      }
+    } catch {
+      // Table doesn't exist yet, continue to fallback
     }
   }
 
@@ -97,14 +101,23 @@ export async function getAvailableUnitPricesForCustomer(
   customerId: string,
   productId: string
 ): Promise<{ unitType: UnitType; price: number; isDefault: boolean }[]> {
-  // Get all unit prices for this product
-  const { data: unitPrices } = await supabase
-    .from('product_unit_prices')
-    .select('*')
-    .eq('product_id', productId)
-    .not('price', 'is', null)
-    .order('is_default', { ascending: false })
-    .order('unit_type', { ascending: true })
+  // Get all unit prices for this product (if table exists)
+  let unitPrices: ProductUnitPrice[] | null = null
+  try {
+    const { data, error } = await supabase
+      .from('product_unit_prices')
+      .select('*')
+      .eq('product_id', productId)
+      .not('price', 'is', null)
+      .order('is_default', { ascending: false })
+      .order('unit_type', { ascending: true })
+
+    if (!error) {
+      unitPrices = data
+    }
+  } catch {
+    // Table doesn't exist yet
+  }
 
   if (!unitPrices || unitPrices.length === 0) {
     return []
@@ -221,14 +234,28 @@ export async function deleteCustomerPrice(id: string): Promise<void> {
 export async function getProductsWithPricesForCustomer(
   customerId: string
 ): Promise<(Product & { effective_price: number; has_custom_price: boolean })[]> {
-  // Get all products with unit_prices
-  const { data: products, error: productsError } = await supabase
+  // Get all products with unit_prices (if table exists)
+  let products: Product[] | null = null
+  let productsError: Error | null = null
+
+  // Try with unit_prices first
+  const result1 = await supabase
     .from('products')
-    .select(`
-      *,
-      unit_prices:product_unit_prices(*)
-    `)
+    .select(`*, unit_prices:product_unit_prices(*)`)
     .order('name')
+
+  if (result1.error && result1.error.message?.includes('product_unit_prices')) {
+    // Table doesn't exist, retry without
+    const result2 = await supabase
+      .from('products')
+      .select('*')
+      .order('name')
+    products = result2.data
+    productsError = result2.error as Error | null
+  } else {
+    products = result1.data
+    productsError = result1.error as Error | null
+  }
 
   if (productsError) throw productsError
 
