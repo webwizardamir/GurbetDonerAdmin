@@ -250,6 +250,13 @@
       "stockIgnored": "Voorraad wordt genegeerd bij het maken van bestellingen",
       "updateProduct": "Product bijwerken",
       "createProduct": "Product aanmaken",
+      "unitPrices": "Eenheidsprijzen",
+      "default": "Standaard",
+      "unitPricesHelp": "Selecteer de eenheden waarvoor dit product beschikbaar is en stel per eenheid een prijs in.",
+      "atLeastOneUnitRequired": "Selecteer minimaal één eenheid met een prijs",
+      "selectDefaultUnit": "Selecteer een standaard eenheid",
+      "stockUnit": "Voorraadeenheid",
+      "noUnitEnabled": "Selecteer eerst een eenheid",
       "unitTypes": {
         "zak": "Zak",
         "doos": "Doos",

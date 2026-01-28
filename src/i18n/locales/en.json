@@ -250,6 +250,13 @@
       "stockIgnored": "Stock quantity will be ignored when creating orders",
       "updateProduct": "Update Product",
       "createProduct": "Create Product",
+      "unitPrices": "Unit Prices",
+      "default": "Default",
+      "unitPricesHelp": "Select the unit types this product is available in and set a price for each.",
+      "atLeastOneUnitRequired": "Please enable at least one unit type with a price",
+      "selectDefaultUnit": "Please select a default unit type",
+      "stockUnit": "Stock Unit",
+      "noUnitEnabled": "Select a unit first",
       "unitTypes": {
         "zak": "Bag",
         "doos": "Box",

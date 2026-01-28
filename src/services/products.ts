@@ -13,7 +13,8 @@ export async function fetchProducts(filters: ProductFilters = {}): Promise<Produ
     .from('products')
     .select(`
       *,
-      category:categories(*)
+      category:categories(*),
+      unit_prices:product_unit_prices(*)
     `)
     .order('name', { ascending: true })
 
@@ -44,7 +45,8 @@ export async function fetchProductById(id: string): Promise<Product | null> {
     .from('products')
     .select(`
       *,
-      category:categories(*)
+      category:categories(*),
+      unit_prices:product_unit_prices(*)
     `)
     .eq('id', id)
     .single()
@@ -59,7 +61,8 @@ export async function fetchProductByBarcode(barcode: string): Promise<Product | 
     .from('products')
     .select(`
       *,
-      category:categories(*)
+      category:categories(*),
+      unit_prices:product_unit_prices(*)
     `)
     .eq('barcode', barcode)
     .single()
@@ -79,6 +82,7 @@ export async function createProduct(product: {
   cost_cents?: number // Cost of goods in cents (Owner only)
   tax_rate?: number
   stock_quantity?: number
+  stock_unit_type?: UnitType
   track_stock?: boolean
   description?: string
 }): Promise<Product> {
@@ -94,6 +98,7 @@ export async function createProduct(product: {
     base_price: product.base_price,
     tax_rate: product.tax_rate ?? 9.00,
     stock_quantity: product.stock_quantity ?? 0,
+    stock_unit_type: product.stock_unit_type || product.unit_type,
     track_stock: product.track_stock ?? true,
     description: product.description || null,
     created_by: userId,
@@ -109,7 +114,8 @@ export async function createProduct(product: {
     .insert(insertData)
     .select(`
       *,
-      category:categories(*)
+      category:categories(*),
+      unit_prices:product_unit_prices(*)
     `)
     .single()
 
@@ -130,6 +136,7 @@ export async function updateProduct(
     cost_cents?: number
     tax_rate?: number
     stock_quantity?: number
+    stock_unit_type?: UnitType
     track_stock?: boolean
     description?: string
   }
@@ -140,7 +147,8 @@ export async function updateProduct(
     .eq('id', id)
     .select(`
       *,
-      category:categories(*)
+      category:categories(*),
+      unit_prices:product_unit_prices(*)
     `)
     .single()
 

@@ -361,11 +361,26 @@ CREATE TABLE low_stock_thresholds (
 
 **Database Schema:**
 ```sql
+-- Multi-unit pricing per product
+CREATE TABLE product_unit_prices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  unit_type unit_type NOT NULL,
+  price INTEGER,  -- cents, NULL = unit type not available for sale
+  cost_cents INTEGER,  -- Owner only
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(product_id, unit_type)
+);
+
+-- Customer-specific pricing with unit type support
 CREATE TABLE customer_prices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
   product_id UUID REFERENCES products(id) ON DELETE CASCADE,
   variant_id UUID REFERENCES product_variants(id),
+  unit_type unit_type,  -- NULL means applies to all unit types
 
   custom_price INTEGER NOT NULL, -- cents
 
@@ -373,7 +388,7 @@ CREATE TABLE customer_prices (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
-  UNIQUE(customer_id, product_id, variant_id)
+  UNIQUE(customer_id, product_id, unit_type)
 );
 
 CREATE TABLE price_history (
@@ -384,6 +399,9 @@ CREATE TABLE price_history (
   changed_by UUID REFERENCES profiles(id),
   changed_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Stock unit type on products table
+ALTER TABLE products ADD COLUMN stock_unit_type unit_type;
 ```
 
 **Features:**
@@ -392,6 +410,15 @@ CREATE TABLE price_history (
 - [x] Price history tracking (auto-logged via trigger)
 - [x] Reset to base price functionality
 - [x] get_effective_price() database function for orders
+- [x] **Multi-Unit-Type Pricing** ✅ NEW
+  - [x] Single product can have multiple unit types (piece, zak, doos, kg)
+  - [x] Each unit type has its own price and cost
+  - [x] One unit type marked as default (shown first in forms)
+  - [x] Product form with unit price table editor
+  - [x] Order form with unit type selector dropdown
+  - [x] Stock tracked in user-selected unit type
+  - [x] Customer pricing per unit type supported
+  - [x] Backward compatible (existing products migrated automatically)
 - [ ] Bulk price update (future enhancement)
 
 **Components:**
@@ -1066,3 +1093,23 @@ CREATE TABLE customer_accounts (
   - Action buttons: Export, Import, Categories inline
   - Green main button: Pushed to far right via flex spacer
 - **Mobile**: Still stacks vertically for touch-friendly interaction
+
+### Multi-Unit-Type Pricing ✅
+- **Feature**: Products can have multiple unit types with different prices
+- **Example**: "Burger" available as Stuk (€2.50), Zak (€12.00), Doos (€45.00)
+- **Database Changes**:
+  - New `product_unit_prices` table (product_id, unit_type, price, cost_cents, is_default)
+  - Added `stock_unit_type` column to products table
+  - Added `unit_type` column to customer_prices table
+- **Product Form**: Table-based unit price editor with checkboxes, prices, costs, default radio
+- **Order Form**: Unit type dropdown when product has multiple prices
+- **Pricing Logic**: customer price (unit) → customer price (all) → product unit price → base price
+- **Migration**: Existing products auto-migrated to new format
+- **Files Added/Modified**:
+  - `supabase/migrations/00033_product_unit_prices.sql`
+  - `src/services/productUnitPrices.ts` (new)
+  - `src/types/index.ts` (ProductUnitPrice interface)
+  - `src/services/products.ts`, `src/services/pricing.ts`
+  - `src/components/products/ProductForm.tsx`
+  - `src/components/orders/OrderForm.tsx`
+  - `src/hooks/useProducts.ts`

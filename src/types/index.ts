@@ -139,6 +139,18 @@ export interface Category {
   updated_at: string
 }
 
+// Unit price for a specific unit type
+export interface ProductUnitPrice {
+  id: string
+  product_id: string
+  unit_type: UnitType
+  price: number | null  // cents, null = unit type not available for sale
+  cost_cents?: number | null  // Owner only
+  is_default: boolean
+  created_at?: string
+  updated_at?: string
+}
+
 export interface Product {
   id: string
   name: string
@@ -151,11 +163,14 @@ export interface Product {
   cost_cents?: number // Cost of goods in cents (Owner only)
   tax_rate: number
   stock_quantity: number
+  stock_unit_type?: UnitType // What unit the stock quantity represents
   track_stock: boolean // Whether stock management is enabled
   description?: string
   created_by?: string
   created_at: string
   updated_at: string
+  // Multi-unit pricing
+  unit_prices?: ProductUnitPrice[]
 }
 
 export interface ProductVariant {
@@ -215,6 +230,7 @@ export interface CustomerPrice {
   customer_id: string
   product_id: string
   variant_id?: string
+  unit_type?: UnitType // Specific unit type this price applies to
   custom_price: number // cents
   created_by?: string
   created_at: string

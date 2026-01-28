@@ -15,9 +15,9 @@ import {
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
 import { useOrders } from '../../hooks/useOrders'
-import { getEffectivePrice } from '../../services/pricing'
+import { getEffectivePrice, getAvailableUnitPricesForCustomer } from '../../services/pricing'
 import BarcodeScanner from './BarcodeScanner'
-import type { Customer, Product } from '../../types'
+import type { Customer, Product, UnitType, ProductUnitPrice } from '../../types'
 import { formatPrice } from '../../utils/format'
 
 interface OrderFormProps {
@@ -27,9 +27,11 @@ interface OrderFormProps {
 
 interface OrderLineItem {
   product: Product
+  selectedUnitType: UnitType
   quantity: number
   unit_price: number // cents
   tax_rate: number
+  availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
 export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
@@ -52,6 +54,10 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
   const [loadingPrices, setLoadingPrices] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
 
+  const getUnitTypeLabel = (unitType: UnitType): string => {
+    return t(`products.form.unitTypes.${unitType}`)
+  }
+
   // Filter customers by search
   const filteredCustomers = customers.filter(c => {
     if (!customerSearch) return true
@@ -73,45 +79,98 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
     )
   })
 
+  // Get available unit types from product
+  const getProductUnitTypes = (product: Product): { unitType: UnitType; price: number; isDefault: boolean }[] => {
+    if (product.unit_prices && product.unit_prices.length > 0) {
+      return product.unit_prices
+        .filter((up: ProductUnitPrice) => up.price !== null)
+        .map((up: ProductUnitPrice) => ({
+          unitType: up.unit_type,
+          price: up.price!,
+          isDefault: up.is_default,
+        }))
+        .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
+    }
+    // Fallback to single unit type
+    return [{ unitType: product.unit_type, price: product.base_price, isDefault: true }]
+  }
+
   // Add product to order
   const addProduct = async (product: Product) => {
-    // Check if already in order
-    const existing = items.find(i => i.product.id === product.id)
-    if (existing) {
-      setItems(items.map(i =>
-        i.product.id === product.id
+    // Check if already in order with same unit type - we need to check each unit type separately
+    const existingIndex = items.findIndex(i => i.product.id === product.id)
+
+    if (existingIndex >= 0) {
+      // Increment quantity for existing item
+      setItems(items.map((i, idx) =>
+        idx === existingIndex
           ? { ...i, quantity: i.quantity + 1 }
           : i
       ))
       return
     }
 
-    // Get effective price for customer
+    // Get unit types
     setLoadingPrices(true)
     try {
-      let price = product.base_price
+      let availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
+
       if (selectedCustomer) {
-        price = await getEffectivePrice(selectedCustomer.id, product.id)
+        // Get prices considering customer-specific pricing
+        availableUnitTypes = await getAvailableUnitPricesForCustomer(selectedCustomer.id, product.id)
+      } else {
+        availableUnitTypes = getProductUnitTypes(product)
       }
+
+      // If no unit types available, fallback to product defaults
+      if (availableUnitTypes.length === 0) {
+        availableUnitTypes = getProductUnitTypes(product)
+      }
+
+      // Find default or first available
+      const defaultUnit = availableUnitTypes.find(ut => ut.isDefault) || availableUnitTypes[0]
 
       setItems([...items, {
         product,
+        selectedUnitType: defaultUnit.unitType,
         quantity: 1,
-        unit_price: price,
+        unit_price: defaultUnit.price,
         tax_rate: product.tax_rate,
+        availableUnitTypes,
       }])
     } catch (err) {
-      console.error('Error getting price:', err)
-      // Fall back to base price
+      console.error('Error getting prices:', err)
+      // Fall back to product defaults
+      const unitTypes = getProductUnitTypes(product)
+      const defaultUnit = unitTypes.find(ut => ut.isDefault) || unitTypes[0]
+
       setItems([...items, {
         product,
+        selectedUnitType: defaultUnit.unitType,
         quantity: 1,
-        unit_price: product.base_price,
+        unit_price: defaultUnit.price,
         tax_rate: product.tax_rate,
+        availableUnitTypes: unitTypes,
       }])
     } finally {
       setLoadingPrices(false)
     }
+  }
+
+  // Change unit type for an item
+  const changeUnitType = async (productId: string, newUnitType: UnitType) => {
+    const item = items.find(i => i.product.id === productId)
+    if (!item) return
+
+    // Find the price for this unit type
+    const unitTypeInfo = item.availableUnitTypes.find(ut => ut.unitType === newUnitType)
+    if (!unitTypeInfo) return
+
+    setItems(items.map(i =>
+      i.product.id === productId
+        ? { ...i, selectedUnitType: newUnitType, unit_price: unitTypeInfo.price }
+        : i
+    ))
   }
 
   // Update item quantity by delta (+/-)
@@ -151,7 +210,43 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
       try {
         const updatedItems = await Promise.all(
           items.map(async item => {
-            const price = await getEffectivePrice(selectedCustomer.id, item.product.id)
+            // Get prices for this customer/product
+            const availableUnitTypes = await getAvailableUnitPricesForCustomer(
+              selectedCustomer.id,
+              item.product.id
+            )
+
+            // If we got unit types, use them
+            if (availableUnitTypes.length > 0) {
+              // Find price for current selected unit type
+              const currentUnitInfo = availableUnitTypes.find(
+                ut => ut.unitType === item.selectedUnitType
+              )
+
+              if (currentUnitInfo) {
+                return {
+                  ...item,
+                  unit_price: currentUnitInfo.price,
+                  availableUnitTypes,
+                }
+              }
+
+              // If current unit type not available, switch to default
+              const defaultUnit = availableUnitTypes.find(ut => ut.isDefault) || availableUnitTypes[0]
+              return {
+                ...item,
+                selectedUnitType: defaultUnit.unitType,
+                unit_price: defaultUnit.price,
+                availableUnitTypes,
+              }
+            }
+
+            // Fallback - get single price
+            const price = await getEffectivePrice(
+              selectedCustomer.id,
+              item.product.id,
+              item.selectedUnitType
+            )
             return { ...item, unit_price: price }
           })
         )
@@ -200,7 +295,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
           product_id: i.product.id,
           product_name: i.product.name,
           product_sku: i.product.sku,
-          unit_type: i.product.unit_type,
+          unit_type: i.selectedUnitType,
           quantity: i.quantity,
           unit_price: i.unit_price,
           tax_rate: i.tax_rate,
@@ -425,52 +520,74 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                     {items.map(item => (
                       <div
                         key={item.product.id}
-                        className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl"
+                        className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl"
                       >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-900 dark:text-white truncate">
-                            {item.product.name}
-                          </p>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.unit_price * item.quantity)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 ml-3">
-                          <button
-                            onClick={() => updateQuantity(item.product.id, -1)}
-                            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
-                            title="-1"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <input
-                            type="number"
-                            min="0.001"
-                            step="any"
-                            value={item.quantity}
-                            onChange={e => {
-                              const val = parseFloat(e.target.value) || 0
-                              if (val > 0) setQuantity(item.product.id, val)
-                            }}
-                            onBlur={e => {
-                              const val = parseFloat(e.target.value) || 0
-                              if (val <= 0) removeItem(item.product.id)
-                            }}
-                            className="w-16 text-center font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-green-500"
-                          />
-                          <button
-                            onClick={() => updateQuantity(item.product.id, 1)}
-                            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
-                            title="+1"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => removeItem(item.product.id)}
-                            className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-1"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-900 dark:text-white truncate">
+                              {item.product.name}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {/* Unit type selector */}
+                              {item.availableUnitTypes.length > 1 ? (
+                                <select
+                                  value={item.selectedUnitType}
+                                  onChange={e => changeUnitType(item.product.id, e.target.value as UnitType)}
+                                  className="text-sm px-2 py-0.5 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-green-500"
+                                >
+                                  {item.availableUnitTypes.map(ut => (
+                                    <option key={ut.unitType} value={ut.unitType}>
+                                      {getUnitTypeLabel(ut.unitType)} - {formatPrice(ut.price)}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-sm text-slate-500 dark:text-slate-400">
+                                  {getUnitTypeLabel(item.selectedUnitType)}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                              {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.unit_price * item.quantity)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => updateQuantity(item.product.id, -1)}
+                              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                              title="-1"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0.001"
+                              step="any"
+                              value={item.quantity}
+                              onChange={e => {
+                                const val = parseFloat(e.target.value) || 0
+                                if (val > 0) setQuantity(item.product.id, val)
+                              }}
+                              onBlur={e => {
+                                const val = parseFloat(e.target.value) || 0
+                                if (val <= 0) removeItem(item.product.id)
+                              }}
+                              className="w-16 text-center font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-green-500"
+                            />
+                            <button
+                              onClick={() => updateQuantity(item.product.id, 1)}
+                              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                              title="+1"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => removeItem(item.product.id)}
+                              className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
