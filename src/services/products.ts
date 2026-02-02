@@ -9,7 +9,7 @@ export interface ProductFilters {
 
 // Fetch products with optional filters
 export async function fetchProducts(filters: ProductFilters = {}): Promise<Product[]> {
-  // Try with unit_prices first
+  // Build base query
   const buildQuery = (includeUnitPrices: boolean) => {
     const selectQuery = includeUnitPrices
       ? `*, category:categories(*), unit_prices:product_unit_prices(*)`
@@ -48,7 +48,7 @@ export async function fetchProducts(filters: ProductFilters = {}): Promise<Produ
   }
 
   if (error) throw error
-  return data || []
+  return (data as unknown as Product[]) || []
 }
 
 // Fetch single product by ID
@@ -72,7 +72,7 @@ export async function fetchProductById(id: string): Promise<Product | null> {
   }
 
   if (error) throw error
-  return data
+  return data as unknown as Product | null
 }
 
 // Fetch product by barcode
@@ -96,7 +96,7 @@ export async function fetchProductByBarcode(barcode: string): Promise<Product | 
   }
 
   if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows returned
-  return data
+  return data as unknown as Product | null
 }
 
 // Create product
@@ -156,7 +156,7 @@ export async function createProduct(product: {
   }
 
   if (error) throw error
-  return data
+  return data as unknown as Product
 }
 
 // Update product
@@ -198,7 +198,7 @@ export async function updateProduct(
   }
 
   if (error) throw error
-  return data
+  return data as unknown as Product
 }
 
 // Delete product
