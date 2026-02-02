@@ -12,6 +12,8 @@ A comprehensive B2B wholesale management platform for halal food distribution. T
 - Batch/lot inventory with expiry tracking (FIFO/FEFO)
 - Exact profit calculation from batch costs
 - Customer-specific pricing
+- Multi-unit type products (kg, piece, zak, doos) with separate pricing per unit
+- Same product can be added multiple times to an order with different unit types
 - Mobile-first design with barcode scanning
 - Dutch/EU legal compliance for invoicing
 
@@ -294,10 +296,11 @@ All components must support dark mode using Tailwind's `dark:` prefix:
 4. FIFO or FEFO (soonest expiry first) for batch consumption
 
 ### Pricing
-1. Base price per product
-2. Customer-specific prices override base price
-3. Sold price stored immutably on order line
-4. Price changes never affect historical orders
+1. Products support multiple unit types (kg, piece, zak, doos) with independent pricing
+2. Customer-specific prices can override any unit type price
+3. Same product can appear multiple times in an order with different unit types
+4. Sold price stored immutably on order line (snapshot at time of sale)
+5. Price changes never affect historical orders
 
 ### Documents
 1. Sequential invoice numbering (legal requirement)
