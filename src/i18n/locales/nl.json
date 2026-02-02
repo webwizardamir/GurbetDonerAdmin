@@ -46,7 +46,8 @@
     "saving": "Opslaan...",
     "deleting": "Verwijderen...",
     "items": "artikelen",
-    "item": "artikel"
+    "item": "artikel",
+    "default": "Standaard"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -335,7 +336,9 @@
       "deliveryNotes": "Bezorgnotities",
       "deliveryPlaceholder": "Bezorginstructies...",
       "internalNotes": "Interne notities",
-      "internalPlaceholder": "Interne notities..."
+      "internalPlaceholder": "Interne notities...",
+      "selectUnitType": "Selecteer eenheid om toe te voegen",
+      "inCart": "{{qty}}× in wagen"
     },
     "detail": {
       "created": "Aangemaakt",

@@ -46,7 +46,8 @@
     "saving": "Saving...",
     "deleting": "Deleting...",
     "items": "items",
-    "item": "item"
+    "item": "item",
+    "default": "Default"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -335,7 +336,9 @@
       "deliveryNotes": "Delivery Notes",
       "deliveryPlaceholder": "Delivery instructions...",
       "internalNotes": "Internal Notes",
-      "internalPlaceholder": "Internal notes..."
+      "internalPlaceholder": "Internal notes...",
+      "selectUnitType": "Select unit type to add",
+      "inCart": "{{qty}}× in cart"
     },
     "detail": {
       "created": "Created",

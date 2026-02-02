@@ -26,6 +26,7 @@ interface OrderFormProps {
 }
 
 interface OrderLineItem {
+  lineId: string // Unique identifier for this line item
   product: Product
   selectedUnitType: UnitType
   quantity: number
@@ -53,6 +54,12 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [loadingPrices, setLoadingPrices] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
+
+  // Unit type selector state (for products with multiple unit types)
+  const [unitTypeSelector, setUnitTypeSelector] = useState<{
+    product: Product
+    availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
+  } | null>(null)
 
   const getUnitTypeLabel = (unitType: UnitType): string => {
     return t(`products.form.unitTypes.${unitType}`)
@@ -95,22 +102,45 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
     return [{ unitType: product.unit_type, price: product.base_price, isDefault: true }]
   }
 
-  // Add product to order
-  const addProduct = async (product: Product) => {
-    // Check if already in order with same unit type - we need to check each unit type separately
-    const existingIndex = items.findIndex(i => i.product.id === product.id)
+  // Generate unique line ID
+  const generateLineId = () => `line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+  // Add product with specific unit type
+  const addProductWithUnitType = (
+    product: Product,
+    unitType: UnitType,
+    price: number,
+    availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
+  ) => {
+    // Check if product with same unit type already exists
+    const existingIndex = items.findIndex(
+      i => i.product.id === product.id && i.selectedUnitType === unitType
+    )
 
     if (existingIndex >= 0) {
-      // Increment quantity for existing item
+      // Increment quantity for existing item with same product + unit type
       setItems(items.map((i, idx) =>
         idx === existingIndex
           ? { ...i, quantity: i.quantity + 1 }
           : i
       ))
-      return
+    } else {
+      // Add new line item
+      setItems([...items, {
+        lineId: generateLineId(),
+        product,
+        selectedUnitType: unitType,
+        quantity: 1,
+        unit_price: price,
+        tax_rate: product.tax_rate,
+        availableUnitTypes,
+      }])
     }
+  }
 
-    // Get unit types
+  // Add product to order
+  const addProduct = async (product: Product) => {
+    // Get unit types first to determine the default unit type
     setLoadingPrices(true)
     try {
       let availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
@@ -127,56 +157,83 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
         availableUnitTypes = getProductUnitTypes(product)
       }
 
-      // Find default or first available
-      const defaultUnit = availableUnitTypes.find(ut => ut.isDefault) || availableUnitTypes[0]
+      // If multiple unit types available, show selector
+      if (availableUnitTypes.length > 1) {
+        setUnitTypeSelector({ product, availableUnitTypes })
+        return
+      }
 
-      setItems([...items, {
-        product,
-        selectedUnitType: defaultUnit.unitType,
-        quantity: 1,
-        unit_price: defaultUnit.price,
-        tax_rate: product.tax_rate,
-        availableUnitTypes,
-      }])
+      // Single unit type - add directly
+      const defaultUnit = availableUnitTypes[0]
+      addProductWithUnitType(product, defaultUnit.unitType, defaultUnit.price, availableUnitTypes)
     } catch (err) {
       console.error('Error getting prices:', err)
       // Fall back to product defaults
       const unitTypes = getProductUnitTypes(product)
-      const defaultUnit = unitTypes.find(ut => ut.isDefault) || unitTypes[0]
 
-      setItems([...items, {
-        product,
-        selectedUnitType: defaultUnit.unitType,
-        quantity: 1,
-        unit_price: defaultUnit.price,
-        tax_rate: product.tax_rate,
-        availableUnitTypes: unitTypes,
-      }])
+      if (unitTypes.length > 1) {
+        setUnitTypeSelector({ product, availableUnitTypes: unitTypes })
+        return
+      }
+
+      const defaultUnit = unitTypes[0]
+      addProductWithUnitType(product, defaultUnit.unitType, defaultUnit.price, unitTypes)
     } finally {
       setLoadingPrices(false)
     }
   }
 
+  // Handle unit type selection from the selector popup
+  const handleUnitTypeSelect = (unitType: UnitType) => {
+    if (!unitTypeSelector) return
+
+    const { product, availableUnitTypes } = unitTypeSelector
+    const selectedUnit = availableUnitTypes.find(ut => ut.unitType === unitType)
+
+    if (selectedUnit) {
+      addProductWithUnitType(product, selectedUnit.unitType, selectedUnit.price, availableUnitTypes)
+    }
+
+    setUnitTypeSelector(null)
+  }
+
   // Change unit type for an item
-  const changeUnitType = async (productId: string, newUnitType: UnitType) => {
-    const item = items.find(i => i.product.id === productId)
+  const changeUnitType = async (lineId: string, newUnitType: UnitType) => {
+    const item = items.find(i => i.lineId === lineId)
     if (!item) return
 
     // Find the price for this unit type
     const unitTypeInfo = item.availableUnitTypes.find(ut => ut.unitType === newUnitType)
     if (!unitTypeInfo) return
 
-    setItems(items.map(i =>
-      i.product.id === productId
-        ? { ...i, selectedUnitType: newUnitType, unit_price: unitTypeInfo.price }
-        : i
-    ))
+    // Check if another line exists with same product + new unit type
+    const existingLine = items.find(
+      i => i.lineId !== lineId && i.product.id === item.product.id && i.selectedUnitType === newUnitType
+    )
+
+    if (existingLine) {
+      // Merge: add quantity to existing line and remove current line
+      setItems(items
+        .map(i => i.lineId === existingLine.lineId
+          ? { ...i, quantity: i.quantity + item.quantity }
+          : i
+        )
+        .filter(i => i.lineId !== lineId)
+      )
+    } else {
+      // Just update the unit type
+      setItems(items.map(i =>
+        i.lineId === lineId
+          ? { ...i, selectedUnitType: newUnitType, unit_price: unitTypeInfo.price }
+          : i
+      ))
+    }
   }
 
   // Update item quantity by delta (+/-)
-  const updateQuantity = (productId: string, delta: number) => {
+  const updateQuantity = (lineId: string, delta: number) => {
     setItems(items.map(i => {
-      if (i.product.id !== productId) return i
+      if (i.lineId !== lineId) return i
       // Round to 3 decimal places to avoid floating point issues
       const newQty = Math.round(Math.max(0, i.quantity + delta) * 1000) / 1000
       return { ...i, quantity: newQty }
@@ -184,21 +241,21 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
   }
 
   // Set item quantity directly
-  const setQuantity = (productId: string, quantity: number) => {
+  const setQuantity = (lineId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeItem(productId)
+      removeItem(lineId)
       return
     }
     // Round to 3 decimal places
     const roundedQty = Math.round(quantity * 1000) / 1000
     setItems(items.map(i =>
-      i.product.id === productId ? { ...i, quantity: roundedQty } : i
+      i.lineId === lineId ? { ...i, quantity: roundedQty } : i
     ))
   }
 
   // Remove item
-  const removeItem = (productId: string) => {
-    setItems(items.filter(i => i.product.id !== productId))
+  const removeItem = (lineId: string) => {
+    setItems(items.filter(i => i.lineId !== lineId))
   }
 
   // Update prices when customer changes
@@ -250,7 +307,23 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
             return { ...item, unit_price: price }
           })
         )
-        setItems(updatedItems)
+
+        // After updating prices, merge any items that now have the same product + unit type
+        const mergedItems: OrderLineItem[] = []
+        for (const item of updatedItems) {
+          const existingIdx = mergedItems.findIndex(
+            i => i.product.id === item.product.id && i.selectedUnitType === item.selectedUnitType
+          )
+          if (existingIdx >= 0) {
+            mergedItems[existingIdx] = {
+              ...mergedItems[existingIdx],
+              quantity: mergedItems[existingIdx].quantity + item.quantity
+            }
+          } else {
+            mergedItems.push(item)
+          }
+        }
+        setItems(mergedItems)
       } catch (err) {
         console.error('Error updating prices:', err)
       } finally {
@@ -519,7 +592,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {items.map(item => (
                       <div
-                        key={item.product.id}
+                        key={item.lineId}
                         className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl"
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -532,7 +605,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                               {item.availableUnitTypes.length > 1 ? (
                                 <select
                                   value={item.selectedUnitType}
-                                  onChange={e => changeUnitType(item.product.id, e.target.value as UnitType)}
+                                  onChange={e => changeUnitType(item.lineId, e.target.value as UnitType)}
                                   className="text-sm px-2 py-0.5 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-green-500"
                                 >
                                   {item.availableUnitTypes.map(ut => (
@@ -553,7 +626,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                           </div>
                           <div className="flex items-center gap-1">
                             <button
-                              onClick={() => updateQuantity(item.product.id, -1)}
+                              onClick={() => updateQuantity(item.lineId, -1)}
                               className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
                               title="-1"
                             >
@@ -566,23 +639,23 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
                               value={item.quantity}
                               onChange={e => {
                                 const val = parseFloat(e.target.value) || 0
-                                if (val > 0) setQuantity(item.product.id, val)
+                                if (val > 0) setQuantity(item.lineId, val)
                               }}
                               onBlur={e => {
                                 const val = parseFloat(e.target.value) || 0
-                                if (val <= 0) removeItem(item.product.id)
+                                if (val <= 0) removeItem(item.lineId)
                               }}
                               className="w-16 text-center font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-green-500"
                             />
                             <button
-                              onClick={() => updateQuantity(item.product.id, 1)}
+                              onClick={() => updateQuantity(item.lineId, 1)}
                               className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
                               title="+1"
                             >
                               <Plus className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => removeItem(item.product.id)}
+                              onClick={() => removeItem(item.lineId)}
                               className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-1"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -680,6 +753,67 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
           addProduct(product)
         }}
       />
+
+      {/* Unit Type Selector Modal */}
+      {unitTypeSelector && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setUnitTypeSelector(null)}
+          />
+          <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl p-4 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-900 dark:text-white">
+                {unitTypeSelector.product.name}
+              </h3>
+              <button
+                onClick={() => setUnitTypeSelector(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+              {t('orders.form.selectUnitType')}
+            </p>
+            <div className="space-y-2">
+              {unitTypeSelector.availableUnitTypes.map(ut => {
+                // Check if this product + unit type already in cart
+                const existingItem = items.find(
+                  i => i.product.id === unitTypeSelector.product.id && i.selectedUnitType === ut.unitType
+                )
+                return (
+                  <button
+                    key={ut.unitType}
+                    onClick={() => handleUnitTypeSelect(ut.unitType)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-slate-400" />
+                      <span className="font-medium text-slate-900 dark:text-white">
+                        {getUnitTypeLabel(ut.unitType)}
+                      </span>
+                      {ut.isDefault && (
+                        <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                          {t('common.default')}
+                        </span>
+                      )}
+                      {existingItem && (
+                        <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+                          {t('orders.form.inCart', { qty: existingItem.quantity })}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-slate-600 dark:text-slate-300">
+                      {formatPrice(ut.price)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
