@@ -11,6 +11,7 @@ import {
   Building2,
   Package,
   ScanBarcode,
+  Pencil,
 } from 'lucide-react'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
@@ -18,11 +19,13 @@ import { useOrders } from '../../hooks/useOrders'
 import { getEffectivePrice, getAvailableUnitPricesForCustomer } from '../../services/pricing'
 import BarcodeScanner from './BarcodeScanner'
 import type { Customer, Product, UnitType, ProductUnitPrice } from '../../types'
+import type { OrderWithItems } from '../../services/orders'
 import { formatPrice } from '../../utils/format'
 
 interface OrderFormProps {
   onClose: () => void
   onSuccess: () => void
+  editOrder?: OrderWithItems // Optional order for edit mode
 }
 
 interface OrderLineItem {
@@ -35,11 +38,13 @@ interface OrderLineItem {
   availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
-export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
+export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormProps) {
   const { t } = useTranslation()
   const { customers, loading: customersLoading } = useCustomers()
   const { products, loading: productsLoading } = useProducts()
-  const { create } = useOrders()
+  const { create, updateWithItems } = useOrders()
+
+  const isEditMode = !!editOrder
 
   // Form state
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
@@ -54,6 +59,7 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [loadingPrices, setLoadingPrices] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
   // Unit type selector state (for products with multiple unit types)
   const [unitTypeSelector, setUnitTypeSelector] = useState<{
@@ -64,6 +70,77 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
   const getUnitTypeLabel = (unitType: UnitType): string => {
     return t(`products.form.unitTypes.${unitType}`)
   }
+
+  // Initialize form with existing order data in edit mode
+  useEffect(() => {
+    if (!editOrder || initialized || customersLoading || productsLoading) return
+
+    // Set customer
+    const customer = customers.find(c => c.id === editOrder.customer_id)
+    if (customer) {
+      setSelectedCustomer(customer)
+    }
+
+    // Set order fields
+    setOrderDate(editOrder.order_date || new Date().toISOString().split('T')[0])
+    setDeliveryNotes(editOrder.delivery_notes || '')
+    setInternalNotes(editOrder.internal_notes || '')
+
+    // Set items
+    if (editOrder.items && editOrder.items.length > 0) {
+      const loadedItems: OrderLineItem[] = editOrder.items.map(item => {
+        // Find the product in the products list
+        const product = products.find(p => p.id === item.product_id)
+
+        // Get available unit types from product
+        let availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[] = []
+        if (product?.unit_prices && product.unit_prices.length > 0) {
+          availableUnitTypes = product.unit_prices
+            .filter((up: ProductUnitPrice) => up.price !== null)
+            .map((up: ProductUnitPrice) => ({
+              unitType: up.unit_type,
+              price: up.price!,
+              isDefault: up.is_default,
+            }))
+        } else if (product) {
+          availableUnitTypes = [{ unitType: product.unit_type, price: product.base_price, isDefault: true }]
+        } else {
+          // If product not found, use the item's unit type
+          availableUnitTypes = [{ unitType: item.unit_type as UnitType, price: item.unit_price, isDefault: true }]
+        }
+
+        return {
+          lineId: generateLineId(),
+          product: product || {
+            id: item.product_id,
+            name: item.product_name,
+            sku: item.product_sku || '',
+            barcode: '',
+            category_id: undefined,
+            unit_type: item.unit_type as UnitType,
+            base_price: item.unit_price,
+            cost_cents: 0,
+            tax_rate: item.tax_rate,
+            stock_quantity: 0,
+            track_stock: false,
+            description: '',
+            is_active: true,
+            created_by: '',
+            created_at: '',
+            updated_at: '',
+          },
+          selectedUnitType: item.unit_type as UnitType,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          tax_rate: item.tax_rate,
+          availableUnitTypes,
+        }
+      })
+      setItems(loadedItems)
+    }
+
+    setInitialized(true)
+  }, [editOrder, customers, products, customersLoading, productsLoading, initialized])
 
   // Filter customers by search
   const filteredCustomers = customers.filter(c => {
@@ -357,26 +434,30 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
     setError(null)
 
     try {
-      await create(
-        {
-          customer_id: selectedCustomer.id,
-          order_date: orderDate,
-          delivery_notes: deliveryNotes || undefined,
-          internal_notes: internalNotes || undefined,
-        },
-        items.map(i => ({
-          product_id: i.product.id,
-          product_name: i.product.name,
-          product_sku: i.product.sku,
-          unit_type: i.selectedUnitType,
-          quantity: i.quantity,
-          unit_price: i.unit_price,
-          tax_rate: i.tax_rate,
-        }))
-      )
+      const orderData = {
+        customer_id: selectedCustomer.id,
+        order_date: orderDate,
+        delivery_notes: deliveryNotes || undefined,
+        internal_notes: internalNotes || undefined,
+      }
+      const itemsData = items.map(i => ({
+        product_id: i.product.id,
+        product_name: i.product.name,
+        product_sku: i.product.sku,
+        unit_type: i.selectedUnitType,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        tax_rate: i.tax_rate,
+      }))
+
+      if (isEditMode && editOrder) {
+        await updateWithItems(editOrder.id, orderData, itemsData)
+      } else {
+        await create(orderData, itemsData)
+      }
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('orders.form.createError'))
+      setError(err instanceof Error ? err.message : isEditMode ? t('orders.form.updateError') : t('orders.form.createError'))
     } finally {
       setSaving(false)
     }
@@ -390,11 +471,20 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className={`p-2 rounded-lg ${isEditMode ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}>
+              {isEditMode ? (
+                <Pencil className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              ) : (
+                <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
+              )}
             </div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              {t('orders.newOrder')}
+              {isEditMode ? t('orders.editOrder') : t('orders.newOrder')}
+              {isEditMode && editOrder && (
+                <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
+                  ({editOrder.order_number})
+                </span>
+              )}
             </h2>
           </div>
           <button
@@ -728,17 +818,21 @@ export default function OrderForm({ onClose, onSuccess }: OrderFormProps) {
           <button
             onClick={handleSubmit}
             disabled={saving || !selectedCustomer || items.length === 0}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-colors"
+            className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-white font-medium rounded-xl transition-colors ${
+              isEditMode
+                ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400'
+                : 'bg-green-600 hover:bg-green-700 disabled:bg-green-400'
+            }`}
           >
             {saving ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                {t('orders.form.creating')}
+                {isEditMode ? t('orders.form.updating') : t('orders.form.creating')}
               </>
             ) : (
               <>
-                <ShoppingCart className="w-5 h-5" />
-                {t('orders.newOrder')}
+                {isEditMode ? <Pencil className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
+                {isEditMode ? t('orders.form.saveChanges') : t('orders.newOrder')}
               </>
             )}
           </button>

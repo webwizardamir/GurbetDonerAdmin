@@ -6,6 +6,7 @@ import {
   createOrder,
   updateOrderStatus,
   updateOrder,
+  updateOrderWithItems,
   deleteOrder,
   getOrderStats,
   type OrderFilters,
@@ -87,6 +88,25 @@ export function useOrders(initialFilters: OrderFilters = {}) {
     }
   }
 
+  const updateWithItems = async (
+    id: string,
+    orderData: Partial<CreateOrderData>,
+    items: CreateOrderItemData[]
+  ) => {
+    try {
+      setError(null)
+      const updated = await updateOrderWithItems(id, orderData, items)
+      setOrders(prev =>
+        prev.map(o => (o.id === id ? updated : o))
+      )
+      return updated
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update order'
+      setError(message)
+      throw err
+    }
+  }
+
   const remove = async (id: string) => {
     try {
       setError(null)
@@ -109,6 +129,7 @@ export function useOrders(initialFilters: OrderFilters = {}) {
     create,
     changeStatus,
     update,
+    updateWithItems,
     remove,
   }
 }

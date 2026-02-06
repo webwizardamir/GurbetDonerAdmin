@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   Loader2,
   Eye,
+  Pencil,
   Trash2,
   Calendar,
   Building2,
@@ -116,11 +117,12 @@ function PaymentBadge({ method }: { method?: PaymentMethod }) {
 
 export default function Orders() {
   const { t } = useTranslation()
-  const { canCreate, canDelete } = usePermission('orders')
+  const { canCreate, canEdit, canDelete } = usePermission('orders')
   const { orders, loading, error, filters, setFilters, refresh, remove } = useOrders()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [editingOrder, setEditingOrder] = useState<OrderWithItems | null>(null)
   const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -542,6 +544,16 @@ export default function Orders() {
                               <Check className="w-4 h-4 text-green-600" />
                             </button>
                           )}
+                          {/* Edit button - only for non-completed/cancelled orders */}
+                          {canEdit && !['completed', 'cancelled', 'refunded'].includes(order.status) && (
+                            <button
+                              onClick={() => setEditingOrder(order)}
+                              className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer"
+                              title={t('common.edit')}
+                            >
+                              <Pencil className="w-4 h-4 text-blue-500" />
+                            </button>
+                          )}
                           <button
                             onClick={() => setViewingOrder(order)}
                             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
@@ -652,6 +664,15 @@ export default function Orders() {
                       {t('orders.actions.complete')}
                     </button>
                   )}
+                  {canEdit && !['completed', 'cancelled', 'refunded'].includes(order.status) && (
+                    <button
+                      onClick={() => setEditingOrder(order)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      {t('common.edit')}
+                    </button>
+                  )}
                   <button
                     onClick={() => setViewingOrder(order)}
                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium"
@@ -679,12 +700,24 @@ export default function Orders() {
         )}
       </div>
 
-      {/* Order Form Modal */}
+      {/* Order Form Modal (Create) */}
       {showForm && (
         <OrderForm
           onClose={() => setShowForm(false)}
           onSuccess={() => {
             setShowForm(false)
+            refresh()
+          }}
+        />
+      )}
+
+      {/* Order Form Modal (Edit) */}
+      {editingOrder && (
+        <OrderForm
+          editOrder={editingOrder}
+          onClose={() => setEditingOrder(null)}
+          onSuccess={() => {
+            setEditingOrder(null)
             refresh()
           }}
         />

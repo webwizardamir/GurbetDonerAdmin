@@ -378,10 +378,14 @@ export async function buildInvoiceData(
         return 'kg'
       case 'piece':
         return quantity === 1 ? 'stuk' : 'stuks'
+      case 'zak':
+        return quantity === 1 ? 'zak' : 'zakken'
+      case 'doos':
+        return quantity === 1 ? 'doos' : 'dozen'
       case 'package':
         return quantity === 1 ? 'pak' : 'pakken'
       default:
-        return quantity === 1 ? 'stuk' : 'stuks'
+        return unitType // Return the original unit type if not recognized
     }
   }
 

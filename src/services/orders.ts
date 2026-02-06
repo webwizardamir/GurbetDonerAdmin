@@ -309,6 +309,88 @@ export async function deleteOrder(id: string): Promise<void> {
   if (error) throw error
 }
 
+// Update order with items (full order edit)
+export async function updateOrderWithItems(
+  orderId: string,
+  orderData: Partial<CreateOrderData>,
+  items: CreateOrderItemData[]
+): Promise<OrderWithItems> {
+  // Calculate totals
+  let subtotal = 0
+  let totalTax = 0
+  let totalDiscount = 0
+
+  const processedItems = items.map(item => {
+    const lineSubtotal = item.unit_price * item.quantity
+    const discount = item.discount_amount || 0
+    const taxableAmount = lineSubtotal - discount
+    const tax = Math.round(taxableAmount * (item.tax_rate / 100))
+    const lineTotal = taxableAmount + tax
+
+    subtotal += lineSubtotal
+    totalTax += tax
+    totalDiscount += discount
+
+    return {
+      ...item,
+      discount_amount: discount,
+      tax_amount: tax,
+      line_total: lineTotal,
+    }
+  })
+
+  const total = subtotal - totalDiscount + totalTax
+
+  // Update order
+  const { error: orderError } = await supabase
+    .from('orders')
+    .update({
+      customer_id: orderData.customer_id,
+      order_date: orderData.order_date,
+      delivery_notes: orderData.delivery_notes || '',
+      internal_notes: orderData.internal_notes || '',
+      subtotal: subtotal,
+      tax: totalTax,
+      discount: totalDiscount,
+      total: total,
+    })
+    .eq('id', orderId)
+
+  if (orderError) throw orderError
+
+  // Delete existing items
+  const { error: deleteError } = await supabase
+    .from('order_items')
+    .delete()
+    .eq('order_id', orderId)
+
+  if (deleteError) throw deleteError
+
+  // Insert new items
+  const itemsToInsert = processedItems.map(item => ({
+    order_id: orderId,
+    product_id: item.product_id,
+    product_name: item.product_name,
+    product_sku: item.product_sku || '',
+    unit_type: item.unit_type,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    discount_amount: item.discount_amount,
+    tax_rate: item.tax_rate,
+    tax_amount: item.tax_amount,
+    total: item.line_total,
+  }))
+
+  const { error: itemsError } = await supabase
+    .from('order_items')
+    .insert(itemsToInsert)
+
+  if (itemsError) throw itemsError
+
+  // Fetch and return complete order
+  return fetchOrderById(orderId) as Promise<OrderWithItems>
+}
+
 // Add item to existing order
 export async function addOrderItem(
   orderId: string,
