@@ -145,6 +145,10 @@ src/
 
 **Phase 5: Orders**
 - Order creation with customer selection
+- **Order editing**: Full edit capability for non-completed orders
+  - Edit customer, date, items, notes
+  - Add/remove/modify items with live recalculation
+  - Edit button in orders table (desktop + mobile)
 - Product search with customer-specific pricing
 - Auto-generated order numbers (ORD-YYYY-NNNNN)
 - Status management (draft, pending, completed, cancelled, refunded)
@@ -165,7 +169,7 @@ src/
   - **Pakbon**: Packing slip, delivery-focused, no prices, item checkboxes
 - Document Settings page (company info, bank details, numbering)
 - Customizable text labels (Dutch defaults)
-- Dutch unit types: kg, stuk/stuks, pak/pakken
+- Dutch unit types: kg, stuk/stuks, zak/zakken, doos/dozen, pak/pakken
 - Sequential document numbering per type (INV-00001, OB-00001, HR-00001, etc.)
 - Payment method checkboxes (Contant, PIN, Open/Bank, Oude Facturen)
 - VAT breakdown table (Excl. BTW, BTW bedrag, Incl. BTW)
