@@ -65,13 +65,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     color: '#16a34a', // Brand green
   },
-  docNumber: {
-    fontSize: 10,
-    color: '#166534',
-    backgroundColor: '#dcfce7',
-    padding: 6,
-    paddingHorizontal: 12,
-  },
 
   // ===========================================
   // INFO ROW (Customer + Metadata)
@@ -409,7 +402,6 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
           </View>
           <View style={styles.headerRight}>
             <Text style={styles.docTitle}>{data.labels.documentTitle}</Text>
-            <Text style={styles.docNumber}>{data.documentNumber}</Text>
           </View>
         </View>
 

@@ -157,11 +157,12 @@ src/
 - Stock deduction/restoration via database triggers
 - Order detail view with status actions
 - **Decimal quantities** for all product types (1.5 packages, 0.75 kg, etc.)
+- **Bulk actions**: bulk complete, bulk cancel, bulk delete
 
 **Phase 6: Documents (PDF)**
 - Professional A4 templates with @react-pdf/renderer
 - 6 unique document types, each with distinct design:
-  - **Factuur**: Full invoice with payment methods, signatures, bank details
+  - **Factuur**: Full invoice with payment methods, signatures, Factuurdatum/Leverdatum
   - **Proforma**: Quote with validity period, "Dit is geen factuur" disclaimer
   - **Orderbevestiging**: Order confirmation with thank you message, next steps
   - **Betalingsherinnering**: Payment reminder with days overdue, urgency levels
@@ -175,6 +176,8 @@ src/
 - VAT breakdown table (Excl. BTW, BTW bedrag, Incl. BTW)
 - PDF preview, download, and print
 - NL/EU legal compliance (KVK, BTW, IBAN)
+- Unified footer across all templates: company info, KVK, BTW, IBAN
+- No client number in document metadata (cleaner layout)
 
 **Phase 7: Analytics (Owner Only)**
 - Dashboard with KPI stat cards (revenue, orders, items, avg order value)

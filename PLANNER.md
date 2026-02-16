@@ -540,6 +540,10 @@ CREATE TABLE order_fees (
 - [x] Order cancellation (restore stock via trigger)
 - [x] Refund processing (restore stock via trigger)
 - [x] Auto-generated order numbers (ORD-YYYY-NNNNN)
+- [x] **Bulk actions** for orders:
+  - [x] Bulk complete (with payment method selection)
+  - [x] Bulk cancel
+  - [x] Bulk delete (for draft/pending/on_hold orders)
 
 **Components:**
 - `OrdersPage.tsx` - List with filters (status, payment method)
@@ -643,7 +647,9 @@ CREATE TABLE document_settings (
 - `DocumentGenerator.tsx` - Modal for preview/download/print
 - `InvoiceTemplate.tsx` - Full invoice (green theme):
   - Payment method checkboxes, signature fields
-  - Bank details, due date, VAT breakdown
+  - Factuurdatum & Leverdatum labels
+  - Factuurnummer in metadata (no separate badge)
+  - VAT breakdown (Excl. BTW, BTW bedrag, Incl. BTW)
 - `ProformaTemplate.tsx` - Quote/Offerte (blue theme):
   - "Dit is geen factuur" disclaimer
   - Validity period (Geldig tot), conditions section
@@ -669,6 +675,13 @@ CREATE TABLE document_settings (
   - Numbering (prefix and next number per type)
   - Labels (all customizable text)
 - `useDocumentSettings.ts` - Settings hook
+
+**Document Footer Design (all templates):**
+- Consistent two-column footer: company name/address on left, KVK/BTW on right
+- IBAN displayed prominently in footer (Invoice, Order Confirmation, Proforma, Credit Note, Payment Reminder)
+- Theme-colored top border per document type (green, cyan, blue, purple, red, dark)
+- Optional custom footer text centered below
+- No client number (Klantnummer) in any document metadata
 
 ---
 
