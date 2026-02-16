@@ -292,6 +292,7 @@
     "allStatus": "Alle statussen",
     "allPayment": "Alle betaling",
     "confirmDelete": "Bestelling {{number}} verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    "confirmBulkDelete": "{{count}} bestelling(en) verwijderen? Dit kan niet ongedaan worden gemaakt.",
     "confirmCancel": "{{count}} bestelling(en) annuleren? Dit herstelt de voorraad voor bijgehouden artikelen.",
     "status": {
       "draft": "Concept",

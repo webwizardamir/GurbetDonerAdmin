@@ -293,16 +293,37 @@ const styles = StyleSheet.create({
   },
 
   footer: {
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingTop: 8,
+    borderTopWidth: 2,
+    borderTopColor: '#7c3aed',
+    paddingTop: 10,
     marginTop: 'auto',
   },
-  footerText: {
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  footerCompany: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  footerDetail: {
     fontSize: 7,
-    color: '#94a3b8',
+    color: '#64748b',
+    lineHeight: 1.5,
+  },
+  footerIban: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#5b21b6',
+  },
+  footerCenter: {
+    fontSize: 7,
+    color: '#64748b',
     textAlign: 'center',
-    lineHeight: 1.4,
+    marginTop: 4,
   },
 })
 
@@ -395,10 +416,6 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>{data.labels.customerNumber}:</Text>
-              <Text style={styles.metaValue}>{data.customer.customerNumber}</Text>
-            </View>
-            <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Betreft order:</Text>
               <Text style={styles.metaValueHighlight}>{data.order.orderNumber}</Text>
             </View>
@@ -487,13 +504,33 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            {[
-              data.company.kvkNumber && `KVK: ${data.company.kvkNumber}`,
-              data.company.vatNumber && `BTW: ${data.company.vatNumber}`,
-            ].filter(Boolean).join(' | ')}
-            {data.footerText && `\n${data.footerText}`}
-          </Text>
+          <View style={styles.footerRow}>
+            <View>
+              <Text style={styles.footerCompany}>{data.company.name}</Text>
+              <Text style={styles.footerDetail}>
+                {[
+                  data.company.address,
+                  data.company.postalCode && data.company.city
+                    ? `${data.company.postalCode} ${data.company.city}`
+                    : null,
+                ].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.footerDetail}>
+                {[
+                  data.company.kvkNumber && `KVK: ${data.company.kvkNumber}`,
+                  data.company.vatNumber && `BTW: ${data.company.vatNumber}`,
+                ].filter(Boolean).join('  |  ')}
+              </Text>
+              {data.company.iban && (
+                <Text style={styles.footerIban}>IBAN: {data.company.iban}{data.company.bic ? `  |  BIC: ${data.company.bic}` : ''}</Text>
+              )}
+            </View>
+          </View>
+          {data.footerText && (
+            <Text style={styles.footerCenter}>{data.footerText}</Text>
+          )}
         </View>
       </Page>
     </Document>

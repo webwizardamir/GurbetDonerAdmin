@@ -301,53 +301,45 @@ const styles = StyleSheet.create({
   },
 
   // ===========================================
-  // BANK INFO
-  // ===========================================
-  bankSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingTop: 10,
-    marginBottom: 10,
-  },
-  bankTitle: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 6,
-    color: '#166534',
-  },
-  bankGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  bankItem: {
-    width: '50%',
-    flexDirection: 'row',
-    marginBottom: 3,
-  },
-  bankLabel: {
-    fontSize: 8,
-    color: '#64748b',
-    width: 45,
-  },
-  bankValue: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-  },
-
-  // ===========================================
   // FOOTER
   // ===========================================
   footer: {
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingTop: 8,
+    borderTopWidth: 2,
+    borderTopColor: '#16a34a',
+    paddingTop: 10,
     marginTop: 'auto',
   },
-  footerText: {
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  footerCompany: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  footerDetail: {
     fontSize: 7,
-    color: '#94a3b8',
+    color: '#64748b',
+    lineHeight: 1.5,
+  },
+  footerIban: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#166534',
+  },
+  footerSeparator: {
+    fontSize: 7,
+    color: '#cbd5e1',
+    marginHorizontal: 4,
+  },
+  footerCenter: {
+    fontSize: 7,
+    color: '#64748b',
     textAlign: 'center',
-    lineHeight: 1.4,
+    marginTop: 4,
   },
 })
 
@@ -375,7 +367,6 @@ interface InvoiceTemplateProps {
 
 export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
-  const hasBankInfo = data.company.iban || data.company.bankName
 
   // Build customer address lines (avoiding duplicates)
   const customerLines: string[] = []
@@ -433,19 +424,19 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
           </View>
           <View style={styles.metaBox}>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>{data.labels.date}:</Text>
-              <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
+              <Text style={styles.metaLabel}>Factuurnummer:</Text>
+              <Text style={styles.metaValue}>{data.documentNumber}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>{data.labels.customerNumber}:</Text>
-              <Text style={styles.metaValue}>{data.customer.customerNumber}</Text>
+              <Text style={styles.metaLabel}>Factuurdatum:</Text>
+              <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Order:</Text>
               <Text style={styles.metaValue}>{data.order.orderNumber}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>{data.labels.dueDate}:</Text>
+              <Text style={styles.metaLabel}>Leverdatum:</Text>
               <Text style={styles.metaValueDue}>{formatDate(data.dueDate)}</Text>
             </View>
           </View>
@@ -551,48 +542,35 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
           </View>
         )}
 
-        {/* ========== BANK INFO ========== */}
-        {hasBankInfo && (
-          <View style={styles.bankSection}>
-            <Text style={styles.bankTitle}>Bankgegevens</Text>
-            <View style={styles.bankGrid}>
-              {data.company.bankName && (
-                <View style={styles.bankItem}>
-                  <Text style={styles.bankLabel}>Bank:</Text>
-                  <Text style={styles.bankValue}>{data.company.bankName}</Text>
-                </View>
-              )}
-              {data.company.accountHolder && (
-                <View style={styles.bankItem}>
-                  <Text style={styles.bankLabel}>T.n.v.:</Text>
-                  <Text style={styles.bankValue}>{data.company.accountHolder}</Text>
-                </View>
-              )}
+        {/* ========== FOOTER ========== */}
+        <View style={styles.footer}>
+          <View style={styles.footerRow}>
+            <View>
+              <Text style={styles.footerCompany}>{data.company.name}</Text>
+              <Text style={styles.footerDetail}>
+                {[
+                  data.company.address,
+                  data.company.postalCode && data.company.city
+                    ? `${data.company.postalCode} ${data.company.city}`
+                    : null,
+                ].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.footerDetail}>
+                {[
+                  data.company.kvkNumber && `KVK: ${data.company.kvkNumber}`,
+                  data.company.vatNumber && `BTW: ${data.company.vatNumber}`,
+                ].filter(Boolean).join('  |  ')}
+              </Text>
               {data.company.iban && (
-                <View style={styles.bankItem}>
-                  <Text style={styles.bankLabel}>IBAN:</Text>
-                  <Text style={styles.bankValue}>{data.company.iban}</Text>
-                </View>
-              )}
-              {data.company.bic && (
-                <View style={styles.bankItem}>
-                  <Text style={styles.bankLabel}>BIC:</Text>
-                  <Text style={styles.bankValue}>{data.company.bic}</Text>
-                </View>
+                <Text style={styles.footerIban}>IBAN: {data.company.iban}{data.company.bic ? `  |  BIC: ${data.company.bic}` : ''}</Text>
               )}
             </View>
           </View>
-        )}
-
-        {/* ========== FOOTER ========== */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            {[
-              data.company.kvkNumber && `KVK: ${data.company.kvkNumber}`,
-              data.company.vatNumber && `BTW: ${data.company.vatNumber}`,
-            ].filter(Boolean).join(' | ')}
-            {data.footerText && `\n${data.footerText}`}
-          </Text>
+          {data.footerText && (
+            <Text style={styles.footerCenter}>{data.footerText}</Text>
+          )}
         </View>
       </Page>
     </Document>

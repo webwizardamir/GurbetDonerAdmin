@@ -22,7 +22,7 @@ import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
 import type { OrderStatus, PaymentMethod } from '../types'
 import type { OrderWithItems } from '../services/orders'
-import { bulkUpdateOrderStatus } from '../services/orders'
+import { bulkUpdateOrderStatus, bulkDeleteOrders } from '../services/orders'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
 import OrderForm from '../components/orders/OrderForm'
 import OrderDetail from '../components/orders/OrderDetail'
@@ -167,6 +167,9 @@ export default function Orders() {
   const completableSelected = selectedOrders.filter(o =>
     ['draft', 'pending_payment', 'on_hold'].includes(o.status)
   )
+  const deletableSelected = selectedOrders.filter(o =>
+    ['draft', 'pending', 'pending_payment', 'on_hold'].includes(o.status)
+  )
 
   const handleDelete = async (order: OrderWithItems) => {
     if (!confirm(t('orders.confirmDelete', { number: order.order_number }))) return
@@ -264,6 +267,24 @@ export default function Orders() {
       refresh()
     } catch (err) {
       console.error('Failed to cancel orders:', err)
+    } finally {
+      setBulkProcessing(false)
+    }
+  }
+
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (deletableSelected.length === 0) return
+
+    if (!confirm(t('orders.confirmBulkDelete', { count: deletableSelected.length }))) return
+
+    try {
+      setBulkProcessing(true)
+      await bulkDeleteOrders(deletableSelected.map(o => o.id))
+      setSelectedIds(new Set())
+      refresh()
+    } catch (err) {
+      console.error('Failed to delete orders:', err)
     } finally {
       setBulkProcessing(false)
     }
@@ -390,6 +411,20 @@ export default function Orders() {
               <X className="w-4 h-4" />
               {t('orders.actions.cancel')}
             </button>
+            {canDelete && deletableSelected.length > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkProcessing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                {bulkProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                {t('orders.actions.delete')} ({deletableSelected.length})
+              </button>
+            )}
           </div>
         </div>
       )}

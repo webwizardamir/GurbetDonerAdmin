@@ -501,6 +501,18 @@ export async function bulkUpdateOrderStatus(
   if (error) throw error
 }
 
+// Bulk delete orders (and their items - cascade)
+export async function bulkDeleteOrders(ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+
+  const { error } = await supabase
+    .from('orders')
+    .delete()
+    .in('id', ids)
+
+  if (error) throw error
+}
+
 // Get order statistics
 export async function getOrderStats(): Promise<{
   total: number

@@ -237,15 +237,26 @@ const styles = StyleSheet.create({
   // FOOTER
   // ===========================================
   footer: {
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    borderTopWidth: 2,
+    borderTopColor: '#1e293b',
     paddingTop: 10,
     marginTop: 'auto',
   },
-  footerText: {
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  footerCompany: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  footerDetail: {
     fontSize: 7,
-    color: '#94a3b8',
-    textAlign: 'center',
+    color: '#64748b',
+    lineHeight: 1.5,
   },
 })
 
@@ -395,13 +406,27 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
 
         {/* ========== FOOTER ========== */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            {[
-              data.company.name,
-              data.company.phone,
-              data.company.email,
-            ].filter(Boolean).join(' | ')}
-          </Text>
+          <View style={styles.footerRow}>
+            <View>
+              <Text style={styles.footerCompany}>{data.company.name}</Text>
+              <Text style={styles.footerDetail}>
+                {[
+                  data.company.address,
+                  data.company.postalCode && data.company.city
+                    ? `${data.company.postalCode} ${data.company.city}`
+                    : null,
+                ].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.footerDetail}>
+                {[
+                  data.company.phone && `Tel: ${data.company.phone}`,
+                  data.company.email,
+                ].filter(Boolean).join('  |  ')}
+              </Text>
+            </View>
+          </View>
         </View>
       </Page>
     </Document>

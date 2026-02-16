@@ -235,16 +235,37 @@ const styles = StyleSheet.create({
   },
 
   footer: {
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingTop: 8,
+    borderTopWidth: 2,
+    borderTopColor: '#3b82f6',
+    paddingTop: 10,
     marginTop: 'auto',
   },
-  footerText: {
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  footerCompany: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  footerDetail: {
     fontSize: 7,
-    color: '#94a3b8',
+    color: '#64748b',
+    lineHeight: 1.5,
+  },
+  footerIban: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e40af',
+  },
+  footerCenter: {
+    fontSize: 7,
+    color: '#64748b',
     textAlign: 'center',
-    lineHeight: 1.4,
+    marginTop: 4,
   },
 })
 
@@ -348,10 +369,6 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
               <Text style={styles.metaValue}>{data.order.orderNumber}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Klantnummer:</Text>
-              <Text style={styles.metaValue}>{data.customer.customerNumber}</Text>
-            </View>
-            <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Geldig tot:</Text>
               <Text style={styles.metaValueHighlight}>{getValidityDate(data.documentDate)}</Text>
             </View>
@@ -425,12 +442,32 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            {[
-              data.company.kvkNumber && `KVK: ${data.company.kvkNumber}`,
-              data.company.vatNumber && `BTW: ${data.company.vatNumber}`,
-            ].filter(Boolean).join(' | ')}
-            {'\n'}Vragen? Neem contact met ons op: {data.company.phone || data.company.email}
+          <View style={styles.footerRow}>
+            <View>
+              <Text style={styles.footerCompany}>{data.company.name}</Text>
+              <Text style={styles.footerDetail}>
+                {[
+                  data.company.address,
+                  data.company.postalCode && data.company.city
+                    ? `${data.company.postalCode} ${data.company.city}`
+                    : null,
+                ].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.footerDetail}>
+                {[
+                  data.company.kvkNumber && `KVK: ${data.company.kvkNumber}`,
+                  data.company.vatNumber && `BTW: ${data.company.vatNumber}`,
+                ].filter(Boolean).join('  |  ')}
+              </Text>
+              {data.company.iban && (
+                <Text style={styles.footerIban}>IBAN: {data.company.iban}{data.company.bic ? `  |  BIC: ${data.company.bic}` : ''}</Text>
+              )}
+            </View>
+          </View>
+          <Text style={styles.footerCenter}>
+            Vragen? Neem contact met ons op: {data.company.phone || data.company.email}
           </Text>
         </View>
       </Page>
