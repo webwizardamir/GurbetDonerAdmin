@@ -178,6 +178,16 @@ src/
 - NL/EU legal compliance (KVK, BTW, IBAN)
 - Unified footer across all templates: company info, KVK, BTW, IBAN
 - No client number in document metadata (cleaner layout)
+- **Documents list page** with rich data and workflow features:
+  - Customer name and order number columns
+  - Multi-field search (number, customer, order)
+  - Filters: type (all 6 types), date range (presets + custom), customer
+  - Sortable columns (date, customer, document number, type)
+  - Summary stat cards (Total, Invoices, Credit Notes, Other)
+  - Bulk selection, bulk download, bulk delete
+  - CSV export with document data
+  - Clickable type badges and type-specific icon colors
+  - Mobile-optimized cards with full document info
 
 **Phase 7: Analytics (Owner Only)**
 - Dashboard with KPI stat cards (revenue, orders, items, avg order value)

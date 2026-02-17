@@ -642,6 +642,24 @@ CREATE TABLE document_settings (
 - [x] Payment terms message display
 - [x] Table with VAT breakdown (Excl. BTW, BTW bedrag, Incl. BTW)
 - [ ] PDF storage in Supabase (local download only for now)
+- [x] **Invoices/Documents list page enhancements:**
+  - [x] Customer name column (from snapshot)
+  - [x] Order number column (clickable link to order)
+  - [x] Multi-field search (number, customer, order)
+  - [x] All 6 document types in type filter dropdown
+  - [x] Date range filter (Today, This Week, This Month, This Year, Custom)
+  - [x] Customer filter dropdown (built from loaded documents)
+  - [x] Sortable columns (date, customer, doc number, type)
+  - [x] Summary stat cards (Total, Invoices, Credit Notes, Other)
+  - [x] Bulk selection with checkboxes (select-all, row highlight)
+  - [x] Bulk download (sequential PDF generation)
+  - [x] Bulk delete (permission-gated with confirmation)
+  - [x] CSV export with document columns
+  - [x] Clickable type badges (click to filter)
+  - [x] Type-specific icon colors per document type
+  - [x] Result count display ("X van Y documenten")
+  - [x] Richer mobile cards with customer/order info
+  - [x] i18n translations for all new features (NL + EN)
 
 **Components:**
 - `DocumentGenerator.tsx` - Modal for preview/download/print

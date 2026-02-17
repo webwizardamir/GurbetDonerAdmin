@@ -190,6 +190,25 @@ export const customerExportColumns = [
   { key: 'created_at', header: 'Aangemaakt', format: (v: unknown) => formatExportDateTime(v as string) },
 ]
 
+// Documents export columns
+export const documentExportColumns = [
+  { key: 'document_number', header: 'Documentnummer' },
+  { key: 'document_type', header: 'Type', format: (v: unknown) => {
+    const typeMap: Record<string, string> = {
+      invoice: 'Factuur',
+      proforma: 'Proforma',
+      credit_note: 'Creditnota',
+      packing_slip: 'Pakbon',
+      order_confirmation: 'Orderbevestiging',
+      payment_reminder: 'Betalingsherinnering',
+    }
+    return typeMap[v as string] || (v as string)
+  }},
+  { key: 'customer_name', header: 'Klant' },
+  { key: 'order_number', header: 'Bestelnummer' },
+  { key: 'generated_at', header: 'Datum', format: (v: unknown) => formatExportDateTime(v as string) },
+]
+
 // Audit log export columns
 export const auditLogExportColumns = [
   { key: 'created_at', header: 'Datum/tijd', format: (v: unknown) => formatExportDateTime(v as string) },

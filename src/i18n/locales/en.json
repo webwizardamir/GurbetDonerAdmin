@@ -383,7 +383,40 @@
       "order_confirmation": "Order Confirmation",
       "payment_reminder": "Payment Reminder"
     },
-    "confirmDelete": "Delete {{number}}? This cannot be undone."
+    "confirmDelete": "Delete {{number}}? This cannot be undone.",
+    "searchPlaceholder": "Search by number, customer, order...",
+    "orderLinked": "Order linked",
+    "resultCount": "{{filtered}} of {{total}} documents",
+    "customerName": "Customer",
+    "orderNumber": "Order Number",
+    "allCustomers": "All Customers",
+    "stats": {
+      "totalDocuments": "Total Documents",
+      "invoices": "Invoices",
+      "creditNotes": "Credit Notes",
+      "other": "Other"
+    },
+    "dateRange": {
+      "label": "Period",
+      "all": "All",
+      "today": "Today",
+      "thisWeek": "This Week",
+      "thisMonth": "This Month",
+      "thisYear": "This Year",
+      "custom": "Custom",
+      "to": "to"
+    },
+    "bulk": {
+      "selected": "{{count}} selected",
+      "clear": "Clear",
+      "download": "Download",
+      "delete": "Delete",
+      "confirmDelete": "Delete {{count}} document(s)? This cannot be undone.",
+      "downloading": "Downloading..."
+    },
+    "export": {
+      "filename": "documents"
+    }
   },
   "analytics": {
     "title": "Analytics",

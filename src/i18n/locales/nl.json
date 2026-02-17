@@ -383,7 +383,40 @@
       "order_confirmation": "Orderbevestiging",
       "payment_reminder": "Betalingsherinnering"
     },
-    "confirmDelete": "{{number}} verwijderen? Dit kan niet ongedaan worden gemaakt."
+    "confirmDelete": "{{number}} verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    "searchPlaceholder": "Zoek op nummer, klant, bestelling...",
+    "orderLinked": "Bestelling gekoppeld",
+    "resultCount": "{{filtered}} van {{total}} documenten",
+    "customerName": "Klant",
+    "orderNumber": "Bestelnummer",
+    "allCustomers": "Alle klanten",
+    "stats": {
+      "totalDocuments": "Totaal documenten",
+      "invoices": "Facturen",
+      "creditNotes": "Creditnota's",
+      "other": "Overige"
+    },
+    "dateRange": {
+      "label": "Periode",
+      "all": "Alle",
+      "today": "Vandaag",
+      "thisWeek": "Deze week",
+      "thisMonth": "Deze maand",
+      "thisYear": "Dit jaar",
+      "custom": "Aangepast",
+      "to": "tot"
+    },
+    "bulk": {
+      "selected": "{{count}} geselecteerd",
+      "clear": "Wissen",
+      "download": "Downloaden",
+      "delete": "Verwijderen",
+      "confirmDelete": "{{count}} document(en) verwijderen? Dit kan niet ongedaan worden gemaakt.",
+      "downloading": "Downloaden..."
+    },
+    "export": {
+      "filename": "documenten"
+    }
   },
   "analytics": {
     "title": "Analyses",
