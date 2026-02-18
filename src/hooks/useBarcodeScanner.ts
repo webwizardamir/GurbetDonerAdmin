@@ -62,7 +62,10 @@ export function useBarcodeScanner({ onScan, onError }: UseScannerOptions): UseBa
       // Create new scanner instance
       if (scannerRef.current) {
         try {
-          await scannerRef.current.stop()
+          const state = scannerRef.current.getState()
+          if (state === Html5QrcodeScannerState.SCANNING) {
+            await scannerRef.current.stop()
+          }
         } catch {
           // Ignore errors when stopping
         }
@@ -129,7 +132,14 @@ export function useBarcodeScanner({ onScan, onError }: UseScannerOptions): UseBa
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {})
+        try {
+          const state = scannerRef.current.getState()
+          if (state === Html5QrcodeScannerState.SCANNING) {
+            scannerRef.current.stop().catch(() => {})
+          }
+        } catch {
+          // Ignore - scanner already cleaned up
+        }
       }
     }
   }, [])
