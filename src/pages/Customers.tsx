@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -449,130 +449,73 @@ function CustomerActionMenu({
   onDelete,
 }: CustomerActionMenuProps) {
   const { t } = useTranslation()
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({})
-
-  // Calculate menu position when it opens
-  useLayoutEffect(() => {
-    if (!isOpen || !buttonRef.current) return
-
-    const buttonRect = buttonRef.current.getBoundingClientRect()
-    const menuWidth = 192 // w-48 = 12rem = 192px
-    const menuHeight = 200 // Approximate menu height
-    const viewportHeight = window.innerHeight
-    const viewportWidth = window.innerWidth
-    const spaceBelow = viewportHeight - buttonRect.bottom
-    const spaceRight = viewportWidth - buttonRect.right
-
-    // Position menu
-    const style: React.CSSProperties = {
-      position: 'fixed',
-      zIndex: 9999,
-    }
-
-    // Vertical positioning: below or above
-    if (spaceBelow >= menuHeight) {
-      style.top = buttonRect.bottom + 4
-    } else {
-      style.bottom = viewportHeight - buttonRect.top + 4
-    }
-
-    // Horizontal positioning: align to right edge of button, but don't overflow viewport
-    if (spaceRight >= menuWidth) {
-      style.left = buttonRect.right - menuWidth
-    } else {
-      style.right = 8 // Small margin from viewport edge
-    }
-
-    setMenuStyle(style)
-  }, [isOpen])
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node
-      if (
-        menuRef.current && !menuRef.current.contains(target) &&
-        buttonRef.current && !buttonRef.current.contains(target)
-      ) {
-        onClose()
-      }
-    }
-
-    // Close on scroll
-    const handleScroll = () => onClose()
-
-    document.addEventListener('mousedown', handleClickOutside)
-    window.addEventListener('scroll', handleScroll, true)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      window.removeEventListener('scroll', handleScroll, true)
-    }
-  }, [isOpen, onClose])
-
-  const menuContent = isOpen ? (
-    <div
-      ref={menuRef}
-      style={menuStyle}
-      className="w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1"
-    >
-      <button
-        onClick={(e) => { e.stopPropagation(); onView(); onClose(); }}
-        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-      >
-        <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-        {t('customers.viewDetails')}
-      </button>
-      <button
-        onClick={(e) => { e.stopPropagation(); onPricing(); onClose(); }}
-        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-      >
-        <Euro className="w-4 h-4 text-green-600 dark:text-green-400" />
-        {t('customers.customPricing')}
-      </button>
-      {canEdit && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onEdit(); onClose(); }}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-        >
-          <Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-          {t('customers.editCustomer')}
-        </button>
-      )}
-      {canDelete && (
-        <>
-          <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); onClose(); }}
-            disabled={deleting}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors disabled:opacity-50"
-          >
-            {deleting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Trash2 className="w-4 h-4" />
-            )}
-            {t('customers.deleteCustomer')}
-          </button>
-        </>
-      )}
-    </div>
-  ) : null
 
   return (
-    <>
+    <div className="relative">
       <button
-        ref={buttonRef}
+        type="button"
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
         className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
       >
         <MoreVertical className="w-5 h-5 text-slate-500 dark:text-slate-400" />
       </button>
-      {menuContent}
-    </>
+      {isOpen && (
+        <>
+          {/* Invisible overlay to catch outside clicks */}
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+          />
+          {/* Menu dropdown */}
+          <div className="absolute right-0 top-full mt-1 z-[9999] w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onView(); onClose(); }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              {t('customers.viewDetails')}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onPricing(); onClose(); }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Euro className="w-4 h-4 text-green-600 dark:text-green-400" />
+              {t('customers.customPricing')}
+            </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onEdit(); onClose(); }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                {t('customers.editCustomer')}
+              </button>
+            )}
+            {canDelete && (
+              <>
+                <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onDelete(); onClose(); }}
+                  disabled={deleting}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  {t('customers.deleteCustomer')}
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
