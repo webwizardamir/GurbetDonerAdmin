@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -572,7 +571,7 @@ function CustomerActionMenu({
       >
         <MoreVertical className="w-5 h-5 text-slate-500 dark:text-slate-400" />
       </button>
-      {menuContent && createPortal(menuContent, document.body)}
+      {menuContent}
     </>
   )
 }
