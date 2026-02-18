@@ -113,7 +113,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
       subtotal, discount, tax, total, order_date, delivery_notes,
       internal_notes, created_at, updated_at, created_by,
       customer:customers!customer_id(id, company_name, contact_person),
-      items:order_items(id, product_name, quantity, unit_price, tax_rate, total, unit_type)
+      items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, tax_rate, total, unit_type)
     `)
     .order('created_at', { ascending: false })
 

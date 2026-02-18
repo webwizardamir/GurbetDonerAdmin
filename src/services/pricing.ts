@@ -40,6 +40,8 @@ export async function getEffectivePrice(
   productId: string,
   unitType?: UnitType
 ): Promise<number> {
+  if (!productId || !customerId) return 0
+
   // First try to get customer-specific price for this unit type
   if (unitType) {
     const { data: customerPriceForUnit } = await supabase
@@ -101,6 +103,8 @@ export async function getAvailableUnitPricesForCustomer(
   customerId: string,
   productId: string
 ): Promise<{ unitType: UnitType; price: number; isDefault: boolean }[]> {
+  if (!productId || !customerId) return []
+
   // Get all unit prices for this product (if table exists)
   let unitPrices: ProductUnitPrice[] | null = null
   try {
