@@ -440,15 +440,24 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
         delivery_notes: deliveryNotes || undefined,
         internal_notes: internalNotes || undefined,
       }
-      const itemsData = items.map(i => ({
-        product_id: i.product.id,
-        product_name: i.product.name,
-        product_sku: i.product.sku,
-        unit_type: i.selectedUnitType,
-        quantity: i.quantity,
-        unit_price: i.unit_price,
-        tax_rate: i.tax_rate,
-      }))
+      const itemsData = items.map(i => {
+        // Snapshot cost from product data: unit_prices cost → product cost → 0
+        const unitPriceCost = i.product.unit_prices?.find(
+          up => up.unit_type === i.selectedUnitType
+        )?.cost_cents
+        const costCents = unitPriceCost ?? i.product.cost_cents ?? 0
+
+        return {
+          product_id: i.product.id,
+          product_name: i.product.name,
+          product_sku: i.product.sku,
+          unit_type: i.selectedUnitType,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          cost_cents: costCents,
+          tax_rate: i.tax_rate,
+        }
+      })
 
       if (isEditMode && editOrder) {
         await updateWithItems(editOrder.id, orderData, itemsData)

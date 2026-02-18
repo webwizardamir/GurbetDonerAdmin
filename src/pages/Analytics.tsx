@@ -12,6 +12,7 @@ import {
   Loader2,
   Banknote,
   Building2,
+  Percent,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useAnalytics } from '../hooks/useAnalytics'
@@ -90,7 +91,7 @@ export default function Analytics() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           label={t('analytics.revenue')}
           value={kpis ? formatChartCurrency(kpis.totalRevenue) : '€0'}
@@ -101,6 +102,24 @@ export default function Analytics() {
           icon={DollarSign}
           iconColor="text-green-600 dark:text-green-400"
           iconBg="bg-green-50 dark:bg-green-900/20"
+        />
+        <StatCard
+          label={t('analytics.profit')}
+          value={kpis ? formatChartCurrency(kpis.totalProfit) : '€0'}
+          trend={kpis ? {
+            value: Math.abs(kpis.profitGrowth),
+            isPositive: kpis.profitGrowth >= 0,
+          } : undefined}
+          icon={TrendingUp}
+          iconColor="text-emerald-600 dark:text-emerald-400"
+          iconBg="bg-emerald-50 dark:bg-emerald-900/20"
+        />
+        <StatCard
+          label={t('analytics.margin')}
+          value={kpis ? `${kpis.profitMargin.toFixed(1)}%` : '0%'}
+          icon={Percent}
+          iconColor="text-violet-600 dark:text-violet-400"
+          iconBg="bg-violet-50 dark:bg-violet-900/20"
         />
         <StatCard
           label={t('analytics.orders')}
@@ -117,15 +136,15 @@ export default function Analytics() {
           label={t('analytics.itemsSold')}
           value={kpis?.totalItems.toLocaleString('nl-NL') || '0'}
           icon={Package}
-          iconColor="text-violet-600 dark:text-violet-400"
-          iconBg="bg-violet-50 dark:bg-violet-900/20"
+          iconColor="text-amber-600 dark:text-amber-400"
+          iconBg="bg-amber-50 dark:bg-amber-900/20"
         />
         <StatCard
           label={t('analytics.averageOrder')}
           value={kpis ? formatChartCurrency(kpis.averageOrderValue) : '€0'}
-          icon={TrendingUp}
-          iconColor="text-amber-600 dark:text-amber-400"
-          iconBg="bg-amber-50 dark:bg-amber-900/20"
+          icon={DollarSign}
+          iconColor="text-slate-600 dark:text-slate-400"
+          iconBg="bg-slate-50 dark:bg-slate-900/20"
         />
       </div>
 
@@ -177,7 +196,7 @@ export default function Analytics() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              {t('analytics.revenueOverTime')}
+              {t('analytics.revenueAndProfit')}
             </h2>
           </div>
         </div>
@@ -261,9 +280,14 @@ export default function Analytics() {
                       </p>
                     </div>
                   </div>
-                  <span className="font-semibold text-green-600 dark:text-green-400">
-                    {formatChartCurrency(customer.totalRevenue)}
-                  </span>
+                  <div className="text-right">
+                    <span className="font-semibold text-green-600 dark:text-green-400">
+                      {formatChartCurrency(customer.totalRevenue)}
+                    </span>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                      {t('analytics.profit')}: {formatChartCurrency(customer.totalProfit)}
+                    </p>
+                  </div>
                 </div>
               ))
             )}
@@ -303,9 +327,14 @@ export default function Analytics() {
                       </p>
                     </div>
                   </div>
-                  <span className="font-semibold text-green-600 dark:text-green-400">
-                    {formatChartCurrency(product.totalRevenue)}
-                  </span>
+                  <div className="text-right">
+                    <span className="font-semibold text-green-600 dark:text-green-400">
+                      {formatChartCurrency(product.totalRevenue)}
+                    </span>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                      {t('analytics.profit')}: {formatChartCurrency(product.totalProfit)}
+                    </p>
+                  </div>
                 </div>
               ))
             )}

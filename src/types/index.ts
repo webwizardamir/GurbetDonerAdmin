@@ -296,6 +296,7 @@ export interface OrderItem {
   unit_type: UnitType
   quantity: number
   unit_price: number // cents - price at time of sale
+  cost_cents?: number // cents - cost at time of sale, for profit calculation
   discount_amount: number // cents
   tax_rate: number
   tax_amount: number // cents

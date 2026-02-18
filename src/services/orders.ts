@@ -38,6 +38,7 @@ export interface CreateOrderItemData {
   unit_type: string
   quantity: number
   unit_price: number // cents
+  cost_cents?: number // cents - cost at time of sale
   discount_amount?: number // cents
   tax_rate: number
   notes?: string
@@ -93,6 +94,7 @@ function transformOrderItemFromDb(dbItem: any) {
     quantity: Number(dbItem.quantity) || 0,
     // Values are already in cents (INTEGER)
     unit_price: Number(dbItem.unit_price) || 0,
+    cost_cents: Number(dbItem.cost_cents) || 0,
     discount_amount: Number(dbItem.discount) || 0,
     tax_rate: Number(dbItem.tax_rate) || 0,
     tax_amount: Number(dbItem.tax_amount) || 0,
@@ -113,7 +115,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
       subtotal, discount, tax, total, order_date, delivery_notes,
       internal_notes, created_at, updated_at, created_by,
       customer:customers!customer_id(id, company_name, contact_person),
-      items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, tax_rate, total, unit_type)
+      items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, tax_rate, total, unit_type)
     `)
     .order('created_at', { ascending: false })
 
@@ -238,6 +240,7 @@ export async function createOrder(
     unit_type: item.unit_type,
     quantity: item.quantity,
     unit_price: item.unit_price,
+    cost_cents: item.cost_cents || 0,
     discount_amount: item.discount_amount,
     tax_rate: item.tax_rate,
     tax_amount: item.tax_amount,
@@ -375,6 +378,7 @@ export async function updateOrderWithItems(
     unit_type: item.unit_type,
     quantity: item.quantity,
     unit_price: item.unit_price,
+    cost_cents: item.cost_cents || 0,
     discount_amount: item.discount_amount,
     tax_rate: item.tax_rate,
     tax_amount: item.tax_amount,
@@ -412,6 +416,7 @@ export async function addOrderItem(
       unit_type: item.unit_type,
       quantity: item.quantity,
       unit_price: item.unit_price,
+      cost_cents: item.cost_cents || 0,
       discount_amount: discount,
       tax_rate: item.tax_rate,
       tax_amount: tax,

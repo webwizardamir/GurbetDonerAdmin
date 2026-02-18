@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   AreaChart,
   Area,
@@ -6,6 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from 'recharts'
 import { CHART_COLORS, formatChartCurrency, formatCompactNumber } from './ChartColors'
@@ -17,6 +19,7 @@ interface RevenueChartProps {
 }
 
 export default function RevenueChart({ data, loading }: RevenueChartProps) {
+  const { t } = useTranslation()
   const [isDark, setIsDark] = useState(false)
 
   // Watch for dark mode changes
@@ -40,6 +43,7 @@ export default function RevenueChart({ data, loading }: RevenueChartProps) {
       ...d,
       date: new Date(d.date).toLocaleDateString('nl-NL', { day: '2-digit', month: 'short' }),
       revenueEuros: d.revenue / 100,
+      profitEuros: d.profit / 100,
     }))
   }, [data])
 
@@ -47,17 +51,21 @@ export default function RevenueChart({ data, loading }: RevenueChartProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
 
-    const revenue = payload[0]?.value || 0
+    const revenue = payload.find((p: any) => p.dataKey === 'revenueEuros')?.value || 0
+    const profit = payload.find((p: any) => p.dataKey === 'profitEuros')?.value || 0
     const orders = payload[0]?.payload?.orderCount || 0
 
     return (
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-3">
         <p className="text-sm font-medium text-slate-900 dark:text-white mb-1">{label}</p>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          Revenue: <span className="font-semibold text-green-600 dark:text-green-400">{formatChartCurrency(revenue * 100)}</span>
+          {t('analytics.revenue')}: <span className="font-semibold text-green-600 dark:text-green-400">{formatChartCurrency(revenue * 100)}</span>
         </p>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          Orders: <span className="font-semibold">{orders}</span>
+          {t('analytics.profit')}: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatChartCurrency(profit * 100)}</span>
+        </p>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          {t('analytics.orders')}: <span className="font-semibold">{orders}</span>
         </p>
       </div>
     )
@@ -88,6 +96,10 @@ export default function RevenueChart({ data, loading }: RevenueChartProps) {
               <stop offset="0%" stopColor={colors.primary} stopOpacity={0.3} />
               <stop offset="100%" stopColor={colors.primary} stopOpacity={0} />
             </linearGradient>
+            <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={colors.success} stopOpacity={0.15} />
+              <stop offset="100%" stopColor={colors.success} stopOpacity={0} />
+            </linearGradient>
           </defs>
           <CartesianGrid
             strokeDasharray="3 3"
@@ -109,12 +121,31 @@ export default function RevenueChart({ data, loading }: RevenueChartProps) {
             dx={-10}
           />
           <Tooltip content={<CustomTooltip />} />
+          <Legend
+            verticalAlign="top"
+            height={36}
+            formatter={(value: string) => (
+              <span className="text-sm text-slate-600 dark:text-slate-400">
+                {value === 'revenueEuros' ? t('analytics.revenue') : t('analytics.profit')}
+              </span>
+            )}
+          />
           <Area
             type="monotone"
             dataKey="revenueEuros"
             stroke={colors.primary}
             strokeWidth={2}
             fill="url(#revenueGradient)"
+            name="revenueEuros"
+          />
+          <Area
+            type="monotone"
+            dataKey="profitEuros"
+            stroke={colors.success}
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            fill="url(#profitGradient)"
+            name="profitEuros"
           />
         </AreaChart>
       </ResponsiveContainer>

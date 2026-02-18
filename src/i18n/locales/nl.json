@@ -440,7 +440,13 @@
     "from": "Van",
     "to": "Tot",
     "growth": "groei",
-    "vsLastPeriod": "t.o.v. vorige periode"
+    "vsLastPeriod": "t.o.v. vorige periode",
+    "profit": "Winst",
+    "margin": "Marge",
+    "profitGrowth": "Winstgroei",
+    "totalProfit": "Totale winst",
+    "profitMargin": "Winstmarge",
+    "revenueAndProfit": "Omzet & Winst"
   },
   "soldProducts": {
     "title": "Verkochte Producten",

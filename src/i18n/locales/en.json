@@ -440,7 +440,13 @@
     "from": "From",
     "to": "To",
     "growth": "growth",
-    "vsLastPeriod": "vs. last period"
+    "vsLastPeriod": "vs. last period",
+    "profit": "Profit",
+    "margin": "Margin",
+    "profitGrowth": "Profit growth",
+    "totalProfit": "Total profit",
+    "profitMargin": "Profit margin",
+    "revenueAndProfit": "Revenue & Profit"
   },
   "soldProducts": {
     "title": "Sold Products",

@@ -10,6 +10,7 @@ export interface PaymentMethodBreakdown {
 export interface RevenueDataPoint {
   date: string
   revenue: number
+  profit: number
   orderCount: number
 }
 
@@ -23,6 +24,7 @@ export interface TopCustomer {
   id: string
   companyName: string
   totalRevenue: number
+  totalProfit: number
   orderCount: number
 }
 
@@ -30,6 +32,7 @@ export interface TopProduct {
   productName: string
   totalQuantity: number
   totalRevenue: number
+  totalProfit: number
   unitType: string
 }
 
@@ -38,9 +41,12 @@ export interface KPIData {
   totalOrders: number
   totalItems: number
   averageOrderValue: number
+  totalProfit: number
+  profitMargin: number // percentage
   // Comparison with previous period
   revenueGrowth: number
   ordersGrowth: number
+  profitGrowth: number
 }
 
 // Get revenue data grouped by day
@@ -51,7 +57,7 @@ export async function getRevenueByDay(
   // Fetch completed orders within date range
   const { data: orders, error } = await supabase
     .from('orders')
-    .select('order_date, total')
+    .select('id, order_date, total')
     .in('status', ['completed', 'delivered'])
     .gte('order_date', startDate)
     .lte('order_date', endDate)
@@ -59,24 +65,45 @@ export async function getRevenueByDay(
 
   if (error) throw error
 
+  // Fetch order items for profit calculation
+  const orderIds = (orders || []).map(o => o.id)
+  let itemsByOrder = new Map<string, { cost: number }>()
+
+  if (orderIds.length > 0) {
+    const { data: itemsData } = await supabase
+      .from('order_items')
+      .select('order_id, quantity, cost_cents')
+      .in('order_id', orderIds)
+
+    for (const item of itemsData || []) {
+      const existing = itemsByOrder.get(item.order_id) || { cost: 0 }
+      itemsByOrder.set(item.order_id, {
+        cost: existing.cost + (Number(item.quantity) * Number(item.cost_cents || 0)),
+      })
+    }
+  }
+
   // Group by date
-  const grouped = new Map<string, { revenue: number; count: number }>()
+  const grouped = new Map<string, { revenue: number; profit: number; count: number }>()
 
   // Initialize all dates in range
   const current = new Date(startDate)
   const end = new Date(endDate)
   while (current <= end) {
     const dateStr = current.toISOString().split('T')[0]
-    grouped.set(dateStr, { revenue: 0, count: 0 })
+    grouped.set(dateStr, { revenue: 0, profit: 0, count: 0 })
     current.setDate(current.getDate() + 1)
   }
 
   // Aggregate orders
   for (const order of orders || []) {
     const dateStr = order.order_date
-    const existing = grouped.get(dateStr) || { revenue: 0, count: 0 }
+    const existing = grouped.get(dateStr) || { revenue: 0, profit: 0, count: 0 }
+    const orderRevenue = order.total || 0
+    const orderCost = itemsByOrder.get(order.id)?.cost || 0
     grouped.set(dateStr, {
-      revenue: existing.revenue + (order.total || 0),
+      revenue: existing.revenue + orderRevenue,
+      profit: existing.profit + (orderRevenue - orderCost),
       count: existing.count + 1,
     })
   }
@@ -85,6 +112,7 @@ export async function getRevenueByDay(
   return Array.from(grouped.entries()).map(([date, data]) => ({
     date,
     revenue: data.revenue,
+    profit: data.profit,
     orderCount: data.count,
   }))
 }
@@ -168,7 +196,7 @@ export async function getTopCustomers(
   const { data: orders, error } = await supabase
     .from('orders')
     .select(`
-      total,
+      id, total,
       customer:customers(id, company_name)
     `)
     .in('status', ['completed', 'delivered'])
@@ -177,11 +205,28 @@ export async function getTopCustomers(
 
   if (error) throw error
 
+  // Fetch order items for profit calculation
+  const orderIds = (orders || []).map(o => o.id)
+  const costByOrder = new Map<string, number>()
+
+  if (orderIds.length > 0) {
+    const { data: itemsData } = await supabase
+      .from('order_items')
+      .select('order_id, quantity, cost_cents')
+      .in('order_id', orderIds)
+
+    for (const item of itemsData || []) {
+      const existing = costByOrder.get(item.order_id) || 0
+      costByOrder.set(item.order_id, existing + (Number(item.quantity) * Number(item.cost_cents || 0)))
+    }
+  }
+
   // Group by customer
   const grouped = new Map<string, {
     id: string
     companyName: string
     revenue: number
+    profit: number
     count: number
   }>()
 
@@ -191,15 +236,19 @@ export async function getTopCustomers(
     const customer = Array.isArray(customerData) ? customerData[0] : customerData
     if (!customer) continue
 
+    const orderRevenue = order.total || 0
+    const orderCost = costByOrder.get(order.id) || 0
     const existing = grouped.get(customer.id) || {
       id: customer.id,
       companyName: customer.company_name,
       revenue: 0,
+      profit: 0,
       count: 0,
     }
     grouped.set(customer.id, {
       ...existing,
-      revenue: existing.revenue + (order.total || 0),
+      revenue: existing.revenue + orderRevenue,
+      profit: existing.profit + (orderRevenue - orderCost),
       count: existing.count + 1,
     })
   }
@@ -211,6 +260,7 @@ export async function getTopCustomers(
       id: c.id,
       companyName: c.companyName,
       totalRevenue: c.revenue,
+      totalProfit: c.profit,
       orderCount: c.count,
     }))
 }
@@ -228,6 +278,7 @@ export async function getTopProducts(
       product_name,
       quantity,
       total,
+      cost_cents,
       unit_type,
       order:orders!inner(status, order_date)
     `)
@@ -241,19 +292,25 @@ export async function getTopProducts(
   const grouped = new Map<string, {
     quantity: number
     revenue: number
+    profit: number
     unitType: string
   }>()
 
   for (const item of items || []) {
     const name = item.product_name
+    const qty = Number(item.quantity || 0)
+    const lineRevenue = item.total || 0
+    const lineCost = qty * Number(item.cost_cents || 0)
     const existing = grouped.get(name) || {
       quantity: 0,
       revenue: 0,
+      profit: 0,
       unitType: item.unit_type || 'piece',
     }
     grouped.set(name, {
-      quantity: existing.quantity + Number(item.quantity || 0),
-      revenue: existing.revenue + (item.total || 0),
+      quantity: existing.quantity + qty,
+      revenue: existing.revenue + lineRevenue,
+      profit: existing.profit + (lineRevenue - lineCost),
       unitType: existing.unitType,
     })
   }
@@ -263,10 +320,24 @@ export async function getTopProducts(
       productName: name,
       totalQuantity: data.quantity,
       totalRevenue: data.revenue,
+      totalProfit: data.profit,
       unitType: data.unitType,
     }))
     .sort((a, b) => b.totalRevenue - a.totalRevenue)
     .slice(0, limit)
+}
+
+// Helper: calculate total cost from order items
+async function getOrderItemsCost(orderIds: string[]): Promise<number> {
+  if (orderIds.length === 0) return 0
+
+  const { data } = await supabase
+    .from('order_items')
+    .select('quantity, cost_cents')
+    .in('order_id', orderIds)
+
+  return (data || []).reduce((sum, item) =>
+    sum + (Number(item.quantity) * Number(item.cost_cents || 0)), 0)
 }
 
 // Get KPIs with period comparison
@@ -277,7 +348,7 @@ export async function getKPIs(
   // Current period
   const { data: currentOrders, error: currentError } = await supabase
     .from('orders')
-    .select('total')
+    .select('id, total')
     .in('status', ['completed', 'delivered'])
     .gte('order_date', startDate)
     .lte('order_date', endDate)
@@ -307,7 +378,7 @@ export async function getKPIs(
   // Previous period
   const { data: prevOrders, error: prevError } = await supabase
     .from('orders')
-    .select('total')
+    .select('id, total')
     .in('status', ['completed', 'delivered'])
     .gte('order_date', prevStart)
     .lte('order_date', prevEnd)
@@ -322,6 +393,14 @@ export async function getKPIs(
   const prevRevenue = (prevOrders || []).reduce((sum, o) => sum + (o.total || 0), 0)
   const prevOrderCount = (prevOrders || []).length
 
+  // Profit calculation
+  const currentCost = await getOrderItemsCost((currentOrders || []).map(o => o.id))
+  const prevCost = await getOrderItemsCost((prevOrders || []).map(o => o.id))
+
+  const currentProfit = currentRevenue - currentCost
+  const prevProfit = prevRevenue - prevCost
+  const profitMargin = currentRevenue > 0 ? (currentProfit / currentRevenue) * 100 : 0
+
   // Calculate growth percentages
   const revenueGrowth = prevRevenue > 0
     ? ((currentRevenue - prevRevenue) / prevRevenue) * 100
@@ -331,13 +410,20 @@ export async function getKPIs(
     ? ((currentOrderCount - prevOrderCount) / prevOrderCount) * 100
     : currentOrderCount > 0 ? 100 : 0
 
+  const profitGrowth = prevProfit > 0
+    ? ((currentProfit - prevProfit) / prevProfit) * 100
+    : currentProfit > 0 ? 100 : 0
+
   return {
     totalRevenue: currentRevenue,
     totalOrders: currentOrderCount,
     totalItems: Math.round(currentItemCount),
     averageOrderValue: currentOrderCount > 0 ? Math.round(currentRevenue / currentOrderCount) : 0,
+    totalProfit: currentProfit,
+    profitMargin,
     revenueGrowth,
     ordersGrowth,
+    profitGrowth,
   }
 }
 
