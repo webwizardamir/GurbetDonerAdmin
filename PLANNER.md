@@ -1097,7 +1097,19 @@ CREATE TABLE customer_accounts (
 ### Dropdown Overflow on Customers Page (Fixed)
 - **Issue**: Three-dot action menu went below container when only one search result, causing scroll
 - **Cause**: Dropdown with `absolute` positioning was constrained by parent's `overflow-x-auto`
-- **Fix**: Implemented React Portal to render dropdown at `document.body` level with `position: fixed` and viewport boundary calculations
+- **Fix**: Used `relative`/`absolute` positioning with invisible overlay for outside-click detection
+
+### Customer Action Menu Clicks Not Working (Fixed)
+- **Issue**: Clicking any of the 4 action dropdown items (View Details, Custom Pricing, Edit Customer, Delete Customer) did nothing — the menu closed as if clicking outside
+- **Cause**: The `CustomerActionMenu` component used `createPortal` and document-level `mousedown` listeners with complex event handling that had timing issues between `mousedown` and `click` events
+- **Fix**: Rewrote `CustomerActionMenu` to use a simple overlay-based pattern: transparent `fixed inset-0` overlay catches outside clicks, menu uses standard `relative`/`absolute` positioning, no document-level event listeners needed
+
+### Order Editing Prices Show €0.00 (Fixed)
+- **Issue**: When editing an existing order, all product prices changed to €0.00 and the order could not be saved ("Failed to update order" error)
+- **Cause**: The `fetchOrders` query in `src/services/orders.ts` did not select `product_id` or `product_sku` from `order_items`. When the edit form tried to look up prices, it sent `product_id=eq.undefined` to Supabase, returning 400 errors
+- **Fix**:
+  - Added `product_id` and `product_sku` to the `order_items` select in `fetchOrders()`
+  - Added guard clauses in `getEffectivePrice()` and `getAvailableUnitPricesForCustomer()` to return early (0 / empty array) if `productId` or `customerId` is missing
 
 ---
 

@@ -148,6 +148,7 @@ src/
 - **Order editing**: Full edit capability for non-completed orders
   - Edit customer, date, items, notes
   - Add/remove/modify items with live recalculation
+  - Correct price lookup with customer-specific pricing on edit
   - Edit button in orders table (desktop + mobile)
 - Product search with customer-specific pricing
 - Auto-generated order numbers (ORD-YYYY-NNNNN)
