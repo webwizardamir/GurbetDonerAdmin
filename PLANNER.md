@@ -149,7 +149,7 @@ CREATE TYPE audit_action AS ENUM ('create', 'update', 'delete');
 - [x] Include user info, IP, timestamp
 - [x] Append-only (immutable)
 - [x] Searchable by entity, user, date range
-- [x] Export to CSV
+- [x] Export to Excel (.xlsx)
 
 **Tracked Entities:**
 - customers
@@ -654,7 +654,7 @@ CREATE TABLE document_settings (
   - [x] Bulk selection with checkboxes (select-all, row highlight)
   - [x] Bulk download (sequential PDF generation)
   - [x] Bulk delete (permission-gated with confirmation)
-  - [x] CSV export with document columns
+  - [x] Excel export with document columns
   - [x] Clickable type badges (click to filter)
   - [x] Type-specific icon colors per document type
   - [x] Result count display ("X van Y documenten")
@@ -721,18 +721,29 @@ CREATE TABLE document_settings (
 - [x] Full dark/light mode support with theme-aware chart colors
 - [x] Responsive layout (mobile-first grid)
 - [x] Owner-only access (non-owners redirected)
+- [x] Tabbed analytics: Overview, Products, Customers, Orders, Financial, Inventory
+- [x] Customers tab with date range filter (revenue/profit/tax filtered by period, lastOrderDate all-time)
+- [x] Orders tab shows ALL statuses with client-side status & payment method filters
+- [x] KPI cards and export reflect filtered data
 - [ ] Margin report (requires batch costs - postponed with Phase 3)
 - [ ] Stock valuation report (future enhancement)
 
 **Components:**
-- `Analytics.tsx` - Main dashboard page (Owner only)
-- `RevenueChart.tsx` - Area chart with gradient fill
-- `OrdersChart.tsx` - Donut chart for orders by status
-- `TopCustomersChart.tsx` - Horizontal bar chart ranking
-- `TopProductsChart.tsx` - Horizontal bar chart ranking
+- `Analytics.tsx` - Main analytics page with tab bar (Owner only)
+- `tabs/OverviewTab.tsx` - KPI cards + charts
+- `tabs/ProductsTab.tsx` - Product performance table, ABC classification, category chart, slow movers
+- `tabs/CustomersTab.tsx` - Customer performance table, revenue concentration chart
+- `tabs/OrdersTab.tsx` - Order listing with status/payment filters
+- `tabs/FinancialTab.tsx` - P&L summary, monthly comparison, waterfall chart
+- `tabs/InventoryTab.tsx` - Turnover ratios, expiry risk, batch aging
 - `DateRangePicker.tsx` - Date range selector with custom option
 - `ChartColors.ts` - Chart color palette for light/dark modes
-- `useAnalytics.ts` - Analytics data hook
+- `useCustomerAnalytics.ts` - Customer analytics hook (date-filtered)
+- `useOrderAnalytics.ts` - Order analytics hook
+- `useProductAnalytics.ts` - Product analytics hook
+- `useFinancialAnalytics.ts` - Financial analytics hook
+- `useInventoryAnalytics.ts` - Inventory analytics hook
+- `useDateRange.ts` - Shared date range state hook
 - `analytics.ts` - Supabase analytics service
 
 ---
@@ -755,20 +766,25 @@ CREATE TABLE document_settings (
   - [x] Copy to clipboard functionality
   - [x] Print functionality
   - [x] PDF export (no revenue - refill workflow only)
-- [x] Export to CSV:
+- [x] Export to Excel (.xlsx) with styled headers:
   - [x] Orders (with filters applied)
   - [x] Products (with filters applied)
   - [x] Customers (with filters applied)
+  - [x] Documents/Invoices
+  - [x] Audit log
+  - [x] Analytics tabs (Products, Customers, Orders)
   - [ ] Stock (pending - Phase 3 postponed)
   - [ ] Expiry list (pending - Phase 3 postponed)
-  - [ ] Audit log (pending - low priority)
+- [x] Excel styling: green (#16A34A) header with bold white text, alternating row colors, auto-width columns, thin borders
 
 **Components:**
 - `SoldProducts.tsx` - Sold products report page
 - `SoldProductsTemplate.tsx` - PDF template for sold products export
 - `soldProducts.ts` - Service functions (getSoldProducts, getStockStatus, getSuggestedRefill)
 - `useSoldProducts.ts` - Hook for state management
-- `export.ts` - CSV export utilities (toCSV, downloadCSV, exportToCSV, column configs)
+- `export.ts` - Excel export utilities (exportToExcelGeneric, column configs) + legacy CSV utilities
+- `excelExport.ts` - Excel export for analytics tabs (exportToExcel with exceljs)
+- `csvExport.ts` - Legacy CSV export (analytics format helpers)
 
 ---
 
@@ -1040,7 +1056,7 @@ CREATE TABLE customer_accounts (
 
 1. ~~Complete Phase 8: Exports & Workflows~~ ✅ DONE
    - [x] "Sold Products" refill report with PDF export ✅
-   - [x] CSV export for orders, products, customers ✅
+   - [x] Excel export for orders, products, customers, documents, audit log ✅
 2. ~~Global Features~~ ✅ DONE
    - [x] Global search bar
    - [x] Reminder system with notifications
@@ -1156,3 +1172,27 @@ CREATE TABLE customer_accounts (
   - `src/components/products/ProductForm.tsx`
   - `src/components/orders/OrderForm.tsx`
   - `src/hooks/useProducts.ts`
+
+### Analytics Improvements ✅
+- **Customers Tab**: Re-added date range filter (was fetching all-time data with no date picker)
+  - Revenue, profit, tax, order count filtered by selected date range
+  - Last order date remains all-time (not filtered)
+- **Orders Tab**: Now shows ALL order statuses (not just completed/delivered)
+  - Added status filter dropdown (Draft, Pending Payment, On Hold, Completed, Cancelled, Refunded, Delivered)
+  - Added payment method filter dropdown (Cash, Bank)
+  - KPI cards and export compute from filtered data
+  - StatusBadge now has distinct colors for all statuses
+- **Files Modified**: `analytics.ts`, `useCustomerAnalytics.ts`, `CustomersTab.tsx`, `OrdersTab.tsx`, `Analytics.tsx`
+
+### Excel Export (CSV → XLSX) ✅
+- **Change**: Replaced all CSV exports with styled Excel (.xlsx) using `exceljs`
+- **Styling**: Green header (#16A34A) with bold white text, alternating row fills, auto-width columns, thin borders
+- **Pages Updated**: Orders, Products, Customers, Documents, Audit Log, Analytics tabs (Products, Customers, Orders)
+- **New Dependency**: `exceljs` (browser-compatible Excel generation)
+- **Files Added**:
+  - `src/utils/excelExport.ts` - Analytics tab Excel export utility
+- **Files Modified**:
+  - `src/utils/export.ts` - Added `exportToExcelGeneric()` for page-level exports
+  - `src/pages/Orders.tsx`, `Products.tsx`, `Customers.tsx`, `Invoices.tsx`, `AuditLog.tsx`
+  - `src/components/analytics/tabs/ProductsTab.tsx`, `CustomersTab.tsx`, `OrdersTab.tsx`
+  - `src/i18n/locales/nl.json`, `en.json` - Added `analytics.export` key

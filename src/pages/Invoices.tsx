@@ -30,7 +30,7 @@ import { CreditNoteTemplate } from '../components/documents/CreditNoteTemplate'
 import { PackingSlipTemplate } from '../components/documents/PackingSlipTemplate'
 import StatCard from '../components/StatCard'
 import { formatDateTime } from '../utils/format'
-import { exportToCSV, documentExportColumns } from '../utils/export'
+import { exportToExcelGeneric, documentExportColumns } from '../utils/export'
 
 // ─── Helpers ──────────────────────────────────────────
 
@@ -437,7 +437,7 @@ export default function Invoices() {
       }
     })
     const filename = `${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`
-    exportToCSV(exportData, documentExportColumns, filename)
+    exportToExcelGeneric(exportData, documentExportColumns, filename)
   }
 
   const handleTypeFilterClick = (type: DocumentType) => {

@@ -26,7 +26,7 @@ import { bulkUpdateOrderStatus, bulkDeleteOrders } from '../services/orders'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
 import OrderForm from '../components/orders/OrderForm'
 import OrderDetail from '../components/orders/OrderDetail'
-import { exportToCSV, orderExportColumns } from '../utils/export'
+import { exportToExcelGeneric, orderExportColumns } from '../utils/export'
 import { formatPrice, formatDate } from '../utils/format'
 
 // Status badge component - supports both original and new schema statuses
@@ -194,7 +194,7 @@ export default function Orders() {
 
   const handleExport = () => {
     const today = new Date().toISOString().split('T')[0]
-    exportToCSV(filteredOrders, orderExportColumns, `orders-${today}.csv`)
+    exportToExcelGeneric(filteredOrders, orderExportColumns, `orders-${today}`)
   }
 
   // Selection handlers

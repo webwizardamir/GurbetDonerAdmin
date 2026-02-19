@@ -18,7 +18,7 @@ import { useAuth } from '../context/AuthContext'
 import ProductForm, { type ProductFormData } from '../components/products/ProductForm'
 import CategoryManager from '../components/products/CategoryManager'
 import type { Product } from '../types'
-import { exportToCSV, productExportColumns } from '../utils/export'
+import { exportToExcelGeneric, productExportColumns } from '../utils/export'
 import { formatPrice } from '../utils/format'
 
 // Format unit type for display
@@ -104,7 +104,7 @@ export default function Products() {
 
   const handleExport = () => {
     const today = new Date().toISOString().split('T')[0]
-    exportToCSV(filteredProducts, productExportColumns, `products-${today}.csv`)
+    exportToExcelGeneric(filteredProducts, productExportColumns, `products-${today}`)
   }
 
   return (

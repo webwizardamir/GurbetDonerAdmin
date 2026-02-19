@@ -113,24 +113,24 @@ CREATE POLICY "product_unit_prices_select_all" ON product_unit_prices
 CREATE POLICY "product_unit_prices_insert_owner" ON product_unit_prices
   FOR INSERT WITH CHECK (
     EXISTS (
-      SELECT 1 FROM user_profiles up
-      WHERE up.id = auth.uid() AND up.role = 'owner'
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'owner'
     )
   );
 
 CREATE POLICY "product_unit_prices_update_owner" ON product_unit_prices
   FOR UPDATE USING (
     EXISTS (
-      SELECT 1 FROM user_profiles up
-      WHERE up.id = auth.uid() AND up.role = 'owner'
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'owner'
     )
   );
 
 CREATE POLICY "product_unit_prices_delete_owner" ON product_unit_prices
   FOR DELETE USING (
     EXISTS (
-      SELECT 1 FROM user_profiles up
-      WHERE up.id = auth.uid() AND up.role = 'owner'
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'owner'
     )
   );
 
@@ -138,8 +138,8 @@ CREATE POLICY "product_unit_prices_delete_owner" ON product_unit_prices
 CREATE POLICY "product_unit_prices_insert_manager" ON product_unit_prices
   FOR INSERT WITH CHECK (
     EXISTS (
-      SELECT 1 FROM user_profiles up
-      WHERE up.id = auth.uid() AND up.role = 'shop_manager'
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'shop_manager'
     )
     AND cost_cents IS NULL
   );
@@ -147,8 +147,8 @@ CREATE POLICY "product_unit_prices_insert_manager" ON product_unit_prices
 CREATE POLICY "product_unit_prices_update_manager" ON product_unit_prices
   FOR UPDATE USING (
     EXISTS (
-      SELECT 1 FROM user_profiles up
-      WHERE up.id = auth.uid() AND up.role = 'shop_manager'
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'shop_manager'
     )
   )
   WITH CHECK (cost_cents IS NULL);
@@ -156,8 +156,8 @@ CREATE POLICY "product_unit_prices_update_manager" ON product_unit_prices
 CREATE POLICY "product_unit_prices_delete_manager" ON product_unit_prices
   FOR DELETE USING (
     EXISTS (
-      SELECT 1 FROM user_profiles up
-      WHERE up.id = auth.uid() AND up.role = 'shop_manager'
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'shop_manager'
     )
   );
 

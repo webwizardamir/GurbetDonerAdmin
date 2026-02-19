@@ -122,6 +122,98 @@ export function exportToCSV<T extends Record<string, any>>(
   downloadCSV(csv, filename)
 }
 
+// Export to styled Excel (.xlsx) - same column interface as exportToCSV
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function exportToExcelGeneric<T extends Record<string, any>>(
+  data: T[],
+  columns: Array<{
+    key: keyof T | string
+    header: string
+    format?: (value: unknown, row: T) => string
+  }>,
+  filename: string
+): Promise<void> {
+  const ExcelJS = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('Data')
+
+  // Header row
+  const headerRow = sheet.addRow(columns.map(c => c.header))
+  headerRow.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF16A34A' },
+    }
+    cell.border = {
+      top: { style: 'thin' },
+      bottom: { style: 'thin' },
+      left: { style: 'thin' },
+      right: { style: 'thin' },
+    }
+    cell.alignment = { vertical: 'middle' }
+  })
+
+  // Track column widths
+  const colWidths = columns.map(c => c.header.length)
+
+  // Data rows
+  data.forEach((row, idx) => {
+    const values = columns.map(col => {
+      const value = typeof col.key === 'string' && (col.key as string).includes('.')
+        ? getNestedValue(row, col.key as string)
+        : row[col.key as keyof T]
+      return col.format ? col.format(value, row) : (value ?? '')
+    })
+
+    const dataRow = sheet.addRow(values)
+    const isEven = idx % 2 === 0
+
+    dataRow.eachCell((cell, colNumber) => {
+      if (!isEven) {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF8FAFC' },
+        }
+      }
+      cell.border = {
+        top: { style: 'thin' },
+        bottom: { style: 'thin' },
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+      }
+
+      const val = String(values[colNumber - 1])
+      if (val.includes(',') && /\d/.test(val) && !val.includes('@')) {
+        cell.alignment = { horizontal: 'right' }
+      }
+
+      if (val.length > colWidths[colNumber - 1]) {
+        colWidths[colNumber - 1] = val.length
+      }
+    })
+  })
+
+  // Auto-fit columns
+  colWidths.forEach((width, i) => {
+    sheet.getColumn(i + 1).width = Math.min(width + 4, 50)
+  })
+
+  // Download
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  const cleanName = filename.replace(/\.csv$/, '')
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `${cleanName}.xlsx`
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+
 // =====================================================
 // Pre-configured export functions for common entities
 // =====================================================

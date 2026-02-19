@@ -32,6 +32,7 @@ A comprehensive B2B wholesale management platform for halal food distribution. T
 | Forms | React Hook Form + Zod validation |
 | Tables | TanStack Table |
 | Charts | Recharts |
+| Excel Export | exceljs |
 | Icons | Lucide React |
 | Routing | React Router DOM v7 |
 | Internationalization | react-i18next (NL default, EN secondary) |

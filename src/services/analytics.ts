@@ -544,6 +544,643 @@ export async function getLowStockProducts(threshold = 30): Promise<LowStockProdu
   }))
 }
 
+// ==========================================
+// Products Tab Service Functions
+// ==========================================
+
+export interface ProductPerformanceRow {
+  productName: string
+  categoryName: string
+  totalRevenue: number
+  totalCogs: number
+  totalProfit: number
+  profitMargin: number
+  totalQuantity: number
+  orderCount: number
+  abcClass: 'A' | 'B' | 'C'
+}
+
+export async function getProductPerformance(
+  startDate: string,
+  endDate: string
+): Promise<ProductPerformanceRow[]> {
+  const { data: items, error } = await supabase
+    .from('order_items')
+    .select(`
+      product_name,
+      product_id,
+      quantity,
+      total,
+      cost_cents,
+      order_id,
+      order:orders!inner(status, order_date)
+    `)
+    .in('order.status', ['completed', 'delivered'])
+    .gte('order.order_date', startDate)
+    .lte('order.order_date', endDate)
+
+  if (error) throw error
+
+  // Fetch product categories
+  const productIds = [...new Set((items || []).map(i => i.product_id).filter(Boolean))]
+  const categoryMap = new Map<string, string>()
+
+  if (productIds.length > 0) {
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, category:categories(name)')
+      .in('id', productIds)
+
+    for (const p of products || []) {
+      const catData = p.category as unknown
+      const cat = Array.isArray(catData) ? catData[0] : catData
+      categoryMap.set(p.id, (cat as { name: string } | null)?.name || '')
+    }
+  }
+
+  // Group by product name
+  const grouped = new Map<string, {
+    productName: string
+    categoryName: string
+    revenue: number
+    cogs: number
+    quantity: number
+    orderIds: Set<string>
+  }>()
+
+  for (const item of items || []) {
+    const name = item.product_name
+    const qty = Number(item.quantity || 0)
+    const lineRevenue = item.total || 0
+    const lineCost = qty * Number(item.cost_cents || 0)
+    const existing = grouped.get(name)
+
+    if (existing) {
+      existing.revenue += lineRevenue
+      existing.cogs += lineCost
+      existing.quantity += qty
+      existing.orderIds.add(item.order_id)
+    } else {
+      grouped.set(name, {
+        productName: name,
+        categoryName: categoryMap.get(item.product_id) || '',
+        revenue: lineRevenue,
+        cogs: lineCost,
+        quantity: qty,
+        orderIds: new Set([item.order_id]),
+      })
+    }
+  }
+
+  // Convert to array and sort by revenue
+  const rows = Array.from(grouped.values())
+    .map(g => ({
+      productName: g.productName,
+      categoryName: g.categoryName,
+      totalRevenue: g.revenue,
+      totalCogs: g.cogs,
+      totalProfit: g.revenue - g.cogs,
+      profitMargin: g.revenue > 0 ? ((g.revenue - g.cogs) / g.revenue) * 100 : 0,
+      totalQuantity: g.quantity,
+      orderCount: g.orderIds.size,
+      abcClass: 'C' as 'A' | 'B' | 'C',
+    }))
+    .sort((a, b) => b.totalRevenue - a.totalRevenue)
+
+  // Compute ABC classification
+  const totalRevenue = rows.reduce((sum, r) => sum + r.totalRevenue, 0)
+  let cumulative = 0
+  for (const row of rows) {
+    cumulative += row.totalRevenue
+    const share = totalRevenue > 0 ? (cumulative / totalRevenue) * 100 : 100
+    if (share <= 80) row.abcClass = 'A'
+    else if (share <= 95) row.abcClass = 'B'
+    else row.abcClass = 'C'
+  }
+
+  return rows
+}
+
+export interface SlowMoverRow {
+  productId: string
+  productName: string
+  sku: string
+  currentStock: number
+  stockValue: number
+  lastSaleDate: string | null
+  daysSinceLastSale: number | null
+}
+
+export async function getSlowMovers(daysSinceLastSale = 60): Promise<SlowMoverRow[]> {
+  // Get all tracked products
+  const { data: products, error: prodError } = await supabase
+    .from('products')
+    .select('id, name, sku, stock_quantity, cost_cents')
+    .eq('track_stock', true)
+    .gt('stock_quantity', 0)
+
+  if (prodError) throw prodError
+  if (!products || products.length === 0) return []
+
+  // Get last sale date per product from order_items
+  const productIds = products.map(p => p.id)
+  const { data: salesData, error: salesError } = await supabase
+    .from('order_items')
+    .select(`
+      product_id,
+      order:orders!inner(order_date, status)
+    `)
+    .in('product_id', productIds)
+    .in('order.status', ['completed', 'delivered'])
+
+  if (salesError) throw salesError
+
+  // Find max order_date per product
+  const lastSaleMap = new Map<string, string>()
+  for (const item of salesData || []) {
+    const orderData = item.order as unknown
+    const order = Array.isArray(orderData) ? orderData[0] : orderData
+    if (!order) continue
+    const date = (order as { order_date: string }).order_date
+    const existing = lastSaleMap.get(item.product_id)
+    if (!existing || date > existing) {
+      lastSaleMap.set(item.product_id, date)
+    }
+  }
+
+  const today = new Date()
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - daysSinceLastSale)
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+
+  return products
+    .filter(p => {
+      const lastSale = lastSaleMap.get(p.id)
+      return !lastSale || lastSale <= cutoffStr
+    })
+    .map(p => {
+      const lastSale = lastSaleMap.get(p.id) || null
+      const daysSince = lastSale
+        ? Math.floor((today.getTime() - new Date(lastSale).getTime()) / 86400000)
+        : null
+      return {
+        productId: p.id,
+        productName: p.name,
+        sku: p.sku || '',
+        currentStock: p.stock_quantity || 0,
+        stockValue: (p.stock_quantity || 0) * (p.cost_cents || 0),
+        lastSaleDate: lastSale,
+        daysSinceLastSale: daysSince,
+      }
+    })
+    .sort((a, b) => (b.daysSinceLastSale || 9999) - (a.daysSinceLastSale || 9999))
+}
+
+export interface CategoryRevenueRow {
+  categoryName: string
+  totalRevenue: number
+  totalCogs: number
+  totalProfit: number
+  profitMargin: number
+}
+
+export async function getRevenueByCategoryFlat(
+  startDate: string,
+  endDate: string
+): Promise<CategoryRevenueRow[]> {
+  const { data: items, error } = await supabase
+    .from('order_items')
+    .select(`
+      product_id,
+      quantity,
+      total,
+      cost_cents,
+      order:orders!inner(status, order_date)
+    `)
+    .in('order.status', ['completed', 'delivered'])
+    .gte('order.order_date', startDate)
+    .lte('order.order_date', endDate)
+
+  if (error) throw error
+
+  // Fetch product categories
+  const productIds = [...new Set((items || []).map(i => i.product_id).filter(Boolean))]
+  const categoryMap = new Map<string, string>()
+
+  if (productIds.length > 0) {
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, category:categories(name)')
+      .in('id', productIds)
+
+    for (const p of products || []) {
+      const catData = p.category as unknown
+      const cat = Array.isArray(catData) ? catData[0] : catData
+      categoryMap.set(p.id, (cat as { name: string } | null)?.name || '')
+    }
+  }
+
+  // Group by category
+  const grouped = new Map<string, { revenue: number; cogs: number }>()
+  for (const item of items || []) {
+    const cat = categoryMap.get(item.product_id) || ''
+    const qty = Number(item.quantity || 0)
+    const lineRevenue = item.total || 0
+    const lineCost = qty * Number(item.cost_cents || 0)
+    const existing = grouped.get(cat) || { revenue: 0, cogs: 0 }
+    grouped.set(cat, {
+      revenue: existing.revenue + lineRevenue,
+      cogs: existing.cogs + lineCost,
+    })
+  }
+
+  return Array.from(grouped.entries())
+    .map(([name, data]) => ({
+      categoryName: name || '',
+      totalRevenue: data.revenue,
+      totalCogs: data.cogs,
+      totalProfit: data.revenue - data.cogs,
+      profitMargin: data.revenue > 0 ? ((data.revenue - data.cogs) / data.revenue) * 100 : 0,
+    }))
+    .sort((a, b) => b.totalRevenue - a.totalRevenue)
+}
+
+// ==========================================
+// Customers Tab Service Functions
+// ==========================================
+
+export interface CustomerPerformanceRow {
+  customerId: string
+  companyName: string
+  totalRevenue: number
+  totalProfit: number
+  totalTax: number
+  profitMargin: number
+  orderCount: number
+  avgOrderValue: number
+  lastOrderDate: string | null
+  daysSinceLastOrder: number | null
+}
+
+export async function getCustomerPerformance(
+  startDate?: string,
+  endDate?: string
+): Promise<CustomerPerformanceRow[]> {
+  // Get ALL customers
+  const { data: customers, error: custError } = await supabase
+    .from('customers')
+    .select('id, company_name')
+
+  if (custError) throw custError
+  if (!customers || customers.length === 0) return []
+
+  // Get all completed/delivered orders with customer_id
+  let ordersQuery = supabase
+    .from('orders')
+    .select('id, customer_id, total, tax_amount, order_date')
+    .in('status', ['completed', 'delivered'])
+
+  if (startDate) ordersQuery = ordersQuery.gte('order_date', startDate)
+  if (endDate) ordersQuery = ordersQuery.lte('order_date', endDate)
+
+  const { data: orders, error: ordError } = await ordersQuery
+
+  if (ordError) throw ordError
+
+  // Get order items for cost calculation
+  const orderIds = (orders || []).map(o => o.id)
+  const costByOrder = new Map<string, number>()
+
+  if (orderIds.length > 0) {
+    const { data: itemsData } = await supabase
+      .from('order_items')
+      .select('order_id, quantity, cost_cents')
+      .in('order_id', orderIds)
+
+    for (const item of itemsData || []) {
+      const existing = costByOrder.get(item.order_id) || 0
+      costByOrder.set(item.order_id, existing + (Number(item.quantity) * Number(item.cost_cents || 0)))
+    }
+  }
+
+  // Aggregate per customer
+  const statsMap = new Map<string, {
+    revenue: number
+    profit: number
+    tax: number
+    count: number
+    lastDate: string | null
+  }>()
+
+  for (const order of orders || []) {
+    const custId = order.customer_id
+    if (!custId) continue
+    const orderRevenue = order.total || 0
+    const orderCost = costByOrder.get(order.id) || 0
+    const orderTax = order.tax_amount || 0
+    const existing = statsMap.get(custId)
+    if (existing) {
+      existing.revenue += orderRevenue
+      existing.profit += (orderRevenue - orderCost)
+      existing.tax += orderTax
+      existing.count += 1
+      if (!existing.lastDate || order.order_date > existing.lastDate) {
+        existing.lastDate = order.order_date
+      }
+    } else {
+      statsMap.set(custId, {
+        revenue: orderRevenue,
+        profit: orderRevenue - orderCost,
+        tax: orderTax,
+        count: 1,
+        lastDate: order.order_date,
+      })
+    }
+  }
+
+  const today = new Date()
+
+  return customers.map(c => {
+    const stats = statsMap.get(c.id)
+    const revenue = stats?.revenue || 0
+    const profit = stats?.profit || 0
+    const tax = stats?.tax || 0
+    const count = stats?.count || 0
+    const lastDate = stats?.lastDate || null
+    const daysSince = lastDate
+      ? Math.floor((today.getTime() - new Date(lastDate).getTime()) / 86400000)
+      : null
+
+    return {
+      customerId: c.id,
+      companyName: c.company_name,
+      totalRevenue: revenue,
+      totalProfit: profit,
+      totalTax: tax,
+      profitMargin: revenue > 0 ? (profit / revenue) * 100 : 0,
+      orderCount: count,
+      avgOrderValue: count > 0 ? Math.round(revenue / count) : 0,
+      lastOrderDate: lastDate,
+      daysSinceLastOrder: daysSince,
+    }
+  }).sort((a, b) => b.totalRevenue - a.totalRevenue)
+}
+
+// ==========================================
+// Financial Tab Service Functions
+// ==========================================
+
+export interface FinancialSummary {
+  grossRevenue: number
+  totalDiscounts: number
+  netRevenue: number
+  totalCogs: number
+  grossProfit: number
+  grossMargin: number
+  vatCollected: number
+  cashRevenue: number
+  bankRevenue: number
+  // Previous period for comparison
+  prev: {
+    grossRevenue: number
+    grossProfit: number
+    orderCount: number
+  }
+  orderCount: number
+}
+
+export async function getFinancialSummary(
+  startDate: string,
+  endDate: string
+): Promise<FinancialSummary> {
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('id, total, subtotal, tax_amount, discount_amount, payment_method')
+    .in('status', ['completed', 'delivered'])
+    .gte('order_date', startDate)
+    .lte('order_date', endDate)
+
+  if (error) throw error
+
+  const orderIds = (orders || []).map(o => o.id)
+  const totalCogs = await getOrderItemsCost(orderIds)
+
+  const grossRevenue = (orders || []).reduce((sum, o) => sum + (o.total || 0), 0)
+  const totalDiscounts = (orders || []).reduce((sum, o) => sum + (o.discount_amount || 0), 0)
+  const vatCollected = (orders || []).reduce((sum, o) => sum + (o.tax_amount || 0), 0)
+  const netRevenue = grossRevenue
+  const grossProfit = netRevenue - totalCogs
+
+  const cashRevenue = (orders || [])
+    .filter(o => o.payment_method === 'cash')
+    .reduce((sum, o) => sum + (o.total || 0), 0)
+  const bankRevenue = (orders || [])
+    .filter(o => o.payment_method === 'bank')
+    .reduce((sum, o) => sum + (o.total || 0), 0)
+
+  // Previous period
+  const startMs = new Date(startDate).getTime()
+  const endMs = new Date(endDate).getTime()
+  const duration = endMs - startMs
+  const prevStart = new Date(startMs - duration - 86400000).toISOString().split('T')[0]
+  const prevEnd = new Date(startMs - 86400000).toISOString().split('T')[0]
+
+  const { data: prevOrders } = await supabase
+    .from('orders')
+    .select('id, total')
+    .in('status', ['completed', 'delivered'])
+    .gte('order_date', prevStart)
+    .lte('order_date', prevEnd)
+
+  const prevRevenue = (prevOrders || []).reduce((sum, o) => sum + (o.total || 0), 0)
+  const prevCogs = await getOrderItemsCost((prevOrders || []).map(o => o.id))
+
+  return {
+    grossRevenue,
+    totalDiscounts,
+    netRevenue,
+    totalCogs,
+    grossProfit,
+    grossMargin: netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0,
+    vatCollected,
+    cashRevenue,
+    bankRevenue,
+    orderCount: (orders || []).length,
+    prev: {
+      grossRevenue: prevRevenue,
+      grossProfit: prevRevenue - prevCogs,
+      orderCount: (prevOrders || []).length,
+    },
+  }
+}
+
+export interface MonthlyRow {
+  month: number
+  monthLabel: string
+  revenue: number
+  profit: number
+  orders: number
+}
+
+export async function getMonthlyComparison(year: number): Promise<MonthlyRow[]> {
+  const startDate = `${year}-01-01`
+  const endDate = `${year}-12-31`
+
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('id, total, order_date')
+    .in('status', ['completed', 'delivered'])
+    .gte('order_date', startDate)
+    .lte('order_date', endDate)
+
+  if (error) throw error
+
+  const orderIds = (orders || []).map(o => o.id)
+  const costByOrder = new Map<string, number>()
+
+  if (orderIds.length > 0) {
+    const { data: itemsData } = await supabase
+      .from('order_items')
+      .select('order_id, quantity, cost_cents')
+      .in('order_id', orderIds)
+
+    for (const item of itemsData || []) {
+      const existing = costByOrder.get(item.order_id) || 0
+      costByOrder.set(item.order_id, existing + (Number(item.quantity) * Number(item.cost_cents || 0)))
+    }
+  }
+
+  const monthLabels = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+  const months: MonthlyRow[] = monthLabels.map((label, i) => ({
+    month: i + 1,
+    monthLabel: label,
+    revenue: 0,
+    profit: 0,
+    orders: 0,
+  }))
+
+  for (const order of orders || []) {
+    const monthIdx = new Date(order.order_date).getMonth()
+    const orderRevenue = order.total || 0
+    const orderCost = costByOrder.get(order.id) || 0
+    months[monthIdx].revenue += orderRevenue
+    months[monthIdx].profit += (orderRevenue - orderCost)
+    months[monthIdx].orders += 1
+  }
+
+  return months
+}
+
+// ==========================================
+// Inventory Tab Service Functions
+// ==========================================
+
+export interface ExpiryRiskRow {
+  batchId: string
+  productName: string
+  productSku: string
+  lotNumber: string
+  expiryDate: string | null
+  daysToExpiry: number | null
+  quantityRemaining: number
+  valueAtRisk: number
+  riskLevel: 'expired' | 'critical' | 'warning' | 'ok'
+}
+
+export async function getExpiryRisk(): Promise<ExpiryRiskRow[]> {
+  // Batch tracking table (product_batches) is not yet configured
+  return []
+}
+
+export interface TurnoverRow {
+  productName: string
+  stockQty: number
+  stockValue: number
+  cogsInPeriod: number
+  turnoverRatio: number
+  daysToSell: number | null
+}
+
+export async function getInventoryTurnover(
+  startDate: string,
+  endDate: string
+): Promise<TurnoverRow[]> {
+  // Get products with stock
+  const { data: products, error: prodError } = await supabase
+    .from('products')
+    .select('id, name, stock_quantity, cost_cents')
+    .eq('track_stock', true)
+    .gt('stock_quantity', 0)
+    .order('stock_quantity', { ascending: false })
+
+  if (prodError) throw prodError
+  if (!products || products.length === 0) return []
+
+  // Get COGS per product in period
+  const productIds = products.map(p => p.id)
+  const { data: items, error: itemsError } = await supabase
+    .from('order_items')
+    .select(`
+      product_id,
+      quantity,
+      cost_cents,
+      order:orders!inner(status, order_date)
+    `)
+    .in('product_id', productIds)
+    .in('order.status', ['completed', 'delivered'])
+    .gte('order.order_date', startDate)
+    .lte('order.order_date', endDate)
+
+  if (itemsError) throw itemsError
+
+  const cogsMap = new Map<string, number>()
+  for (const item of items || []) {
+    const cost = Number(item.quantity || 0) * Number(item.cost_cents || 0)
+    cogsMap.set(item.product_id, (cogsMap.get(item.product_id) || 0) + cost)
+  }
+
+  // Calculate days in period
+  const periodDays = Math.max(1, Math.floor(
+    (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000
+  ) + 1)
+
+  return products
+    .map(p => {
+      const stockValue = (p.stock_quantity || 0) * (p.cost_cents || 0)
+      const cogs = cogsMap.get(p.id) || 0
+      const turnover = stockValue > 0 ? cogs / stockValue : 0
+      const daysToSell = turnover > 0 ? Math.round(periodDays / turnover) : null
+
+      return {
+        productName: p.name,
+        stockQty: p.stock_quantity || 0,
+        stockValue,
+        cogsInPeriod: cogs,
+        turnoverRatio: Math.round(turnover * 100) / 100,
+        daysToSell,
+      }
+    })
+    .sort((a, b) => b.stockValue - a.stockValue)
+    .slice(0, 20)
+}
+
+export interface BatchAgingBucket {
+  label: string
+  value: number
+  count: number
+}
+
+export async function getBatchAging(): Promise<BatchAgingBucket[]> {
+  // Batch tracking table (product_batches) is not yet configured
+  return [
+    { label: '0-30', value: 0, count: 0 },
+    { label: '31-60', value: 0, count: 0 },
+    { label: '61-90', value: 0, count: 0 },
+    { label: '91-180', value: 0, count: 0 },
+    { label: '180+', value: 0, count: 0 },
+  ]
+}
+
 // Get date range helpers
 export function getDateRanges() {
   const today = new Date()
@@ -580,4 +1217,84 @@ export function getDateRanges() {
     lastMonth: { start: lastMonthStart.toISOString().split('T')[0], end: lastMonthEnd.toISOString().split('T')[0], label: 'Last month' },
     thisYear: { start: thisYearStart.toISOString().split('T')[0], end: todayStr, label: 'This year' },
   }
+}
+
+// ==========================================
+// Orders Tab Service Functions
+// ==========================================
+
+export interface OrderPerformanceRow {
+  orderId: string
+  orderNumber: string
+  orderDate: string
+  customerName: string
+  status: string
+  paymentMethod: string
+  subtotal: number
+  discountAmount: number
+  taxAmount: number
+  total: number
+  totalCost: number
+  profit: number
+  profitMargin: number
+}
+
+export async function getOrderPerformance(
+  startDate: string,
+  endDate: string
+): Promise<OrderPerformanceRow[]> {
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select(`
+      id, order_number, order_date, status, payment_method,
+      subtotal, discount_amount, tax_amount, total,
+      customer:customers(company_name)
+    `)
+    .gte('order_date', startDate)
+    .lte('order_date', endDate)
+    .order('order_date', { ascending: false })
+
+  if (error) throw error
+
+  // Get order items for cost calculation
+  const orderIds = (orders || []).map(o => o.id)
+  const costByOrder = new Map<string, number>()
+
+  if (orderIds.length > 0) {
+    const { data: itemsData } = await supabase
+      .from('order_items')
+      .select('order_id, quantity, cost_cents')
+      .in('order_id', orderIds)
+
+    for (const item of itemsData || []) {
+      const existing = costByOrder.get(item.order_id) || 0
+      costByOrder.set(item.order_id, existing + (Number(item.quantity) * Number(item.cost_cents || 0)))
+    }
+  }
+
+  return (orders || []).map(order => {
+    const customerData = order.customer as unknown
+    const customer = Array.isArray(customerData) ? customerData[0] : customerData
+    const customerName = (customer as { company_name: string } | null)?.company_name || 'Unknown'
+
+    const totalCost = costByOrder.get(order.id) || 0
+    const orderTotal = order.total || 0
+    const profit = orderTotal - totalCost
+
+    return {
+      orderId: order.id,
+      orderNumber: order.order_number || '',
+      orderDate: order.order_date,
+      customerName,
+      status: order.status,
+      paymentMethod: order.payment_method || 'none',
+      subtotal: order.subtotal || 0,
+      discountAmount: order.discount_amount || 0,
+      taxAmount: order.tax_amount || 0,
+      total: orderTotal,
+      totalCost,
+      profit,
+      profitMargin: orderTotal > 0 ? (profit / orderTotal) * 100 : 0,
+    }
+  })
 }

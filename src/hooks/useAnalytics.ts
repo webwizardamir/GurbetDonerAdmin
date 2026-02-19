@@ -6,7 +6,6 @@ import {
   getTopCustomers,
   getTopProducts,
   getKPIs,
-  getDateRanges,
   type RevenueDataPoint,
   type OrderStatusCount,
   type PaymentMethodBreakdown,
@@ -14,20 +13,15 @@ import {
   type TopProduct,
   type KPIData,
 } from '../services/analytics'
+import type { DateRange } from './useDateRange'
 
-export type DateRangeKey = 'today' | 'last7Days' | 'last30Days' | 'last90Days' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'custom'
+// Re-export for backwards compatibility
+export type { DateRange }
+export type { DateRangeKey } from './useDateRange'
 
-interface DateRange {
-  start: string
-  end: string
-  label: string
-}
-
-interface AnalyticsState {
+interface OverviewData {
   loading: boolean
   error: string | null
-  dateRange: DateRange
-  dateRangeKey: DateRangeKey
   revenueData: RevenueDataPoint[]
   ordersByStatus: OrderStatusCount[]
   paymentBreakdown: PaymentMethodBreakdown[]
@@ -36,14 +30,10 @@ interface AnalyticsState {
   kpis: KPIData | null
 }
 
-export function useAnalytics() {
-  const ranges = getDateRanges()
-
-  const [state, setState] = useState<AnalyticsState>({
+export function useOverviewAnalytics(dateRange: DateRange) {
+  const [state, setState] = useState<OverviewData>({
     loading: true,
     error: null,
-    dateRange: ranges.last30Days,
-    dateRangeKey: 'last30Days',
     revenueData: [],
     ordersByStatus: [],
     paymentBreakdown: [],
@@ -52,32 +42,12 @@ export function useAnalytics() {
     kpis: null,
   })
 
-  // Set date range
-  const setDateRange = useCallback((key: DateRangeKey, customRange?: { start: string; end: string }) => {
-    const ranges = getDateRanges()
-    let newRange: DateRange
-
-    if (key === 'custom' && customRange) {
-      newRange = { ...customRange, label: 'Custom' }
-    } else {
-      newRange = ranges[key as keyof typeof ranges] || ranges.last30Days
-    }
-
-    setState(prev => ({
-      ...prev,
-      dateRangeKey: key,
-      dateRange: newRange,
-    }))
-  }, [])
-
-  // Fetch all analytics data
   const fetchData = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const { start, end } = state.dateRange
+      const { start, end } = dateRange
 
-      // Fetch all data in parallel
       const [revenueData, ordersByStatus, paymentBreakdown, topCustomers, topProducts, kpis] = await Promise.all([
         getRevenueByDay(start, end),
         getOrdersByStatus(start, end),
@@ -87,16 +57,16 @@ export function useAnalytics() {
         getKPIs(start, end),
       ])
 
-      setState(prev => ({
-        ...prev,
+      setState({
         loading: false,
+        error: null,
         revenueData,
         ordersByStatus,
         paymentBreakdown,
         topCustomers,
         topProducts,
         kpis,
-      }))
+      })
     } catch (err) {
       setState(prev => ({
         ...prev,
@@ -104,22 +74,18 @@ export function useAnalytics() {
         error: err instanceof Error ? err.message : 'Failed to load analytics',
       }))
     }
-  }, [state.dateRange])
+  }, [dateRange.start, dateRange.end])
 
-  // Refetch when date range changes
   useEffect(() => {
     fetchData()
-  }, [state.dateRange.start, state.dateRange.end])
+  }, [fetchData])
 
-  // Refresh function
   const refresh = useCallback(() => {
     fetchData()
   }, [fetchData])
 
   return {
     ...state,
-    setDateRange,
     refresh,
-    dateRanges: ranges,
   }
 }

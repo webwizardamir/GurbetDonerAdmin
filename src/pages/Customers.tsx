@@ -25,7 +25,7 @@ import { Customer } from '../types'
 import CustomerForm from '../components/customers/CustomerForm'
 import CustomerImport from '../components/customers/CustomerImport'
 import CustomerPricing from '../components/pricing/CustomerPricing'
-import { exportToCSV, customerExportColumns } from '../utils/export'
+import { exportToExcelGeneric, customerExportColumns } from '../utils/export'
 import { supabase } from '../services/supabase'
 import type { CustomerAccount } from '../services/portalAuth'
 
@@ -129,7 +129,7 @@ export default function Customers() {
 
   const handleExport = () => {
     const today = new Date().toISOString().split('T')[0]
-    exportToCSV(filteredCustomers, customerExportColumns, `customers-${today}.csv`)
+    exportToExcelGeneric(filteredCustomers, customerExportColumns, `customers-${today}`)
   }
 
   return (
@@ -172,7 +172,7 @@ export default function Customers() {
             onClick={handleExport}
             disabled={filteredCustomers.length === 0}
             className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-colors whitespace-nowrap disabled:opacity-50"
-            title="Export to CSV"
+            title="Export to Excel"
           >
             <Download className="w-5 h-5" />
             <span className="hidden lg:inline">{t('common.export')}</span>

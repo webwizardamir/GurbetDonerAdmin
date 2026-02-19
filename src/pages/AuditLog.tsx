@@ -100,7 +100,7 @@ export default function AuditLog() {
     })
   }
 
-  const exportToCsv = async () => {
+  const handleExportExcel = async () => {
     setExporting(true)
     try {
       // Fetch all logs for export
@@ -116,33 +116,20 @@ export default function AuditLog() {
         return
       }
 
-      // Convert to CSV
-      const headers = ['Date', 'User', 'Action', 'Entity Type', 'Entity ID', 'Old Values', 'New Values']
-      const csvContent = [
-        headers.join(','),
-        ...data.map((log) =>
-          [
-            `"${formatDate(log.created_at)}"`,
-            `"${log.user_email}"`,
-            log.action,
-            log.entity_type,
-            log.entity_id,
-            `"${JSON.stringify(log.old_values || {}).replace(/"/g, '""')}"`,
-            `"${JSON.stringify(log.new_values || {}).replace(/"/g, '""')}"`,
-          ].join(',')
-        ),
-      ].join('\n')
-
-      // Download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `audit-log-${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      const { exportToExcelGeneric } = await import('../utils/export')
+      const today = new Date().toISOString().split('T')[0]
+      await exportToExcelGeneric(data, [
+        { key: 'created_at', header: 'Datum/tijd', format: (v: unknown) => formatDate(v as string) },
+        { key: 'user_email', header: 'Gebruiker' },
+        { key: 'action', header: 'Actie', format: (v: unknown) => {
+          const map: Record<string, string> = { create: 'Aangemaakt', update: 'Gewijzigd', delete: 'Verwijderd' }
+          return map[v as string] || (v as string)
+        }},
+        { key: 'entity_type', header: 'Type' },
+        { key: 'entity_id', header: 'ID' },
+        { key: 'old_values', header: 'Oude waarden', format: (v: unknown) => JSON.stringify(v || {}) },
+        { key: 'new_values', header: 'Nieuwe waarden', format: (v: unknown) => JSON.stringify(v || {}) },
+      ], `audit-log-${today}`)
     } catch (error) {
       console.error('Export error:', error)
       alert('Failed to export data')
@@ -230,7 +217,7 @@ export default function AuditLog() {
           <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
         </button>
         <button
-          onClick={exportToCsv}
+          onClick={handleExportExcel}
           disabled={exporting || logs.length === 0}
           className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition-colors"
         >
@@ -239,7 +226,7 @@ export default function AuditLog() {
           ) : (
             <Download className="w-4 h-4" />
           )}
-          Export CSV
+          Export
         </button>
       </div>
 
