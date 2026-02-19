@@ -10,6 +10,7 @@ import {
   Download,
   ChevronUp,
   ChevronDown,
+  Search,
 } from 'lucide-react'
 import {
   Bar,
@@ -40,9 +41,16 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
   const { colors } = useChartColors()
   const [sortKey, setSortKey] = useState<SortKey>('totalRevenue')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [search, setSearch] = useState('')
+
+  const filteredCustomers = useMemo(() => {
+    if (!search.trim()) return customers
+    const q = search.toLowerCase()
+    return customers.filter(c => c.companyName.toLowerCase().includes(q))
+  }, [customers, search])
 
   const sortedCustomers = useMemo(() => {
-    return [...customers].sort((a, b) => {
+    return [...filteredCustomers].sort((a, b) => {
       const aVal = a[sortKey]
       const bVal = b[sortKey]
       if (aVal === null && bVal === null) return 0
@@ -51,7 +59,7 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
       const cmp = typeof aVal === 'string' ? aVal.localeCompare(bVal as string) : (aVal as number) - (bVal as number)
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [customers, sortKey, sortDir])
+  }, [filteredCustomers, sortKey, sortDir])
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -156,15 +164,27 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
 
       {/* Customer Performance Table */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-          <h3 className="font-semibold text-slate-900 dark:text-white">{t('analytics.topCustomers')}</h3>
-          <button
-            onClick={handleExport}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            {t('analytics.export')}
-          </button>
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3">
+          <h3 className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">{t('analytics.topCustomers')}</h3>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={t('common.search')}
+                className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 w-48 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+            <button
+              onClick={handleExport}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              {t('analytics.export')}
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">

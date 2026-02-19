@@ -10,6 +10,7 @@ import {
   Download,
   ChevronUp,
   ChevronDown,
+  Search,
 } from 'lucide-react'
 import { useOrderAnalytics } from '../../../hooks/useOrderAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
@@ -34,9 +35,17 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [statusFilter, setStatusFilter] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('')
+  const [search, setSearch] = useState('')
 
   const filteredOrders = useMemo(() => {
     let result = orders
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(o =>
+        o.orderNumber.toLowerCase().includes(q) ||
+        o.customerName.toLowerCase().includes(q)
+      )
+    }
     if (statusFilter) {
       result = result.filter(o => o.status === statusFilter)
     }
@@ -44,7 +53,7 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
       result = result.filter(o => o.paymentMethod === paymentFilter)
     }
     return result
-  }, [orders, statusFilter, paymentFilter])
+  }, [orders, search, statusFilter, paymentFilter])
 
   const sortedOrders = useMemo(() => {
     return [...filteredOrders].sort((a, b) => {
@@ -154,8 +163,18 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
           </button>
         </div>
 
-        {/* Filter Row */}
+        {/* Search & Filter Row */}
         <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={t('common.search')}
+              className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 w-48 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
