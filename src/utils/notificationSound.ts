@@ -31,7 +31,7 @@ if (typeof window !== 'undefined') {
 // Play a pleasant notification melody
 export function playNotificationSound() {
   if (!isAudioEnabled || !audioContext) {
-    console.log('Audio not enabled yet - user interaction required')
+    if (import.meta.env.DEV) console.log('Audio not enabled yet - user interaction required')
     return
   }
 

@@ -148,13 +148,13 @@ export default function AuditLog() {
     )
   })
 
-  const renderDiff = (oldVal: any, newVal: any) => {
+  const renderDiff = (oldVal: Record<string, unknown> | null, newVal: Record<string, unknown> | null) => {
     const allKeys = new Set([
       ...Object.keys(oldVal || {}),
       ...Object.keys(newVal || {}),
     ])
 
-    const changes: { key: string; old: any; new: any }[] = []
+    const changes: { key: string; old: unknown; new: unknown }[] = []
 
     allKeys.forEach((key) => {
       const oldValue = oldVal?.[key]

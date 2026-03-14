@@ -14,6 +14,23 @@ import {
 import { usePortalAuth } from '../context/PortalAuthContext'
 import { fetchPortalOrder, type PortalOrder } from '../services/portalOrders'
 import { formatQuantityWithUnit } from '../utils/format'
+interface PortalDocument {
+  id: string
+  document_number: string
+  document_type: string
+  pdf_url?: string
+  created_at: string
+  generated_at: string
+}
+
+interface PortalOrderItem {
+  id: string
+  product_name?: string
+  quantity: number
+  unit_price_cents: number
+  line_total_cents: number
+  product?: { name: string; unit_type: string }
+}
 
 const statusColors: Record<string, string> = {
   draft: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
@@ -231,7 +248,7 @@ export default function PortalOrderDetail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {order.items?.map((item: any) => (
+              {(order.items as unknown as PortalOrderItem[])?.map((item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3">
                     <span className="font-medium text-slate-900 dark:text-white">
@@ -301,7 +318,7 @@ export default function PortalOrderDetail() {
             </div>
           ) : (
             <div className="space-y-2">
-              {order.documents.map((doc: any) => (
+              {(order.documents as unknown as PortalDocument[]).map((doc) => (
                 <div
                   key={doc.id}
                   className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl"

@@ -50,8 +50,8 @@ export default function PortalAccount() {
       setShowPasswordForm(false)
       setNewPassword('')
       setConfirmPassword('')
-    } catch (err: any) {
-      setPasswordError(err.message || 'Failed to update password')
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : 'Failed to update password')
     } finally {
       setPasswordLoading(false)
     }

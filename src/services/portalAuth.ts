@@ -77,7 +77,7 @@ export async function portalSignOut(): Promise<void> {
  */
 export async function getPortalUser(): Promise<PortalUser | null> {
   try {
-    console.log('[Portal] Checking for user session...')
+    if (import.meta.env.DEV) console.log('[Portal] Checking for user session...')
 
     // First check if there's a session at all - use portal client
     const { data: { session }, error: sessionError } = await portalSupabase.auth.getSession()
@@ -88,11 +88,11 @@ export async function getPortalUser(): Promise<PortalUser | null> {
     }
 
     if (!session) {
-      console.log('[Portal] No session found')
+      if (import.meta.env.DEV) console.log('[Portal] No session found')
       return null
     }
 
-    console.log('[Portal] Session found for user:', session.user.id, 'checking customer account...')
+    if (import.meta.env.DEV) console.log('[Portal] Session found for user:', session.user.id, 'checking customer account...')
 
     // Check if this user has a customer account
     // Use maybeSingle() instead of single() to avoid errors when no rows match
@@ -112,11 +112,11 @@ export async function getPortalUser(): Promise<PortalUser | null> {
     }
 
     if (!account) {
-      console.log('[Portal] No customer account found for this user')
+      if (import.meta.env.DEV) console.log('[Portal] No customer account found for this user')
       return null
     }
 
-    console.log('[Portal] Customer account found:', account.customer?.company_name)
+    if (import.meta.env.DEV) console.log('[Portal] Customer account found:', account.customer?.company_name)
 
     return {
       id: session.user.id,

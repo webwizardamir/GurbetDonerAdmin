@@ -1,6 +1,8 @@
-import { X, Loader2, History, ArrowRight } from 'lucide-react'
+import { Loader2, History, ArrowRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { usePriceHistory } from '../../hooks/usePricing'
 import { formatPrice, formatDateTime } from '../../utils/format'
+import Modal from '../ui/Modal'
 
 interface PriceHistoryModalProps {
   customerPriceId: string
@@ -11,31 +13,24 @@ interface PriceHistoryModalProps {
 const formatDate = formatDateTime
 
 export default function PriceHistoryModal({ customerPriceId, onClose }: PriceHistoryModalProps) {
+  const { t } = useTranslation()
   const { history, loading, error } = usePriceHistory(customerPriceId)
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[80vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Price History
-            </h2>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+            <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            {t('pricing.priceHistory')}
+          </h2>
         </div>
-
+      }
+    >
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {error && (
@@ -50,7 +45,7 @@ export default function PriceHistoryModal({ customerPriceId, onClose }: PriceHis
             </div>
           ) : history.length === 0 ? (
             <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-              No price history available
+              {t('pricing.noPriceHistory')}
             </div>
           ) : (
             <div className="space-y-3">
@@ -74,7 +69,7 @@ export default function PriceHistoryModal({ customerPriceId, onClose }: PriceHis
                       ) : (
                         <>
                           <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                            Initial price
+                            {t('pricing.initialPrice')}
                           </span>
                           <span className="font-semibold text-slate-900 dark:text-white">
                             {formatPrice(entry.new_price)}
@@ -84,7 +79,7 @@ export default function PriceHistoryModal({ customerPriceId, onClose }: PriceHis
                     </div>
                     {index === 0 && (
                       <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full">
-                        Current
+                        {t('pricing.current')}
                       </span>
                     )}
                   </div>
@@ -103,10 +98,9 @@ export default function PriceHistoryModal({ customerPriceId, onClose }: PriceHis
             onClick={onClose}
             className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

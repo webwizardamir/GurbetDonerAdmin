@@ -12,6 +12,7 @@ import { useCustomerPricing, type ProductWithPrice } from '../../hooks/usePricin
 import type { Customer } from '../../types'
 import PriceHistoryModal from './PriceHistoryModal'
 import { formatPrice } from '../../utils/format'
+import Modal from '../ui/Modal'
 
 interface CustomerPricingProps {
   customer: Customer
@@ -95,33 +96,26 @@ export default function CustomerPricing({ customer, onClose }: CustomerPricingPr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
-      <div className="relative w-full max-w-4xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Custom Pricing
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {customer.company_name}
-              </p>
-            </div>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+            <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Custom Pricing
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {customer.company_name}
+            </p>
+          </div>
         </div>
-
+      }
+      maxWidth="max-w-4xl"
+    >
         {/* Search */}
         <div className="px-6 py-3 border-b border-slate-200 dark:border-slate-700">
           <div className="relative">
@@ -275,7 +269,6 @@ export default function CustomerPricing({ customer, onClose }: CustomerPricingPr
             </button>
           </div>
         </div>
-      </div>
 
       {/* Price History Modal */}
       {historyPriceId && (
@@ -284,6 +277,6 @@ export default function CustomerPricing({ customer, onClose }: CustomerPricingPr
           onClose={() => setHistoryPriceId(null)}
         />
       )}
-    </div>
+    </Modal>
   )
 }

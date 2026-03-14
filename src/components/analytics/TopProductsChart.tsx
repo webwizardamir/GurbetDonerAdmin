@@ -64,7 +64,21 @@ export default function TopProductsChart({ data, loading }: TopProductsChartProp
   }, [data])
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
+  interface TooltipPayloadEntry {
+    payload: {
+      fullName: string
+      totalRevenue: number
+      totalQuantity: number
+      unitType: string
+    }
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean
+    payload?: TooltipPayloadEntry[]
+  }
+
+  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (!active || !payload?.length) return null
 
     const item = payload[0]?.payload

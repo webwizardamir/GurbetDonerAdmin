@@ -47,7 +47,9 @@
     "deleting": "Verwijderen...",
     "items": "artikelen",
     "item": "artikel",
-    "default": "Standaard"
+    "default": "Standaard",
+    "done": "Klaar",
+    "update": "Bijwerken"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -112,7 +114,8 @@
     "moreOrders": "+{{count}} meer bestellingen",
     "unitsLeft": "{{count}} {{unit}} over",
     "critical": "Kritiek",
-    "low": "Laag"
+    "low": "Laag",
+    "vsLastMonth": "t.o.v. vorige maand"
   },
   "customers": {
     "title": "Klanten",
@@ -217,6 +220,8 @@
     "searchPlaceholder": "Zoeken naar producten...",
     "categories": "Categorieën",
     "manageCategories": "Categorieën beheren",
+    "newCategoryPlaceholder": "Nieuwe categorienaam...",
+    "noCategories": "Nog geen categorieën. Maak er één aan.",
     "confirmDelete": "Weet u zeker dat u dit product wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
     "units": {
       "kg": "Per kg",
@@ -624,7 +629,18 @@
         "admin": "Beheerder"
       },
       "noUsers": "Geen gebruikers gevonden",
-      "confirmDeactivate": "Weet u zeker dat u deze gebruiker wilt deactiveren?"
+      "confirmDeactivate": "Weet u zeker dat u deze gebruiker wilt deactiveren?",
+      "password": "Wachtwoord",
+      "minChars": "Minimaal 6 tekens",
+      "emailCannotChange": "E-mail kan niet gewijzigd worden",
+      "cannotChangeOwnRole": "U kunt uw eigen rol niet wijzigen",
+      "loadError": "Kan gebruikers niet laden. Probeer opnieuw.",
+      "updateError": "Kan gebruiker niet bijwerken",
+      "createError": "Kan gebruiker niet aanmaken",
+      "never": "Nooit",
+      "editTooltip": "Gebruiker bewerken",
+      "deactivateTooltip": "Gebruiker deactiveren",
+      "reactivateTooltip": "Gebruiker heractiveren"
     },
     "documents": {
       "title": "Documentinstellingen",
@@ -644,7 +660,119 @@
       "nextInvoiceNumber": "Volgend factuurnummer",
       "paymentTerms": "Betalingstermijn (dagen)",
       "footerText": "Voettekst",
-      "saved": "Instellingen opgeslagen"
+      "saved": "Instellingen opgeslagen",
+      "savedSuccess": "Instellingen succesvol opgeslagen!",
+      "configureDescription": "Configureer factuur-, proforma- en andere documentinstellingen",
+      "saveChanges": "Wijzigingen opslaan",
+      "tabs": {
+        "company": "Bedrijf",
+        "bank": "Bank & Betaling",
+        "numbering": "Nummering",
+        "labels": "Labels"
+      },
+      "company": {
+        "title": "Bedrijfsgegevens",
+        "description": "Deze gegevens verschijnen op alle gegenereerde documenten.",
+        "companyNameLabel": "Bedrijfsnaam *",
+        "companyNamePlaceholder": "Uw bedrijfsnaam",
+        "streetAddress": "Straatnaam",
+        "streetPlaceholder": "Straatnaam 123",
+        "postalCode": "Postcode",
+        "postalCodePlaceholder": "1234 AB",
+        "city": "Stad",
+        "cityPlaceholder": "Amsterdam",
+        "country": "Land",
+        "phone": "Telefoon",
+        "phonePlaceholder": "+31 20 123 4567",
+        "email": "E-mail",
+        "emailPlaceholder": "info@bedrijf.nl",
+        "website": "Website",
+        "websitePlaceholder": "www.bedrijf.nl",
+        "legalRegistration": "Juridische registratie",
+        "vatNumber": "BTW-nummer",
+        "vatPlaceholder": "NL123456789B01",
+        "kvkNumber": "Kamer van Koophandel (KVK)",
+        "kvkPlaceholder": "12345678",
+        "companyLogo": "Bedrijfslogo",
+        "uploadLogo": "Logo uploaden",
+        "uploading": "Uploaden...",
+        "logoHint": "PNG, JPEG, GIF, WebP of SVG. Max 2MB. Aanbevolen: 200x60 pixels.",
+        "uploadError": "Gebruik een PNG, JPEG, GIF, WebP of SVG afbeelding",
+        "fileSizeError": "Bestandsgrootte moet kleiner zijn dan 2MB"
+      },
+      "bank": {
+        "title": "Bank- & betalingsgegevens",
+        "description": "Bankgegevens voor klantbetalingen en factuurvoettekst.",
+        "bankName": "Banknaam",
+        "bankNamePlaceholder": "ING Bank",
+        "accountHolder": "Tenaamstelling",
+        "accountHolderPlaceholder": "Uw Bedrijf B.V.",
+        "iban": "IBAN",
+        "ibanPlaceholder": "NL00 INGB 0000 0000 00",
+        "bic": "BIC / SWIFT",
+        "bicPlaceholder": "INGBNL2A",
+        "paymentTerms": "Betalingsvoorwaarden",
+        "paymentDueDays": "Betalingstermijn (dagen)",
+        "dueDateNote": "Vervaldatum wordt berekend vanaf factuurdatum",
+        "paymentTermsText": "Betalingsvoorwaarden tekst",
+        "paymentTermsPlaceholder": "Betaling binnen 14 dagen na factuurdatum.",
+        "documentFooter": "Documentvoettekst",
+        "footerLabel": "Voettekst (verschijnt onderaan alle documenten)",
+        "footerPlaceholder": "Bedankt voor uw bestelling! Neem bij vragen contact met ons op."
+      },
+      "numbering": {
+        "title": "Documentnummering",
+        "description": "Configureer prefix en startnummers voor elk documenttype. Nummers worden automatisch opgehoogd.",
+        "prefix": "Prefix",
+        "nextNumber": "Volgend nummer",
+        "invoice": "Factuur",
+        "nextInvoice": "Volgende factuur",
+        "proforma": "Proforma",
+        "nextProforma": "Volgende proforma",
+        "creditNote": "Creditnota",
+        "nextCreditNote": "Volgende creditnota",
+        "packingSlip": "Pakbon",
+        "nextPackingSlip": "Volgende pakbon",
+        "orderConfirmation": "Orderbevestiging",
+        "nextOrderConfirmation": "Volgende orderbevestiging",
+        "paymentReminder": "Betalingsherinnering",
+        "nextPaymentReminder": "Volgende betalingsherinnering"
+      },
+      "labels": {
+        "title": "Documentlabels",
+        "description": "Pas alle tekstlabels aan die op uw documenten verschijnen. Standaardwaarden zijn in het Nederlands.",
+        "documentTitles": "Documenttitels",
+        "invoiceTitle": "Factuurtitel",
+        "proformaTitle": "Proformatitel",
+        "creditNoteTitle": "Creditnotatitel",
+        "packingSlipTitle": "Pakbontitel",
+        "orderConfirmationTitle": "Orderbevestigingstitel",
+        "paymentReminderTitle": "Betalingsherinneringstitel",
+        "headerLabels": "Koplabels",
+        "invoiceAddressLabel": "Factuuradres label",
+        "dateLabel": "Datum label",
+        "customerNumberLabel": "Klantnummer label",
+        "dueDateLabel": "Vervaldatum label",
+        "tableHeaders": "Tabelkoppen",
+        "descriptionLabel": "Omschrijving",
+        "quantityLabel": "Aantal",
+        "unitLabel": "Eenheid",
+        "unitPriceLabel": "Stuksprijs",
+        "vatLabel": "BTW",
+        "totalLabel": "Totaal",
+        "totals": "Totalen",
+        "subtotalLabel": "Subtotaal",
+        "grandTotalLabel": "Eindtotaal",
+        "paymentSection": "Betalingssectie",
+        "paymentMethodHeader": "Betaalmethode kop",
+        "cashOption": "Contant optie",
+        "bankOption": "Bank optie",
+        "onAccountOption": "Op rekening optie",
+        "approvalSection": "Akkoord sectie",
+        "approvalHeader": "Akkoord kop",
+        "nameField": "Naam veld",
+        "signatureField": "Handtekening veld"
+      }
     },
     "auditLog": {
       "title": "Auditlogboek",
@@ -664,6 +792,9 @@
     "setPrice": "Prijs instellen",
     "resetToBase": "Naar basisprijs",
     "priceHistory": "Prijsgeschiedenis",
+    "noPriceHistory": "Geen prijsgeschiedenis beschikbaar",
+    "initialPrice": "Beginprijs",
+    "current": "Huidig",
     "noCustomPrices": "Geen aangepaste prijzen ingesteld",
     "changedBy": "Gewijzigd door",
     "changedAt": "Gewijzigd op"
@@ -688,6 +819,12 @@
       "1day": "1 dag"
     },
     "noReminders": "Geen herinneringen",
+    "addFirstReminder": "Voeg uw eerste herinnering toe",
+    "titlePlaceholder": "Titel herinnering...",
+    "notesPlaceholder": "Notities (optioneel)...",
+    "newReminder": "Nieuwe herinnering",
+    "dueNow": "Nu verlopen",
+    "upcoming": "Aankomend",
     "active": "Actief",
     "dismissed": "Afgewezen",
     "reactivate": "Heractiveren"
@@ -720,7 +857,8 @@
     "unexpectedError": "Er is een onverwachte fout opgetreden. Dit is mogelijk een tijdelijk probleem.",
     "goToDashboard": "Naar dashboard",
     "goHome": "Naar home",
-    "reload": "Pagina herladen"
+    "reload": "Pagina herladen",
+    "reloadPage": "Pagina herladen"
   },
   "validation": {
     "required": "Dit veld is verplicht",
@@ -731,6 +869,20 @@
     "positiveNumber": "Moet een positief getal zijn",
     "invalidDate": "Ongeldige datum",
     "invalidPhone": "Ongeldig telefoonnummer"
+  },
+  "header": {
+    "searchPlaceholder": "Zoek bestellingen, klanten, producten...",
+    "noResultsFound": "Geen resultaten gevonden",
+    "relativeTime": {
+      "justNow": "Zojuist",
+      "inLessThanMinute": "Binnen minder dan een minuut",
+      "mAgo": "{{count}}m geleden",
+      "inM": "Over {{count}}m",
+      "hAgo": "{{count}}u geleden",
+      "inH": "Over {{count}}u",
+      "dAgo": "{{count}}d geleden",
+      "inD": "Over {{count}}d"
+    }
   },
   "language": {
     "select": "Taal",

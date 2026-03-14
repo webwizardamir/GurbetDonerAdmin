@@ -101,8 +101,8 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     try {
       const portalUser = await portalSignIn(email, password)
       setUser(portalUser)
-    } catch (err: any) {
-      setError(err.message || 'Login failed')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Login failed')
       throw err
     } finally {
       setLoading(false)
@@ -114,8 +114,8 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     try {
       await portalSignOut()
       setUser(null)
-    } catch (err: any) {
-      setError(err.message || 'Logout failed')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Logout failed')
     } finally {
       setLoading(false)
     }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, Loader2, Package } from 'lucide-react'
+import { Loader2, Package } from 'lucide-react'
 import { useCategories } from '../../hooks/useCategories'
+import Modal from '../ui/Modal'
 import { useAuth } from '../../context/AuthContext'
 import type { Product, UnitType, ProductUnitPrice } from '../../types'
 
@@ -266,28 +267,21 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
   const enabledUnitTypes = ALL_UNIT_TYPES.filter(ut => unitPrices[ut].enabled)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <Package className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              {product ? t('products.editProduct') : t('products.addProduct')}
-            </h2>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+            <Package className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            {product ? t('products.editProduct') : t('products.addProduct')}
+          </h2>
         </div>
-
+      }
+      maxWidth="max-w-2xl"
+    >
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-4">
@@ -576,7 +570,6 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

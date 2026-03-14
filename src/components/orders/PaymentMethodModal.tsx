@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, Banknote, Building2, Loader2 } from 'lucide-react'
+import { Banknote, Building2, Loader2 } from 'lucide-react'
 import type { PaymentMethod } from '../../types'
+import Modal from '../ui/Modal'
 
 interface PaymentMethodModalProps {
   orderNumber: string
@@ -26,29 +27,12 @@ export default function PaymentMethodModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={loading ? undefined : onCancel}
-      />
-
-      {/* Modal */}
-      <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {t('orders.paymentModal.title')}
-          </h3>
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-50"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+    <Modal
+      isOpen={true}
+      onClose={loading ? () => {} : onCancel}
+      title={t('orders.paymentModal.title')}
+      maxWidth="max-w-sm"
+    >
         {/* Content */}
         <div className="p-6">
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
@@ -156,7 +140,6 @@ export default function PaymentMethodModal({
             )}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

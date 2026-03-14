@@ -1,5 +1,8 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+// TODO: Add i18n when converting to functional component
+// ErrorBoundary must be a class component (React limitation).
+// Hardcoded strings below should use t() calls after migration to a functional wrapper.
 
 interface Props {
   children: ReactNode

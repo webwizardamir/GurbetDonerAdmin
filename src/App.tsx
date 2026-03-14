@@ -155,8 +155,15 @@ function App() {
                 {/* Dashboard */}
                 <Route index element={<Dashboard />} />
 
-                {/* Test Connection (temporary) */}
-                <Route path="test-connection" element={<TestConnection />} />
+                {/* Test Connection (temporary, owner only) */}
+                <Route
+                  path="test-connection"
+                  element={
+                    <OwnerRoute>
+                      <TestConnection />
+                    </OwnerRoute>
+                  }
+                />
 
                 {/* Customers */}
                 <Route path="customers" element={<Customers />} />

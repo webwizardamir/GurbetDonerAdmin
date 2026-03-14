@@ -47,7 +47,9 @@
     "deleting": "Deleting...",
     "items": "items",
     "item": "item",
-    "default": "Default"
+    "default": "Default",
+    "done": "Done",
+    "update": "Update"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -112,7 +114,8 @@
     "moreOrders": "+{{count}} more orders",
     "unitsLeft": "{{count}} {{unit}} left",
     "critical": "Critical",
-    "low": "Low"
+    "low": "Low",
+    "vsLastMonth": "vs last month"
   },
   "customers": {
     "title": "Customers",
@@ -217,6 +220,8 @@
     "searchPlaceholder": "Search products...",
     "categories": "Categories",
     "manageCategories": "Manage Categories",
+    "newCategoryPlaceholder": "New category name...",
+    "noCategories": "No categories yet. Create one above.",
     "confirmDelete": "Are you sure you want to delete this product? This cannot be undone.",
     "units": {
       "kg": "Per kg",
@@ -624,7 +629,18 @@
         "admin": "Admin"
       },
       "noUsers": "No users found",
-      "confirmDeactivate": "Are you sure you want to deactivate this user?"
+      "confirmDeactivate": "Are you sure you want to deactivate this user?",
+      "password": "Password",
+      "minChars": "Minimum 6 characters",
+      "emailCannotChange": "Email cannot be changed",
+      "cannotChangeOwnRole": "You cannot change your own role",
+      "loadError": "Failed to load users. Please try again.",
+      "updateError": "Failed to update user",
+      "createError": "Failed to create user",
+      "never": "Never",
+      "editTooltip": "Edit user",
+      "deactivateTooltip": "Deactivate user",
+      "reactivateTooltip": "Reactivate user"
     },
     "documents": {
       "title": "Document Settings",
@@ -644,7 +660,119 @@
       "nextInvoiceNumber": "Next Invoice Number",
       "paymentTerms": "Payment Terms (days)",
       "footerText": "Footer Text",
-      "saved": "Settings saved"
+      "saved": "Settings saved",
+      "savedSuccess": "Settings saved successfully!",
+      "configureDescription": "Configure invoice, proforma, and other document settings",
+      "saveChanges": "Save Changes",
+      "tabs": {
+        "company": "Company",
+        "bank": "Bank & Payment",
+        "numbering": "Numbering",
+        "labels": "Labels"
+      },
+      "company": {
+        "title": "Company Information",
+        "description": "This information will appear on all generated documents.",
+        "companyNameLabel": "Company Name *",
+        "companyNamePlaceholder": "Your Company Name",
+        "streetAddress": "Street Address",
+        "streetPlaceholder": "Street Name 123",
+        "postalCode": "Postal Code",
+        "postalCodePlaceholder": "1234 AB",
+        "city": "City",
+        "cityPlaceholder": "Amsterdam",
+        "country": "Country",
+        "phone": "Phone",
+        "phonePlaceholder": "+31 20 123 4567",
+        "email": "Email",
+        "emailPlaceholder": "info@company.com",
+        "website": "Website",
+        "websitePlaceholder": "www.company.com",
+        "legalRegistration": "Legal Registration",
+        "vatNumber": "VAT Number (BTW)",
+        "vatPlaceholder": "NL123456789B01",
+        "kvkNumber": "Chamber of Commerce (KVK)",
+        "kvkPlaceholder": "12345678",
+        "companyLogo": "Company Logo",
+        "uploadLogo": "Upload Logo",
+        "uploading": "Uploading...",
+        "logoHint": "PNG, JPEG, GIF, WebP, or SVG. Max 2MB. Recommended: 200x60 pixels.",
+        "uploadError": "Please upload a PNG, JPEG, GIF, WebP, or SVG image",
+        "fileSizeError": "File size must be less than 2MB"
+      },
+      "bank": {
+        "title": "Bank & Payment Details",
+        "description": "Bank information for customer payments and invoice footer.",
+        "bankName": "Bank Name",
+        "bankNamePlaceholder": "ING Bank",
+        "accountHolder": "Account Holder Name",
+        "accountHolderPlaceholder": "Your Company B.V.",
+        "iban": "IBAN",
+        "ibanPlaceholder": "NL00 INGB 0000 0000 00",
+        "bic": "BIC / SWIFT",
+        "bicPlaceholder": "INGBNL2A",
+        "paymentTerms": "Payment Terms",
+        "paymentDueDays": "Payment Due (Days)",
+        "dueDateNote": "Due date will be calculated from invoice date",
+        "paymentTermsText": "Payment Terms Text",
+        "paymentTermsPlaceholder": "Payment due within 14 days of invoice date.",
+        "documentFooter": "Document Footer",
+        "footerLabel": "Footer Text (appears at bottom of all documents)",
+        "footerPlaceholder": "Thank you for your business! For questions, please contact us."
+      },
+      "numbering": {
+        "title": "Document Numbering",
+        "description": "Configure prefix and starting numbers for each document type. Numbers are automatically incremented.",
+        "prefix": "Prefix",
+        "nextNumber": "Next Number",
+        "invoice": "Invoice",
+        "nextInvoice": "Next invoice",
+        "proforma": "Proforma",
+        "nextProforma": "Next proforma",
+        "creditNote": "Credit Note",
+        "nextCreditNote": "Next credit note",
+        "packingSlip": "Packing Slip (Pakbon)",
+        "nextPackingSlip": "Next packing slip",
+        "orderConfirmation": "Order Confirmation (Orderbevestiging)",
+        "nextOrderConfirmation": "Next order confirmation",
+        "paymentReminder": "Payment Reminder (Betalingsherinnering)",
+        "nextPaymentReminder": "Next payment reminder"
+      },
+      "labels": {
+        "title": "Document Labels",
+        "description": "Customize all text labels that appear on your documents. Default values are in Dutch.",
+        "documentTitles": "Document Titles",
+        "invoiceTitle": "Invoice Title",
+        "proformaTitle": "Proforma Title",
+        "creditNoteTitle": "Credit Note Title",
+        "packingSlipTitle": "Packing Slip Title",
+        "orderConfirmationTitle": "Order Confirmation Title",
+        "paymentReminderTitle": "Payment Reminder Title",
+        "headerLabels": "Header Labels",
+        "invoiceAddressLabel": "Invoice Address Label",
+        "dateLabel": "Date Label",
+        "customerNumberLabel": "Customer Number Label",
+        "dueDateLabel": "Due Date Label",
+        "tableHeaders": "Table Headers",
+        "descriptionLabel": "Description",
+        "quantityLabel": "Quantity",
+        "unitLabel": "Unit",
+        "unitPriceLabel": "Unit Price",
+        "vatLabel": "VAT",
+        "totalLabel": "Total",
+        "totals": "Totals",
+        "subtotalLabel": "Subtotal",
+        "grandTotalLabel": "Grand Total",
+        "paymentSection": "Payment Section",
+        "paymentMethodHeader": "Payment Method Header",
+        "cashOption": "Cash Option",
+        "bankOption": "Bank Option",
+        "onAccountOption": "On Account Option",
+        "approvalSection": "Approval Section",
+        "approvalHeader": "Approval Header",
+        "nameField": "Name Field",
+        "signatureField": "Signature Field"
+      }
     },
     "auditLog": {
       "title": "Audit Log",
@@ -664,6 +792,9 @@
     "setPrice": "Set Price",
     "resetToBase": "Reset to Base",
     "priceHistory": "Price History",
+    "noPriceHistory": "No price history available",
+    "initialPrice": "Initial price",
+    "current": "Current",
     "noCustomPrices": "No custom prices set",
     "changedBy": "Changed by",
     "changedAt": "Changed at"
@@ -688,6 +819,12 @@
       "1day": "1 day"
     },
     "noReminders": "No reminders",
+    "addFirstReminder": "Add your first reminder",
+    "titlePlaceholder": "Reminder title...",
+    "notesPlaceholder": "Notes (optional)...",
+    "newReminder": "New Reminder",
+    "dueNow": "Due Now",
+    "upcoming": "Upcoming",
     "active": "Active",
     "dismissed": "Dismissed",
     "reactivate": "Reactivate"
@@ -720,7 +857,8 @@
     "unexpectedError": "An unexpected error occurred. This might be a temporary issue.",
     "goToDashboard": "Go to Dashboard",
     "goHome": "Go Home",
-    "reload": "Reload Page"
+    "reload": "Reload Page",
+    "reloadPage": "Reload Page"
   },
   "validation": {
     "required": "This field is required",
@@ -731,6 +869,20 @@
     "positiveNumber": "Must be a positive number",
     "invalidDate": "Invalid date",
     "invalidPhone": "Invalid phone number"
+  },
+  "header": {
+    "searchPlaceholder": "Search orders, customers, products...",
+    "noResultsFound": "No results found",
+    "relativeTime": {
+      "justNow": "Just now",
+      "inLessThanMinute": "In less than a minute",
+      "mAgo": "{{count}}m ago",
+      "inM": "In {{count}}m",
+      "hAgo": "{{count}}h ago",
+      "inH": "In {{count}}h",
+      "dAgo": "{{count}}d ago",
+      "inD": "In {{count}}d"
+    }
   },
   "language": {
     "select": "Language",

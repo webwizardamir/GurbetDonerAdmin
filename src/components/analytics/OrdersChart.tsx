@@ -62,7 +62,16 @@ export default function OrdersChart({ data, loading }: OrdersChartProps) {
   }
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
+  interface TooltipPayloadEntry {
+    payload: { name: string; value: number }
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean
+    payload?: TooltipPayloadEntry[]
+  }
+
+  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (!active || !payload?.length) return null
 
     const item = payload[0]?.payload
@@ -79,10 +88,19 @@ export default function OrdersChart({ data, loading }: OrdersChartProps) {
   }
 
   // Custom legend
-  const CustomLegend = ({ payload }: any) => {
+  interface LegendEntry {
+    value: string
+    color: string
+  }
+
+  interface CustomLegendProps {
+    payload?: LegendEntry[]
+  }
+
+  const CustomLegend = ({ payload }: CustomLegendProps) => {
     return (
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
-        {payload?.map((entry: any, index: number) => (
+        {payload?.map((entry, index: number) => (
           <div key={index} className="flex items-center gap-2">
             <div
               className="w-3 h-3 rounded-full"

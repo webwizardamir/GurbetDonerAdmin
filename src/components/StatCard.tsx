@@ -1,4 +1,5 @@
 import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface StatCardProps {
   label: string
@@ -14,6 +15,7 @@ interface StatCardProps {
 }
 
 export default function StatCard({ label, value, description, trend, icon: Icon, iconColor, iconBg }: StatCardProps) {
+  const { t } = useTranslation()
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
       <div className="flex items-start justify-between">
@@ -39,7 +41,7 @@ export default function StatCard({ label, value, description, trend, icon: Icon,
               <span className={`text-sm font-semibold ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                 {trend.isPositive ? '+' : ''}{trend.value}%
               </span>
-              <span className="text-sm text-slate-500 dark:text-slate-400">vs last month</span>
+              <span className="text-sm text-slate-500 dark:text-slate-400">{t('dashboard.vsLastMonth')}</span>
             </div>
           )}
         </div>

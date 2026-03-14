@@ -48,12 +48,24 @@ export default function RevenueChart({ data, loading }: RevenueChartProps) {
   }, [data])
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipPayloadEntry {
+    dataKey: string
+    value: number
+    payload: Record<string, unknown>
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean
+    payload?: TooltipPayloadEntry[]
+    label?: string
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (!active || !payload?.length) return null
 
-    const revenue = payload.find((p: any) => p.dataKey === 'revenueEuros')?.value || 0
-    const profit = payload.find((p: any) => p.dataKey === 'profitEuros')?.value || 0
-    const orders = payload[0]?.payload?.orderCount || 0
+    const revenue = payload.find((p) => p.dataKey === 'revenueEuros')?.value || 0
+    const profit = payload.find((p) => p.dataKey === 'profitEuros')?.value || 0
+    const orders = Number(payload[0]?.payload?.orderCount) || 0
 
     return (
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-3">

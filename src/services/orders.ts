@@ -1,5 +1,53 @@
 import { supabase } from './supabase'
-import type { Order, OrderItem, OrderStatus, PaymentMethod } from '../types'
+import type { Order, OrderItem, OrderStatus, PaymentMethod, UnitType } from '../types'
+
+// Database row shapes for type-safe transformations
+interface DbOrderRow {
+  id: string
+  order_number: string
+  customer_id: string
+  status: OrderStatus
+  payment_method?: PaymentMethod | null
+  subtotal: number
+  discount: number
+  tax: number
+  delivery_fee?: number
+  total: number
+  order_date?: string
+  invoice_date?: string
+  delivery_notes?: string
+  notes?: string
+  internal_notes?: string
+  created_by?: string
+  created_at: string
+  updated_at: string
+  customer?: {
+    id: string
+    company_name: string
+    contact_person?: string
+    email?: string
+    phone?: string
+  } | { id: string; company_name: string; contact_person?: string }[] | null
+  items?: DbOrderItemRow[]
+}
+
+interface DbOrderItemRow {
+  id: string
+  order_id: string
+  product_id: string
+  product_name: string
+  product_sku?: string
+  unit_type?: string
+  quantity: number
+  unit_price: number
+  cost_cents?: number
+  discount?: number
+  tax_rate: number
+  tax_amount?: number
+  total: number
+  notes?: string
+  created_at: string
+}
 
 export interface OrderFilters {
   status?: OrderStatus
@@ -53,8 +101,7 @@ async function generateOrderNumber(): Promise<string> {
 
 // Transform database order to TypeScript interface
 // Database stores INTEGER (cents), frontend expects cents
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function transformOrderFromDb(dbOrder: any): OrderWithItems | null {
+function transformOrderFromDb(dbOrder: DbOrderRow): OrderWithItems | null {
   if (!dbOrder) return null
 
   return {
@@ -76,21 +123,20 @@ function transformOrderFromDb(dbOrder: any): OrderWithItems | null {
     created_by: dbOrder.created_by,
     created_at: dbOrder.created_at,
     updated_at: dbOrder.updated_at,
-    customer: dbOrder.customer || null,
+    customer: Array.isArray(dbOrder.customer) ? (dbOrder.customer[0] || null) : (dbOrder.customer || null),
     items: dbOrder.items ? dbOrder.items.map(transformOrderItemFromDb) : [],
   }
 }
 
 // Transform database order item to TypeScript interface
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function transformOrderItemFromDb(dbItem: any) {
+function transformOrderItemFromDb(dbItem: DbOrderItemRow): OrderItem {
   return {
     id: dbItem.id,
     order_id: dbItem.order_id,
     product_id: dbItem.product_id,
     product_name: dbItem.product_name,
     product_sku: dbItem.product_sku,
-    unit_type: dbItem.unit_type || 'piece',
+    unit_type: (dbItem.unit_type || 'piece') as UnitType,
     quantity: Number(dbItem.quantity) || 0,
     // Values are already in cents (INTEGER)
     unit_price: Number(dbItem.unit_price) || 0,
@@ -155,7 +201,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
   const { data, error } = await query
 
   if (error) throw error
-  return (data || []).map(transformOrderFromDb).filter((o): o is OrderWithItems => o !== null)
+  return ((data || []) as unknown as DbOrderRow[]).map(transformOrderFromDb).filter((o): o is OrderWithItems => o !== null)
 }
 
 // Fetch single order by ID
@@ -254,7 +300,9 @@ export async function createOrder(
   if (itemsError) throw itemsError
 
   // Fetch and return complete order
-  return fetchOrderById(order.id) as Promise<OrderWithItems>
+  const result = await fetchOrderById(order.id)
+  if (!result) throw new Error('Failed to fetch created order')
+  return result
 }
 
 // Update order status (with optional payment method for completed orders)
@@ -392,7 +440,9 @@ export async function updateOrderWithItems(
   if (itemsError) throw itemsError
 
   // Fetch and return complete order
-  return fetchOrderById(orderId) as Promise<OrderWithItems>
+  const result = await fetchOrderById(orderId)
+  if (!result) throw new Error('Failed to fetch updated order')
+  return result
 }
 
 // Add item to existing order

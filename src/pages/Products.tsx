@@ -93,6 +93,7 @@ export default function Products() {
   }
 
   const handleDelete = async (id: string) => {
+    // TODO: Replace with custom ConfirmDialog component
     if (!confirm(t('products.confirmDelete'))) return
     await remove(id)
   }
@@ -119,7 +120,7 @@ export default function Products() {
             placeholder={t('products.searchPlaceholder')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
 
@@ -129,7 +130,7 @@ export default function Products() {
           <select
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
-            className="flex-1 sm:flex-none px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <option value="">{t('products.allCategories')}</option>
             {categories.map(cat => (
@@ -215,37 +216,37 @@ export default function Products() {
           <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="overflow-x-auto">
             <table className="w-full min-w-[800px]">
-              <thead className="bg-slate-50 dark:bg-slate-700/50">
+              <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {t('products.productName')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {t('products.category')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {t('products.sku')} / {t('products.barcode')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {t('products.unitType')}
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {t('products.stock')}
                   </th>
                   {isOwner && (
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       {t('products.costPrice')}
                     </th>
                   )}
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {t('common.price')}
                   </th>
                   {isOwner && (
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       {t('products.margin')}
                     </th>
                   )}
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {t('common.actions')}
                   </th>
                 </tr>
@@ -256,7 +257,7 @@ export default function Products() {
                     key={product.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div>
                         <div className="font-medium text-slate-900 dark:text-white">
                           {product.name}
@@ -268,10 +269,10 @@ export default function Products() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
                       {product.category?.name || '-'}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="text-sm">
                         {product.sku && (
                           <div className="text-slate-900 dark:text-white">{product.sku}</div>
@@ -286,10 +287,10 @@ export default function Products() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
                       {formatUnitType(product.unit_type, t)}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       {product.track_stock ? (
                         <span className={`font-medium ${
                           product.stock_quantity === 0
@@ -308,7 +309,7 @@ export default function Products() {
                       )}
                     </td>
                     {isOwner && (
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         {product.cost_cents ? (
                           <span className="text-slate-600 dark:text-slate-300">
                             {formatPrice(product.cost_cents)}
@@ -318,14 +319,14 @@ export default function Products() {
                         )}
                       </td>
                     )}
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <div className="font-medium text-slate-900 dark:text-white">
                         {formatPrice(product.base_price)}
                       </div>
                       <div className="text-xs text-slate-500">BTW {product.tax_rate}%</div>
                     </td>
                     {isOwner && (
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         {product.cost_cents && product.base_price > 0 ? (
                           <span className={`font-medium ${
                             product.base_price > product.cost_cents
@@ -339,14 +340,14 @@ export default function Products() {
                         )}
                       </td>
                     )}
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {canEdit && (
                           <button
                             onClick={() => handleEdit(product)}
                             className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                           >
-                            <Pencil className="w-5 h-5" />
+                            <Pencil className="w-4 h-4" />
                           </button>
                         )}
                         {canDelete && (
@@ -354,7 +355,7 @@ export default function Products() {
                             onClick={() => handleDelete(product.id)}
                             className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                           >
-                            <Trash2 className="w-5 h-5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>

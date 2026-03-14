@@ -25,7 +25,7 @@ import { useCustomerDetail } from '../hooks/useCustomerDetail'
 import CustomerOrderRow from '../components/customers/CustomerOrderRow'
 import CustomerForm from '../components/customers/CustomerForm'
 import PortalAccessModal from '../components/customers/PortalAccessModal'
-import { updateCustomer } from '../services/customers'
+import { updateCustomer, type CustomerFormData } from '../services/customers'
 import { formatPrice } from '../utils/format'
 
 type TabType = 'orders' | 'details'
@@ -50,7 +50,7 @@ export default function CustomerDetail() {
   const [showPortalModal, setShowPortalModal] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
 
-  const handleEditSubmit = async (data: any) => {
+  const handleEditSubmit = async (data: CustomerFormData) => {
     if (!customer) return
     await updateCustomer(customer.id, data)
     setShowEditForm(false)

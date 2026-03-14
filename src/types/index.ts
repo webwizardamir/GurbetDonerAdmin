@@ -68,7 +68,7 @@ export interface UserSession {
 // Auth state
 export interface AuthState {
   user: UserProfile | null
-  session: any | null
+  session: unknown | null
   loading: boolean
   permissions: Permission[]
 }
@@ -86,8 +86,8 @@ export interface AuditLog {
   action: AuditAction
   entity_type: string
   entity_id: string
-  old_values: Record<string, any> | null
-  new_values: Record<string, any> | null
+  old_values: Record<string, unknown> | null
+  new_values: Record<string, unknown> | null
   ip_address?: string
   user_agent?: string
   created_at: string
@@ -302,7 +302,7 @@ export interface OrderItem {
   tax_amount: number // cents
   line_total: number // cents
   notes?: string
-  meta?: Record<string, any>
+  meta?: Record<string, unknown>
   created_at: string
 }
 
@@ -524,7 +524,7 @@ export interface PaginatedResponse<T> {
 export interface ApiError {
   message: string
   code?: string
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 }
 
 // Form types

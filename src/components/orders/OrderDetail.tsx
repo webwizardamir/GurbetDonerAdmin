@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  X,
   Loader2,
   ShoppingCart,
   Building2,
@@ -20,7 +19,9 @@ import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import DocumentGenerator from '../documents/DocumentGenerator'
 import PaymentMethodModal from './PaymentMethodModal'
+import StatusBadge from '../ui/StatusBadge'
 import { formatQuantity, formatPrice, formatDateTime } from '../../utils/format'
+import Modal from '../ui/Modal'
 
 interface OrderDetailProps {
   order: OrderWithItems
@@ -63,61 +64,6 @@ function formatUnitDutch(unitType: string, quantity: number, t?: (key: string) =
       }
       return quantity === 1 ? 'stuk' : 'stuks'
   }
-}
-
-// Status badge component - supports both original and new schema statuses
-function StatusBadge({ status }: { status: string }) {
-  const { t } = useTranslation()
-  const config: Record<string, { labelKey: string; className: string }> = {
-    draft: {
-      labelKey: 'orders.status.draft',
-      className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
-    },
-    pending_payment: {
-      labelKey: 'orders.status.pending_payment',
-      className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-    },
-    on_hold: {
-      labelKey: 'orders.status.on_hold',
-      className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    },
-    cancelled: {
-      labelKey: 'orders.status.cancelled',
-      className: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-    },
-    refunded: {
-      labelKey: 'orders.status.refunded',
-      className: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-    },
-    completed: {
-      labelKey: 'orders.status.completed',
-      className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    },
-    // Original schema statuses
-    pending: {
-      labelKey: 'orders.status.pending',
-      className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-    },
-    processing: {
-      labelKey: 'orders.status.processing',
-      className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    },
-    delivered: {
-      labelKey: 'orders.status.delivered',
-      className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    },
-  }
-
-  const statusConfig = config[status] || {
-    labelKey: '',
-    className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
-  }
-
-  return (
-    <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusConfig.className}`}>
-      {statusConfig.labelKey ? t(statusConfig.labelKey) : (status || 'Unknown')}
-    </span>
-  )
 }
 
 export default function OrderDetail({ order, onClose, onStatusChange }: OrderDetailProps) {
@@ -171,33 +117,26 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                {order.order_number}
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {t('orders.detail.created')} {formatDateTime(order.created_at)}
-              </p>
-            </div>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+            <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              {order.order_number}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t('orders.detail.created')} {formatDateTime(order.created_at)}
+            </p>
+          </div>
         </div>
-
+      }
+      maxWidth="max-w-2xl"
+    >
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {error && (
@@ -427,7 +366,6 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
             {t('common.close')}
           </button>
         </div>
-      </div>
 
       {/* Document Generator Modal */}
       {generatingDoc && (
@@ -449,6 +387,6 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
           loading={updatingStatus}
         />
       )}
-    </div>
+    </Modal>
   )
 }

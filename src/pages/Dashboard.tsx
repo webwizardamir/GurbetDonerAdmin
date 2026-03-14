@@ -15,50 +15,10 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import StatCard from '../components/StatCard'
+import StatusBadge from '../components/ui/StatusBadge'
 import { useDashboard } from '../hooks/useDashboard'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../utils/format'
-
-// Status badge for orders
-function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { label: string; className: string }> = {
-    draft: {
-      label: 'Draft',
-      className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
-    },
-    pending_payment: {
-      label: 'Pending',
-      className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-    },
-    on_hold: {
-      label: 'On Hold',
-      className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    },
-    completed: {
-      label: 'Completed',
-      className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    },
-    cancelled: {
-      label: 'Cancelled',
-      className: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-    },
-    refunded: {
-      label: 'Refunded',
-      className: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-    },
-  }
-
-  const cfg = config[status] || {
-    label: status,
-    className: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
-  }
-
-  return (
-    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${cfg.className}`}>
-      {cfg.label}
-    </span>
-  )
-}
 
 export default function Dashboard() {
   const { t } = useTranslation()
@@ -96,19 +56,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header with refresh */}
+      {/* Date & Refresh */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('nav.dashboard')}</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {new Date().toLocaleDateString('nl-NL', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </p>
-        </div>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          {new Date().toLocaleDateString('nl-NL', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </p>
         <button
           onClick={refresh}
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"

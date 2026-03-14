@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { X, Plus, Pencil, Trash2, Loader2, Tag } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Plus, Pencil, Trash2, Loader2, Tag } from 'lucide-react'
 import { useCategories } from '../../hooks/useCategories'
+import Modal from '../ui/Modal'
 import { usePermission } from '../../hooks/usePermission'
 import type { Category } from '../../types'
 
@@ -9,6 +11,7 @@ interface CategoryManagerProps {
 }
 
 export default function CategoryManager({ onClose }: CategoryManagerProps) {
+  const { t } = useTranslation()
   const { categories, loading, error, create, update, remove } = useCategories()
   const { canCreate, canEdit, canDelete } = usePermission('products')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -52,7 +55,8 @@ export default function CategoryManager({ onClose }: CategoryManagerProps) {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this category?')) return
+    // TODO: Replace with custom ConfirmDialog component
+    if (!confirm(t('categories.confirmDelete'))) return
 
     try {
       await remove(id)
@@ -67,28 +71,20 @@ export default function CategoryManager({ onClose }: CategoryManagerProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <Tag className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Manage Categories
-            </h2>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+            <Tag className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            {t('products.manageCategories')}
+          </h2>
         </div>
-
+      }
+    >
         {/* Content */}
         <div className="p-6 max-h-[60vh] overflow-y-auto">
           {/* Add new category */}
@@ -98,7 +94,7 @@ export default function CategoryManager({ onClose }: CategoryManagerProps) {
                 type="text"
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
-                placeholder="New category name..."
+                placeholder={t('products.newCategoryPlaceholder')}
                 className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <button
@@ -107,7 +103,7 @@ export default function CategoryManager({ onClose }: CategoryManagerProps) {
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg transition-colors flex items-center gap-2"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Add
+                {t('common.add')}
               </button>
             </form>
           )}
@@ -126,7 +122,7 @@ export default function CategoryManager({ onClose }: CategoryManagerProps) {
             </div>
           ) : categories.length === 0 ? (
             <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              No categories yet. Create one above.
+              {t('products.noCategories')}
             </div>
           ) : (
             <div className="space-y-2">
@@ -153,13 +149,13 @@ export default function CategoryManager({ onClose }: CategoryManagerProps) {
                         disabled={saving}
                         className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg"
                       >
-                        Save
+                        {t('common.save')}
                       </button>
                       <button
                         onClick={handleCancelEdit}
                         className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 text-sm rounded-lg"
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                     </div>
                   ) : (
@@ -204,10 +200,9 @@ export default function CategoryManager({ onClose }: CategoryManagerProps) {
             onClick={onClose}
             className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
-            Done
+            {t('common.done')}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
