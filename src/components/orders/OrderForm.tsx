@@ -37,6 +37,18 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
 
   const isEditMode = !!editOrder
 
+  // Escape key to close and lock body scroll
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const original = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = original
+    }
+  }, [onClose])
+
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [items, setItems] = useState<OrderLineItem[]>([])
   const [deliveryNotes, setDeliveryNotes] = useState('')
@@ -244,7 +256,7 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-4xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
@@ -342,7 +354,7 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
       {/* Unit Type Selector Modal */}
       {unitTypeSelector && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setUnitTypeSelector(null)} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setUnitTypeSelector(null)} />
           <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl p-4 w-full max-w-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-slate-900 dark:text-white">{unitTypeSelector.product.name}</h3>
