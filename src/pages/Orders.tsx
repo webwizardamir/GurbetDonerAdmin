@@ -46,6 +46,14 @@ export default function Orders() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null)
   const [documentInfo, setDocumentInfo] = useState<Map<string, OrderDocumentInfo>>(new Map())
 
+  // Lock body scroll when inline payment modal is open
+  useEffect(() => {
+    if (!showPaymentModal) return
+    const original = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = original }
+  }, [showPaymentModal])
+
   const filteredOrders = useMemo(() => orders.filter(order => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()

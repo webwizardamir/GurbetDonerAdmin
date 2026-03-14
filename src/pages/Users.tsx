@@ -38,6 +38,15 @@ export default function Users() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [showEditModal, showCreateModal])
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const modalOpen = showEditModal || showCreateModal
+    if (!modalOpen) return
+    const original = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = original }
+  }, [showEditModal, showCreateModal])
+
   const loadUsers = async () => {
     try {
       setLoading(true)
@@ -315,7 +324,7 @@ export default function Users() {
       {/* Edit User Modal */}
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={closeEditModal} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeEditModal} />
           <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('settings.users.editUser')}</h2>
@@ -362,7 +371,7 @@ export default function Users() {
       {/* Create User Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={closeCreateModal} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeCreateModal} />
           <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('settings.users.addUser')}</h2>
