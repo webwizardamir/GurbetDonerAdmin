@@ -15,8 +15,8 @@ import {
   type CreateOrderItemData,
 } from '../services/orders'
 
-// Default limit for performance - can be overridden via filters
-const DEFAULT_LIMIT = 100
+// Default limit for performance - increased for WooCommerce migration data
+const DEFAULT_LIMIT = 5000
 
 export function useOrders(initialFilters: OrderFilters = {}) {
   const [orders, setOrders] = useState<OrderWithItems[]>([])
