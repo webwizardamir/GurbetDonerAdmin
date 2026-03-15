@@ -150,10 +150,31 @@ function transformOrderItemFromDb(dbItem: DbOrderItemRow): OrderItem {
   }
 }
 
-// Fetch orders with filters
+// Fetch total order count for pagination
+export async function fetchOrderCount(filters: OrderFilters = {}): Promise<number> {
+  let query = supabase
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+
+  if (filters.status) query = query.eq('status', filters.status)
+  if (filters.paymentMethod) query = query.eq('payment_method', filters.paymentMethod)
+  if (filters.customerId) query = query.eq('customer_id', filters.customerId)
+  if (filters.dateFrom) query = query.gte('order_date', filters.dateFrom)
+  if (filters.dateTo) query = query.lte('order_date', filters.dateTo)
+
+  // Search by order_number server-side (customer name search is done client-side after fetch)
+  if (filters.search) {
+    query = query.or(`order_number.ilike.%${filters.search}%`)
+  }
+
+  const { count, error } = await query
+  if (error) throw error
+  return count || 0
+}
+
+// Fetch orders with filters and pagination
 export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWithItems[]> {
   // Fetch orders with customer and items relations
-  // Only select needed customer fields to reduce payload
   let query = supabase
     .from('orders')
     .select(`
@@ -189,14 +210,10 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
     query = query.or(`order_number.ilike.%${filters.search}%`)
   }
 
-  // Apply pagination
-  if (filters.limit) {
-    query = query.limit(filters.limit)
-  }
-
-  if (filters.offset) {
-    query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1)
-  }
+  // Apply pagination with range
+  const limit = filters.limit || 50
+  const offset = filters.offset || 0
+  query = query.range(offset, offset + limit - 1)
 
   const { data, error } = await query
 

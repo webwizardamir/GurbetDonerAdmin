@@ -49,7 +49,9 @@
     "item": "item",
     "default": "Default",
     "done": "Done",
-    "update": "Update"
+    "update": "Update",
+    "showing": "Showing",
+    "of": "of"
   },
   "nav": {
     "dashboard": "Dashboard",

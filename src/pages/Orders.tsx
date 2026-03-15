@@ -11,6 +11,8 @@ import {
   Calendar,
   Building2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Banknote,
   Download,
   FileText,
@@ -33,7 +35,7 @@ import { formatPrice, formatDate } from '../utils/format'
 export default function Orders() {
   const { t } = useTranslation()
   const { canCreate, canEdit, canDelete } = usePermission('orders')
-  const { orders, loading, error, filters, setFilters, refresh, remove } = useOrders()
+  const { orders, loading, error, filters, setFilters, refresh, remove, page, setPage, totalPages, totalCount } = useOrders()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -54,6 +56,15 @@ export default function Orders() {
     return () => { document.body.style.overflow = original }
   }, [showPaymentModal])
 
+  // Debounced server-side search: sends order_number filter to API after 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters({ search: searchQuery || undefined })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery, setFilters])
+
+  // Client-side filter also matches customer name (server only searches order_number)
   const filteredOrders = useMemo(() => orders.filter(order => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -379,6 +390,56 @@ export default function Orders() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            {t('common.showing')} {((page - 1) * 50) + 1}-{Math.min(page * 50, totalCount)} {t('common.of')} {totalCount}
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              let pageNum: number
+              if (totalPages <= 7) {
+                pageNum = i + 1
+              } else if (page <= 4) {
+                pageNum = i + 1
+              } else if (page >= totalPages - 3) {
+                pageNum = totalPages - 6 + i
+              } else {
+                pageNum = page - 3 + i
+              }
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setPage(pageNum)}
+                  className={`w-8 h-8 text-sm rounded-lg transition-colors ${
+                    pageNum === page
+                      ? 'bg-green-600 text-white font-medium'
+                      : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              )
+            })}
+            <button
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages}
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {showForm && <OrderForm onClose={() => setShowForm(false)} onSuccess={() => { setShowForm(false); refresh() }} />}
       {editingOrder && <OrderForm editOrder={editingOrder} onClose={() => setEditingOrder(null)} onSuccess={() => { setEditingOrder(null); refresh() }} />}

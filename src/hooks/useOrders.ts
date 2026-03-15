@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { OrderStatus } from '../types'
 import {
   fetchOrders,
+  fetchOrderCount,
   fetchOrderById,
   createOrder,
   updateOrderStatus,
@@ -15,34 +16,49 @@ import {
   type CreateOrderItemData,
 } from '../services/orders'
 
-// Default limit for performance - increased for WooCommerce migration data
-const DEFAULT_LIMIT = 5000
+// Orders per page
+const PAGE_SIZE = 50
 
 export function useOrders(initialFilters: OrderFilters = {}) {
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<OrderFilters>({
-    limit: DEFAULT_LIMIT,
+    limit: PAGE_SIZE,
     ...initialFilters,
   })
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   const loadOrders = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      const data = await fetchOrders(filters)
+      const offset = (page - 1) * PAGE_SIZE
+      const [data, count] = await Promise.all([
+        fetchOrders({ ...filters, limit: PAGE_SIZE, offset }),
+        fetchOrderCount(filters),
+      ])
       setOrders(data)
+      setTotalCount(count)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load orders')
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filters, page])
 
   useEffect(() => {
     loadOrders()
   }, [loadOrders])
+
+  // Reset to page 1 when filters change
+  const updateFilters = useCallback((newFilters: OrderFilters) => {
+    setPage(1)
+    setFilters(prev => ({ ...prev, ...newFilters }))
+  }, [])
 
   const create = async (orderData: CreateOrderData, items: CreateOrderItemData[]) => {
     try {
@@ -124,13 +140,19 @@ export function useOrders(initialFilters: OrderFilters = {}) {
     loading,
     error,
     filters,
-    setFilters,
+    setFilters: updateFilters,
     refresh: loadOrders,
     create,
     changeStatus,
     update,
     updateWithItems,
     remove,
+    // Pagination
+    page,
+    setPage,
+    totalPages,
+    totalCount,
+    pageSize: PAGE_SIZE,
   }
 }
 

@@ -49,7 +49,9 @@
     "item": "artikel",
     "default": "Standaard",
     "done": "Klaar",
-    "update": "Bijwerken"
+    "update": "Bijwerken",
+    "showing": "Toont",
+    "of": "van"
   },
   "nav": {
     "dashboard": "Dashboard",
