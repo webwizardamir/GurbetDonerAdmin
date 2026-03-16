@@ -187,16 +187,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   if (pendError) throw pendError
   if (custError) throw custError
 
-  // For revenue we still need to sum totals, but limit the fetch
-  const { data: revenueOrders, error: revError } = await supabase
-    .from('orders')
-    .select('total')
-    .in('status', ['completed', 'delivered'])
-    .limit(10000)
+  // Use server-side RPC to sum revenue (avoids PostgREST 1000 row limit)
+  const { data: revenueData, error: revError } = await supabase
+    .rpc('get_dashboard_revenue')
 
   if (revError) throw revError
 
-  const totalRevenue = (revenueOrders || []).reduce((sum, o) => sum + (o.total || 0), 0)
+  const totalRevenue = typeof revenueData === 'number' ? revenueData : 0
 
   return {
     totalOrders: completedCount || 0,
