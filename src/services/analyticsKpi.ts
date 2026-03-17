@@ -165,15 +165,17 @@ export async function getTodaysOrders(): Promise<TodayOrder[]> {
 // Get dashboard summary stats using count queries instead of fetching all rows
 export async function getDashboardStats(): Promise<DashboardStats> {
   // Get counts by status using head:true + count:'exact' to avoid fetching rows
+  // totalOrders = everything except cancelled/refunded (matches WooCommerce "Orders")
+  // pendingOrders = pending_payment + on_hold + draft
   const [
-    { count: completedCount, error: compError },
+    { count: totalOrderCount, error: compError },
     { count: pendingCount, error: pendError },
     { count: customerCount, error: custError },
   ] = await Promise.all([
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .in('status', ['completed', 'delivered']),
+      .not('status', 'in', '("cancelled","refunded")'),
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
@@ -196,7 +198,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const totalRevenue = typeof revenueData === 'number' ? revenueData : 0
 
   return {
-    totalOrders: completedCount || 0,
+    totalOrders: totalOrderCount || 0,
     totalRevenue,
     totalCustomers: customerCount || 0,
     pendingOrders: pendingCount || 0,
