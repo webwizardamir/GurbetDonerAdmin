@@ -28,6 +28,7 @@ interface OrderItemsListProps {
   onSetQuantity: (lineId: string, quantity: number) => void
   onRemoveItem: (lineId: string) => void
   onChangeUnitType: (lineId: string, unitType: UnitType) => void
+  onSetPrice?: (lineId: string, priceInCents: number) => void
 }
 
 export default function OrderItemsList({
@@ -39,6 +40,7 @@ export default function OrderItemsList({
   onSetQuantity,
   onRemoveItem,
   onChangeUnitType,
+  onSetPrice,
 }: OrderItemsListProps) {
   const { t } = useTranslation()
 
@@ -92,9 +94,23 @@ export default function OrderItemsList({
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                      {formatPrice(item.unit_price)} x {item.quantity} = {formatPrice(item.unit_price * item.quantity)}
-                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      {onSetPrice ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={(item.unit_price / 100).toFixed(2)}
+                          onChange={e => onSetPrice(item.lineId, Math.round(parseFloat(e.target.value || '0') * 100))}
+                          className="w-20 text-sm px-2 py-0.5 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        />
+                      ) : (
+                        <span className="text-sm text-slate-500 dark:text-slate-400">{formatPrice(item.unit_price)}</span>
+                      )}
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                        x {item.quantity} = {formatPrice(item.unit_price * item.quantity)}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1">
                     <button

@@ -316,6 +316,11 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
                 onSetQuantity={setQuantity}
                 onRemoveItem={removeItem}
                 onChangeUnitType={changeUnitType}
+                onSetPrice={(lineId, priceInCents) => {
+                  setItems(prev => prev.map(item =>
+                    item.lineId === lineId ? { ...item, unit_price: priceInCents } : item
+                  ))
+                }}
               />
               <div className="grid grid-cols-1 gap-4">
                 <div>
