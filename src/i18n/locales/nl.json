@@ -117,7 +117,45 @@
     "unitsLeft": "{{count}} {{unit}} over",
     "critical": "Kritiek",
     "low": "Laag",
-    "vsLastMonth": "t.o.v. vorige maand"
+    "vsLastMonth": "t.o.v. vorige maand",
+    "newOrder": "+ Nieuwe Bestelling",
+    "refresh": "Vernieuwen",
+    "greeting": {
+      "morning": "Goedemorgen, {{name}}",
+      "afternoon": "Goedemiddag, {{name}}",
+      "evening": "Goedenavond, {{name}}"
+    },
+    "kpi": {
+      "ordersToday": "Bestellingen vandaag",
+      "awaitingPayment": "Wacht op betaling",
+      "stockAlerts": "Voorraadwaarschuwingen",
+      "yesterdayRevenue": "Omzet gisteren",
+      "deliveriesToday": "Leveringen vandaag"
+    },
+    "action": {
+      "title": "Actie vereist",
+      "overduePayments": "{{count}} bestellingen wachten op betaling (> 3 dagen)",
+      "zeroStock": "{{count}} producten op voorraad = 0",
+      "ordersOnHold": "{{count}} bestellingen in de wacht"
+    },
+    "orders": {
+      "actionNeeded": "Actie nodig",
+      "completed": "Voltooid",
+      "showMore": "{{count}} meer tonen"
+    },
+    "stock": {
+      "title": "Voorraadwaarschuwingen",
+      "critical": "Kritiek",
+      "low": "Laag",
+      "more": "meer producten"
+    },
+    "weekly": {
+      "title": "Deze week",
+      "revenue": "Omzet",
+      "orders": "Bestellingen",
+      "vsLastWeek": "t.o.v. vorige week",
+      "noData": "Geen gegevens beschikbaar"
+    }
   },
   "customers": {
     "title": "Klanten",

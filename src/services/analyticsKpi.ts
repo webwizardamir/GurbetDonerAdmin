@@ -3,6 +3,82 @@
 import { supabase } from './supabase'
 import { getOrderItemsCost } from './analyticsHelpers'
 
+// --- New dashboard interfaces (today-focused) ---
+
+/** Owner variant of today stats */
+export interface TodayStatsOwner {
+  orders_today: number
+  revenue_today: number
+  profit_today: number
+  pending_count: number
+  yesterday_revenue: number
+}
+
+/** Shop manager variant of today stats */
+export interface TodayStatsManager {
+  orders_today: number
+  items_to_pick: number
+  pending_count: number
+  deliveries_today: number
+}
+
+export type TodayStats = TodayStatsOwner | TodayStatsManager
+
+export interface WeeklyStats {
+  this_week_revenue: number
+  this_week_orders: number
+  last_week_revenue: number
+  last_week_orders: number
+  revenue_change_pct: number
+  orders_change_pct: number
+}
+
+export interface ActionRequired {
+  overdue_payments: number
+  zero_stock_count: number
+  orders_on_hold: number
+}
+
+export interface TodayOrderByStatus {
+  status: string
+  count: number
+  total_amount: number
+}
+
+export type TodayOrdersByStatus = TodayOrderByStatus[]
+
+// --- New dashboard RPC callers ---
+
+export async function getTodayStats(isOwner: boolean): Promise<TodayStats> {
+  const { data, error } = await supabase.rpc('get_today_stats', {
+    p_is_owner: isOwner,
+  })
+  if (error) throw error
+  return data as TodayStats
+}
+
+export async function getWeeklyStats(isOwner: boolean): Promise<WeeklyStats> {
+  const { data, error } = await supabase.rpc('get_weekly_stats', {
+    p_is_owner: isOwner,
+  })
+  if (error) throw error
+  return data as WeeklyStats
+}
+
+export async function getActionRequired(): Promise<ActionRequired> {
+  const { data, error } = await supabase.rpc('get_action_required')
+  if (error) throw error
+  return data as ActionRequired
+}
+
+export async function getTodayOrdersByStatus(): Promise<TodayOrdersByStatus> {
+  const { data, error } = await supabase.rpc('get_today_orders_by_status')
+  if (error) throw error
+  return (data as TodayOrdersByStatus) || []
+}
+
+// --- Existing interfaces & functions (preserved) ---
+
 export interface KPIData {
   totalRevenue: number
   totalOrders: number

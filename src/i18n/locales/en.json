@@ -117,7 +117,45 @@
     "unitsLeft": "{{count}} {{unit}} left",
     "critical": "Critical",
     "low": "Low",
-    "vsLastMonth": "vs last month"
+    "vsLastMonth": "vs last month",
+    "newOrder": "+ New Order",
+    "refresh": "Refresh",
+    "greeting": {
+      "morning": "Good morning, {{name}}",
+      "afternoon": "Good afternoon, {{name}}",
+      "evening": "Good evening, {{name}}"
+    },
+    "kpi": {
+      "ordersToday": "Orders Today",
+      "awaitingPayment": "Awaiting Payment",
+      "stockAlerts": "Stock Alerts",
+      "yesterdayRevenue": "Yesterday's Revenue",
+      "deliveriesToday": "Deliveries Today"
+    },
+    "action": {
+      "title": "Action Required",
+      "overduePayments": "{{count}} orders awaiting payment (> 3 days)",
+      "zeroStock": "{{count}} products with zero stock",
+      "ordersOnHold": "{{count}} orders on hold"
+    },
+    "orders": {
+      "actionNeeded": "Action Needed",
+      "completed": "Completed",
+      "showMore": "Show {{count}} more"
+    },
+    "stock": {
+      "title": "Stock Alerts",
+      "critical": "Critical",
+      "low": "Low",
+      "more": "more products"
+    },
+    "weekly": {
+      "title": "This Week",
+      "revenue": "Revenue",
+      "orders": "Orders",
+      "vsLastWeek": "vs. last week",
+      "noData": "No data available"
+    }
   },
   "customers": {
     "title": "Customers",
