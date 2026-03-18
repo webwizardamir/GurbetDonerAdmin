@@ -27,11 +27,12 @@ export default function ActionRequiredBanner({ actionRequired }: ActionRequiredB
   const hasActions = overduePayments > 0 || zeroStockCount > 0 || ordersOnHold > 0
   if (!hasActions) return null
 
-  const items: { label: string; onClick: () => void; urgent: boolean }[] = []
+  const items: { label: string; count: number; onClick: () => void; urgent: boolean }[] = []
 
   if (overduePayments > 0) {
     items.push({
       label: t('dashboard.action.overduePayments', { count: overduePayments }),
+      count: overduePayments,
       onClick: () => navigate('/orders'),
       urgent: true,
     })
@@ -39,6 +40,7 @@ export default function ActionRequiredBanner({ actionRequired }: ActionRequiredB
   if (zeroStockCount > 0) {
     items.push({
       label: t('dashboard.action.zeroStock', { count: zeroStockCount }),
+      count: zeroStockCount,
       onClick: () => navigate('/products'),
       urgent: true,
     })
@@ -46,32 +48,52 @@ export default function ActionRequiredBanner({ actionRequired }: ActionRequiredB
   if (ordersOnHold > 0) {
     items.push({
       label: t('dashboard.action.ordersOnHold', { count: ordersOnHold }),
+      count: ordersOnHold,
       onClick: () => navigate('/orders'),
       urgent: false,
     })
   }
 
   return (
-    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl">
-      <div className="flex items-center gap-2 mb-2">
-        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-        <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-          {t('dashboard.action.title')}
-        </span>
-      </div>
-      <div className="space-y-1.5">
-        {items.map((item, idx) => (
-          <button
-            key={idx}
-            onClick={item.onClick}
-            className="flex items-center justify-between w-full text-left p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors group"
-          >
-            <span className={`text-sm ${item.urgent ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'}`}>
-              {item.label}
-            </span>
-            <ChevronRight className="w-4 h-4 text-amber-500 dark:text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-        ))}
+    <div className="relative overflow-hidden rounded-2xl border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800/50">
+      <div className="p-5">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="flex items-center justify-center w-6 h-6">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 animate-pulse" />
+          </div>
+          <span className="text-sm font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wide">
+            {t('dashboard.action.title')}
+          </span>
+        </div>
+        <div className="space-y-2">
+          {items.map((item, idx) => (
+            <button
+              key={idx}
+              onClick={item.onClick}
+              className="flex items-center justify-between w-full text-left p-3 rounded-xl hover:bg-amber-100/70 dark:hover:bg-amber-900/30 transition-all duration-150 group"
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${
+                    item.urgent ? 'bg-red-500' : 'bg-amber-500'
+                  }`}
+                >
+                  {item.count}
+                </span>
+                <span
+                  className={`text-sm font-medium ${
+                    item.urgent
+                      ? 'text-red-700 dark:text-red-300'
+                      : 'text-amber-700 dark:text-amber-300'
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-400 dark:text-amber-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-150" />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

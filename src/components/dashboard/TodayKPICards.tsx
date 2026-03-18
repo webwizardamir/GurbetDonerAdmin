@@ -25,6 +25,14 @@ interface TodayKPICardsProps {
   isOwner: boolean
 }
 
+const ACCENT_COLORS: Record<string, string> = {
+  blue: 'bg-blue-500',
+  amber: 'bg-amber-500',
+  red: 'bg-red-500',
+  green: 'bg-green-500',
+  violet: 'bg-violet-500',
+}
+
 export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -42,25 +50,30 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
       label: t('dashboard.kpi.ordersToday'),
       value: stats.ordersToday.toString(),
       icon: ShoppingCart,
-      iconColor: 'text-blue-600',
-      iconBg: 'bg-blue-50 dark:bg-blue-900/20',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      iconBg: 'bg-blue-50 dark:bg-blue-900/30',
+      accent: 'blue',
+      pulse: false,
       onClick: () => navigate('/orders'),
     },
     {
       label: t('dashboard.kpi.awaitingPayment'),
       value: stats.pendingCount.toString(),
       icon: Clock,
-      iconColor: 'text-amber-600',
-      iconBg: 'bg-amber-50 dark:bg-amber-900/20',
-      dot: stats.pendingCount > 0 ? 'bg-amber-500' : undefined,
+      iconColor: 'text-amber-600 dark:text-amber-400',
+      iconBg: 'bg-amber-50 dark:bg-amber-900/30',
+      accent: 'amber',
+      pulse: stats.pendingCount > 0,
       onClick: () => navigate('/orders'),
     },
     {
       label: t('dashboard.kpi.stockAlerts'),
       value: stats.lowStockCount.toString(),
       icon: AlertTriangle,
-      iconColor: stats.lowStockCount > 0 ? 'text-red-600' : 'text-slate-500',
-      iconBg: stats.lowStockCount > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-slate-100 dark:bg-slate-700',
+      iconColor: stats.lowStockCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500',
+      iconBg: stats.lowStockCount > 0 ? 'bg-red-50 dark:bg-red-900/30' : 'bg-slate-100 dark:bg-slate-700',
+      accent: 'red',
+      pulse: false,
       onClick: () => navigate('/products'),
     },
     isOwner
@@ -68,40 +81,55 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
           label: t('dashboard.kpi.yesterdayRevenue'),
           value: formatPrice(stats.yesterdayRevenue || 0),
           icon: TrendingUp,
-          iconColor: 'text-green-600',
-          iconBg: 'bg-green-50 dark:bg-green-900/20',
+          iconColor: 'text-green-600 dark:text-green-400',
+          iconBg: 'bg-green-50 dark:bg-green-900/30',
+          accent: 'green',
+          pulse: false,
           onClick: () => navigate('/analytics'),
         }
       : {
           label: t('dashboard.kpi.deliveriesToday'),
           value: (stats.deliveriesToday || 0).toString(),
           icon: Truck,
-          iconColor: 'text-violet-600',
-          iconBg: 'bg-violet-50 dark:bg-violet-900/20',
+          iconColor: 'text-violet-600 dark:text-violet-400',
+          iconBg: 'bg-violet-50 dark:bg-violet-900/30',
+          accent: 'violet',
+          pulse: false,
           onClick: () => navigate('/orders'),
         },
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {cards.map((card) => (
         <button
           key={card.label}
           onClick={card.onClick}
-          className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 text-left hover:border-green-300 dark:hover:border-green-700 transition-colors relative"
+          className="group relative bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 text-left overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
         >
-          {'dot' in card && card.dot && (
-            <span className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full ${card.dot} animate-pulse`} />
-          )}
-          <div className={`${card.iconBg} rounded-xl w-9 h-9 flex items-center justify-center mb-2`}>
-            <card.icon className={`w-4 h-4 ${card.iconColor}`} />
+          {/* Top accent line */}
+          <div className={`h-0.5 ${ACCENT_COLORS[card.accent]}`} />
+
+          <div className="p-4 pt-3.5">
+            {/* Pulse ring for pending */}
+            {card.pulse && (
+              <span className="absolute top-4 right-4 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500" />
+              </span>
+            )}
+
+            <div className={`${card.iconBg} rounded-xl w-11 h-11 flex items-center justify-center mb-3`}>
+              <card.icon className={`w-5 h-5 ${card.iconColor}`} />
+            </div>
+
+            <p className="text-3xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
+              {todayStats ? card.value : '-'}
+            </p>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+              {card.label}
+            </p>
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-            {todayStats ? card.value : '-'}
-          </p>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-            {card.label}
-          </p>
         </button>
       ))}
     </div>

@@ -147,14 +147,26 @@
       "title": "Voorraadwaarschuwingen",
       "critical": "Kritiek",
       "low": "Laag",
-      "more": "meer producten"
+      "more": "meer producten",
+      "allOk": "Alle voorraad op orde",
+      "alertCount": "{{count}} meldingen"
     },
     "weekly": {
       "title": "Deze week",
       "revenue": "Omzet",
       "orders": "Bestellingen",
       "vsLastWeek": "t.o.v. vorige week",
+      "prevWeek": "Vorige week",
       "noData": "Geen gegevens beschikbaar"
+    },
+    "summary": "Je hebt {{orders}} bestellingen en {{pending}} wachten op betaling",
+    "loading": {
+      "title": "Dashboard laden...",
+      "subtitle": "Even geduld alsjeblieft"
+    },
+    "error": {
+      "title": "Kon dashboard niet laden",
+      "subtitle": "Er is iets misgegaan bij het ophalen van de gegevens"
     }
   },
   "customers": {

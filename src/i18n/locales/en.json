@@ -147,14 +147,26 @@
       "title": "Stock Alerts",
       "critical": "Critical",
       "low": "Low",
-      "more": "more products"
+      "more": "more products",
+      "allOk": "All stock in order",
+      "alertCount": "{{count}} alerts"
     },
     "weekly": {
       "title": "This Week",
       "revenue": "Revenue",
       "orders": "Orders",
       "vsLastWeek": "vs. last week",
+      "prevWeek": "Previous week",
       "noData": "No data available"
+    },
+    "summary": "You have {{orders}} orders and {{pending}} awaiting payment",
+    "loading": {
+      "title": "Loading dashboard...",
+      "subtitle": "Please wait a moment"
+    },
+    "error": {
+      "title": "Could not load dashboard",
+      "subtitle": "Something went wrong while fetching data"
     }
   },
   "customers": {
