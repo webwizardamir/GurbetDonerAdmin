@@ -28,105 +28,42 @@ export interface SoldProductsResult {
   }
 }
 
-// Get sold products for a date range
+// Get sold products for a date range using server-side RPC
 export async function getSoldProducts(
   startDate: string,
   endDate: string
 ): Promise<SoldProductsResult> {
-  // Fetch order items from all orders (except cancelled/refunded) in the date range
-  // This helps track what was ordered for refill planning regardless of payment status
-  const { data: orderItems, error: itemsError } = await supabase
-    .from('order_items')
-    .select(`
-      product_id,
-      product_name,
-      product_sku,
-      unit_type,
-      quantity,
-      total,
-      order:orders!inner(id, status, order_date)
-    `)
-    .not('order.status', 'in', '("cancelled","refunded")')
-    .gte('order.order_date', startDate)
-    .lte('order.order_date', endDate)
+  const { data, error } = await supabase.rpc('get_sold_products', {
+    p_start_date: startDate,
+    p_end_date: endDate,
+  })
 
-  if (itemsError) throw itemsError
+  if (error) throw error
 
-  // Fetch products for current stock and tracking info
-  const { data: products, error: productsError } = await supabase
-    .from('products')
-    .select(`
-      id,
-      stock_quantity,
-      track_stock,
-      category:categories(name)
-    `)
-
-  if (productsError) throw productsError
-
-  // Create product lookup map
-  const productMap = new Map<string, {
-    stock_quantity: number
-    track_stock: boolean
-    category_name: string | null
-  }>()
-
-  for (const product of products || []) {
-    const categoryData = product.category as unknown
-    const category = Array.isArray(categoryData) ? categoryData[0] : categoryData
-    productMap.set(product.id, {
-      stock_quantity: product.stock_quantity || 0,
-      track_stock: product.track_stock ?? false,
-      category_name: category?.name || null,
-    })
-  }
-
-  // Aggregate by product
-  const aggregated = new Map<string, {
+  // Build result items from RPC data
+  const items: SoldProductItem[] = (data || []).map((row: {
     product_id: string
     product_name: string
-    product_sku: string | null
+    product_sku: string
     unit_type: string
+    category_name: string
     total_quantity: number
     total_revenue: number
-    order_ids: Set<string>
-  }>()
-
-  for (const item of orderItems || []) {
-    const existing = aggregated.get(item.product_id) || {
-      product_id: item.product_id,
-      product_name: item.product_name,
-      product_sku: item.product_sku,
-      unit_type: item.unit_type || 'piece',
-      total_quantity: 0,
-      total_revenue: 0,
-      order_ids: new Set<string>(),
-    }
-
-    const orderData = item.order as unknown as { id: string }
-    existing.total_quantity += Number(item.quantity) || 0
-    existing.total_revenue += Number(item.total) || 0
-    existing.order_ids.add(orderData.id)
-
-    aggregated.set(item.product_id, existing)
-  }
-
-  // Build result items with stock info
-  const items: SoldProductItem[] = Array.from(aggregated.values()).map(agg => {
-    const productInfo = productMap.get(agg.product_id)
-    return {
-      product_id: agg.product_id,
-      product_name: agg.product_name,
-      product_sku: agg.product_sku,
-      unit_type: agg.unit_type,
-      category_name: productInfo?.category_name || null,
-      total_quantity: agg.total_quantity,
-      total_revenue: agg.total_revenue,
-      current_stock: productInfo?.track_stock ? productInfo.stock_quantity : null,
-      track_stock: productInfo?.track_stock ?? false,
-      order_count: agg.order_ids.size,
-    }
-  })
+    current_stock: number
+    track_stock: boolean
+    order_count: number
+  }) => ({
+    product_id: row.product_id,
+    product_name: row.product_name,
+    product_sku: row.product_sku || null,
+    unit_type: row.unit_type,
+    category_name: row.category_name || null,
+    total_quantity: Number(row.total_quantity),
+    total_revenue: Number(row.total_revenue),
+    current_stock: row.track_stock ? Number(row.current_stock) : null,
+    track_stock: row.track_stock,
+    order_count: Number(row.order_count),
+  }))
 
   // Sort: tracked products with low stock first, then by quantity sold
   items.sort((a, b) => {

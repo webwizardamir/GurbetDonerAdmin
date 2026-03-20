@@ -1,7 +1,7 @@
 // Customer performance analytics: top customers, customer segments, performance table
+// Uses server-side RPC functions to avoid PostgREST 1000-row limit
 
 import { supabase } from './supabase'
-import { fetchOrderItemsCostChunked } from './analyticsHelpers'
 
 export interface TopCustomer {
   id: string
@@ -24,162 +24,68 @@ export interface CustomerPerformanceRow {
   daysSinceLastOrder: number | null
 }
 
-// Get top customers by revenue
+// Get top customers by revenue using server-side RPC
 export async function getTopCustomers(
   startDate: string,
   endDate: string,
   limit = 10
 ): Promise<TopCustomer[]> {
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select(`
-      id, total,
-      customer:customers(id, company_name)
-    `)
-    .in('status', ['completed', 'delivered'])
-    .gte('order_date', startDate)
-    .lte('order_date', endDate)
-    .limit(10000)
+  const { data, error } = await supabase.rpc('get_top_customers', {
+    p_start_date: startDate,
+    p_end_date: endDate,
+    p_limit: limit,
+  })
 
   if (error) throw error
 
-  // Fetch order items for profit calculation (chunked)
-  const orderIds = (orders || []).map(o => o.id)
-  const costByOrder = await fetchOrderItemsCostChunked(orderIds)
-
-  // Group by customer
-  const grouped = new Map<string, {
-    id: string
-    companyName: string
-    revenue: number
-    profit: number
-    count: number
-  }>()
-
-  for (const order of orders || []) {
-    const customerData = order.customer as unknown
-    const customer = Array.isArray(customerData) ? customerData[0] : customerData
-    if (!customer) continue
-
-    const orderRevenue = order.total || 0
-    const orderCost = costByOrder.get(order.id) || 0
-    const existing = grouped.get(customer.id) || {
-      id: customer.id,
-      companyName: customer.company_name,
-      revenue: 0,
-      profit: 0,
-      count: 0,
-    }
-    grouped.set(customer.id, {
-      ...existing,
-      revenue: existing.revenue + orderRevenue,
-      profit: existing.profit + (orderRevenue - orderCost),
-      count: existing.count + 1,
-    })
-  }
-
-  return Array.from(grouped.values())
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, limit)
-    .map(c => ({
-      id: c.id,
-      companyName: c.companyName,
-      totalRevenue: c.revenue,
-      totalProfit: c.profit,
-      orderCount: c.count,
-    }))
+  return (data || []).map((row: {
+    customer_id: string
+    company_name: string
+    total_revenue: number
+    total_profit: number
+    order_count: number
+  }) => ({
+    id: row.customer_id,
+    companyName: row.company_name,
+    totalRevenue: Number(row.total_revenue),
+    totalProfit: Number(row.total_profit),
+    orderCount: Number(row.order_count),
+  }))
 }
 
-// Get full customer performance table
+// Get full customer performance table using server-side RPC
 export async function getCustomerPerformance(
   startDate?: string,
   endDate?: string
 ): Promise<CustomerPerformanceRow[]> {
-  // Get ALL customers
-  const { data: customers, error: custError } = await supabase
-    .from('customers')
-    .select('id, company_name')
+  const { data, error } = await supabase.rpc('get_customer_performance', {
+    p_start_date: startDate || null,
+    p_end_date: endDate || null,
+  })
 
-  if (custError) throw custError
-  if (!customers || customers.length === 0) return []
+  if (error) throw error
 
-  // Get all completed/delivered orders with customer_id
-  let ordersQuery = supabase
-    .from('orders')
-    .select('id, customer_id, total, tax_amount, order_date')
-    .in('status', ['completed', 'delivered'])
-    .limit(10000)
-
-  if (startDate) ordersQuery = ordersQuery.gte('order_date', startDate)
-  if (endDate) ordersQuery = ordersQuery.lte('order_date', endDate)
-
-  const { data: orders, error: ordError } = await ordersQuery
-
-  if (ordError) throw ordError
-
-  // Get order items for cost calculation (chunked)
-  const orderIds = (orders || []).map(o => o.id)
-  const costByOrder = await fetchOrderItemsCostChunked(orderIds)
-
-  // Aggregate per customer
-  const statsMap = new Map<string, {
-    revenue: number
-    profit: number
-    tax: number
-    count: number
-    lastDate: string | null
-  }>()
-
-  for (const order of orders || []) {
-    const custId = order.customer_id
-    if (!custId) continue
-    const orderRevenue = order.total || 0
-    const orderCost = costByOrder.get(order.id) || 0
-    const orderTax = order.tax_amount || 0
-    const existing = statsMap.get(custId)
-    if (existing) {
-      existing.revenue += orderRevenue
-      existing.profit += (orderRevenue - orderCost)
-      existing.tax += orderTax
-      existing.count += 1
-      if (!existing.lastDate || order.order_date > existing.lastDate) {
-        existing.lastDate = order.order_date
-      }
-    } else {
-      statsMap.set(custId, {
-        revenue: orderRevenue,
-        profit: orderRevenue - orderCost,
-        tax: orderTax,
-        count: 1,
-        lastDate: order.order_date,
-      })
-    }
-  }
-
-  const today = new Date()
-
-  return customers.map(c => {
-    const stats = statsMap.get(c.id)
-    const revenue = stats?.revenue || 0
-    const profit = stats?.profit || 0
-    const tax = stats?.tax || 0
-    const count = stats?.count || 0
-    const lastDate = stats?.lastDate || null
-    const daysSince = lastDate
-      ? Math.floor((today.getTime() - new Date(lastDate).getTime()) / 86400000)
-      : null
-
-    return {
-      customerId: c.id,
-      companyName: c.company_name,
-      totalRevenue: revenue,
-      totalProfit: profit,
-      totalTax: tax,
-      profitMargin: revenue > 0 ? (profit / revenue) * 100 : 0,
-      orderCount: count,
-      avgOrderValue: count > 0 ? Math.round(revenue / count) : 0,
-      lastOrderDate: lastDate,
-      daysSinceLastOrder: daysSince,
-    }
-  }).sort((a, b) => b.totalRevenue - a.totalRevenue)
+  return (data || []).map((row: {
+    customer_id: string
+    company_name: string
+    total_revenue: number
+    total_profit: number
+    total_tax: number
+    profit_margin: number
+    order_count: number
+    avg_order_value: number
+    last_order_date: string | null
+    days_since_last_order: number | null
+  }) => ({
+    customerId: row.customer_id,
+    companyName: row.company_name,
+    totalRevenue: Number(row.total_revenue),
+    totalProfit: Number(row.total_profit),
+    totalTax: Number(row.total_tax),
+    profitMargin: Number(row.profit_margin),
+    orderCount: Number(row.order_count),
+    avgOrderValue: Number(row.avg_order_value),
+    lastOrderDate: row.last_order_date,
+    daysSinceLastOrder: row.days_since_last_order != null ? Number(row.days_since_last_order) : null,
+  }))
 }

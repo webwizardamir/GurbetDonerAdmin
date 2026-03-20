@@ -30,6 +30,7 @@ export async function fetchCustomers(filters?: CustomerFilters): Promise<Custome
     .from('customers')
     .select('*')
     .order('company_name', { ascending: true })
+    .limit(5000)
 
   if (filters?.city) {
     query = query.eq('billing_city', filters.city)

@@ -1,7 +1,7 @@
 // Order analytics: status distribution, order performance table
+// Uses server-side RPC functions to avoid PostgREST 1000-row limit
 
 import { supabase } from './supabase'
-import { fetchOrderItemsCostChunked } from './analyticsHelpers'
 
 export interface OrderStatusCount {
   status: string
@@ -25,87 +25,64 @@ export interface OrderPerformanceRow {
   profitMargin: number
 }
 
-// Get order counts by status using count queries for efficiency
+// Get order counts by status using server-side RPC
 export async function getOrdersByStatus(
   startDate: string,
   endDate: string
 ): Promise<OrderStatusCount[]> {
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select('status, total')
-    .gte('order_date', startDate)
-    .lte('order_date', endDate)
-    .limit(10000)
+  const { data, error } = await supabase.rpc('get_orders_by_status', {
+    p_start_date: startDate,
+    p_end_date: endDate,
+  })
 
   if (error) throw error
 
-  // Group by status
-  const grouped = new Map<string, { count: number; revenue: number }>()
-
-  for (const order of orders || []) {
-    const status = order.status || 'unknown'
-    const existing = grouped.get(status) || { count: 0, revenue: 0 }
-    grouped.set(status, {
-      count: existing.count + 1,
-      revenue: existing.revenue + (order.total || 0),
-    })
-  }
-
-  return Array.from(grouped.entries())
-    .map(([status, data]) => ({
-      status,
-      count: data.count,
-      revenue: data.revenue,
-    }))
-    .sort((a, b) => b.count - a.count)
+  return (data || []).map((row: { status: string; count: number; revenue: number }) => ({
+    status: row.status,
+    count: Number(row.count),
+    revenue: Number(row.revenue),
+  }))
 }
 
-// Get detailed order performance table
+// Get detailed order performance table using server-side RPC
 export async function getOrderPerformance(
   startDate: string,
   endDate: string
 ): Promise<OrderPerformanceRow[]> {
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select(`
-      id, order_number, order_date, status, payment_method,
-      subtotal, discount_amount, tax_amount, total,
-      customer:customers(company_name)
-    `)
-    .gte('order_date', startDate)
-    .lte('order_date', endDate)
-    .order('order_date', { ascending: false })
-    .limit(10000)
+  const { data, error } = await supabase.rpc('get_order_performance', {
+    p_start_date: startDate,
+    p_end_date: endDate,
+  })
 
   if (error) throw error
 
-  // Get order items for cost calculation (chunked)
-  const orderIds = (orders || []).map(o => o.id)
-  const costByOrder = await fetchOrderItemsCostChunked(orderIds)
-
-  return (orders || []).map(order => {
-    const customerData = order.customer as unknown
-    const customer = Array.isArray(customerData) ? customerData[0] : customerData
-    const customerName = (customer as { company_name: string } | null)?.company_name || 'Unknown'
-
-    const totalCost = costByOrder.get(order.id) || 0
-    const orderTotal = order.total || 0
-    const profit = orderTotal - totalCost
-
-    return {
-      orderId: order.id,
-      orderNumber: order.order_number || '',
-      orderDate: order.order_date,
-      customerName,
-      status: order.status,
-      paymentMethod: order.payment_method || 'none',
-      subtotal: order.subtotal || 0,
-      discountAmount: order.discount_amount || 0,
-      taxAmount: order.tax_amount || 0,
-      total: orderTotal,
-      totalCost,
-      profit,
-      profitMargin: orderTotal > 0 ? (profit / orderTotal) * 100 : 0,
-    }
-  })
+  return (data || []).map((row: {
+    order_id: string
+    order_number: string
+    order_date: string
+    customer_name: string
+    status: string
+    payment_method: string
+    subtotal: number
+    discount_amount: number
+    tax_amount: number
+    total: number
+    total_cost: number
+    profit: number
+    profit_margin: number
+  }) => ({
+    orderId: row.order_id,
+    orderNumber: row.order_number || '',
+    orderDate: row.order_date,
+    customerName: row.customer_name,
+    status: row.status,
+    paymentMethod: row.payment_method,
+    subtotal: Number(row.subtotal),
+    discountAmount: Number(row.discount_amount),
+    taxAmount: Number(row.tax_amount),
+    total: Number(row.total),
+    totalCost: Number(row.total_cost),
+    profit: Number(row.profit),
+    profitMargin: Number(row.profit_margin),
+  }))
 }

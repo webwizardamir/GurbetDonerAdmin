@@ -1,4 +1,5 @@
 // Inventory analytics: expiry risk, turnover ratios, batch aging
+// Uses server-side RPC functions to avoid PostgREST 1000-row limit
 
 import { supabase } from './supabase'
 
@@ -34,68 +35,33 @@ export async function getExpiryRisk(): Promise<ExpiryRiskRow[]> {
   return []
 }
 
-// Get inventory turnover ratios
+// Get inventory turnover ratios using server-side RPC
 export async function getInventoryTurnover(
   startDate: string,
   endDate: string
 ): Promise<TurnoverRow[]> {
-  const { data: products, error: prodError } = await supabase
-    .from('products')
-    .select('id, name, stock_quantity, cost_cents')
-    .eq('track_stock', true)
-    .gt('stock_quantity', 0)
-    .order('stock_quantity', { ascending: false })
+  const { data, error } = await supabase.rpc('get_inventory_turnover', {
+    p_start_date: startDate,
+    p_end_date: endDate,
+  })
 
-  if (prodError) throw prodError
-  if (!products || products.length === 0) return []
+  if (error) throw error
 
-  // Get COGS per product in period
-  const productIds = products.map(p => p.id)
-  const { data: items, error: itemsError } = await supabase
-    .from('order_items')
-    .select(`
-      product_id,
-      quantity,
-      cost_cents,
-      order:orders!inner(status, order_date)
-    `)
-    .in('product_id', productIds)
-    .in('order.status', ['completed', 'delivered'])
-    .gte('order.order_date', startDate)
-    .lte('order.order_date', endDate)
-    .limit(10000)
-
-  if (itemsError) throw itemsError
-
-  const cogsMap = new Map<string, number>()
-  for (const item of items || []) {
-    const cost = Number(item.quantity || 0) * Number(item.cost_cents || 0)
-    cogsMap.set(item.product_id, (cogsMap.get(item.product_id) || 0) + cost)
-  }
-
-  // Calculate days in period
-  const periodDays = Math.max(1, Math.floor(
-    (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000
-  ) + 1)
-
-  return products
-    .map(p => {
-      const stockValue = (p.stock_quantity || 0) * (p.cost_cents || 0)
-      const cogs = cogsMap.get(p.id) || 0
-      const turnover = stockValue > 0 ? cogs / stockValue : 0
-      const daysToSell = turnover > 0 ? Math.round(periodDays / turnover) : null
-
-      return {
-        productName: p.name,
-        stockQty: p.stock_quantity || 0,
-        stockValue,
-        cogsInPeriod: cogs,
-        turnoverRatio: Math.round(turnover * 100) / 100,
-        daysToSell,
-      }
-    })
-    .sort((a, b) => b.stockValue - a.stockValue)
-    .slice(0, 20)
+  return (data || []).map((row: {
+    product_name: string
+    stock_qty: number
+    stock_value: number
+    cogs_in_period: number
+    turnover_ratio: number
+    days_to_sell: number | null
+  }) => ({
+    productName: row.product_name,
+    stockQty: Number(row.stock_qty),
+    stockValue: Number(row.stock_value),
+    cogsInPeriod: Number(row.cogs_in_period),
+    turnoverRatio: Number(row.turnover_ratio),
+    daysToSell: row.days_to_sell != null ? Number(row.days_to_sell) : null,
+  }))
 }
 
 // Get batch aging buckets (placeholder until product_batches table is configured)

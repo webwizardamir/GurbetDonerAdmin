@@ -585,7 +585,7 @@ export async function bulkDeleteOrders(ids: string[]): Promise<void> {
   if (error) throw error
 }
 
-// Get order statistics
+// Get order statistics using server-side RPC to avoid PostgREST 1000-row limit
 export async function getOrderStats(): Promise<{
   total: number
   draft: number
@@ -593,25 +593,25 @@ export async function getOrderStats(): Promise<{
   completed: number
   cancelled: number
 }> {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('status')
+  const { data, error } = await supabase.rpc('get_order_stats_by_status')
 
   if (error) throw error
 
   const stats = {
-    total: data?.length || 0,
+    total: 0,
     draft: 0,
     pending: 0,
     completed: 0,
     cancelled: 0,
   }
 
-  for (const order of data || []) {
-    if (order.status === 'draft') stats.draft++
-    else if (order.status === 'pending_payment') stats.pending++
-    else if (order.status === 'completed') stats.completed++
-    else if (order.status === 'cancelled' || order.status === 'refunded') stats.cancelled++
+  for (const row of data || []) {
+    const count = Number(row.count)
+    stats.total += count
+    if (row.status === 'draft') stats.draft += count
+    else if (row.status === 'pending_payment') stats.pending += count
+    else if (row.status === 'completed') stats.completed += count
+    else if (row.status === 'cancelled' || row.status === 'refunded') stats.cancelled += count
   }
 
   return stats
