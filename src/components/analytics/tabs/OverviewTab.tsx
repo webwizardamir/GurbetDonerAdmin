@@ -51,7 +51,7 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           label={t('analytics.revenue')}
-          value={kpis ? formatChartCurrency(kpis.totalRevenue) : '€0'}
+          value={kpis ? formatChartCurrency(kpis.totalRevenue || 0) : '€0'}
           trend={kpis ? {
             value: Math.abs(kpis.revenueGrowth),
             isPositive: kpis.revenueGrowth >= 0,
