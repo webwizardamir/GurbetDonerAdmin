@@ -55,13 +55,14 @@ export async function getRevenueByDay(
 
   if (error) throw error
 
-  const rows = (data as Array<{ date: string; revenue: number; profit: number; order_count: number }>) || []
+  // RPC returns camelCase keys
+  const rows = (data as Array<{ date: string; revenue: number; profit: number; orderCount: number }>) || []
 
   return rows.map(r => ({
     date: r.date,
-    revenue: r.revenue,
-    profit: r.profit,
-    orderCount: r.order_count,
+    revenue: r.revenue ?? 0,
+    profit: r.profit ?? 0,
+    orderCount: r.orderCount ?? 0,
   }))
 }
 
@@ -98,37 +99,25 @@ export async function getFinancialSummary(
 
   if (error) throw error
 
-  const d = data as {
-    gross_revenue: number
-    net_revenue: number
-    total_tax: number
-    total_discount: number
-    total_cogs: number
-    gross_profit: number
-    margin_pct: number
-    cash_revenue: number
-    bank_revenue: number
-    order_count: number
-    prev_gross_revenue: number
-    prev_gross_profit: number
-    prev_order_count: number
-  }
+  // RPC returns camelCase JSON keys
+  const d = data as Record<string, unknown>
+  const prev = (d.prev || {}) as Record<string, number>
 
   return {
-    grossRevenue: d.gross_revenue,
-    totalDiscounts: d.total_discount,
-    netRevenue: d.net_revenue,
-    totalCogs: d.total_cogs,
-    grossProfit: d.gross_profit,
-    grossMargin: d.margin_pct,
-    vatCollected: d.total_tax,
-    cashRevenue: d.cash_revenue,
-    bankRevenue: d.bank_revenue,
-    orderCount: d.order_count,
+    grossRevenue: Number(d.grossRevenue ?? 0),
+    totalDiscounts: Number(d.totalDiscounts ?? 0),
+    netRevenue: Number(d.netRevenue ?? 0),
+    totalCogs: Number(d.totalCogs ?? 0),
+    grossProfit: Number(d.grossProfit ?? 0),
+    grossMargin: Number(d.grossMargin ?? 0),
+    vatCollected: Number(d.vatCollected ?? 0),
+    cashRevenue: Number(d.cashRevenue ?? 0),
+    bankRevenue: Number(d.bankRevenue ?? 0),
+    orderCount: Number(d.orderCount ?? d.order_count ?? 0),
     prev: {
-      grossRevenue: d.prev_gross_revenue,
-      grossProfit: d.prev_gross_profit,
-      orderCount: d.prev_order_count,
+      grossRevenue: Number(prev.grossRevenue ?? 0),
+      grossProfit: Number(prev.grossProfit ?? 0),
+      orderCount: Number(prev.orderCount ?? 0),
     },
   }
 }
@@ -143,13 +132,14 @@ export async function getMonthlyComparison(year: number): Promise<MonthlyRow[]> 
 
   const monthLabels = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
 
-  const rows = (data as Array<{ month: number; revenue: number; profit: number; orders: number }>) || []
+  // RPC returns camelCase with monthLabel included
+  const rows = (data as Array<Record<string, unknown>>) || []
 
   return rows.map(r => ({
-    month: r.month,
-    monthLabel: monthLabels[r.month - 1],
-    revenue: r.revenue,
-    profit: r.profit,
-    orders: r.orders,
+    month: Number(r.month ?? 0),
+    monthLabel: String(r.monthLabel || monthLabels[Number(r.month ?? 1) - 1]),
+    revenue: Number(r.revenue ?? 0),
+    profit: Number(r.profit ?? 0),
+    orders: Number(r.orders ?? 0),
   }))
 }

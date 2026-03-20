@@ -120,32 +120,19 @@ export async function getKPIs(
 
   if (error) throw error
 
-  const d = data as {
-    total_revenue: number
-    total_orders: number
-    total_items: number
-    average_order_value: number
-    total_cogs: number
-    total_profit: number
-    profit_margin: number
-    prev_revenue: number
-    prev_orders: number
-    prev_profit: number
-    revenue_growth: number
-    orders_growth: number
-    profit_growth: number
-  }
+  // RPC returns camelCase JSON keys directly
+  const d = data as Record<string, number>
 
   return {
-    totalRevenue: d.total_revenue,
-    totalOrders: d.total_orders,
-    totalItems: d.total_items,
-    averageOrderValue: d.average_order_value,
-    totalProfit: d.total_profit,
-    profitMargin: d.profit_margin,
-    revenueGrowth: d.revenue_growth,
-    ordersGrowth: d.orders_growth,
-    profitGrowth: d.profit_growth,
+    totalRevenue: d.totalRevenue ?? 0,
+    totalOrders: d.totalOrders ?? 0,
+    totalItems: d.totalItems ?? 0,
+    averageOrderValue: d.averageOrderValue ?? 0,
+    totalProfit: d.totalProfit ?? 0,
+    profitMargin: d.profitMargin ?? 0,
+    revenueGrowth: d.revenueGrowth ?? 0,
+    ordersGrowth: d.orderGrowth ?? 0,
+    profitGrowth: d.profitGrowth ?? 0,
   }
 }
 
