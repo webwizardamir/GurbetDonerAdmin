@@ -48,7 +48,7 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
   const comparisonRows = [
     {
       label: t('analytics.revenue'),
-      current: summary.grossRevenue,
+      current: summary.netRevenue,
       previous: summary.prev.grossRevenue,
     },
     {
