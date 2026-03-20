@@ -137,7 +137,8 @@
       "Bash(node scripts/import-all-v3.cjs 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuaW12d2NvbmhobWN3eGN1eGN6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTAyNjg4NiwiZXhwIjoyMDgwNjAyODg2fQ.uFnOaqPiOKIZPHTJM-RP4aLWK6niR86DZCiIaPxSG3k' 2>&1)",
       "Bash(git tag:*)",
       "Bash(ls csv/wc-product-export*.csv 2>/dev/null && wc -l csv/wc-product-export*.csv)",
-      "Bash(node scripts/import-final.cjs 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuaW12d2NvbmhobWN3eGN1eGN6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTAyNjg4NiwiZXhwIjoyMDgwNjAyODg2fQ.uFnOaqPiOKIZPHTJM-RP4aLWK6niR86DZCiIaPxSG3k' 2>&1)"
+      "Bash(node scripts/import-final.cjs 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuaW12d2NvbmhobWN3eGN1eGN6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTAyNjg4NiwiZXhwIjoyMDgwNjAyODg2fQ.uFnOaqPiOKIZPHTJM-RP4aLWK6niR86DZCiIaPxSG3k' 2>&1)",
+      "Bash(echo -e \"\\\\n# Migration data\\\\ncsv/\\\\nmigration-data/\\\\nscripts/*.cjs\" >> .gitignore && git add .gitignore && git rm -r --cached csv/ migration-data/ scripts/*.cjs 2>/dev/null; git commit --author=\"Amir <webwizardamir@gmail.com>\" -m \"Remove data files from git, add to gitignore\" && git push origin main 2>&1)"
     ],
     "deny": [],
     "ask": []
