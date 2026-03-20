@@ -85,13 +85,16 @@ export function getDateRanges() {
   // This year
   const thisYearStart = new Date(today.getFullYear(), 0, 1)
 
+  // Helper to format date as YYYY-MM-DD in local timezone (not UTC)
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   return {
     today: { start: todayStr, end: todayStr, label: 'Today' },
-    last7Days: { start: last7Start.toISOString().split('T')[0], end: todayStr, label: 'Last 7 days' },
-    last30Days: { start: last30Start.toISOString().split('T')[0], end: todayStr, label: 'Last 30 days' },
-    last90Days: { start: last90Start.toISOString().split('T')[0], end: todayStr, label: 'Last 90 days' },
-    thisMonth: { start: thisMonthStart.toISOString().split('T')[0], end: todayStr, label: 'This month' },
-    lastMonth: { start: lastMonthStart.toISOString().split('T')[0], end: lastMonthEnd.toISOString().split('T')[0], label: 'Last month' },
-    thisYear: { start: thisYearStart.toISOString().split('T')[0], end: todayStr, label: 'This year' },
+    last7Days: { start: fmt(last7Start), end: todayStr, label: 'Last 7 days' },
+    last30Days: { start: fmt(last30Start), end: todayStr, label: 'Last 30 days' },
+    last90Days: { start: fmt(last90Start), end: todayStr, label: 'Last 90 days' },
+    thisMonth: { start: fmt(thisMonthStart), end: todayStr, label: 'This month' },
+    lastMonth: { start: fmt(lastMonthStart), end: fmt(lastMonthEnd), label: 'Last month' },
+    thisYear: { start: fmt(thisYearStart), end: todayStr, label: 'This year' },
   }
 }
