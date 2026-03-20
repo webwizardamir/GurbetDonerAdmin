@@ -122,6 +122,7 @@ export async function getKPIs(
 
   // RPC returns camelCase JSON keys directly
   const d = data as Record<string, number>
+  console.log('[DEBUG getKPIs] raw RPC data:', JSON.stringify(d), '| totalRevenue:', d.totalRevenue)
 
   return {
     totalRevenue: d.totalRevenue ?? 0,
