@@ -65,9 +65,9 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       {/* Actions Bar */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 min-w-0">
         {/* Tab Bar */}
-        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-1 flex gap-1 overflow-x-auto">
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-1 flex flex-nowrap gap-1 overflow-x-auto scrollbar-hidden min-w-0">
           {TABS.map(tab => {
             const Icon = tab.icon
             const isActive = activeTab === tab.key
@@ -75,7 +75,7 @@ export default function Analytics() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                   isActive
                     ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'

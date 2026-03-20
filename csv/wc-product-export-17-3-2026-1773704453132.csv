@@ -1,0 +1,175 @@
+﻿ID,Type,SKU,"GTIN, UPC, EAN, or ISBN",Name,Published,"Is featured?","Visibility in catalog","Short description",Description,"Date sale price starts","Date sale price ends","Tax status","Tax class","In stock?",Stock,"Low stock amount","Backorders allowed?","Sold individually?","Weight (kg)","Length (cm)","Width (cm)","Height (cm)","Allow customer reviews?","Purchase note","Sale price","Regular price",Categories,Tags,"Shipping class",Images,"Download limit","Download expiry days",Parent,"Grouped products",Upsells,Cross-sells,"External URL","Button text",Position,Brands,"Meta: single_unit_price","Meta: single_unit_weight","Meta: unit_box","Meta: _purchase_price","Meta: _cost_of_goods","Meta: _markup_percent","Meta: _other_cost","Meta: _cyp_shipping_cost","Meta: _analytics_cost_price","Meta: _uag_css_file_name"
+95,simple,,,"CHICKEN BURGER ( 18x70 GR )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.26,,,,1,,,"5,80","Horeca, Uncategorized",,,,,,,,,,,,0,,"€5,50","1,26 kg",8,0.00,3.95,0.00,3.95,,3.78
+97,simple,,,"CHICKEN BURGER ( 36x70 GR )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.52,,,,1,,,"10,00","Horeca, Uncategorized",,,,,,,,,,,,0,,"€10,00","2,52 kg",4,0.00,6.93,0.00,6.93,,7.31
+100,simple,,,"CHICKEN WINGS CRISPY CLASSIC",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"5,70","Horeca, Uncategorized",,,,,,,,,,,,0,,"€5,70","1,00 kg",8,0.00,3.24,0.00,3.24,,4.05
+101,simple,,,"CHICKEN WINGS HOT",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"5,40","Horeca, Uncategorized",,,,,,,,,,,,0,,"€5,40",1,8,0.00,3.24,0.00,3.24,,4.05
+102,simple,,,"CHICKEN WINGS BARBECUE",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"6,00","Horeca, Uncategorized",,,,,,,,,,,,0,,"€6,00","1,00 kg",8,0.00,3.24,0.00,3.24,,4.05
+103,simple,,,"CRISPY BURGER",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"6,56","Horeca, Uncategorized",,,,,,,,,,,,0,,"7,00","1,00 kg",8,0.00,3.72,0.00,3.72,,4.65
+104,simple,,,"CHICKEN NUGGETS TEMPURA",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"5,50","Horeca, Uncategorized",,,,,,,,,,,,0,,"€5,50","1,00 kg",8,0.00,3.95,0.00,3.95,,3.95
+105,simple,,,"CHICKEN KIPCORN ( 0,8 GR ) Horeca",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"5,00","Horeca, Uncategorized",,,,,,,,,,,,0,,"€6,20","1,00 kg",8,0.00,3.32,0.00,3.32,,3.32
+106,simple,,,"CHICKEN FINGERS",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"8,75","Horeca, Uncategorized",,,,,,,,,,,,0,,"€8,75","1,00 kg",8,0.00,3.40,0.00,3.40,,4.25
+107,simple,,,"CHICKEN SCHNITZEL",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"8,25","Horeca, Uncategorized",,,,,,,,,,,,0,,"€8,25","1,00 kg",8,0.00,3.32,0.00,3.32,,4.15
+109,simple,,,"CHICKEN TENDERS CLASSIC (FORMED)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"7,50","Horeca, Uncategorized",,,,,,,,,,,,0,,"€7,50","1,00 kg",8,0.00,3.12,0.00,3.12,,4.15
+110,simple,,,"CHICKEN TENDERS HOT (FORMED)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"7,50","Horeca, Uncategorized",,,,,,,,,,,,0,,"€7,50","1,00 kg",8,0.00,3.32,0.00,3.32,,4.15
+111,simple,,,"Kentucky TENDERS CLASSIC",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"7,75","Horeca, Uncategorized",,,,,,,,,,,,0,,"€7,75","1,00 kg",8,0.00,4.92,0.00,4.92,,6.25
+112,simple,,,"Kentucky TENDERS HOT",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"8,50","Horeca, Uncategorized",,,,,,,,,,,,0,,"€8,50","1,00 kg",8,0.00,4.92,0.00,4.92,,6.25
+113,simple,,,"CHILI-CHEESE NUGGETS",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"10,00","Horeca, Uncategorized",,,,,,,,,,,,0,,"€10,00","1,00 kg",8,0.00,3.57,0.00,3.57,,5.95
+114,simple,,,"CHEESE NUGGETS",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"6,50","Horeca, Uncategorized",,,,,,,,,,,,0,,"6,50","1,00 kg",8,0.00,4.17,0.00,4.17,,5.95
+115,simple,,,"CHEESE STICKS (MOZZARELLA STICKS)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"10,00","Horeca, Uncategorized",,,,,,,,,,,,0,,"€10,00","1,00 kg",8,0.00,3.57,0.00,3.57,,5.95
+116,simple,,,FALAFEL,1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"4,70","Horeca, Uncategorized",,,,,,,,,,,,0,,"€5,00","1,00 kg",8,0.00,2.96,0.00,2.96,,3.70
+117,simple,,,"ONION RINGS",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"4,30","Horeca, Uncategorized",,,,,,,,,,,,0,,"€4,30","1,00 kg",8,0.00,3.04,0.00,3.04,,
+118,simple,,,MANTI,1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"8,00","Horeca, Uncategorized",,,,,,,,,,,,0,,"€8,00","1,00 kg",8,0.00,3.76,0.00,3.76,,4.50
+119,simple,5902082461319,,"Chicken Chica PAPRIKA",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.50,,,,1,,,6,"Horeca, Uncategorized",,,,,,,,,,,,0,,"€14,38","2,50 kg",4,0.00,4.90,0.00,4.90,,4.95
+120,simple,5902082461364,,"Chicken Chica NATURAL",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.50,,,,1,,,"5,75","Horeca, Uncategorized",,,,,,,,,,,,0,,"€13,75","2,50 kg",4,0.00,4.90,0.00,4.90,,4.95
+121,simple,5902082460350,,"SLICED AND ROASTED PREMIUM CHICKEN KEBAB",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.50,,,,1,,,"7,00","Horeca, Uncategorized",,,,,,,,,,,,0,,,"2,50 kg",4,0.00,5.75,0.00,5.75,,5.75
+122,simple,,,"SLICED AND ROASTED PREMIUM BEEF KEBAB",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.50,,,,1,,,"8,20","Horeca, Uncategorized",,,,,,,,,,,,0,,"8,20","2,50 kg",4,0.00,6.40,0.00,6.40,,6.40
+123,simple,,,"Kalkoen SHAWARMA (€6,00)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.50,,,,1,,,"15,00","Horeca, Uncategorized",,,,,,,,,,,,0,,"€15,00","2,50 kg",4,0.00,11.50,0.00,11.50,,
+124,simple,,,"Mix - Shoarma ( Lam- kalkoen) (PL)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.50,,,,1,,,"6,50","Horeca, Uncategorized",,,,,,,,,,,,0,,,,0,0.00,5.25,0.00,5.25,,5.25
+127,simple,,,"CHICKEN WINGS CLASSIC",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"4,56","Horeca, Uncategorized",,,,,,,,,,,,0,,,,0,0.00,3.24,0.00,3.24,,4.05
+152,simple,5902082432210,,"CRISPY WINGS CLASSIC (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"4,56","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24
+155,simple,5902082427995,,"CHICKEN WINGS CLASSIC (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"4,56","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24
+156,simple,5902082428008,,"CHICKEN WINGS HOT (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"4,56","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24
+157,simple,5902082428015,,"CHICKEN WINGS BARBEQUE (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"4,56","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24
+158,simple,5902082427957,,"CRISPY BURGER (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"4,99","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.72,0.00,3.72,,3.72
+159,simple,5902082428039,,"CHICKEN NUGGETS CLASSIC (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"3,85","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.16,0.00,3.16,,3.16
+160,simple,5902082427919,,"CHICKEN KIPCORN (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"4,37","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.32,0.00,3.32,,3.32
+161,simple,5902082428053,,"CHICKEN FINGERS (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"4,48","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.40,0.00,3.40,,3.40
+162,simple,5902082427834,,"CHICKEN SCHNITZEL (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"4,25","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.32,0.00,3.32,,3.32
+163,simple,5902082467564,,"Kentucky TENDERS CLASSIC (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,0,-2501,,0,0,0.8,,,,1,,,"6,14","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,4.92,0.00,4.92,,5.00
+164,simple,5902082427896,,"Kentucky TENDERS HOT (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"6,14","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,4.92,0.00,4.92,,5.00
+166,simple,5902082461876,,"CHILI-CHEESE NUGGETS  (0.6kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,406,,0,0,0.6,,,,1,,,"4,87","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.57,0.00,3.57,,3.57
+167,simple,5902082428299,,"CHEESE NUGGETS (0.7kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.6,,,,1,,,"5,27","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,4.17,0.00,4.17,,4.17
+168,simple,5902082415183,,"CEVAPCICI (0.75kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.81,,,,1,,,"5,99","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,4.88,0.00,4.88,,4.88
+169,simple,5902082432197,,"FALAFEL (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"3,74","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,2.96,0.00,2.96,,2.96
+170,simple,5902082461883,,"ONION RINGS (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"4,26","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.04,0.00,3.04,,2.80
+171,simple,5902082454632,,"CRISPY PANKO SHRIMPS (0.4kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.4,,,,1,,,"6,40","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,5.20,0.00,5.20,,5.20
+172,simple,5902082456094,,"MANTI (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.8,,,,1,,,"4,68","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.76,0.00,3.76,,3.6
+176,simple,,,"Kip doner ( 250 GR ) (Zakjes) Zonder E621",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"8,00","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,6.60,0.00,6.60,,
+182,simple,5902082460145,,"CHICKEN BURGER (18x70 GR)(Supermarket)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.26,,,,1,,,"4,85","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.47,0.00,3.47,,3.78
+183,simple,5902082460152,,"CHICKEN BURGER (36x70 GR)(Supermarket)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.52,,,,1,,,"7,99","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,6.93,0.00,6.93,,7.30
+184,simple,,,"Frikandel 20 (1.7kg) (Supermarket)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.7,,,,1,,,"5,68","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,0,0.00,0.00,,
+185,simple,5902082428305,,"ADANA KEBAB (12*50 GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.7,,,,1,,,"5,31","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.90,0.00,3.90,,3.90
+187,simple,5902082411628,,"AKCABAAT KOFTE  (12*45GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.54,,,,1,,,"5,10","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.51,0.00,3.51,,3.51,
+196,simple,,,"ADANA KEBAB (17*118 GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.06,,,,1,,,"14,75","Horeca, Uncategorized",,,,,,,,,,,,0,,,,,0.00,13.04,0.00,13.04,,13.04,
+197,simple,,,"INEGOL KOFTE (CEVAPCICI 25gr) 1Kg",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"7,45","Horeca, Uncategorized",,,,,,,,,,,,0,,,,,0.00,4.88,0.00,4.88,,6.50,
+198,simple,,,"AKCABAAT KOFTE (45*45gr)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,2.25,,,,1,,,"15,95","Horeca, Uncategorized",,,,,,,,,,,,0,,,,,0.00,13.16,0.00,13.16,,13.16,
+199,simple,5902082428282,,"CHEESE STICKS (MOZZARELLA STICKS) (0.6kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,0.6,,,,1,,,"4,87","Supermarket, Uncategorized",,,,,,,,,,,,0,,,,,0.00,3.57,0.00,3.57,,3.57,
+200,simple,,,"CHICKEN MEATBALL",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,1.00,,,,1,,,"5,90",Horeca,,,,,,,,,,,,0,,,,,0.00,5.05,0.00,5.05,,5.05,uag-css-200.css
+206,simple,,,test,1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"3,00",Uncategorized,,,,,,,,,,,,0,,,,,,,,,,,
+209,simple,5902082461517,,"Pizza Meat 1kg",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"8,20",Uncategorized,,,,,,,,,,,,0,,"8,20","1,00 kg",8,0.00,6.20,0.00,6.20,,,uag-css-209.css
+211,simple,5902082427988,,"SLICED AND ROASTED BEEF KEBAB (0,8GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,60",Uncategorized,,,,,,,,,,,,0,,,"0,8",10,0.00,5.12,0.00,5.12,,5.12,
+212,simple,5902082427971,,"SLICED AND ROASTED CHICKEN KEBAB (0,8GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,72",Uncategorized,,,,,,,,,,,,0,,,"0,8",10,0.00,4.60,0.00,4.60,,4.60,
+218,simple,,,"Excellence Patat 9/9",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"15,00","Horeca, Uncategorized",,,,,,,,,,,,0,,,,,0.00,10.60,0.00,10.60,,11.15,
+243,simple,,,"Frikandel 40 Stuks 85 Gram",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"10,80",Uncategorized,,,,,,,,,,,,0,,"10,80","3,4",0,0.00,0,0.00,0.00,,,
+247,simple,5902082462316,,"Sliced and Roasted Sucuk Kebab (0,8 GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,03",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.96,0.00,4.96,,4.96,
+253,simple,5902082460084,,"Mexicano ( 12*140GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.96,0.00,4.96,,4.70,
+254,simple,5902082460077,,"Mexicano ( 6 * 140 GR )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"3,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,2.48,0.00,2.48,,2.35,
+257,simple,5902082428022,,"CRISPY WINGS Hot (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,56",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24,
+308,simple,5902082462613,,"Chicken Chica Spicy",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,15",Uncategorized,,,,,,,,,,,,0,,"14,75","2,5",4,0.00,4.90,0.00,4.90,,4.95,
+613,simple,,,"Emmer Frisia Basissaus 25% 10 Liter",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"14,51",Uncategorized,,,,,,,,,,,,0,,,,,,,,,,,
+652,simple,,,"Sliced and Roasted Sucuk Kebab horeca (0,8 GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,64",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.96,0.00,4.96,,5.28,
+819,simple,,,"CRISPY WINGS Hot (0.8kg) horeca",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,70",Horeca,,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24,
+1100,simple,,,"frituurOlie 20",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"29,56",Uncategorized,,,,,,,,,,,,0,,,,,0.00,0,,0.00,,,
+1121,simple,5902082448723,,"Natural Burger 800 GR",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.20,0.00,5.20,,5.04,
+1218,simple,,,"Minced beef kebab (250 gram) (Zakjes) zonder E621",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"8,25",Uncategorized,,,,,,,,,,,,0,,,,,0.00,6.60,0.00,6.60,,,
+1490,"simple, virtual",,,"Reverse Withdrawal Payment",1,0,hidden,,"This is Dokan reverse withdrawal payment product, do not delete.",,,none,,1,,,0,1,,,,,1,,,0,Uncategorized,,,,,,,,,,,,0,,,,,,,,,,,
+1535,simple,,,"Minced beef kebab (250 gram) (Bakjes) zonder E621",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"8,45",Uncategorized,,,,,,,,,,,,0,,,,,0.00,6.90,0.00,6.90,,6.90,
+1537,simple,,,"Kip doner ( 250 GR ) (Bakjes) Zonder E621",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"8,35",Uncategorized,,,,,,,,,,,,0,,,,,0.00,7.00,0.00,7.00,,7.00,
+1820,simple,5902082428688,,"Chicken Fillet Bites Classic (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,99",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.00,0.00,5.00,,5,
+1980,simple,,,"SLICED AND OVENED CHICKEN KEBAB (2,5 kg zak)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.10,0.00,5.10,,5.10,
+2133,simple,,,"Euro Pallet Hout",1,0,visible,,,,,none,zero-rate,1,,,0,0,,,,,1,,,15,Uncategorized,,,,,,,,,,,,0,,,,,,,,,,,
+2353,simple,,,"Excellence Patat 6/6",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"16,00",Horeca,,,,,,,,,,,,0,,,,,0.00,11.30,0.00,11.30,,11.30,
+2419,simple,,,"CHIKEN KEBAB (2,5 KG)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.60,0.00,5.60,,5.75,
+2491,simple,5902082411611,,"Adana 14 X 50 GR (700 GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,31",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.55,0.00,4.55,,4.55,
+2578,simple,,,"Chicken kebab Spies 10 KG",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"3,80",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.30,0.00,3.30,,3.45,
+2735,simple,,,"CHICKEN KEBAB ( 2,5 KG Zakjes )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,50",Horeca,,,,,,,,,,,,0,,,,,5.60,5.60,0.00,0.00,,5.25,
+2755,simple,,,"EXTRA CRUNCH PATAT 9/9",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"16,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,11.00,0.00,11.00,,11.00,
+2859,simple,,,"Mix Shoarma (NL)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"7,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,6.25,0.00,6.25,,6.25,
+2880,simple,,,"Lamshoarma 100 % (13,50 per kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"13,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,11.50,0.00,11.50,,,
+3536,simple,,,"Cordon Bleu 1KG Zak",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,45",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.55,0.00,4.55,,4.55,
+3537,simple,,,"Crispy Burger 1 KG Zak",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,30",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.30,0.00,4.30,,4.30,
+3927,simple,,,"Kuntstof wagen meer neerklapbare steun laadvermogen 300 KG",1,0,visible,,,,,taxable,,1,,,0,0,,,,,1,,,269,Uncategorized,,,,,,,,,,,,0,,,,,,,,,,,
+3928,simple,,,gubert,-1,0,visible,"<p><br data-mce-bogus=""1""></p>",,,,taxable,,1,,,0,0,,,,,1,,,,Uncategorized,,,,,,,,,,,,0,,,,,,,,,,,
+3983,simple,,,"Aviko Super Crunch friet 9.5mm",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"19,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,16.10,0.00,16.10,,16.10,
+4256,simple,,,"Premium Patat 9/9",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"14,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,10.10,0.00,10.10,,10.10,
+4292,simple,,,"Openbaar lichaam belastingsamenwerking Gouwe-Rijnland",1,0,visible,,,,,none,,1,,,0,0,,,,,1,,,"698,65",Uncategorized,,,,,,,,,,,,0,,,,,,,,,,,
+4527,simple,,,"Kip Shoarma",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,25",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.75,0.00,4.75,,4.75,
+4632,simple,,,"CHICKEN KEBAB (2,5 KG) Kipperij",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.75,0.00,5.75,,5.75,
+4656,simple,,,"Just Fries Lamb Weston",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"16,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,12.50,0.00,12.50,,12.50,
+4661,simple,,,"LambWeston Private reserve fries 9/9",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"18,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,15.50,0.00,15.50,,14.90,
+4678,simple,,,"Cordon Blue (0,8 GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,99",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.64,0.00,3.64,,3.64,
+4679,simple,,,"Zoogest nuggets (0,8 GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,49",Uncategorized,,,,,,,,,,,,0,,,,,3.32,3.32,0.00,0.00,,3.32,
+4739,simple,,,"Kipfile Blokjes (NL)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,35",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.35,0.00,5.35,,5.35,
+4797,simple,,,"Natural Burger 800 GR (groothandel)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,6,Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.20,0.00,5.20,,5.20,
+4798,simple,,,"Onion Burger 800 GR (Groothandel)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"0,31",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.20,6.00,5.20,,5.20,
+4799,simple,,,"Spicy Burger 800 GR (Groothandel)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,6,Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.20,6.00,5.20,,5.20,
+4800,simple,,,"Adana Kebab 600g (Groothandel)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,62",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.90,0.00,3.90,,3.90,
+4801,simple,,,"Cevapcici 750g (Groothandel)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,62",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.88,0.00,4.88,,4.73,
+4802,simple,,,"Pizza Meat ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"7,80",Uncategorized,,,,,,,,,,,,0,,,,,,,,,,6.60,
+4803,simple,,,"Steak Hache ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"7,80",Uncategorized,,,,,,,,,,,,0,,,,,,,,,,6.70,
+4804,simple,,,"Akcabaat Kofte 540g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,80",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.51,0.00,3.51,,3.51,
+4805,simple,,,"Crispy Wings Classic 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24,
+4806,simple,,,"Crispy Wings Hot 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24,
+4807,simple,,,"Crispy Wings Barbecue 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24,
+4808,simple,,,"Chicken Wings Classic 800g( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24,
+4809,simple,,,"Chicken Wings Hot 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24,
+4810,simple,,,"Chicken Wings Barbeque 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.24,0.00,3.24,,3.24,
+4811,simple,,,"Chicken bites 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,80",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.88,0.00,4.88,,5,
+4812,simple,,,"Chicken bites hot 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,80",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.88,0.00,4.88,,5,
+4813,simple,,,"Crispy Burger 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,72",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.72,0.00,3.72,,3.72,
+4814,simple,,,"Chicken Nuggets Classic 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"3,84",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.16,0.00,3.16,,3.16,
+4815,simple,,,"Chicken Nuggets Zoogets 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.32,0.00,3.32,,3.32,
+4816,simple,,,"Chicken Kipcorn 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.32,0.00,3.32,,3.32,
+4817,simple,,,"Chicken Fingers 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,20",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.40,0.00,3.40,,3.40,
+4818,simple,,,"Cordon Bleu 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,56",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.64,0.00,3.64,,3.52,
+4819,simple,,,"Chicken Schnitzel 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.32,0.00,3.32,,3.32,
+4820,simple,,,"Chicken Tenders Formed 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,12",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.32,0.00,3.32,,3.32,
+4821,simple,,,"Chicken Tenders Formed Hot 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,12",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.32,0.00,3.32,,3.32,
+4822,simple,,,"Kentucky Crispy Tenders Classic 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,76",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.92,0.00,4.92,,4.92,
+4823,simple,,,"Kentucky Crispy Tenders Hot 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,76",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.92,0.00,4.92,,4.92,
+4824,simple,,,"Fish Burger ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,90",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.16,0.00,4.16,,4.16,
+4825,simple,,,"Falafel ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"3,60",Uncategorized,,,,,,,,,,,,0,,,,,0.00,2.96,0.00,2.96,,2.96,
+4826,simple,,,"Chili-Cheese Nuggets 600g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,35",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.57,0.00,3.57,,3.57,
+4827,simple,,,"Cheese Nuggets 700g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,89",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.17,0.00,4.17,,3.57,
+4828,simple,,,"Mozzarella Sticks 600g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,35",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.57,0.00,3.57,,3.57,
+4829,simple,,,"Potato Burger ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,48",Uncategorized,,,,,,,,,,,,0,,,,,,,,,,3.64,
+4830,simple,,,"Onion Rings ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"3,92",Uncategorized,,,,,,,,,,,,0,,,,,,,,,,3.04,
+4831,simple,,,"Crispy Panko Shrimps ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,40",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.20,0.00,5.20,,4.80,
+4832,simple,,,"Manti 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,40",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.76,0.00,3.76,,3.76,
+4833,simple,,,"Sliced and Roasted Chicken kebab 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,60",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.60,0.00,4.60,,4.60,
+4835,simple,,,"Sliced and Roasted Beef kebab 800g ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,24",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.12,0.00,5.12,,4.96,
+4836,simple,,,"Sliced and Roasted Sucuk kebab 1kg ( Groothandel )",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"8,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,6.20,0.00,6.20,,6.20,
+5135,simple,,,"LambWeston Private reserve fries 6/6",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"18,30",Uncategorized,,,,,,,,,,,,0,,,,,0.00,15.20,0.00,15.20,,14.90,
+5136,simple,,,"Mccain Original 9/9",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"24,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,18.31,0.00,18.31,,19.13,
+5137,simple,,,"Mccain Freez Chill 11/11",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"25,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,18.80,0.00,18.80,,19.50,
+5721,simple,,,"Aviko Frites Steak House",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"23,00",Uncategorized,,,,,,,,,,,,0,,"16,30",,,0.00,16.30,0.00,16.30,,,
+6574,simple,,,"Mccain SureCrisp Crinkle",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"20,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,17.25,0.00,17.25,,16.45,
+6598,simple,,,"Mccain Freeze Chill 14/14",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"24,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,17.70,0.00,17.70,,18.30,
+6623,simple,,,"Mccain Dollar chips",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"18,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,15.55,0.00,15.55,,14.80,
+7086,simple,,,"lamb weston twister",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"25,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,21.80,0.00,21.80,,21.80,
+7087,simple,,,"Spicy jacket wedges Aviko",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"18,95",Uncategorized,,,,,,,,,,,,0,,,,,0.00,16.10,0.00,16.10,,16.10,
+7142,simple,,,Transport,1,0,visible,,,,,taxable,zero-rate,1,,,0,0,,,,,1,,,"143,75",Uncategorized,,,,,,,,,,,,0,,,,,,,,,,,
+7159,simple,,,"Spicy Burger 800 GR",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"6,49",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.20,0.00,5.20,,5.20,
+7309,simple,,,"Mix Shoarma Grof (NL)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"7,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,6.25,0.00,6.25,,6.25,
+7349,simple,,,"Rund Merguez (Bakjes) (200GR)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"9,80",Uncategorized,,,,,,,,,,,,0,,,,,0.00,7.30,0.00,7.30,,7.30,
+7350,simple,,,"Adana Bulk (10kilo)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"7,40",Uncategorized,,,,,,,,,,,,0,,,,,0.00,6.30,0.00,6.30,,6.30,
+7351,simple,,,"Kip Schnitzel 1KG Zak",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,05",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.15,0.00,4.15,,4.15,
+7419,simple,,,"Chicken Fingers (2KG)",1,0,visible,,,,,taxable,,1,,,0,0,,,,,1,,,"4,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.50,0.00,3.50,,3.50,
+8106,simple,,,"Mccain Surecrisp 9/9 5x2,5kg",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"24,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,20.13,0.00,20.13,,20.13,
+8107,simple,,,"Mccain Country Style skin on 5x2,5kg",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"26,80",Uncategorized,,,,,,,,,,,,0,,,,,0.00,21.78,0.00,21.78,,21.78,
+8127,simple,,,"Lamb weston private reserve 11/11",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"18,80",Uncategorized,,,,,,,,,,,,0,,,,,0.00,15.15,0.00,15.15,,15.15,
+8128,simple,,,"Aviko dukaten chips",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"22,00",Uncategorized,,,,,,,,,,,,0,,,,,0.00,17.90,0.00,17.90,,17.90,
+8175,simple,,,"CHICKEN BURGER (18x60)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"3,67",Uncategorized,,,,,,,,,,,,0,,,,,0.00,2.97,0.00,2.97,,2.97,
+8177,simple,,,"CHICKEN BURGER (36x60)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"7,13",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.72,0.00,5.72,,5.72,
+8178,simple,,,"CHICKEN SAUSAGES 20",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,08",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.30,0.00,3.30,,3.30,
+8179,simple,,,"CHICKEN SAUSAGES 40",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"7,92",Uncategorized,,,,,,,,,,,,0,,,,,0.00,6.36,0.00,6.36,,6.36,
+8180,simple,,,"GRILL SAUSAGES",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,48",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.10,0.00,5.10,,5.10,
+8181,simple,,,"URFA KEBAB",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"4,90",Uncategorized,,,,,,,,,,,,0,,,,,0.00,4.55,0.00,4.55,,3.90,
+8182,simple,,,"STEAK HACHE (4,8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"35,04",Uncategorized,,,,,,,,,,,,0,,,,,0.00,32.64,0.00,32.64,,6.80,
+8184,simple,,,"Chicken Fillet Bites Hot (0.8kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,40",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.00,0.00,5.00,,5.00,
+8185,simple,,,"Cevapcici (0,81kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"5,67",Uncategorized,,,,,,,,,,,,0,,,,,0.00,5.27,0.00,5.27,,5.27,
+8186,simple,,,"Fish Burger (0,7 kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"3,99",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.64,0.00,3.64,,3.64,
+8187,simple,,,"Potato Burger (0,7 kg)",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"3,50",Uncategorized,,,,,,,,,,,,0,,,,,0.00,3.15,0.00,3.15,,3.14,
+8522,simple,,,"Berlin burger 125g",1,0,visible,,,,,taxable,,1,,,0,0,,,,,1,,,"9,00",Uncategorized,,,,,,,,,,,,0,,"6,80",,,0.00,6.80,0.00,6.80,,,
+8541,simple,,,"Berlin Burger 125g",1,0,visible,,,,,taxable,,1,,,0,0,,,,,1,,,"9,00",Uncategorized,,,,,,,,,,,,0,,"6,80",,,,,,,,,
+8841,simple,,,"Mccain SURECRISP FRY N DIP SKIN ON 5X2,5KG",1,0,visible,,,,,taxable,reduced-rate-9,1,,,0,0,,,,,1,,,"29,75",Uncategorized,,,,,,,,,,,,0,,,,,,,,,,23.13,

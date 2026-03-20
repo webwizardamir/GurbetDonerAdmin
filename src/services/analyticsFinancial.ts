@@ -1,7 +1,7 @@
 // Financial analytics: revenue/profit summaries, monthly comparisons, revenue by day/payment method
+// Uses server-side RPC functions for accurate aggregation (no row-limit issues).
 
 import { supabase } from './supabase'
-import { fetchOrderItemsCostChunked, getOrderItemsCost, getPreviousPeriod } from './analyticsHelpers'
 import type { PaymentMethod } from '../types'
 
 export interface RevenueDataPoint {
@@ -43,194 +43,113 @@ export interface MonthlyRow {
   orders: number
 }
 
-// Get revenue data grouped by day
+// Get revenue data grouped by day (server-side RPC)
 export async function getRevenueByDay(
   startDate: string,
   endDate: string
 ): Promise<RevenueDataPoint[]> {
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select('id, order_date, total')
-    .in('status', ['completed', 'delivered'])
-    .gte('order_date', startDate)
-    .lte('order_date', endDate)
-    .order('order_date')
-    .limit(10000)
+  const { data, error } = await supabase.rpc('get_revenue_by_day', {
+    p_start: startDate,
+    p_end: endDate,
+  })
 
   if (error) throw error
 
-  // Fetch order items for profit calculation (chunked)
-  const orderIds = (orders || []).map(o => o.id)
-  const itemsByOrder = await fetchOrderItemsCostChunked(orderIds)
+  const rows = (data as Array<{ date: string; revenue: number; profit: number; order_count: number }>) || []
 
-  // Group by date
-  const grouped = new Map<string, { revenue: number; profit: number; count: number }>()
-
-  // Initialize all dates in range
-  const current = new Date(startDate)
-  const end = new Date(endDate)
-  while (current <= end) {
-    const dateStr = current.toISOString().split('T')[0]
-    grouped.set(dateStr, { revenue: 0, profit: 0, count: 0 })
-    current.setDate(current.getDate() + 1)
-  }
-
-  // Aggregate orders
-  for (const order of orders || []) {
-    const dateStr = order.order_date
-    const existing = grouped.get(dateStr) || { revenue: 0, profit: 0, count: 0 }
-    const orderRevenue = order.total || 0
-    const orderCost = itemsByOrder.get(order.id) || 0
-    grouped.set(dateStr, {
-      revenue: existing.revenue + orderRevenue,
-      profit: existing.profit + (orderRevenue - orderCost),
-      count: existing.count + 1,
-    })
-  }
-
-  return Array.from(grouped.entries()).map(([date, data]) => ({
-    date,
-    revenue: data.revenue,
-    profit: data.profit,
-    orderCount: data.count,
+  return rows.map(r => ({
+    date: r.date,
+    revenue: r.revenue,
+    profit: r.profit,
+    orderCount: r.order_count,
   }))
 }
 
-// Get revenue breakdown by payment method
+// Get revenue breakdown by payment method (server-side RPC)
 export async function getRevenueByPaymentMethod(
   startDate: string,
   endDate: string
 ): Promise<PaymentMethodBreakdown[]> {
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select('payment_method, total')
-    .in('status', ['completed', 'delivered'])
-    .gte('order_date', startDate)
-    .lte('order_date', endDate)
-    .limit(10000)
+  const { data, error } = await supabase.rpc('get_revenue_by_payment_method', {
+    p_start: startDate,
+    p_end: endDate,
+  })
 
   if (error) throw error
 
-  const grouped = new Map<PaymentMethod, { count: number; revenue: number }>()
+  const rows = (data as Array<{ method: string; count: number; revenue: number }>) || []
 
-  for (const order of orders || []) {
-    const method = (order.payment_method || 'none') as PaymentMethod
-    const existing = grouped.get(method) || { count: 0, revenue: 0 }
-    grouped.set(method, {
-      count: existing.count + 1,
-      revenue: existing.revenue + (order.total || 0),
-    })
-  }
-
-  return Array.from(grouped.entries())
-    .map(([method, data]) => ({
-      method,
-      count: data.count,
-      revenue: data.revenue,
-    }))
-    .filter(item => item.method !== 'none')
-    .sort((a, b) => b.revenue - a.revenue)
+  return rows.map(r => ({
+    method: r.method as PaymentMethod,
+    count: r.count,
+    revenue: r.revenue,
+  }))
 }
 
-// Get financial summary with previous period comparison
+// Get financial summary with previous period comparison (server-side RPC)
 export async function getFinancialSummary(
   startDate: string,
   endDate: string
 ): Promise<FinancialSummary> {
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select('id, total, subtotal, tax_amount, discount_amount, payment_method')
-    .in('status', ['completed', 'delivered'])
-    .gte('order_date', startDate)
-    .lte('order_date', endDate)
-    .limit(10000)
+  const { data, error } = await supabase.rpc('get_financial_summary', {
+    p_start: startDate,
+    p_end: endDate,
+  })
 
   if (error) throw error
 
-  const orderIds = (orders || []).map(o => o.id)
-  const totalCogs = await getOrderItemsCost(orderIds)
-
-  const grossRevenue = (orders || []).reduce((sum, o) => sum + (o.total || 0), 0)
-  const totalDiscounts = (orders || []).reduce((sum, o) => sum + (o.discount_amount || 0), 0)
-  const vatCollected = (orders || []).reduce((sum, o) => sum + (o.tax_amount || 0), 0)
-  const netRevenue = grossRevenue
-  const grossProfit = netRevenue - totalCogs
-
-  const cashRevenue = (orders || [])
-    .filter(o => o.payment_method === 'cash')
-    .reduce((sum, o) => sum + (o.total || 0), 0)
-  const bankRevenue = (orders || [])
-    .filter(o => o.payment_method === 'bank')
-    .reduce((sum, o) => sum + (o.total || 0), 0)
-
-  // Previous period
-  const { prevStart, prevEnd } = getPreviousPeriod(startDate, endDate)
-
-  const { data: prevOrders } = await supabase
-    .from('orders')
-    .select('id, total')
-    .in('status', ['completed', 'delivered'])
-    .gte('order_date', prevStart)
-    .lte('order_date', prevEnd)
-    .limit(10000)
-
-  const prevRevenue = (prevOrders || []).reduce((sum, o) => sum + (o.total || 0), 0)
-  const prevCogs = await getOrderItemsCost((prevOrders || []).map(o => o.id))
+  const d = data as {
+    gross_revenue: number
+    net_revenue: number
+    total_tax: number
+    total_discount: number
+    total_cogs: number
+    gross_profit: number
+    margin_pct: number
+    cash_revenue: number
+    bank_revenue: number
+    order_count: number
+    prev_gross_revenue: number
+    prev_gross_profit: number
+    prev_order_count: number
+  }
 
   return {
-    grossRevenue,
-    totalDiscounts,
-    netRevenue,
-    totalCogs,
-    grossProfit,
-    grossMargin: netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0,
-    vatCollected,
-    cashRevenue,
-    bankRevenue,
-    orderCount: (orders || []).length,
+    grossRevenue: d.gross_revenue,
+    totalDiscounts: d.total_discount,
+    netRevenue: d.net_revenue,
+    totalCogs: d.total_cogs,
+    grossProfit: d.gross_profit,
+    grossMargin: d.margin_pct,
+    vatCollected: d.total_tax,
+    cashRevenue: d.cash_revenue,
+    bankRevenue: d.bank_revenue,
+    orderCount: d.order_count,
     prev: {
-      grossRevenue: prevRevenue,
-      grossProfit: prevRevenue - prevCogs,
-      orderCount: (prevOrders || []).length,
+      grossRevenue: d.prev_gross_revenue,
+      grossProfit: d.prev_gross_profit,
+      orderCount: d.prev_order_count,
     },
   }
 }
 
-// Get monthly revenue/profit comparison for a given year
+// Get monthly revenue/profit comparison for a given year (server-side RPC)
 export async function getMonthlyComparison(year: number): Promise<MonthlyRow[]> {
-  const startDate = `${year}-01-01`
-  const endDate = `${year}-12-31`
-
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select('id, total, order_date')
-    .in('status', ['completed', 'delivered'])
-    .gte('order_date', startDate)
-    .lte('order_date', endDate)
-    .limit(10000)
+  const { data, error } = await supabase.rpc('get_monthly_comparison', {
+    p_year: year,
+  })
 
   if (error) throw error
 
-  const orderIds = (orders || []).map(o => o.id)
-  const costByOrder = await fetchOrderItemsCostChunked(orderIds)
-
   const monthLabels = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
-  const months: MonthlyRow[] = monthLabels.map((label, i) => ({
-    month: i + 1,
-    monthLabel: label,
-    revenue: 0,
-    profit: 0,
-    orders: 0,
+
+  const rows = (data as Array<{ month: number; revenue: number; profit: number; orders: number }>) || []
+
+  return rows.map(r => ({
+    month: r.month,
+    monthLabel: monthLabels[r.month - 1],
+    revenue: r.revenue,
+    profit: r.profit,
+    orders: r.orders,
   }))
-
-  for (const order of orders || []) {
-    const monthIdx = new Date(order.order_date).getMonth()
-    const orderRevenue = order.total || 0
-    const orderCost = costByOrder.get(order.id) || 0
-    months[monthIdx].revenue += orderRevenue
-    months[monthIdx].profit += (orderRevenue - orderCost)
-    months[monthIdx].orders += 1
-  }
-
-  return months
 }

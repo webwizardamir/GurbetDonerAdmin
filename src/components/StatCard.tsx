@@ -39,7 +39,7 @@ export default function StatCard({ label, value, description, trend, icon: Icon,
                 <TrendingDown className="w-4 h-4 text-red-600" />
               )}
               <span className={`text-sm font-semibold ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                {trend.isPositive ? '+' : ''}{trend.value}%
+                {trend.isPositive ? '+' : ''}{Number(trend.value).toFixed(1)}%
               </span>
               <span className="text-sm text-slate-500 dark:text-slate-400">{t('dashboard.vsLastMonth')}</span>
             </div>

@@ -1,7 +1,6 @@
 // Dashboard KPIs, today's orders, and summary statistics
 
 import { supabase } from './supabase'
-import { getOrderItemsCost } from './analyticsHelpers'
 
 // --- New dashboard interfaces (today-focused) ---
 
@@ -109,93 +108,44 @@ export interface DashboardStats {
   pendingOrders: number
 }
 
-// Get KPIs with period comparison
+// Get KPIs with period comparison (server-side RPC to avoid row limits)
 export async function getKPIs(
   startDate: string,
   endDate: string
 ): Promise<KPIData> {
-  // Current period
-  const { data: currentOrders, error: currentError } = await supabase
-    .from('orders')
-    .select('id, total')
-    .in('status', ['completed', 'delivered'])
-    .gte('order_date', startDate)
-    .lte('order_date', endDate)
-    .limit(10000)
+  const { data, error } = await supabase.rpc('get_kpis', {
+    p_start: startDate,
+    p_end: endDate,
+  })
 
-  if (currentError) throw currentError
+  if (error) throw error
 
-  // Current period items count
-  const { data: currentItems, error: itemsError } = await supabase
-    .from('order_items')
-    .select(`
-      quantity,
-      order:orders!inner(status, order_date)
-    `)
-    .in('order.status', ['completed', 'delivered'])
-    .gte('order.order_date', startDate)
-    .lte('order.order_date', endDate)
-    .limit(10000)
-
-  if (itemsError) throw itemsError
-
-  // Calculate previous period (same duration before start date)
-  const startMs = new Date(startDate).getTime()
-  const endMs = new Date(endDate).getTime()
-  const duration = endMs - startMs
-  const prevStart = new Date(startMs - duration - 86400000).toISOString().split('T')[0]
-  const prevEnd = new Date(startMs - 86400000).toISOString().split('T')[0]
-
-  // Previous period
-  const { data: prevOrders, error: prevError } = await supabase
-    .from('orders')
-    .select('id, total')
-    .in('status', ['completed', 'delivered'])
-    .gte('order_date', prevStart)
-    .lte('order_date', prevEnd)
-    .limit(10000)
-
-  if (prevError) throw prevError
-
-  // Calculate metrics
-  const currentRevenue = (currentOrders || []).reduce((sum, o) => sum + (o.total || 0), 0)
-  const currentOrderCount = (currentOrders || []).length
-  const currentItemCount = (currentItems || []).reduce((sum, i) => sum + Number(i.quantity || 0), 0)
-
-  const prevRevenue = (prevOrders || []).reduce((sum, o) => sum + (o.total || 0), 0)
-  const prevOrderCount = (prevOrders || []).length
-
-  // Profit calculation (chunked)
-  const currentCost = await getOrderItemsCost((currentOrders || []).map(o => o.id))
-  const prevCost = await getOrderItemsCost((prevOrders || []).map(o => o.id))
-
-  const currentProfit = currentRevenue - currentCost
-  const prevProfit = prevRevenue - prevCost
-  const profitMargin = currentRevenue > 0 ? (currentProfit / currentRevenue) * 100 : 0
-
-  // Calculate growth percentages
-  const revenueGrowth = prevRevenue > 0
-    ? ((currentRevenue - prevRevenue) / prevRevenue) * 100
-    : currentRevenue > 0 ? 100 : 0
-
-  const ordersGrowth = prevOrderCount > 0
-    ? ((currentOrderCount - prevOrderCount) / prevOrderCount) * 100
-    : currentOrderCount > 0 ? 100 : 0
-
-  const profitGrowth = prevProfit > 0
-    ? ((currentProfit - prevProfit) / prevProfit) * 100
-    : currentProfit > 0 ? 100 : 0
+  const d = data as {
+    total_revenue: number
+    total_orders: number
+    total_items: number
+    average_order_value: number
+    total_cogs: number
+    total_profit: number
+    profit_margin: number
+    prev_revenue: number
+    prev_orders: number
+    prev_profit: number
+    revenue_growth: number
+    orders_growth: number
+    profit_growth: number
+  }
 
   return {
-    totalRevenue: currentRevenue,
-    totalOrders: currentOrderCount,
-    totalItems: Math.round(currentItemCount),
-    averageOrderValue: currentOrderCount > 0 ? Math.round(currentRevenue / currentOrderCount) : 0,
-    totalProfit: currentProfit,
-    profitMargin,
-    revenueGrowth,
-    ordersGrowth,
-    profitGrowth,
+    totalRevenue: d.total_revenue,
+    totalOrders: d.total_orders,
+    totalItems: d.total_items,
+    averageOrderValue: d.average_order_value,
+    totalProfit: d.total_profit,
+    profitMargin: d.profit_margin,
+    revenueGrowth: d.revenue_growth,
+    ordersGrowth: d.orders_growth,
+    profitGrowth: d.profit_growth,
   }
 }
 
