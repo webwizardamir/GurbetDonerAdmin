@@ -38,18 +38,12 @@ export async function getTopCustomers(
 
   if (error) throw error
 
-  return (data || []).map((row: {
-    customer_id: string
-    company_name: string
-    total_revenue: number
-    total_profit: number
-    order_count: number
-  }) => ({
-    id: row.customer_id,
-    companyName: row.company_name,
-    totalRevenue: Number(row.total_revenue),
-    totalProfit: Number(row.total_profit),
-    orderCount: Number(row.order_count),
+  return (data || []).map((row: Record<string, unknown>) => ({
+    id: String(row.customer_id || row.customer_name || ''),
+    companyName: String(row.company_name || row.customer_name || 'Unknown'),
+    totalRevenue: Number(row.total_revenue ?? 0),
+    totalProfit: Number(row.total_profit ?? 0),
+    orderCount: Number(row.order_count ?? 0),
   }))
 }
 
