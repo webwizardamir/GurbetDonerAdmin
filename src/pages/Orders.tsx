@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Search,
@@ -38,7 +39,8 @@ export default function Orders() {
   const { orders, loading, error, filters, setFilters, refresh, remove, page, setPage, totalPages, totalCount } = useOrders()
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [showForm, setShowForm] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [showForm, setShowForm] = useState(searchParams.get('new') === '1')
   const [editingOrder, setEditingOrder] = useState<OrderWithItems | null>(null)
   const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -441,7 +443,7 @@ export default function Orders() {
         </div>
       )}
 
-      {showForm && <OrderForm onClose={() => setShowForm(false)} onSuccess={() => { setShowForm(false); refresh() }} />}
+      {showForm && <OrderForm onClose={() => { setShowForm(false); searchParams.delete('new'); setSearchParams(searchParams) }} onSuccess={() => { setShowForm(false); searchParams.delete('new'); setSearchParams(searchParams); refresh() }} />}
       {editingOrder && <OrderForm editOrder={editingOrder} onClose={() => setEditingOrder(null)} onSuccess={() => { setEditingOrder(null); refresh() }} />}
       {viewingOrder && <OrderDetail order={viewingOrder} onClose={() => setViewingOrder(null)} onStatusChange={() => { setViewingOrder(null); refresh() }} />}
 
