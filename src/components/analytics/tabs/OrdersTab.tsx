@@ -152,33 +152,33 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
 
       {/* Orders Table */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="font-semibold text-slate-900 dark:text-white">{t('analytics.orderReport.title')}</h3>
           <button
             onClick={handleExport}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap flex-shrink-0"
           >
             <Download className="w-4 h-4" />
-            {t('analytics.export')}
+            <span className="hidden sm:inline">{t('analytics.export')}</span>
           </button>
         </div>
 
         {/* Search & Filter Row */}
-        <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3 flex-wrap">
-          <div className="relative">
+        <div className="px-4 sm:px-6 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t('common.search')}
-              className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 w-48 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 w-full sm:w-48 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
             />
           </div>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+            className="flex-1 sm:flex-none px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300"
           >
             <option value="">{t('orders.allStatus')}</option>
             {STATUS_OPTIONS.map(s => (
@@ -188,7 +188,7 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
           <select
             value={paymentFilter}
             onChange={e => setPaymentFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+            className="flex-1 sm:flex-none px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300"
           >
             <option value="">{t('orders.allPayment')}</option>
             <option value="cash">{t('orders.payment.cash')}</option>

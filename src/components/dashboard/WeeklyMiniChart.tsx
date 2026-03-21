@@ -91,7 +91,7 @@ export default function WeeklyMiniChart({ weeklyStats, isOwner }: WeeklyMiniChar
       </div>
 
       {/* Chart with subtle grid background */}
-      <div className="h-[130px] px-4 pb-4 bg-slate-50/50 dark:bg-slate-900/30">
+      <div className="h-[120px] sm:h-[130px] min-h-[100px] px-3 sm:px-4 pb-4 bg-slate-50/50 dark:bg-slate-900/30">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} barCategoryGap="20%">
             <XAxis

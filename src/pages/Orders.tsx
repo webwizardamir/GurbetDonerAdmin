@@ -377,19 +377,19 @@ export default function Orders() {
                   </div>
                   <PaymentBadge method={order.payment_method} />
                 </div>
-                <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 flex-wrap" onClick={e => e.stopPropagation()}>
                   {canComplete && (
-                    <button onClick={() => handleQuickComplete(order.id)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium">
-                      <Check className="w-4 h-4" />{t('orders.actions.complete')}
+                    <button onClick={() => handleQuickComplete(order.id)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium whitespace-nowrap">
+                      <Check className="w-4 h-4 flex-shrink-0" />{t('orders.actions.complete')}
                     </button>
                   )}
                   {canEdit && !['completed', 'cancelled', 'refunded'].includes(order.status) && (
-                    <button onClick={() => setEditingOrder(order)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
-                      <Pencil className="w-4 h-4" />{t('common.edit')}
+                    <button onClick={() => setEditingOrder(order)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium whitespace-nowrap">
+                      <Pencil className="w-4 h-4 flex-shrink-0" />{t('common.edit')}
                     </button>
                   )}
-                  <button onClick={() => setViewingOrder(order)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium">
-                    <Eye className="w-4 h-4" />{t('orders.actions.view')}
+                  <button onClick={() => setViewingOrder(order)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium whitespace-nowrap">
+                    <Eye className="w-4 h-4 flex-shrink-0" />{t('orders.actions.view')}
                   </button>
                   {canDelete && ['draft', 'pending', 'pending_payment', 'on_hold'].includes(order.status) && (
                     <button onClick={() => handleDelete(order)} disabled={deleting === order.id} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
@@ -405,9 +405,9 @@ export default function Orders() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {t('common.showing')} {((page - 1) * 50) + 1}-{Math.min(page * 50, totalCount)} {t('common.of')} {totalCount}
+        <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 px-3 sm:px-4 py-3">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+            <span className="hidden sm:inline">{t('common.showing')} </span>{((page - 1) * 50) + 1}-{Math.min(page * 50, totalCount)} <span className="hidden sm:inline">{t('common.of')}</span><span className="sm:hidden">/</span> {totalCount}
           </p>
           <div className="flex items-center gap-1">
             <button
@@ -417,31 +417,35 @@ export default function Orders() {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-              let pageNum: number
-              if (totalPages <= 7) {
-                pageNum = i + 1
-              } else if (page <= 4) {
-                pageNum = i + 1
-              } else if (page >= totalPages - 3) {
-                pageNum = totalPages - 6 + i
-              } else {
-                pageNum = page - 3 + i
-              }
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setPage(pageNum)}
-                  className={`w-8 h-8 text-sm rounded-lg transition-colors ${
-                    pageNum === page
-                      ? 'bg-green-600 text-white font-medium'
-                      : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              )
-            })}
+            {(() => {
+              const maxVisible = typeof window !== 'undefined' && window.innerWidth < 640 ? 3 : 7
+              return Array.from({ length: Math.min(totalPages, maxVisible) }, (_, i) => {
+                let pageNum: number
+                const half = Math.floor(maxVisible / 2)
+                if (totalPages <= maxVisible) {
+                  pageNum = i + 1
+                } else if (page <= half + 1) {
+                  pageNum = i + 1
+                } else if (page >= totalPages - half) {
+                  pageNum = totalPages - maxVisible + 1 + i
+                } else {
+                  pageNum = page - half + i
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`w-8 h-8 text-sm rounded-lg transition-colors ${
+                      pageNum === page
+                        ? 'bg-green-600 text-white font-medium'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })
+            })()}
             <button
               onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}

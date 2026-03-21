@@ -177,14 +177,15 @@ function OrderRow({
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2.5 flex-shrink-0">
-        <StatusBadge status={order.status} />
+      <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+        <span className="hidden sm:inline"><StatusBadge status={order.status} /></span>
+        <span className={`sm:hidden w-2 h-2 rounded-full flex-shrink-0 ${SC[order.status] || 'bg-slate-400'}`} />
         {isOwner && (
-          <span className="text-sm font-bold text-green-600 dark:text-green-400">
+          <span className="text-xs sm:text-sm font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
             {formatPrice(order.total)}
           </span>
         )}
-        <Eye className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />
+        <Eye className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors hidden sm:block" />
       </div>
     </div>
   )

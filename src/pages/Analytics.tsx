@@ -65,9 +65,9 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       {/* Actions Bar */}
-      <div className="flex items-center justify-between gap-3 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
         {/* Tab Bar */}
-        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-1 flex flex-nowrap gap-1 overflow-x-auto scrollbar-hidden min-w-0">
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-1 flex flex-nowrap gap-1 overflow-x-auto scrollbar-hidden min-w-0 -mx-1 px-1">
           {TABS.map(tab => {
             const Icon = tab.icon
             const isActive = activeTab === tab.key
@@ -75,7 +75,7 @@ export default function Analytics() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex-shrink-0 transition-all ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                   isActive
                     ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -89,10 +89,10 @@ export default function Analytics() {
         </div>
 
         {/* Right side controls */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <button
             onClick={() => setRefreshKey(k => k + 1)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>

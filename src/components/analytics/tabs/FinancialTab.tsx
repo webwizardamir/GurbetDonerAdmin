@@ -120,7 +120,7 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
       {/* Top row: Waterfall + Period Comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Profit Waterfall */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-slate-700">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4">{t('analytics.financial.profitWaterfall')}</h3>
           <div className="space-y-3">
             <WaterfallRow label={t('analytics.financial.grossRevenue')} value={summary.grossRevenue} />
@@ -138,9 +138,10 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
 
         {/* Period Comparison */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+          <div className="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-700">
             <h3 className="font-semibold text-slate-900 dark:text-white">{t('analytics.financial.periodComparison')}</h3>
           </div>
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
@@ -177,11 +178,12 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
       {/* Monthly Revenue Chart */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-slate-900 dark:text-white">{t('analytics.financial.monthlyRevenue')}</h3>
           <select
@@ -214,11 +216,11 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
 
       {/* Revenue by Category */}
       {categories.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-slate-700">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4">{t('analytics.financial.revenueByCategory')}</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={categories} layout="vertical" margin={{ left: 80, right: 20, top: 5, bottom: 5 }}>
+              <BarChart data={categories} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
                 <XAxis type="number" tickFormatter={(v: number) => formatChartCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
                 <YAxis
                   type="category"

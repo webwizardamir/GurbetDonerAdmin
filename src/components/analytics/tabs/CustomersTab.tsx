@@ -164,25 +164,25 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
 
       {/* Customer Performance Table */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">{t('analytics.topCustomers')}</h3>
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder={t('common.search')}
-                className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 w-48 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 w-full sm:w-48 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
               />
             </div>
             <button
               onClick={handleExport}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap flex-shrink-0"
             >
               <Download className="w-4 h-4" />
-              {t('analytics.export')}
+              <span className="hidden sm:inline">{t('analytics.export')}</span>
             </button>
           </div>
         </div>
@@ -242,7 +242,7 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
       </div>
 
       {/* Revenue Concentration */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-slate-700">
         <h3 className="font-semibold text-slate-900 dark:text-white mb-1">{t('analytics.customers.revenueConcentration')}</h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
           {t('analytics.customers.topCustomersShare', { count: 5, share: top5Share })}
@@ -250,7 +250,7 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
         {top10.length > 0 && (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={top10} layout="vertical" margin={{ left: 80, right: 20, top: 5, bottom: 5 }}>
+              <BarChart data={top10} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
                 <XAxis type="number" tickFormatter={(v: number) => formatChartCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
                 <YAxis
                   type="category"

@@ -39,11 +39,11 @@ export default function DashboardGreeting({ onRefresh, onNewOrder, ordersToday =
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-green-600/5 via-green-600/3 to-transparent dark:from-green-500/10 dark:via-green-500/5 dark:to-transparent p-5 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl" role="img" aria-label="wave">
+          <div className="flex items-start gap-2">
+            <span className="text-2xl flex-shrink-0" role="img" aria-label="wave">
               {'👋'}
             </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight break-words">
               {t(getGreetingKey(), { name: displayName })}
             </h2>
           </div>
@@ -55,12 +55,12 @@ export default function DashboardGreeting({ onRefresh, onNewOrder, ordersToday =
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => onNewOrder ? onNewOrder() : navigate('/orders?new=1')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md shadow-green-600/20 hover:shadow-lg hover:shadow-green-600/30"
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md shadow-green-600/20 hover:shadow-lg hover:shadow-green-600/30 whitespace-nowrap"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 flex-shrink-0" />
             <span>{t('dashboard.newOrder')}</span>
           </button>
           {onRefresh && (

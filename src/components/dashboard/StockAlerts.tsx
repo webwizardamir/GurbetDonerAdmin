@@ -162,12 +162,12 @@ function ProductRow({
       }`}
       onClick={() => navigate('/products')}
     >
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <p className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-full">
           {product.name}
         </p>
         <div className="flex items-center gap-2 mt-1">
-          <p className={`text-xs font-semibold ${isCritical ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
+          <p className={`text-xs font-semibold truncate ${isCritical ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
             {product.currentStock} {product.unitType}
             {isOwner && product.costValue ? ` - ${formatPrice(product.costValue)}` : ''}
           </p>

@@ -110,7 +110,7 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
           {/* Top accent line */}
           <div className={`h-0.5 ${ACCENT_COLORS[card.accent]}`} />
 
-          <div className="p-4 pt-3.5">
+          <div className="p-3 sm:p-4 pt-3">
             {/* Pulse ring for pending */}
             {card.pulse && (
               <span className="absolute top-4 right-4 flex h-3 w-3">
@@ -123,10 +123,10 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
               <card.icon className={`w-5 h-5 ${card.iconColor}`} />
             </div>
 
-            <p className="text-3xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
+            <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight truncate">
               {todayStats ? card.value : '-'}
             </p>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
               {card.label}
             </p>
           </div>
