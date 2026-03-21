@@ -224,7 +224,7 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
               topCustomers.map((customer, index) => (
                 <div
                   key={customer.id}
-                  onClick={() => navigate('/customers')}
+                  onClick={() => navigate(`/customers/${customer.id}`)}
                   className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -272,7 +272,7 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
               topProducts.map((product, index) => (
                 <div
                   key={product.productName}
-                  onClick={() => navigate('/products')}
+                  onClick={() => navigate(`/products?search=${encodeURIComponent(product.productName)}`)}
                   className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">

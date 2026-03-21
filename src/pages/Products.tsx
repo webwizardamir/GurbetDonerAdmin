@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Search,
@@ -47,7 +48,8 @@ export default function Products() {
   const { profile } = useAuth()
   const isOwner = profile?.role === 'owner'
 
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchParams] = useSearchParams()
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [showCategories, setShowCategories] = useState(false)
@@ -109,7 +111,7 @@ export default function Products() {
   return (
     <div className="space-y-6">
       {/* Search & Filters - Combined on desktop, stacked on mobile */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {/* Search Bar */}
         <div className="relative w-full sm:w-64 lg:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />

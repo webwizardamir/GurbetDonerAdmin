@@ -173,14 +173,14 @@ export default function Orders() {
   return (
     <div className="space-y-4">
       {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <div className="relative w-full sm:w-64 lg:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('orders.searchPlaceholder')}
             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
         </div>
-        <div className="flex flex-wrap items-center gap-2 flex-1">
-          <div className="relative flex-1 sm:flex-none">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
             <select value={filters.status || ''} onChange={e => handleStatusFilter(e.target.value as OrderStatus | '')}
               className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
               <option value="">{t('orders.allStatus')}</option>
@@ -193,7 +193,7 @@ export default function Orders() {
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
-          <div className="relative flex-1 sm:flex-none">
+          <div className="relative">
             <select value={filters.paymentMethod || ''} onChange={e => handlePaymentFilter(e.target.value as PaymentMethod | '')}
               className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
               <option value="">{t('orders.allPayment')}</option>
