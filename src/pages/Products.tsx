@@ -111,69 +111,33 @@ export default function Products() {
   return (
     <div className="space-y-6">
       {/* Search & Filters - Combined on desktop, stacked on mobile */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        {/* Search Bar */}
-        <div className="relative w-full sm:w-64 lg:w-80">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-auto sm:flex-1 lg:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            placeholder={t('products.searchPlaceholder')}
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+          <input type="text" placeholder={t('products.searchPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500" />
         </div>
-
-        {/* Filters & Actions */}
-        <div className="flex flex-wrap items-center gap-2 flex-1">
-          {/* Category Filter */}
-          <select
-            value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
-            className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="">{t('products.allCategories')}</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Categories Button */}
-          <button
-            onClick={() => setShowCategories(true)}
-            className="inline-flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap"
-          >
-            <Tag className="w-5 h-5 flex-shrink-0" />
-            <span className="hidden lg:inline">{t('products.categories')}</span>
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
+          className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">{t('products.allCategories')}</option>
+          {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
+        </select>
+        <button onClick={() => setShowCategories(true)}
+          className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" title={t('products.categories')}>
+          <Tag className="w-5 h-5" />
+        </button>
+        <button onClick={handleExport} disabled={filteredProducts.length === 0}
+          className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50" title={t('common.export')}>
+          <Download className="w-5 h-5" />
+        </button>
+        <div className="flex-1" />
+        {canCreate && (
+          <button onClick={handleCreate}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap">
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">{t('products.addProduct')}</span>
           </button>
-
-          {/* Export Button */}
-          <button
-            onClick={handleExport}
-            disabled={filteredProducts.length === 0}
-            className="inline-flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 whitespace-nowrap"
-            title={t('common.export')}
-          >
-            <Download className="w-5 h-5 flex-shrink-0" />
-            <span className="hidden lg:inline">{t('common.export')}</span>
-          </button>
-
-          {/* Spacer to push button right on desktop */}
-          <div className="hidden sm:block flex-1" />
-
-          {/* Add Product Button */}
-          {canCreate && (
-            <button
-              onClick={handleCreate}
-              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors shrink-0 whitespace-nowrap"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">{t('products.addProduct')}</span>
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Error Message */}
