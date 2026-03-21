@@ -33,7 +33,7 @@ export default function ActionRequiredBanner({ actionRequired }: ActionRequiredB
     items.push({
       label: t('dashboard.action.overduePayments', { count: overduePayments }),
       count: overduePayments,
-      onClick: () => navigate('/orders'),
+      onClick: () => navigate('/orders?status=pending_payment'),
       urgent: true,
     })
   }
@@ -49,7 +49,7 @@ export default function ActionRequiredBanner({ actionRequired }: ActionRequiredB
     items.push({
       label: t('dashboard.action.ordersOnHold', { count: ordersOnHold }),
       count: ordersOnHold,
-      onClick: () => navigate('/orders'),
+      onClick: () => navigate('/orders?status=on_hold'),
       urgent: false,
     })
   }

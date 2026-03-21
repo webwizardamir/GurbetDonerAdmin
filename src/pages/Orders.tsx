@@ -50,6 +50,14 @@ export default function Orders() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null)
   const [documentInfo, setDocumentInfo] = useState<Map<string, OrderDocumentInfo>>(new Map())
 
+  // Read URL params on mount to apply filters (e.g. ?status=pending_payment)
+  useEffect(() => {
+    const urlStatus = searchParams.get('status')
+    if (urlStatus) {
+      setFilters({ status: urlStatus as OrderStatus })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Lock body scroll when inline payment modal is open
   useEffect(() => {
     if (!showPaymentModal) return

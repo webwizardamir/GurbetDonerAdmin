@@ -64,7 +64,7 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
       iconBg: 'bg-amber-50 dark:bg-amber-900/30',
       accent: 'amber',
       pulse: stats.pendingCount > 0,
-      onClick: () => navigate('/orders'),
+      onClick: () => navigate('/orders?status=pending_payment'),
     },
     {
       label: t('dashboard.kpi.stockAlerts'),
