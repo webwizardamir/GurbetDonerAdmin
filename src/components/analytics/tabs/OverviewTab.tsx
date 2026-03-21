@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   DollarSign,
@@ -27,6 +28,7 @@ interface OverviewTabProps {
 
 export default function OverviewTab({ dateRange }: OverviewTabProps) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const {
     loading,
     error,
@@ -222,7 +224,8 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
               topCustomers.map((customer, index) => (
                 <div
                   key={customer.id}
-                  className="flex items-center justify-between px-6 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                  onClick={() => navigate('/customers')}
+                  className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-6 h-6 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 rounded-full">
@@ -269,7 +272,8 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
               topProducts.map((product, index) => (
                 <div
                   key={product.productName}
-                  className="flex items-center justify-between px-6 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                  onClick={() => navigate('/products')}
+                  className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-6 h-6 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 rounded-full">

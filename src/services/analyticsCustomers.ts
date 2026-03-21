@@ -59,27 +59,29 @@ export async function getCustomerPerformance(
 
   if (error) throw error
 
-  return (data || []).map((row: {
-    customer_id: string
-    company_name: string
-    total_revenue: number
-    total_profit: number
-    total_tax: number
-    profit_margin: number
-    order_count: number
-    avg_order_value: number
-    last_order_date: string | null
-    days_since_last_order: number | null
-  }) => ({
-    customerId: row.customer_id,
-    companyName: row.company_name,
-    totalRevenue: Number(row.total_revenue),
-    totalProfit: Number(row.total_profit),
-    totalTax: Number(row.total_tax),
-    profitMargin: Number(row.profit_margin),
-    orderCount: Number(row.order_count),
-    avgOrderValue: Number(row.avg_order_value),
-    lastOrderDate: row.last_order_date,
-    daysSinceLastOrder: row.days_since_last_order != null ? Number(row.days_since_last_order) : null,
-  }))
+  return (data || []).map((row: Record<string, unknown>) => {
+    const totalRevenue = Number(row.total_revenue ?? 0)
+    const totalCost = Number(row.total_cost ?? 0)
+    const totalProfit = Number(row.total_profit ?? 0)
+    const profitMargin = Number(row.profit_margin ?? 0)
+    const totalOrders = Number(row.total_orders ?? 0)
+    const avgOrderValue = Number(row.avg_order_value ?? 0)
+    // Tax is not returned by the RPC; derive as revenue - cost - profit if needed, else 0
+    const totalTax = totalRevenue > 0 ? Math.max(0, totalRevenue - totalCost - totalProfit) : 0
+
+    return {
+      customerId: String(row.customer_id || ''),
+      companyName: String(row.customer_name || 'Unknown'),
+      totalRevenue,
+      totalProfit,
+      totalTax,
+      profitMargin,
+      orderCount: totalOrders,
+      avgOrderValue,
+      lastOrderDate: row.last_order_date ? String(row.last_order_date) : null,
+      daysSinceLastOrder: row.last_order_date != null
+        ? Math.floor((Date.now() - new Date(String(row.last_order_date)).getTime()) / (1000 * 60 * 60 * 24))
+        : null,
+    }
+  })
 }

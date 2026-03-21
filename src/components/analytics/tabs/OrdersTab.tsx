@@ -23,7 +23,7 @@ interface OrdersTabProps {
   dateRange: DateRange
 }
 
-type SortKey = 'orderNumber' | 'orderDate' | 'customerName' | 'status' | 'paymentMethod' | 'total' | 'totalCost' | 'profit' | 'profitMargin' | 'taxAmount'
+type SortKey = 'orderNumber' | 'orderDate' | 'customerName' | 'status' | 'paymentMethod' | 'subtotal' | 'total' | 'totalCost' | 'profit' | 'profitMargin' | 'taxAmount'
 type SortDir = 'asc' | 'desc'
 
 const STATUS_OPTIONS = ['draft', 'pending_payment', 'on_hold', 'completed', 'cancelled', 'refunded', 'delivered']
@@ -80,8 +80,8 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
 
   // KPI computations from filtered data
   const totalOrders = filteredOrders.length
-  const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0)
-  const totalProfit = filteredOrders.reduce((sum, o) => sum + o.profit, 0)
+  const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.subtotal, 0)
+  const totalProfit = filteredOrders.reduce((sum, o) => sum + (o.subtotal - o.totalCost), 0)
   const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0
 
   const handleExport = () => {
@@ -92,7 +92,7 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
       { header: t('analytics.orderReport.customer'), accessor: r => r.customerName },
       { header: t('analytics.orderReport.status'), accessor: r => r.status },
       { header: t('analytics.orderReport.payment'), accessor: r => r.paymentMethod },
-      { header: t('analytics.revenue'), accessor: r => formatCentsToCsvCurrency(r.total) },
+      { header: t('analytics.revenue'), accessor: r => formatCentsToCsvCurrency(r.subtotal) },
       { header: t('analytics.orderReport.cost'), accessor: r => formatCentsToCsvCurrency(r.totalCost) },
       { header: t('analytics.profit'), accessor: r => formatCentsToCsvCurrency(r.profit) },
       { header: t('analytics.margin'), accessor: r => formatCsvPercentage(r.profitMargin) },
@@ -207,7 +207,7 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
                   ['customerName', t('analytics.orderReport.customer')],
                   ['status', t('analytics.orderReport.status')],
                   ['paymentMethod', t('analytics.orderReport.payment')],
-                  ['total', t('analytics.revenue')],
+                  ['subtotal', t('analytics.revenue')],
                   ['totalCost', t('analytics.orderReport.cost')],
                   ['profit', t('analytics.profit')],
                   ['profitMargin', t('analytics.margin')],
@@ -247,7 +247,7 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
                       {row.paymentMethod === 'cash' ? t('orders.payment.cash') :
                        row.paymentMethod === 'bank' ? t('orders.payment.bank') : '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">{formatChartCurrency(row.total)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">{formatChartCurrency(row.subtotal)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatChartCurrency(row.totalCost)}</td>
                     <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{formatChartCurrency(row.profit)}</td>
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{row.profitMargin.toFixed(1)}%</td>
