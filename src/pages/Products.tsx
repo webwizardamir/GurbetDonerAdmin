@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Search,
@@ -10,6 +10,8 @@ import {
   Package,
   PackageX,
   Download,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { useProducts } from '../hooks/useProducts'
 import { useCategories } from '../hooks/useCategories'
@@ -40,7 +42,7 @@ function formatUnitType(unitType: string, t: (key: string) => string): string {
 export default function Products() {
   const { t } = useTranslation()
   const { canCreate, canEdit, canDelete } = usePermission('products')
-  const { products, loading, error, refresh, create, update, remove } = useProducts()
+  const { products, loading, error, refresh, create, update, remove, page, setPage, totalPages, totalCount, setFilters } = useProducts()
   const { categories } = useCategories({ activeOnly: true })
   const { profile } = useAuth()
   const isOwner = profile?.role === 'owner'
@@ -51,28 +53,20 @@ export default function Products() {
   const [showCategories, setShowCategories] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
-  // Filter products
-  const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const matchesSearch =
-          product.name.toLowerCase().includes(query) ||
-          product.sku?.toLowerCase().includes(query) ||
-          product.barcode?.toLowerCase().includes(query) ||
-          product.description?.toLowerCase().includes(query)
-        if (!matchesSearch) return false
-      }
+  // Debounced server-side search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters({ search: searchQuery || undefined })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery, setFilters])
 
-      // Category filter
-      if (categoryFilter && product.category_id !== categoryFilter) {
-        return false
-      }
+  // Server-side category filter
+  useEffect(() => {
+    setFilters({ category_id: categoryFilter || undefined })
+  }, [categoryFilter, setFilters])
 
-      return true
-    })
-  }, [products, searchQuery, categoryFilter])
+  const filteredProducts = products
 
   const handleCreate = () => {
     setEditingProduct(null)
@@ -255,7 +249,8 @@ export default function Products() {
                 {filteredProducts.map(product => (
                   <tr
                     key={product.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                    onClick={() => canEdit && handleEdit(product)}
+                    className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${canEdit ? 'cursor-pointer' : ''}`}
                   >
                     <td className="px-4 py-3">
                       <div>
@@ -340,7 +335,7 @@ export default function Products() {
                         )}
                       </td>
                     )}
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         {canEdit && (
                           <button
@@ -367,12 +362,63 @@ export default function Products() {
             </div>
           </div>
 
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {t('common.showing')} {((page - 1) * 50) + 1}-{Math.min(page * 50, totalCount)} {t('common.of')} {totalCount}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                  let pageNum: number
+                  if (totalPages <= 7) {
+                    pageNum = i + 1
+                  } else if (page <= 4) {
+                    pageNum = i + 1
+                  } else if (page >= totalPages - 3) {
+                    pageNum = totalPages - 6 + i
+                  } else {
+                    pageNum = page - 3 + i
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`w-8 h-8 text-sm rounded-lg transition-colors ${
+                        pageNum === page
+                          ? 'bg-green-600 text-white font-medium'
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+                <button
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Mobile Cards */}
           <div className="md:hidden space-y-3">
             {filteredProducts.map(product => (
               <div
                 key={product.id}
-                className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4"
+                onClick={() => canEdit && handleEdit(product)}
+                className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 ${canEdit ? 'cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50' : ''}`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
@@ -438,7 +484,7 @@ export default function Products() {
                 )}
 
                 {(canEdit || canDelete) && (
-                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-700" onClick={e => e.stopPropagation()}>
                     {canEdit && (
                       <button
                         onClick={() => handleEdit(product)}

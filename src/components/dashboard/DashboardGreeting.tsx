@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext'
 
 interface DashboardGreetingProps {
   onRefresh?: () => void
+  onNewOrder?: () => void
   ordersToday?: number
   pendingCount?: number
 }
@@ -21,7 +22,7 @@ function getGreetingKey(): string {
   return 'dashboard.greeting.evening'
 }
 
-export default function DashboardGreeting({ onRefresh, ordersToday = 0, pendingCount = 0 }: DashboardGreetingProps) {
+export default function DashboardGreeting({ onRefresh, onNewOrder, ordersToday = 0, pendingCount = 0 }: DashboardGreetingProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { profile } = useAuth()
@@ -56,7 +57,7 @@ export default function DashboardGreeting({ onRefresh, ordersToday = 0, pendingC
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate('/orders?new=1')}
+            onClick={() => onNewOrder ? onNewOrder() : navigate('/orders?new=1')}
             className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md shadow-green-600/20 hover:shadow-lg hover:shadow-green-600/30"
           >
             <Plus className="w-4 h-4" />

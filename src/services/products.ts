@@ -5,6 +5,7 @@ export interface ProductFilters {
   search?: string
   category_id?: string
   limit?: number
+  offset?: number
 }
 
 // Fetch products with optional filters
@@ -30,7 +31,9 @@ export async function fetchProducts(filters: ProductFilters = {}): Promise<Produ
       query = query.eq('category_id', filters.category_id)
     }
 
-    if (filters.limit) {
+    if (filters.offset !== undefined && filters.limit) {
+      query = query.range(filters.offset, filters.offset + filters.limit - 1)
+    } else if (filters.limit) {
       query = query.limit(filters.limit)
     }
 
@@ -49,6 +52,27 @@ export async function fetchProducts(filters: ProductFilters = {}): Promise<Produ
 
   if (error) throw error
   return (data as unknown as Product[]) || []
+}
+
+// Fetch product count with filters (for pagination)
+export async function fetchProductCount(filters: ProductFilters = {}): Promise<number> {
+  let query = supabase
+    .from('products')
+    .select('id', { count: 'exact', head: true })
+
+  if (filters.search) {
+    query = query.or(
+      `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`
+    )
+  }
+
+  if (filters.category_id) {
+    query = query.eq('category_id', filters.category_id)
+  }
+
+  const { count, error } = await query
+  if (error) throw error
+  return count || 0
 }
 
 // Fetch single product by ID

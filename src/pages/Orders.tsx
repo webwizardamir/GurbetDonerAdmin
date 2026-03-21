@@ -267,8 +267,8 @@ export default function Orders() {
                   const docInfo = documentInfo.get(order.id) || { count: 0 }
                   const canComplete = ['draft', 'pending_payment', 'on_hold'].includes(order.status)
                   return (
-                    <tr key={order.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${selectedIds.has(order.id) ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}>
-                      <td className="pl-4 pr-2 py-4">
+                    <tr key={order.id} onClick={() => setViewingOrder(order)} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${selectedIds.has(order.id) ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}>
+                      <td className="pl-4 pr-2 py-4" onClick={e => e.stopPropagation()}>
                         <input type="checkbox" checked={selectedIds.has(order.id)} onChange={() => toggleSelect(order.id)}
                           className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
                       </td>
@@ -301,7 +301,7 @@ export default function Orders() {
                         ) : <span className="text-sm text-slate-400 dark:text-slate-500">-</span>}
                       </td>
                       <td className="px-4 py-4 text-right"><span className="font-semibold text-slate-900 dark:text-white">{formatPrice(order.total)}</span></td>
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-4 py-4 text-right" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           {docInfo.count > 1 && (
                             <div className="relative p-2" title={`${docInfo.count} documents generated`}>
@@ -352,9 +352,9 @@ export default function Orders() {
             const docInfo = documentInfo.get(order.id) || { count: 0 }
             const canComplete = ['draft', 'pending_payment', 'on_hold'].includes(order.status)
             return (
-              <div key={order.id} className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 ${selectedIds.has(order.id) ? 'ring-2 ring-green-500' : ''}`}>
+              <div key={order.id} onClick={() => setViewingOrder(order)} className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50 ${selectedIds.has(order.id) ? 'ring-2 ring-green-500' : ''}`}>
                 <div className="flex items-center gap-3 mb-3">
-                  <input type="checkbox" checked={selectedIds.has(order.id)} onChange={() => toggleSelect(order.id)}
+                  <input type="checkbox" checked={selectedIds.has(order.id)} onChange={() => toggleSelect(order.id)} onClick={e => e.stopPropagation()}
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -375,7 +375,7 @@ export default function Orders() {
                   </div>
                   <PaymentBadge method={order.payment_method} />
                 </div>
-                <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
                   {canComplete && (
                     <button onClick={() => handleQuickComplete(order.id)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium">
                       <Check className="w-4 h-4" />{t('orders.actions.complete')}

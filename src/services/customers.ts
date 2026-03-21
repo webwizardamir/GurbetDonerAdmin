@@ -22,6 +22,8 @@ export interface CustomerFormData {
 export interface CustomerFilters {
   search?: string
   city?: string
+  limit?: number
+  offset?: number
 }
 
 // Fetch all customers
@@ -30,7 +32,6 @@ export async function fetchCustomers(filters?: CustomerFilters): Promise<Custome
     .from('customers')
     .select('*')
     .order('company_name', { ascending: true })
-    .limit(5000)
 
   if (filters?.city) {
     query = query.eq('billing_city', filters.city)
@@ -46,10 +47,41 @@ export async function fetchCustomers(filters?: CustomerFilters): Promise<Custome
     )
   }
 
+  if (filters?.offset !== undefined && filters?.limit) {
+    query = query.range(filters.offset, filters.offset + filters.limit - 1)
+  } else {
+    query = query.limit(filters?.limit || 5000)
+  }
+
   const { data, error } = await query
 
   if (error) throw error
   return data || []
+}
+
+// Fetch customer count with filters (for pagination)
+export async function fetchCustomerCount(filters?: CustomerFilters): Promise<number> {
+  let query = supabase
+    .from('customers')
+    .select('id', { count: 'exact', head: true })
+
+  if (filters?.city) {
+    query = query.eq('billing_city', filters.city)
+  }
+
+  if (filters?.search) {
+    query = query.or(
+      `company_name.ilike.%${filters.search}%,` +
+      `contact_person.ilike.%${filters.search}%,` +
+      `email.ilike.%${filters.search}%,` +
+      `phone.ilike.%${filters.search}%,` +
+      `vat_number.ilike.%${filters.search}%`
+    )
+  }
+
+  const { count, error } = await query
+  if (error) throw error
+  return count || 0
 }
 
 // Fetch a single customer by ID

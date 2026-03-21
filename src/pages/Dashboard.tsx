@@ -3,10 +3,12 @@
  * Layout: Greeting, KPI cards, action banner, then 2-column grid
  * with orders list on left and chart + stock alerts on right.
  */
+import { useState } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useDashboardV2 } from '../hooks/useDashboard'
 import { useAuth } from '../context/AuthContext'
+import OrderForm from '../components/orders/OrderForm'
 import DashboardGreeting from '../components/dashboard/DashboardGreeting'
 import TodayKPICards from '../components/dashboard/TodayKPICards'
 import type { TodayStats } from '../components/dashboard/TodayKPICards'
@@ -67,6 +69,7 @@ function LoadingSkeleton() {
 export default function Dashboard() {
   const { t } = useTranslation()
   const { isOwner } = useAuth()
+  const [showNewOrder, setShowNewOrder] = useState(false)
   const {
     todayStats: rawTodayStats,
     weeklyStats: rawWeeklyStats,
@@ -160,9 +163,11 @@ export default function Dashboard() {
     <div className="space-y-6">
       <DashboardGreeting
         onRefresh={refresh}
+        onNewOrder={() => setShowNewOrder(true)}
         ordersToday={todayStats?.ordersToday ?? 0}
         pendingCount={todayStats?.pendingCount ?? 0}
       />
+      {showNewOrder && <OrderForm onClose={() => setShowNewOrder(false)} onSuccess={() => { setShowNewOrder(false); refresh() }} />}
       <TodayKPICards todayStats={todayStats} isOwner={isOwner} />
       <ActionRequiredBanner actionRequired={actionRequired} />
 

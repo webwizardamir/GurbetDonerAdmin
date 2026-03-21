@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Customer } from '../types'
 import {
   fetchCustomers,
+  fetchCustomerCount,
   fetchCustomer,
   createCustomer,
   updateCustomer,
@@ -26,7 +27,13 @@ interface UseCustomersReturn {
   remove: (id: string) => Promise<void>
   setFilters: (filters: CustomerFilters) => void
   cities: string[]
+  page: number
+  setPage: (page: number) => void
+  totalPages: number
+  totalCount: number
 }
+
+const CUSTOMER_PAGE_SIZE = 50
 
 export function useCustomers(options: UseCustomersOptions = {}): UseCustomersReturn {
   const { autoFetch = true, filters: initialFilters = {} } = options
@@ -36,20 +43,29 @@ export function useCustomers(options: UseCustomersOptions = {}): UseCustomersRet
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<CustomerFilters>(initialFilters)
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+
+  const totalPages = Math.ceil(totalCount / CUSTOMER_PAGE_SIZE)
 
   const loadCustomers = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchCustomers(filters)
+      const offset = (page - 1) * CUSTOMER_PAGE_SIZE
+      const [data, count] = await Promise.all([
+        fetchCustomers({ ...filters, limit: CUSTOMER_PAGE_SIZE, offset }),
+        fetchCustomerCount(filters),
+      ])
       setCustomers(data)
+      setTotalCount(count)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load customers')
       console.error('Error loading customers:', err)
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filters, page])
 
   const loadCities = useCallback(async () => {
     try {
@@ -86,6 +102,11 @@ export function useCustomers(options: UseCustomersOptions = {}): UseCustomersRet
     setCustomers(prev => prev.filter(c => c.id !== id))
   }
 
+  const updateFilters = useCallback((newFilters: CustomerFilters) => {
+    setPage(1)
+    setFilters(prev => ({ ...prev, ...newFilters }))
+  }, [])
+
   return {
     customers,
     loading,
@@ -94,8 +115,12 @@ export function useCustomers(options: UseCustomersOptions = {}): UseCustomersRet
     create,
     update,
     remove,
-    setFilters,
+    setFilters: updateFilters,
     cities,
+    page,
+    setPage,
+    totalPages,
+    totalCount,
   }
 }
 

@@ -118,7 +118,7 @@
     "critical": "Critical",
     "low": "Low",
     "vsLastMonth": "vs last month",
-    "newOrder": "+ New Order",
+    "newOrder": "New Order",
     "refresh": "Refresh",
     "greeting": {
       "morning": "Good morning, {{name}}",

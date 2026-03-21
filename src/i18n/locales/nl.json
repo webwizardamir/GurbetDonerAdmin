@@ -118,7 +118,7 @@
     "critical": "Kritiek",
     "low": "Laag",
     "vsLastMonth": "t.o.v. vorige maand",
-    "newOrder": "+ Nieuwe Bestelling",
+    "newOrder": "Nieuwe Bestelling",
     "refresh": "Vernieuwen",
     "greeting": {
       "morning": "Goedemorgen, {{name}}",

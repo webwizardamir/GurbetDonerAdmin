@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { Product, UnitType } from '../types'
 import {
   fetchProducts,
+  fetchProductCount,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -9,24 +10,35 @@ import {
 } from '../services/products'
 import { setProductUnitPrices } from '../services/productUnitPrices'
 
+const PAGE_SIZE = 50
+
 export function useProducts(initialFilters: ProductFilters = {}) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<ProductFilters>(initialFilters)
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   const loadProducts = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      const data = await fetchProducts(filters)
+      const offset = (page - 1) * PAGE_SIZE
+      const [data, count] = await Promise.all([
+        fetchProducts({ ...filters, limit: PAGE_SIZE, offset }),
+        fetchProductCount(filters),
+      ])
       setProducts(data)
+      setTotalCount(count)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load products')
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filters, page])
 
   useEffect(() => {
     loadProducts()
@@ -60,13 +72,10 @@ export function useProducts(initialFilters: ProductFilters = {}) {
       // Set unit prices if provided
       if (unit_prices && unit_prices.length > 0) {
         await setProductUnitPrices(newProduct.id, unit_prices)
-        // Refresh to get the updated product with unit_prices
-        const data = await fetchProducts(filters)
-        setProducts(data)
-        return data.find(p => p.id === newProduct.id) || newProduct
       }
 
-      setProducts(prev => [...prev, newProduct].sort((a, b) => a.name.localeCompare(b.name)))
+      // Refresh current page to get updated data
+      await loadProducts()
       return newProduct
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create product'
@@ -106,15 +115,10 @@ export function useProducts(initialFilters: ProductFilters = {}) {
       // Update unit prices if provided
       if (unit_prices && unit_prices.length > 0) {
         await setProductUnitPrices(id, unit_prices)
-        // Refresh to get the updated product with unit_prices
-        const data = await fetchProducts(filters)
-        setProducts(data)
-        return data.find(p => p.id === id) || updatedProduct
       }
 
-      setProducts(prev =>
-        prev.map(p => (p.id === id ? updatedProduct : p)).sort((a, b) => a.name.localeCompare(b.name))
-      )
+      // Refresh current page to get updated data
+      await loadProducts()
       return updatedProduct
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update product'
@@ -135,15 +139,24 @@ export function useProducts(initialFilters: ProductFilters = {}) {
     }
   }
 
+  const updateFilters = useCallback((newFilters: ProductFilters) => {
+    setPage(1)
+    setFilters(prev => ({ ...prev, ...newFilters }))
+  }, [])
+
   return {
     products,
     loading,
     error,
     filters,
-    setFilters,
+    setFilters: updateFilters,
     refresh: loadProducts,
     create,
     update,
     remove,
+    page,
+    setPage,
+    totalPages,
+    totalCount,
   }
 }

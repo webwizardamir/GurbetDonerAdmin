@@ -9,6 +9,8 @@ import {
   Filter,
   Upload,
   Download,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { useCustomers } from '../hooks/useCustomers'
 import { usePermission } from '../hooks/usePermission'
@@ -26,7 +28,7 @@ export default function Customers() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { canCreate, canEdit, canDelete } = usePermission('customers')
-  const { customers, loading, error, refresh, create, update, remove, cities } = useCustomers()
+  const { customers, loading, error, refresh, create, update, remove, cities, page, setPage, totalPages, totalCount, setFilters } = useCustomers()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [cityFilter, setCityFilter] = useState('')
@@ -47,20 +49,20 @@ export default function Customers() {
     fetchPortalAccounts()
   }, [customers])
 
-  const filteredCustomers = customers.filter(customer => {
-    if (cityFilter && customer.billing_city !== cityFilter) return false
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      return (
-        customer.company_name.toLowerCase().includes(query) ||
-        customer.contact_person?.toLowerCase().includes(query) ||
-        customer.email?.toLowerCase().includes(query) ||
-        customer.phone?.toLowerCase().includes(query) ||
-        customer.vat_number?.toLowerCase().includes(query)
-      )
-    }
-    return true
-  })
+  // Debounced server-side search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters({ search: searchQuery || undefined })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery, setFilters])
+
+  // Server-side city filter
+  useEffect(() => {
+    setFilters({ city: cityFilter || undefined })
+  }, [cityFilter, setFilters])
+
+  const filteredCustomers = customers
 
   const handleEdit = (customer: Customer) => { setEditingCustomer(customer); setShowForm(true) }
 
@@ -204,6 +206,56 @@ export default function Customers() {
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            {t('common.showing')} {((page - 1) * 50) + 1}-{Math.min(page * 50, totalCount)} {t('common.of')} {totalCount}
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              let pageNum: number
+              if (totalPages <= 7) {
+                pageNum = i + 1
+              } else if (page <= 4) {
+                pageNum = i + 1
+              } else if (page >= totalPages - 3) {
+                pageNum = totalPages - 6 + i
+              } else {
+                pageNum = page - 3 + i
+              }
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setPage(pageNum)}
+                  className={`w-8 h-8 text-sm rounded-lg transition-colors ${
+                    pageNum === page
+                      ? 'bg-green-600 text-white font-medium'
+                      : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              )
+            })}
+            <button
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages}
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {showForm && <CustomerForm customer={editingCustomer} onSubmit={handleFormSubmit} onClose={handleFormClose} />}
       {showImport && <CustomerImport onClose={() => setShowImport(false)} onComplete={() => { refresh() }} />}
