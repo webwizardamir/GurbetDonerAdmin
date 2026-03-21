@@ -67,12 +67,14 @@ export default function Orders() {
   }, [showPaymentModal])
 
   // Debounced server-side search: sends order_number filter to API after 300ms
+  const [searchInitialized, setSearchInitialized] = useState(false)
   useEffect(() => {
+    if (!searchInitialized) { setSearchInitialized(true); return }
     const timer = setTimeout(() => {
       setFilters({ search: searchQuery || undefined })
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery, setFilters])
+  }, [searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Client-side filter also matches customer name (server only searches order_number)
   const filteredOrders = useMemo(() => orders.filter(order => {

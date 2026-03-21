@@ -53,18 +53,22 @@ export default function Products() {
   const [showCategories, setShowCategories] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
-  // Debounced server-side search
+  // Debounced server-side search (skip initial mount)
+  const [searchInit, setSearchInit] = useState(false)
   useEffect(() => {
+    if (!searchInit) { setSearchInit(true); return }
     const timer = setTimeout(() => {
       setFilters({ search: searchQuery || undefined })
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery, setFilters])
+  }, [searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Server-side category filter
+  // Server-side category filter (skip initial mount)
+  const [catInit, setCatInit] = useState(false)
   useEffect(() => {
+    if (!catInit) { setCatInit(true); return }
     setFilters({ category_id: categoryFilter || undefined })
-  }, [categoryFilter, setFilters])
+  }, [categoryFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredProducts = products
 

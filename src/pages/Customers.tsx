@@ -49,18 +49,22 @@ export default function Customers() {
     fetchPortalAccounts()
   }, [customers])
 
-  // Debounced server-side search
+  // Debounced server-side search (skip initial mount)
+  const [searchInit, setSearchInit] = useState(false)
   useEffect(() => {
+    if (!searchInit) { setSearchInit(true); return }
     const timer = setTimeout(() => {
       setFilters({ search: searchQuery || undefined })
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery, setFilters])
+  }, [searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Server-side city filter
+  // Server-side city filter (skip initial mount)
+  const [cityInit, setCityInit] = useState(false)
   useEffect(() => {
+    if (!cityInit) { setCityInit(true); return }
     setFilters({ city: cityFilter || undefined })
-  }, [cityFilter, setFilters])
+  }, [cityFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredCustomers = customers
 
