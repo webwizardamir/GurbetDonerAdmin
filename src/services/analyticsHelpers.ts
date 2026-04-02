@@ -63,9 +63,9 @@ export function getDateRanges() {
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
 
-  // Last 7 days
+  // Last 7 days (7 days before today + today = 8 calendar days, matching WooCommerce)
   const last7Start = new Date(today)
-  last7Start.setDate(last7Start.getDate() - 6)
+  last7Start.setDate(last7Start.getDate() - 7)
 
   // Last 30 days
   const last30Start = new Date(today)
