@@ -17,6 +17,15 @@ interface DbOrderRow {
   invoice_date?: string
   woo_invoice_number?: number | null
   woo_invoice_date?: string | null
+  refund_amount?: number | null
+  refunds?: Array<{
+    id: string
+    woo_refund_id?: number | null
+    woo_credit_note_number?: number | null
+    refund_date: string
+    amount: number
+    reason?: string | null
+  }>
   delivery_notes?: string
   notes?: string
   internal_notes?: string
@@ -122,6 +131,8 @@ function transformOrderFromDb(dbOrder: DbOrderRow): OrderWithItems | null {
     invoice_date: dbOrder.invoice_date,
     woo_invoice_number: dbOrder.woo_invoice_number ?? null,
     woo_invoice_date: dbOrder.woo_invoice_date ?? null,
+    refund_amount: Number(dbOrder.refund_amount) || 0,
+    refunds: dbOrder.refunds ?? [],
     delivery_notes: dbOrder.delivery_notes || dbOrder.notes || '',
     internal_notes: dbOrder.internal_notes || '',
     created_by: dbOrder.created_by,
@@ -192,10 +203,11 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
     .select(`
       id, order_number, customer_id, status, payment_method,
       subtotal, discount, tax, total, order_date, invoice_date,
-      woo_invoice_number, woo_invoice_date,
+      woo_invoice_number, woo_invoice_date, refund_amount,
       delivery_notes, internal_notes, created_at, updated_at, created_by,
       customer:customers!customer_id(id, company_name, contact_person),
-      items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, tax_rate, total, unit_type)
+      items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, tax_rate, total, unit_type),
+      refunds:order_refunds(id, woo_refund_id, woo_credit_note_number, refund_date, amount, reason)
     `)
     .order('created_at', { ascending: false })
 

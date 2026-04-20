@@ -280,12 +280,25 @@ export interface Order {
   invoice_date?: string
   woo_invoice_number?: number | null
   woo_invoice_date?: string | null
+  refund_amount?: number // cents
+  refunds?: OrderRefund[]
   delivery_notes?: string
   internal_notes?: string
   created_by?: string
   created_at: string
   updated_at: string
   items?: OrderItem[]
+}
+
+export interface OrderRefund {
+  id: string
+  order_id?: string
+  woo_refund_id?: number | null
+  woo_credit_note_number?: number | null
+  refund_date: string
+  amount: number // cents, positive
+  reason?: string | null
+  created_at?: string
 }
 
 export interface OrderItem {

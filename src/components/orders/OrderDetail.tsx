@@ -298,7 +298,44 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
               <span className="text-slate-900 dark:text-white">{t('orders.total')}</span>
               <span className="text-green-600 dark:text-green-400">{formatPrice(order.total)}</span>
             </div>
+            {(order.refund_amount ?? 0) > 0 && (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">Terugbetaald</span>
+                  <span className="text-red-600 dark:text-red-400">-{formatPrice(order.refund_amount ?? 0)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-semibold">
+                  <span className="text-slate-900 dark:text-white">Netto</span>
+                  <span className="text-slate-900 dark:text-white">{formatPrice(order.total - (order.refund_amount ?? 0))}</span>
+                </div>
+              </>
+            )}
           </div>
+
+          {/* Refunds */}
+          {(order.refunds?.length ?? 0) > 0 && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/40 rounded-xl space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <RefreshCw className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <h3 className="font-medium text-slate-900 dark:text-white">Terugbetalingen ({order.refunds!.length})</h3>
+              </div>
+              {order.refunds!
+                .slice()
+                .sort((a, b) => new Date(b.refund_date).getTime() - new Date(a.refund_date).getTime())
+                .map(r => (
+                  <div key={r.id} className="flex items-start justify-between text-sm py-1 border-t border-red-200 dark:border-red-900/40 first:border-t-0 first:pt-0">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-slate-700 dark:text-slate-300">{formatDateLong(r.refund_date)}</div>
+                      {r.woo_credit_note_number && (
+                        <div className="text-xs text-slate-500 dark:text-slate-400">Credit Nota #{r.woo_credit_note_number}</div>
+                      )}
+                      {r.reason && <div className="text-xs text-slate-500 dark:text-slate-400 italic">"{r.reason}"</div>}
+                    </div>
+                    <span className="text-red-600 dark:text-red-400 font-medium shrink-0">-{formatPrice(r.amount)}</span>
+                  </div>
+                ))}
+            </div>
+          )}
 
           {/* Document Actions */}
           <div>
