@@ -15,13 +15,19 @@ export async function globalSearch(query: string, limit = 10): Promise<SearchRes
   const searchTerm = `%${query}%`
   const results: SearchResult[] = []
 
+  // If the search term is a bare integer, also match the legacy WC invoice number exactly.
+  const isNumeric = /^\d+$/.test(query)
+  const ordersOr = isNumeric
+    ? `order_number.ilike.${searchTerm},woo_invoice_number.eq.${query}`
+    : `order_number.ilike.${searchTerm}`
+
   // Search in parallel
   const [ordersRes, customersRes, productsRes] = await Promise.all([
     // Orders search
     supabase
       .from('orders')
-      .select('id, order_number, customer:customers(company_name)')
-      .or(`order_number.ilike.${searchTerm}`)
+      .select('id, order_number, woo_invoice_number, customer:customers(company_name)')
+      .or(ordersOr)
       .limit(limit),
 
     // Customers search
@@ -46,11 +52,14 @@ export async function globalSearch(query: string, limit = 10): Promise<SearchRes
       const customer = Array.isArray(customerData)
         ? (customerData[0] as { company_name: string } | undefined)
         : (customerData as { company_name: string } | null)
+      const invoicePart = order.woo_invoice_number ? `Invoice #${order.woo_invoice_number}` : null
+      const companyPart = customer?.company_name
+      const subtitle = [invoicePart, companyPart].filter(Boolean).join(' · ') || undefined
       results.push({
         type: 'order',
         id: order.id,
         title: order.order_number,
-        subtitle: customer?.company_name,
+        subtitle,
         url: `/orders`,
       })
     }

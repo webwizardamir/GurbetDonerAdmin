@@ -76,15 +76,18 @@ export default function Orders() {
     return () => clearTimeout(timer)
   }, [searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Client-side filter also matches customer name (server only searches order_number)
+  // Client-side filter also matches customer name and legacy WC invoice numbers
+  // (server-side search already queries order_number + woo_invoice_number).
   const filteredOrders = useMemo(() => orders.filter(order => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
     const invoiceNum = documentInfo.get(order.id)?.invoiceNumber?.toLowerCase() || ''
+    const wooInvoice = order.woo_invoice_number ? String(order.woo_invoice_number) : ''
     return (
       order.order_number.toLowerCase().includes(query) ||
       order.customer?.company_name?.toLowerCase().includes(query) ||
-      invoiceNum.includes(query)
+      invoiceNum.includes(query) ||
+      wooInvoice.includes(query)
     )
   }), [orders, searchQuery, documentInfo])
 
@@ -298,9 +301,16 @@ export default function Orders() {
                         <div className="flex items-center gap-2"><StatusBadge status={order.status} /><PaymentBadge method={order.payment_method} /></div>
                       </td>
                       <td className="px-4 py-4">
-                        {docInfo.invoiceNumber ? (
-                          <div className="flex items-center gap-1.5"><FileText className="w-4 h-4 text-violet-500" /><span className="text-sm font-medium text-slate-700 dark:text-slate-300">{docInfo.invoiceNumber}</span></div>
-                        ) : <span className="text-sm text-slate-400 dark:text-slate-500">-</span>}
+                        {(() => {
+                          const invoice = docInfo.invoiceNumber || (order.woo_invoice_number ? String(order.woo_invoice_number) : null)
+                          if (!invoice) return <span className="text-sm text-slate-400 dark:text-slate-500">-</span>
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <FileText className="w-4 h-4 text-violet-500" />
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{invoice}</span>
+                            </div>
+                          )
+                        })()}
                       </td>
                       <td className="px-4 py-4 text-right"><span className="font-semibold text-slate-900 dark:text-white">{formatPrice(order.total)}</span></td>
                       <td className="px-4 py-4 text-right" onClick={e => e.stopPropagation()}>
@@ -361,7 +371,11 @@ export default function Orders() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-slate-900 dark:text-white truncate">{order.order_number}</p>
-                      {docInfo.invoiceNumber && <span className="text-xs text-violet-600 dark:text-violet-400 font-medium shrink-0">{docInfo.invoiceNumber}</span>}
+                      {(docInfo.invoiceNumber || order.woo_invoice_number) && (
+                        <span className="text-xs text-violet-600 dark:text-violet-400 font-medium shrink-0">
+                          {docInfo.invoiceNumber || order.woo_invoice_number}
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(order.order_date)} · {order.items?.length || 0} items</p>
                   </div>

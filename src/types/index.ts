@@ -278,6 +278,8 @@ export interface Order {
   total: number // cents
   order_date: string
   invoice_date?: string
+  woo_invoice_number?: number | null
+  woo_invoice_date?: string | null
   delivery_notes?: string
   internal_notes?: string
   created_by?: string

@@ -15,6 +15,8 @@ interface DbOrderRow {
   total: number
   order_date?: string
   invoice_date?: string
+  woo_invoice_number?: number | null
+  woo_invoice_date?: string | null
   delivery_notes?: string
   notes?: string
   internal_notes?: string
@@ -118,6 +120,8 @@ function transformOrderFromDb(dbOrder: DbOrderRow): OrderWithItems | null {
     total: Number(dbOrder.total) || 0,
     order_date: dbOrder.order_date || dbOrder.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
     invoice_date: dbOrder.invoice_date,
+    woo_invoice_number: dbOrder.woo_invoice_number ?? null,
+    woo_invoice_date: dbOrder.woo_invoice_date ?? null,
     delivery_notes: dbOrder.delivery_notes || dbOrder.notes || '',
     internal_notes: dbOrder.internal_notes || '',
     created_by: dbOrder.created_by,
@@ -162,14 +166,22 @@ export async function fetchOrderCount(filters: OrderFilters = {}): Promise<numbe
   if (filters.dateFrom) query = query.gte('order_date', filters.dateFrom)
   if (filters.dateTo) query = query.lte('order_date', filters.dateTo)
 
-  // Search by order_number server-side (customer name search is done client-side after fetch)
+  // Search by order_number and, when numeric, also by woo_invoice_number.
   if (filters.search) {
-    query = query.or(`order_number.ilike.%${filters.search}%`)
+    query = query.or(buildSearchOr(filters.search))
   }
 
   const { count, error } = await query
   if (error) throw error
   return count || 0
+}
+
+// Build a PostgREST `.or()` expression that matches order_number via ilike
+// and, if the term is a bare integer, also matches the legacy WC invoice number exactly.
+function buildSearchOr(term: string): string {
+  const clauses = [`order_number.ilike.%${term}%`]
+  if (/^\d+$/.test(term)) clauses.push(`woo_invoice_number.eq.${term}`)
+  return clauses.join(',')
 }
 
 // Fetch orders with filters and pagination
@@ -179,8 +191,9 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
     .from('orders')
     .select(`
       id, order_number, customer_id, status, payment_method,
-      subtotal, discount, tax, total, order_date, delivery_notes,
-      internal_notes, created_at, updated_at, created_by,
+      subtotal, discount, tax, total, order_date, invoice_date,
+      woo_invoice_number, woo_invoice_date,
+      delivery_notes, internal_notes, created_at, updated_at, created_by,
       customer:customers!customer_id(id, company_name, contact_person),
       items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, tax_rate, total, unit_type)
     `)
@@ -207,7 +220,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
   }
 
   if (filters.search) {
-    query = query.or(`order_number.ilike.%${filters.search}%`)
+    query = query.or(buildSearchOr(filters.search))
   }
 
   // Apply pagination with range
