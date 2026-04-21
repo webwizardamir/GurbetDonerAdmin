@@ -31,7 +31,8 @@ interface OrderLineItem {
 
 export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormProps) {
   const { t } = useTranslation()
-  const { customers, loading: customersLoading } = useCustomers()
+  // Large pageSize so the customer picker sees ALL customers, not just page 1
+  const { customers, loading: customersLoading } = useCustomers({ pageSize: 5000 })
   const { products, loading: productsLoading } = useProducts()
   const { create, updateWithItems } = useOrders()
 

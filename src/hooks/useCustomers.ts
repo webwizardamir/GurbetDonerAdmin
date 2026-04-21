@@ -15,6 +15,7 @@ import {
 interface UseCustomersOptions {
   autoFetch?: boolean
   filters?: CustomerFilters
+  pageSize?: number
 }
 
 interface UseCustomersReturn {
@@ -33,10 +34,10 @@ interface UseCustomersReturn {
   totalCount: number
 }
 
-const CUSTOMER_PAGE_SIZE = 50
+const DEFAULT_CUSTOMER_PAGE_SIZE = 50
 
 export function useCustomers(options: UseCustomersOptions = {}): UseCustomersReturn {
-  const { autoFetch = true, filters: initialFilters = {} } = options
+  const { autoFetch = true, filters: initialFilters = {}, pageSize = DEFAULT_CUSTOMER_PAGE_SIZE } = options
 
   const [customers, setCustomers] = useState<Customer[]>([])
   const [cities, setCities] = useState<string[]>([])
@@ -46,15 +47,15 @@ export function useCustomers(options: UseCustomersOptions = {}): UseCustomersRet
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
 
-  const totalPages = Math.ceil(totalCount / CUSTOMER_PAGE_SIZE)
+  const totalPages = Math.ceil(totalCount / pageSize)
 
   const loadCustomers = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const offset = (page - 1) * CUSTOMER_PAGE_SIZE
+      const offset = (page - 1) * pageSize
       const [data, count] = await Promise.all([
-        fetchCustomers({ ...filters, limit: CUSTOMER_PAGE_SIZE, offset }),
+        fetchCustomers({ ...filters, limit: pageSize, offset }),
         fetchCustomerCount(filters),
       ])
       setCustomers(data)
@@ -65,7 +66,7 @@ export function useCustomers(options: UseCustomersOptions = {}): UseCustomersRet
     } finally {
       setLoading(false)
     }
-  }, [filters, page])
+  }, [filters, page, pageSize])
 
   const loadCities = useCallback(async () => {
     try {
