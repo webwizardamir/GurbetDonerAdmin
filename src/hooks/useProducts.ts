@@ -10,9 +10,9 @@ import {
 } from '../services/products'
 import { setProductUnitPrices } from '../services/productUnitPrices'
 
-const PAGE_SIZE = 50
+const DEFAULT_PAGE_SIZE = 50
 
-export function useProducts(initialFilters: ProductFilters = {}) {
+export function useProducts(initialFilters: ProductFilters = {}, pageSize: number = DEFAULT_PAGE_SIZE) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -20,15 +20,15 @@ export function useProducts(initialFilters: ProductFilters = {}) {
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const totalPages = Math.ceil(totalCount / pageSize)
 
   const loadProducts = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      const offset = (page - 1) * PAGE_SIZE
+      const offset = (page - 1) * pageSize
       const [data, count] = await Promise.all([
-        fetchProducts({ ...filters, limit: PAGE_SIZE, offset }),
+        fetchProducts({ ...filters, limit: pageSize, offset }),
         fetchProductCount(filters),
       ])
       setProducts(data)
@@ -38,7 +38,7 @@ export function useProducts(initialFilters: ProductFilters = {}) {
     } finally {
       setLoading(false)
     }
-  }, [filters, page])
+  }, [filters, page, pageSize])
 
   useEffect(() => {
     loadProducts()

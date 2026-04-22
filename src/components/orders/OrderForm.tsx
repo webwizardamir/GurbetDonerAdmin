@@ -33,7 +33,8 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
   const { t } = useTranslation()
   // Large pageSize so the customer picker sees ALL customers, not just page 1
   const { customers, loading: customersLoading } = useCustomers({ pageSize: 5000 })
-  const { products, loading: productsLoading } = useProducts()
+  // Large pageSize so the product picker sees ALL products, not just page 1
+  const { products, loading: productsLoading } = useProducts({}, 5000)
   const { create, updateWithItems } = useOrders()
 
   const isEditMode = !!editOrder
