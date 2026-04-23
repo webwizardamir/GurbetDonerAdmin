@@ -169,3 +169,92 @@ npx supabase --version
 2. **Soft Delete**: Decided against `is_active` for customers - simpler to just delete
 3. **Helper Functions**: Create reusable permission-check functions (`is_owner()`, `is_admin_user()`) early
 4. **RLS Policies**: Always create RLS policies when creating tables with sensitive data
+
+---
+
+## Production Runtime Bugs
+
+### Bug: Invoice/Document Preview blocked by CSP
+
+**Symptom:**
+Previewing a generated invoice PDF showed "This content is blocked. Contact the site owner to fix the issue." Console reported multiple Content Security Policy violations:
+- `connect-src` blocked `data:application/octet-stream;base64,...` (WASM binary for PDF rendering)
+- `frame-src` (falling back to `default-src 'self'`) blocked `blob:` iframe
+- Permissions policy also blocked the camera for the barcode scanner
+
+**Cause:**
+`vercel.json` had a very strict CSP + `Permissions-Policy: camera=()`. The PDF renderer (@react-pdf/renderer) loads its WASM and fonts via `data:` URLs and renders into a `blob:` iframe — both disallowed. The html5-qrcode scanner requires camera access.
+
+**Solution:**
+Relaxed the CSP just enough to allow PDF rendering and camera:
+- `connect-src` + `data:` `blob:` (for WASM `fetch()`)
+- `frame-src 'self' blob:` (for PDF preview iframe)
+- `worker-src 'self' blob:` (for PDF worker)
+- `script-src` + `blob:` (some PDF workers ship as blob scripts)
+- `media-src 'self' blob:` (scanner video track)
+- Changed `X-Frame-Options` from `DENY` to `SAMEORIGIN` so same-origin iframes work (PDF preview). Cross-origin framing is still blocked by `frame-ancestors 'none'`.
+- Changed `Permissions-Policy: camera=()` → `camera=(self)` so html5-qrcode can access the camera on our own origin.
+
+**Files changed:** `vercel.json`
+
+**Prevention:**
+When introducing libraries that load content via `data:` / `blob:` (PDF, image editors, WASM-heavy code), test the CSP in production (Vercel preview) not just local dev. Local `npm run dev` doesn't serve the Vercel headers.
+
+---
+
+### Bug: Analytics "Top Customers" click navigates to broken URL
+
+**Symptom:**
+Clicking a row in Analytics → Top Customers produced `/customers/Krijgsman%20Food%20&%20Service` → "Failed to load customer data". Supabase returned 400 because it tried `id=eq.Krijgsman+Food+...` against the `uuid` PK.
+
+**Cause:**
+`src/services/analyticsCustomers.ts` built each row's `id` from the RPC response with `String(row.customer_id || row.customer_name || '')`. The `get_top_customers` RPC in the live database only returns `customer_name`, so `id` silently fell back to the name.
+
+**Solution:**
+Kept the fallback logic but backfilled the missing customer IDs client-side in one batched query: collect distinct company_names that lack an `rpcId`, run `customers.in('company_name', names)`, map name → id. Also guarded the navigation in `OverviewTab` so an empty id doesn't navigate.
+
+A cleaner long-term fix is to update the `get_top_customers` RPC to return `customer_id`. That RPC wasn't in our migrations when this was written.
+
+**Files changed:** `src/services/analyticsCustomers.ts`, `src/components/analytics/tabs/OverviewTab.tsx`
+
+**Prevention:**
+- When an RPC returns data destined for a URL, validate the shape in dev tools against what the client expects, even if the type says `string`.
+- Prefer IDs over names for any user-navigable link.
+
+---
+
+### Bug: Order form customer/product pickers only show first 50 rows
+
+**Symptom:**
+In "New Order" → customer search, anything alphabetically after "Cafeteria Frankie" (e.g. Jacks Corner, Ramsis) was invisible. Same happened for products past the first 50.
+
+**Cause:**
+`useCustomers` and `useProducts` both hard-coded a `PAGE_SIZE = 50` and the form uses a single in-memory list for client-side filtering. With 226 customers / 177 products, only the first alphabetical page was available to the picker.
+
+**Solution:**
+Both hooks now accept a `pageSize` parameter (default 50, unchanged for the list pages). `OrderForm` passes `5000` so the picker receives the full catalogue.
+
+**Files changed:** `src/hooks/useCustomers.ts`, `src/hooks/useProducts.ts`, `src/components/orders/OrderForm.tsx`
+
+**Prevention:**
+Any UI that filters in memory must either fetch all rows OR switch to server-side search. Prefer server-side search once a table exceeds ~1000 rows.
+
+---
+
+### Bug: Per-day profit diverged from WooCommerce by ~2× after migration
+
+**Symptom:**
+Dashboard revenue matched WC, order count matched, but profit was roughly double. Example 2026-04-20: WC €703.32 vs SB €1426.
+
+**Cause:**
+`order_items.cost_cents` was set at import time from the SB product catalogue's cost. The Phase E import of post-migration orders ran BEFORE `sync-products-from-wc.mjs` populated costs on matched products. Many items landed with `cost_cents = 0`, so profit = revenue (no COGS).
+
+**Solution:**
+Added `scripts/wc-reconcile/sync-order-item-costs.mjs` that updates every `order_items.cost_cents` from the current `products.cost_cents`. This matches WooCommerce analytics, which multiplies *current* product COG × historical quantity.
+
+After the sync: 7,013 rows updated across 74 products. 2026-04-20 profit now reads €703.32 exactly.
+
+**Files changed:** `scripts/wc-reconcile/sync-order-item-costs.mjs`
+
+**Prevention:**
+Any import that snapshots data from products (cost, tax_rate, name, sku) must run AFTER those fields are known-good on the products table. Otherwise the import captures zeros/stale values that then live forever on line_items.
