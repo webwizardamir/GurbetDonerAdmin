@@ -24,7 +24,9 @@ export interface CustomerPerformanceRow {
   daysSinceLastOrder: number | null
 }
 
-// Get top customers by revenue using server-side RPC
+// Get top customers by revenue using server-side RPC.
+// The RPC currently returns customer_name only — we backfill customer_id
+// client-side so links navigate to the correct /customers/:uuid route.
 export async function getTopCustomers(
   startDate: string,
   endDate: string,
@@ -38,12 +40,32 @@ export async function getTopCustomers(
 
   if (error) throw error
 
-  return (data || []).map((row: Record<string, unknown>) => ({
-    id: String(row.customer_id || row.customer_name || ''),
+  interface Row { rpcId: string | null; companyName: string; totalRevenue: number; totalProfit: number; orderCount: number }
+  const rows: Row[] = (data || []).map((row: Record<string, unknown>) => ({
+    rpcId: row.customer_id ? String(row.customer_id) : null,
     companyName: String(row.company_name || row.customer_name || 'Unknown'),
     totalRevenue: Number(row.total_revenue ?? 0),
     totalProfit: Number(row.total_profit ?? 0),
     orderCount: Number(row.order_count ?? 0),
+  }))
+
+  // Backfill missing customer IDs in one batched query
+  const missingNames = [...new Set(rows.filter(r => !r.rpcId).map(r => r.companyName))]
+  const idByName = new Map<string, string>()
+  if (missingNames.length) {
+    const { data: custs } = await supabase
+      .from('customers')
+      .select('id, company_name')
+      .in('company_name', missingNames)
+    for (const c of custs ?? []) idByName.set(c.company_name, c.id)
+  }
+
+  return rows.map(r => ({
+    id: r.rpcId ?? idByName.get(r.companyName) ?? '',
+    companyName: r.companyName,
+    totalRevenue: r.totalRevenue,
+    totalProfit: r.totalProfit,
+    orderCount: r.orderCount,
   }))
 }
 
