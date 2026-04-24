@@ -1,6 +1,7 @@
 // Order items list for the order form.
 // Displays current order line items with quantity controls, unit type selection, and summary totals.
 
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Minus, Trash2, Package } from 'lucide-react'
 import type { UnitType } from '../../types'
@@ -16,6 +17,7 @@ export interface OrderLineItem {
   quantity: number
   unit_price: number
   tax_rate: number
+  notes?: string
   availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
@@ -29,6 +31,52 @@ interface OrderItemsListProps {
   onRemoveItem: (lineId: string) => void
   onChangeUnitType: (lineId: string, unitType: UnitType) => void
   onSetPrice?: (lineId: string, priceInCents: number) => void
+  onSetNotes?: (lineId: string, notes: string) => void
+}
+
+// Price input that keeps the user's typed string while focused and only
+// commits the parsed cents value on blur / Enter. Prevents the parent from
+// reformatting mid-edit (the source of the "can't edit decimals" bug).
+function PriceInput({
+  valueCents,
+  onCommit,
+}: {
+  valueCents: number
+  onCommit: (cents: number) => void
+}) {
+  const formatted = (valueCents / 100).toFixed(2)
+  const [draft, setDraft] = useState(formatted)
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) setDraft(formatted)
+  }, [formatted, focused])
+
+  const commit = () => {
+    const normalized = draft.replace(',', '.').trim()
+    const n = parseFloat(normalized)
+    if (Number.isFinite(n) && n >= 0) {
+      onCommit(Math.round(n * 100))
+    } else {
+      setDraft(formatted)
+    }
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={draft}
+      onFocus={e => { setFocused(true); e.target.select() }}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => { setFocused(false); commit() }}
+      onKeyDown={e => {
+        if (e.key === 'Enter') { e.currentTarget.blur() }
+        if (e.key === 'Escape') { setDraft(formatted); e.currentTarget.blur() }
+      }}
+      className="w-20 text-sm px-2 py-0.5 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-green-500"
+    />
+  )
 }
 
 export default function OrderItemsList({
@@ -41,6 +89,7 @@ export default function OrderItemsList({
   onRemoveItem,
   onChangeUnitType,
   onSetPrice,
+  onSetNotes,
 }: OrderItemsListProps) {
   const { t } = useTranslation()
 
@@ -96,13 +145,9 @@ export default function OrderItemsList({
                     </div>
                     <div className="flex items-center gap-1 mt-1">
                       {onSetPrice ? (
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={(item.unit_price / 100).toFixed(2)}
-                          onChange={e => onSetPrice(item.lineId, Math.round(parseFloat(e.target.value || '0') * 100))}
-                          className="w-20 text-sm px-2 py-0.5 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        <PriceInput
+                          valueCents={item.unit_price}
+                          onCommit={cents => onSetPrice(item.lineId, cents)}
                         />
                       ) : (
                         <span className="text-sm text-slate-500 dark:text-slate-400">{formatPrice(item.unit_price)}</span>
@@ -111,6 +156,15 @@ export default function OrderItemsList({
                         x {item.quantity} = {formatPrice(item.unit_price * item.quantity)}
                       </span>
                     </div>
+                    {onSetNotes && (
+                      <input
+                        type="text"
+                        value={item.notes || ''}
+                        onChange={e => onSetNotes(item.lineId, e.target.value)}
+                        placeholder={t('orders.form.linePlaceholder')}
+                        className="w-full mt-2 text-sm px-2 py-1 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-green-500"
+                      />
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <button

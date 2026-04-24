@@ -26,6 +26,7 @@ interface OrderLineItem {
   quantity: number
   unit_price: number
   tax_rate: number
+  notes?: string
   availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
@@ -111,6 +112,7 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
           quantity: item.quantity,
           unit_price: item.unit_price,
           tax_rate: item.tax_rate,
+          notes: item.notes || '',
           availableUnitTypes,
         }
       })
@@ -244,6 +246,7 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
           product_id: i.product.id, product_name: i.product.name, product_sku: i.product.sku,
           unit_type: i.selectedUnitType, quantity: i.quantity, unit_price: i.unit_price,
           cost_cents: unitPriceCost ?? i.product.cost_cents ?? 0, tax_rate: i.tax_rate,
+          notes: i.notes?.trim() || undefined,
         }
       })
       if (isEditMode && editOrder) { await updateWithItems(editOrder.id, orderData, itemsData) }
@@ -321,6 +324,11 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
                 onSetPrice={(lineId, priceInCents) => {
                   setItems(prev => prev.map(item =>
                     item.lineId === lineId ? { ...item, unit_price: priceInCents } : item
+                  ))
+                }}
+                onSetNotes={(lineId, notes) => {
+                  setItems(prev => prev.map(item =>
+                    item.lineId === lineId ? { ...item, notes } : item
                   ))
                 }}
               />

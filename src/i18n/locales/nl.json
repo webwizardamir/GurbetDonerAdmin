@@ -398,6 +398,8 @@
       "deliveryPlaceholder": "Bezorginstructies...",
       "internalNotes": "Interne notities",
       "internalPlaceholder": "Interne notities...",
+      "lineNote": "Notitie",
+      "linePlaceholder": "Notitie (verschijnt op factuur)",
       "selectUnitType": "Selecteer eenheid om toe te voegen",
       "inCart": "{{qty}}× in wagen"
     },

@@ -398,6 +398,8 @@
       "deliveryPlaceholder": "Delivery instructions...",
       "internalNotes": "Internal Notes",
       "internalPlaceholder": "Internal notes...",
+      "lineNote": "Note",
+      "linePlaceholder": "Note (shown on invoice)",
       "selectUnitType": "Select unit type to add",
       "inCart": "{{qty}}× in cart"
     },

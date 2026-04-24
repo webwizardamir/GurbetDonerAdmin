@@ -333,6 +333,7 @@ export async function createOrder(
     tax_rate: item.tax_rate,
     tax_amount: item.tax_amount,
     total: item.line_total,
+    notes: item.notes || null,
   }))
 
   const { error: itemsError } = await supabase
@@ -473,6 +474,7 @@ export async function updateOrderWithItems(
     tax_rate: item.tax_rate,
     tax_amount: item.tax_amount,
     total: item.line_total,
+    notes: item.notes || null,
   }))
 
   const { error: itemsError } = await supabase
@@ -513,6 +515,7 @@ export async function addOrderItem(
       tax_rate: item.tax_rate,
       tax_amount: tax,
       total: lineTotal,
+      notes: item.notes || null,
     })
     .select()
     .single()

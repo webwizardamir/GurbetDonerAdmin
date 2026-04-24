@@ -459,7 +459,7 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
                 ]}
               >
                 <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
-                <Text style={[styles.td, styles.colNote]}></Text>
+                <Text style={[styles.td, styles.colNote]}>{item.note || ''}</Text>
                 <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
                 <Text style={[styles.td, styles.colQty]}>{item.quantity} {item.unit.toLowerCase()}</Text>
                 <Text style={[styles.td, styles.colExclVat]}>{formatPrice(priceExclVat)}</Text>

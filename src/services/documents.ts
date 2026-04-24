@@ -285,6 +285,7 @@ export interface InvoiceData {
   items: Array<{
     index: number
     description: string
+    note?: string
     quantity: number
     unit: string
     unitPrice: number // cents
@@ -396,6 +397,7 @@ export async function buildInvoiceData(
     return {
       index: idx + 1,
       description: item.product_name as string,
+      note: (item.notes as string | undefined) || undefined,
       quantity,
       unit: formatUnitDutch(unitType, quantity),
       unitPrice: Number(item.unit_price) || 0,
