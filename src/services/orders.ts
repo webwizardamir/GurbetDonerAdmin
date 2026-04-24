@@ -206,7 +206,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
       woo_invoice_number, woo_invoice_date, refund_amount,
       delivery_notes, internal_notes, created_at, updated_at, created_by,
       customer:customers!customer_id(id, company_name, contact_person),
-      items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, tax_rate, total, unit_type),
+      items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, tax_rate, total, unit_type, notes),
       refunds:order_refunds(id, woo_refund_id, woo_credit_note_number, refund_date, amount, reason)
     `)
     .order('created_at', { ascending: false })
