@@ -241,6 +241,67 @@ Any UI that filters in memory must either fetch all rows OR switch to server-sid
 
 ---
 
+### Bug: Analytics → Products tab empty for "Today" while sibling tabs show the same order
+
+**Symptom:**
+After creating an order on date D and switching the Analytics date range to "Vandaag", the Overview/Customers/Orders/Financial tabs all reflect the new order but **Products** shows zero rows in every section.
+
+**Cause:**
+The product-side RPCs created in the live database — `get_product_performance`, `get_top_products`, `get_revenue_by_category` — filtered `o.status = 'completed'`. Sibling RPCs (`get_order_performance`, `get_customer_performance`, `get_top_customers`, `get_dashboard_revenue`) use `status NOT IN ('cancelled', 'refunded')`. Because new orders default to `pending`, they were excluded from the Products tab only.
+
+**Solution:**
+Migration `00041_product_analytics_include_pending.sql` rewrites the three product RPCs to use the same status filter as their siblings. Runs as `CREATE OR REPLACE FUNCTION` after `DROP FUNCTION IF EXISTS` (return-type signatures preserved to match what the frontend reads).
+
+**Files changed:** `supabase/migrations/00041_product_analytics_include_pending.sql`
+
+**Prevention:**
+When a user-visible "today" number disagrees between two analytics tabs, compare their RPCs' status filters first — every analytics RPC in this project should align with `get_dashboard_revenue` (status NOT IN cancelled/refunded). Repo-tracked migrations make this trivial to grep; functions edited only in the Supabase UI hide regressions like this.
+
+---
+
+### Bug: Per-line invoice "Notitie" not editable, then disappears after save
+
+**Symptom:**
+On the order form a per-line note (`order_items.notes`) could be filled in, was saved, and **rendered correctly on the invoice PDF**. But reopening the order in Edit mode showed the field empty, so the note was un-clearable: the only way to remove it was a manual SQL update.
+
+**Cause:**
+Two layers:
+1. `InvoiceTemplate.tsx` rendered the Notitie column as a hardcoded empty `<Text>`. The `notes` column existed on `order_items` since migration 00017 but was never wired to the document.
+2. The Orders **list** query (`fetchOrders`) explicitly listed `order_items` columns and didn't include `notes`. The list rows were passed straight into `OrderForm` as `editOrder`, so the form saw `item.notes = undefined` and the round-trip looked broken (display invoice ✓, edit form ✗).
+
+**Solution:**
+- Added a per-line note input to `OrderItemsList` and threaded `notes` through `OrderForm` → `services/orders.ts` (create / updateWithItems / addOrderItem) → `services/documents.ts` (`InvoiceData.items[].note`) → `InvoiceTemplate.tsx`.
+- Added `notes` to the column list in `fetchOrders`. `fetchOrderById` already used `select('*')` so it was unaffected.
+
+**Files changed:** `src/components/orders/OrderItemsList.tsx`, `src/components/orders/OrderForm.tsx`, `src/services/orders.ts`, `src/services/documents.ts`, `src/components/documents/InvoiceTemplate.tsx`, `src/i18n/locales/{nl,en}.json`
+
+**Prevention:**
+When adding a new column that round-trips through a list page → edit form, audit every `select(...)` that touches the table — not just the single-row fetch. PostgREST silently drops columns from the response when they aren't in the projection, so the bug shows up only at the next edit, not at the next save.
+
+---
+
+### Bug: Order line price input fights you when editing decimals
+
+**Symptom:**
+On the order form, clicking into the per-line unit-price field, selecting all and typing `6.75` over `6.50` produced behaviour like: stays as `6`, then `67.00`, then `670.00`. Or arrow keys / scroll wheel quietly stepped the price by `0.01`.
+
+**Cause:**
+The input was `<input type="number" step="0.01" value={(unit_price/100).toFixed(2)} onChange={...immediately calls setItems...}>`. Every keystroke was forced through `parseFloat → cents → /100 → toFixed(2)` and pushed back into `value`, so the displayed string was rewritten mid-edit and the cursor landed in the wrong place. `step="0.01"` plus `type="number"` also let the browser hijack arrow-up/down and mouse-wheel.
+
+**Solution:**
+Extracted a small `PriceInput` component in `OrderItemsList.tsx` that:
+- holds a local string buffer (`draft`) while focused, free of any reformatting
+- only commits the parsed cents back to the parent on blur / Enter
+- accepts `,` as a decimal separator (Dutch keyboards)
+- uses `type="text" inputMode="decimal"` so the browser never steps the value
+
+**Files changed:** `src/components/orders/OrderItemsList.tsx`
+
+**Prevention:**
+For any controlled numeric input that needs cents-or-decimal precision, prefer a local string buffer + commit-on-blur over `type="number"` + on-every-keystroke parsing. `type="number"` is actively hostile to currency editing in most browsers (locale-sensitive separator parsing, scroll-wheel stepping, partial-input rejection).
+
+---
+
 ### Bug: Per-day profit diverged from WooCommerce by ~2× after migration
 
 **Symptom:**
