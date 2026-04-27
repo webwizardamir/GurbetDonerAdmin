@@ -26,6 +26,7 @@ interface OrderItemsListProps {
   subtotal: number
   taxTotal: number
   total: number
+  reverseCharge?: boolean
   onUpdateQuantity: (lineId: string, delta: number) => void
   onSetQuantity: (lineId: string, quantity: number) => void
   onRemoveItem: (lineId: string) => void
@@ -84,6 +85,7 @@ export default function OrderItemsList({
   subtotal,
   taxTotal,
   total,
+  reverseCharge,
   onUpdateQuantity,
   onSetQuantity,
   onRemoveItem,
@@ -218,7 +220,12 @@ export default function OrderItemsList({
             <span className="text-slate-900 dark:text-white">{formatPrice(subtotal)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-slate-600 dark:text-slate-400">{t('orders.tax')}</span>
+            <span className="text-slate-600 dark:text-slate-400">
+              {t('orders.tax')}
+              {reverseCharge && (
+                <span className="ml-1.5 text-xs text-slate-500 dark:text-slate-500">({t('orders.vat.reverseChargeSuffix')})</span>
+              )}
+            </span>
             <span className="text-slate-900 dark:text-white">{formatPrice(taxTotal)}</span>
           </div>
           <div className="flex justify-between text-lg font-semibold pt-2 border-t border-slate-200 dark:border-slate-600">

@@ -217,7 +217,9 @@
       "companyNameRequired": "Company name is required",
       "emailExists": "A customer with this email address already exists",
       "saveError": "Failed to save customer",
-      "saveChanges": "Save Changes"
+      "saveChanges": "Save Changes",
+      "foreignHint": "Foreign customer — invoices will be issued at 0% VAT (reverse charge).",
+      "vatRequired": "required for foreign customers"
     },
     "countries": {
       "NL": "Netherlands",
@@ -422,6 +424,12 @@
       "bankDesc": "Paid by bank transfer",
       "completing": "Completing...",
       "completeOrder": "Complete Order"
+    },
+    "vat": {
+      "reverseChargeSuffix": "reverse-charged",
+      "reverseChargeBanner": "Customer in {{country}} — 0% VAT (reverse charge) applied. Customer VAT no.: {{vatNumber}}",
+      "reverseChargeWarning": "Customer in {{country}} has no VAT number. A valid VAT number is legally required for 0% VAT (reverse charge).",
+      "editCustomer": "Edit customer"
     }
   },
   "documents": {

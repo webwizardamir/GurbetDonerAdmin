@@ -38,7 +38,9 @@ interface DbOrderRow {
     contact_person?: string
     email?: string
     phone?: string
-  } | { id: string; company_name: string; contact_person?: string }[] | null
+    billing_country?: string
+    vat_number?: string
+  } | { id: string; company_name: string; contact_person?: string; billing_country?: string; vat_number?: string }[] | null
   items?: DbOrderItemRow[]
 }
 
@@ -79,6 +81,8 @@ export interface OrderWithItems extends Omit<Order, 'customer'> {
     contact_person?: string
     email?: string
     phone?: string
+    billing_country?: string
+    vat_number?: string
   } | null
 }
 
@@ -205,7 +209,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
       subtotal, discount, tax, total, order_date, invoice_date,
       woo_invoice_number, woo_invoice_date, refund_amount,
       delivery_notes, internal_notes, created_at, updated_at, created_by,
-      customer:customers!customer_id(id, company_name, contact_person),
+      customer:customers!customer_id(id, company_name, contact_person, billing_country, vat_number),
       items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, tax_rate, total, unit_type, notes),
       refunds:order_refunds(id, woo_refund_id, woo_credit_note_number, refund_date, amount, reason)
     `)
@@ -252,7 +256,7 @@ export async function fetchOrderById(id: string): Promise<OrderWithItems | null>
     .from('orders')
     .select(`
       *,
-      customer:customers!customer_id(id, company_name, contact_person, email, phone),
+      customer:customers!customer_id(id, company_name, contact_person, email, phone, billing_country, vat_number),
       items:order_items(*)
     `)
     .eq('id', id)

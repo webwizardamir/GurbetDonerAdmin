@@ -311,6 +311,15 @@ All components must support dark mode using Tailwind's `dark:` prefix:
 4. Sold price stored immutably on order line (snapshot at time of sale)
 5. Price changes never affect historical orders
 
+### VAT (BTW) — Reverse charge for non-NL customers
+1. NL customer → product's `tax_rate` (9% food / 21% non-food / 0%) — unchanged
+2. Non-NL customer (currently BE, but rule is `country !== 'NL'` for any future EU/export) → **0% BTW** ("BTW verlegd") forced on every line at order create/edit
+3. Customer's VAT number must appear on the invoice (legally required for the 0% rate)
+4. Invoice / Proforma / Credit Note PDFs include a "BTW verlegd — intracommunautaire levering" notice block when the customer is non-NL
+5. **Imported (WC) orders are frozen** — `isImportedOrder()` (= `woo_invoice_number` or `woo_invoice_date` set) bypasses the rule on edit. The original BTW from WooCommerce is preserved verbatim, banner is suppressed
+6. Helpers live in `src/utils/vat.ts`. The rule is enforced client-side in `OrderForm` (the service layer trusts whatever `tax_rate` it receives)
+7. Out of scope: VIES validation, OSS/B2C-distance-sales handling, Opgaaf ICP report — all deferred until needed
+
 ### Documents
 1. Sequential invoice numbering (legal requirement)
 2. Separate sequences: Invoice, Proforma, Credit Note

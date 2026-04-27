@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, Loader2, ShoppingCart, Pencil, Package } from 'lucide-react'
+import { X, Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle } from 'lucide-react'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
 import { useOrders } from '../../hooks/useOrders'
@@ -12,6 +12,7 @@ import OrderItemsList from './OrderItemsList'
 import type { Customer, Product, UnitType, ProductUnitPrice } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import { formatPrice } from '../../utils/format'
+import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 
 interface OrderFormProps {
   onClose: () => void
@@ -226,8 +227,15 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
     updatePrices()
   }, [selectedCustomer?.id])
 
+  // Reverse-charge: NL company selling to a non-NL customer charges 0% BTW
+  // ("BTW verlegd"). Imported orders are frozen — they keep whatever VAT
+  // they had in WooCommerce, regardless of country.
+  const isImported = isImportedOrder(editOrder)
+  const reverseCharge = !isImported && !!selectedCustomer && isReverseChargeCountry(selectedCustomer.billing_country)
+  const effectiveTaxRate = (rate: number) => reverseCharge ? 0 : rate
+
   const subtotal = items.reduce((sum, i) => sum + (i.unit_price * i.quantity), 0)
-  const taxTotal = items.reduce((sum, i) => sum + Math.round(i.unit_price * i.quantity * (i.tax_rate / 100)), 0)
+  const taxTotal = items.reduce((sum, i) => sum + Math.round(i.unit_price * i.quantity * (effectiveTaxRate(i.tax_rate) / 100)), 0)
   const total = subtotal + taxTotal
 
   const handleSubmit = async () => {
@@ -245,7 +253,7 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
         return {
           product_id: i.product.id, product_name: i.product.name, product_sku: i.product.sku,
           unit_type: i.selectedUnitType, quantity: i.quantity, unit_price: i.unit_price,
-          cost_cents: unitPriceCost ?? i.product.cost_cents ?? 0, tax_rate: i.tax_rate,
+          cost_cents: unitPriceCost ?? i.product.cost_cents ?? 0, tax_rate: effectiveTaxRate(i.tax_rate),
           notes: i.notes?.trim() || undefined,
         }
       })
@@ -286,6 +294,28 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
           {error && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">{error}</div>
           )}
+          {reverseCharge && selectedCustomer && (
+            selectedCustomer.vat_number?.trim() ? (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  {t('orders.vat.reverseChargeBanner', {
+                    country: t(`customers.countries.${selectedCustomer.billing_country}`, selectedCustomer.billing_country),
+                    vatNumber: selectedCustomer.vat_number,
+                  })}
+                </p>
+              </div>
+            ) : (
+              <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  {t('orders.vat.reverseChargeWarning', {
+                    country: t(`customers.countries.${selectedCustomer.billing_country}`, selectedCustomer.billing_country),
+                  })}
+                </p>
+              </div>
+            )
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-6">
@@ -317,6 +347,7 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
                 subtotal={subtotal}
                 taxTotal={taxTotal}
                 total={total}
+                reverseCharge={reverseCharge}
                 onUpdateQuantity={updateQuantity}
                 onSetQuantity={setQuantity}
                 onRemoveItem={removeItem}

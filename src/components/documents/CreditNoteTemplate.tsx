@@ -325,6 +325,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
+
+  // BTW verlegd notice (non-NL customer)
+  verlegdBox: {
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+    backgroundColor: '#fffbeb',
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+    padding: 8,
+    marginBottom: 12,
+  },
+  verlegdTitle: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: '#92400e',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  verlegdText: {
+    fontSize: 8,
+    color: '#78350f',
+    lineHeight: 1.4,
+  },
 })
 
 function formatPrice(cents: number): string {
@@ -349,6 +373,7 @@ interface CreditNoteTemplateProps {
 
 export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
+  const isReverseCharge = !!data.customer.country && data.customer.country.trim().toUpperCase() !== 'NL'
 
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
@@ -429,6 +454,17 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
             Deze creditnota heeft betrekking op order {data.order.orderNumber} van {formatDate(data.order.orderDate)}.
           </Text>
         </View>
+
+        {/* BTW verlegd notice */}
+        {isReverseCharge && (
+          <View style={styles.verlegdBox}>
+            <Text style={styles.verlegdTitle}>BTW verlegd — intracommunautaire levering</Text>
+            <Text style={styles.verlegdText}>
+              0% BTW. De BTW is verlegd naar de afnemer.{'\n'}
+              BTW-nummer afnemer: {data.customer.vatNumber || '—'}
+            </Text>
+          </View>
+        )}
 
         {/* Items Table */}
         <View style={styles.table}>

@@ -4,6 +4,7 @@ import { Loader2, Building2, User, Mail, Phone, MapPin, FileText, CreditCard } f
 import { Customer } from '../../types'
 import { CustomerFormData, checkEmailExists } from '../../services/customers'
 import Modal from '../ui/Modal'
+import { isReverseChargeCountry } from '../../utils/vat'
 
 interface CustomerFormProps {
   customer?: Customer | null
@@ -120,6 +121,14 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     <span className="flex items-center gap-1.5">
                       <CreditCard className="w-3.5 h-3.5" />
                       {t('customers.vatNumber')}
+                      {isReverseChargeCountry(formData.billing_country) && (
+                        <>
+                          <span className="text-red-500">*</span>
+                          <span className="text-xs font-normal text-amber-600 dark:text-amber-400">
+                            ({t('customers.form.vatRequired')})
+                          </span>
+                        </>
+                      )}
                     </span>
                   </label>
                   <input
@@ -254,6 +263,11 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     <option value="FR">{t('customers.countries.FR')}</option>
                     <option value="UK">{t('customers.countries.UK')}</option>
                   </select>
+                  {isReverseChargeCountry(formData.billing_country) && (
+                    <p className="mt-1.5 text-xs text-blue-700 dark:text-blue-400">
+                      {t('customers.form.foreignHint')}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

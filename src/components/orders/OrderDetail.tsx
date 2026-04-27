@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Printer,
   Banknote,
+  Info,
 } from 'lucide-react'
 import { updateOrderStatus } from '../../services/orders'
 import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
@@ -22,6 +23,7 @@ import PaymentMethodModal from './PaymentMethodModal'
 import StatusBadge from '../ui/StatusBadge'
 import { formatQuantity, formatPrice, formatDateTime } from '../../utils/format'
 import Modal from '../ui/Modal'
+import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 
 interface OrderDetailProps {
   order: OrderWithItems
@@ -142,6 +144,20 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
           {error && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
               {error}
+            </div>
+          )}
+
+          {/* Reverse-charge banner: shown when an app-native order goes to a non-NL customer.
+              Imported orders skip this — they keep whatever VAT they had originally. */}
+          {!isImportedOrder(order) && order.customer && isReverseChargeCountry(order.customer.billing_country) && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                {t('orders.vat.reverseChargeBanner', {
+                  country: t(`customers.countries.${order.customer.billing_country}`, order.customer.billing_country || ''),
+                  vatNumber: order.customer.vat_number?.trim() || '—',
+                })}
+              </p>
             </div>
           )}
 
@@ -285,7 +301,12 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
               </div>
             )}
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">{t('orders.tax')}</span>
+              <span className="text-slate-600 dark:text-slate-400">
+                {t('orders.tax')}
+                {!isImportedOrder(order) && order.customer && isReverseChargeCountry(order.customer.billing_country) && (
+                  <span className="ml-1.5 text-xs text-slate-500 dark:text-slate-500">({t('orders.vat.reverseChargeSuffix')})</span>
+                )}
+              </span>
               <span className="text-slate-900 dark:text-white">{formatPrice(order.tax_amount)}</span>
             </div>
             {order.delivery_fee > 0 && (
