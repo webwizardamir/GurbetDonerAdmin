@@ -27,9 +27,189 @@ import CustomerForm from '../components/customers/CustomerForm'
 import PortalAccessModal from '../components/customers/PortalAccessModal'
 import { updateCustomer, type CustomerFormData } from '../services/customers'
 import { formatPrice } from '../utils/format'
+import { isReverseChargeCountry } from '../utils/vat'
+import type { Customer } from '../types'
 
 type TabType = 'orders' | 'details'
 type DateRangeKey = 'all' | 'last7' | 'last30' | 'last90' | 'thisYear'
+
+// Renders one label + value row. Empty values fall back to "—" so the field is
+// visibly present rather than silently missing — that's the bug this view used
+// to have. `link`, when given, renders the value as an anchor (mailto:/tel:).
+function DetailRow({
+  icon,
+  label,
+  value,
+  link,
+  mono,
+  badge,
+}: {
+  icon: React.ReactNode
+  label: string
+  value?: string | null
+  link?: string
+  mono?: boolean
+  badge?: React.ReactNode
+}) {
+  const hasValue = !!value && value.trim() !== ''
+  return (
+    <div className="flex items-start gap-3">
+      <span className="text-slate-400 mt-0.5">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+          {label}
+          {badge}
+        </p>
+        {hasValue ? (
+          link ? (
+            <a href={link} className={`text-green-600 hover:text-green-700 break-words ${mono ? 'font-mono' : ''}`}>
+              {value}
+            </a>
+          ) : (
+            <p className={`text-slate-900 dark:text-white break-words ${mono ? 'font-mono' : ''}`}>{value}</p>
+          )
+        ) : (
+          <p className="text-slate-400 dark:text-slate-500">—</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CustomerDetailsTab({ customer }: { customer: Customer }) {
+  const { t } = useTranslation()
+  const billingCountryLabel = customer.billing_country
+    ? t(`customers.countries.${customer.billing_country}`, customer.billing_country)
+    : ''
+  const shippingCountryLabel = customer.shipping_country
+    ? t(`customers.countries.${customer.shipping_country}`, customer.shipping_country)
+    : ''
+  const isForeign = isReverseChargeCountry(customer.billing_country)
+  const verlegdBadge = isForeign ? (
+    <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+      {t('orders.vat.reverseChargeSuffix')}
+    </span>
+  ) : null
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Contact Information */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+          <h3 className="font-semibold text-slate-900 dark:text-white">
+            {t('customerDetail.contactInfo')}
+          </h3>
+        </div>
+        <div className="p-6 space-y-4">
+          <DetailRow
+            icon={<User className="w-5 h-5" />}
+            label={t('customers.contactPerson')}
+            value={customer.contact_person}
+          />
+          <DetailRow
+            icon={<Mail className="w-5 h-5" />}
+            label={t('customers.email')}
+            value={customer.email}
+            link={customer.email ? `mailto:${customer.email}` : undefined}
+          />
+          <DetailRow
+            icon={<Phone className="w-5 h-5" />}
+            label={t('customers.phone')}
+            value={customer.phone}
+            link={customer.phone ? `tel:${customer.phone}` : undefined}
+          />
+          <DetailRow
+            icon={<FileText className="w-5 h-5" />}
+            label={t('customers.vatNumber')}
+            value={customer.vat_number}
+            mono
+            badge={verlegdBadge}
+          />
+        </div>
+      </div>
+
+      {/* Billing Address */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+          <h3 className="font-semibold text-slate-900 dark:text-white">
+            {t('customerDetail.billingAddress')}
+          </h3>
+        </div>
+        <div className="p-6 space-y-4">
+          <DetailRow
+            icon={<MapPin className="w-5 h-5" />}
+            label={t('customers.street')}
+            value={customer.billing_street}
+          />
+          <DetailRow
+            icon={<MapPin className="w-5 h-5" />}
+            label={t('customers.postalCode')}
+            value={customer.billing_postal_code}
+          />
+          <DetailRow
+            icon={<MapPin className="w-5 h-5" />}
+            label={t('customers.city')}
+            value={customer.billing_city}
+          />
+          <DetailRow
+            icon={<Globe className="w-5 h-5" />}
+            label={t('customers.country')}
+            value={billingCountryLabel}
+          />
+        </div>
+      </div>
+
+      {/* Shipping Address — only when different from billing */}
+      {!customer.shipping_same_as_billing && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h3 className="font-semibold text-slate-900 dark:text-white">
+              {t('customerDetail.shippingAddress')}
+            </h3>
+          </div>
+          <div className="p-6 space-y-4">
+            <DetailRow
+              icon={<Package className="w-5 h-5" />}
+              label={t('customers.street')}
+              value={customer.shipping_street}
+            />
+            <DetailRow
+              icon={<Package className="w-5 h-5" />}
+              label={t('customers.postalCode')}
+              value={customer.shipping_postal_code}
+            />
+            <DetailRow
+              icon={<Package className="w-5 h-5" />}
+              label={t('customers.city')}
+              value={customer.shipping_city}
+            />
+            <DetailRow
+              icon={<Globe className="w-5 h-5" />}
+              label={t('customers.country')}
+              value={shippingCountryLabel}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Internal Notes — only when present */}
+      {customer.internal_notes && customer.internal_notes.trim() !== '' && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden lg:col-span-2">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h3 className="font-semibold text-slate-900 dark:text-white">
+              {t('customerDetail.internalNotes')}
+            </h3>
+          </div>
+          <div className="p-6">
+            <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+              {customer.internal_notes}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function CustomerDetail() {
   const { t } = useTranslation()
@@ -360,144 +540,7 @@ export default function CustomerDetail() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Contact Information */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="font-semibold text-slate-900 dark:text-white">
-                {t('customerDetail.contactInfo')}
-              </h3>
-            </div>
-            <div className="p-6 space-y-4">
-              {customer.contact_person && (
-                <div className="flex items-start gap-3">
-                  <User className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.contactPerson')}</p>
-                    <p className="text-slate-900 dark:text-white">{customer.contact_person}</p>
-                  </div>
-                </div>
-              )}
-              {customer.email && (
-                <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.email')}</p>
-                    <a
-                      href={`mailto:${customer.email}`}
-                      className="text-green-600 hover:text-green-700"
-                    >
-                      {customer.email}
-                    </a>
-                  </div>
-                </div>
-              )}
-              {customer.phone && (
-                <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.phone')}</p>
-                    <a
-                      href={`tel:${customer.phone}`}
-                      className="text-green-600 hover:text-green-700"
-                    >
-                      {customer.phone}
-                    </a>
-                  </div>
-                </div>
-              )}
-              {customer.vat_number && (
-                <div className="flex items-start gap-3">
-                  <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.vatNumber')}</p>
-                    <p className="text-slate-900 dark:text-white font-mono">{customer.vat_number}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Billing Address */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="font-semibold text-slate-900 dark:text-white">
-                {t('customerDetail.billingAddress')}
-              </h3>
-            </div>
-            <div className="p-6">
-              {customer.billing_street || customer.billing_city ? (
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div className="space-y-1">
-                    {customer.billing_street && (
-                      <p className="text-slate-900 dark:text-white">{customer.billing_street}</p>
-                    )}
-                    {(customer.billing_postal_code || customer.billing_city) && (
-                      <p className="text-slate-900 dark:text-white">
-                        {[customer.billing_postal_code, customer.billing_city]
-                          .filter(Boolean)
-                          .join(' ')}
-                      </p>
-                    )}
-                    {customer.billing_country && (
-                      <p className="text-slate-500 dark:text-slate-400">{customer.billing_country}</p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-slate-500 dark:text-slate-400">{t('customerDetail.noAddress')}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Shipping Address (if different) */}
-          {!customer.shipping_same_as_billing && (customer.shipping_street || customer.shipping_city) && (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-                <h3 className="font-semibold text-slate-900 dark:text-white">
-                  {t('customerDetail.shippingAddress')}
-                </h3>
-              </div>
-              <div className="p-6">
-                <div className="flex items-start gap-3">
-                  <Package className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div className="space-y-1">
-                    {customer.shipping_street && (
-                      <p className="text-slate-900 dark:text-white">{customer.shipping_street}</p>
-                    )}
-                    {(customer.shipping_postal_code || customer.shipping_city) && (
-                      <p className="text-slate-900 dark:text-white">
-                        {[customer.shipping_postal_code, customer.shipping_city]
-                          .filter(Boolean)
-                          .join(' ')}
-                      </p>
-                    )}
-                    {customer.shipping_country && (
-                      <p className="text-slate-500 dark:text-slate-400">{customer.shipping_country}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Internal Notes */}
-          {customer.internal_notes && (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden lg:col-span-2">
-              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-                <h3 className="font-semibold text-slate-900 dark:text-white">
-                  {t('customerDetail.internalNotes')}
-                </h3>
-              </div>
-              <div className="p-6">
-                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-                  {customer.internal_notes}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        <CustomerDetailsTab customer={customer} />
       )}
     </div>
   )
