@@ -194,7 +194,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     color: '#16a34a', // Green for credit amounts
   },
-  colDesc: { width: 180 },
+  colNum: { width: 22, textAlign: 'right', paddingRight: 6 },
+  colDesc: { width: 158 },
   colUnitPrice: { width: 80, textAlign: 'right' },
   colQty: { width: 60, textAlign: 'right' },
   colExclVat: { width: 80, textAlign: 'right' },
@@ -469,6 +470,7 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
         {/* Items Table */}
         <View style={styles.table}>
           <View style={styles.tableHeader}>
+            <Text style={[styles.th, styles.colNum]}>#</Text>
             <Text style={[styles.th, styles.colDesc]}>Omschrijving</Text>
             <Text style={[styles.th, styles.colUnitPrice]}>Eenheidprijs</Text>
             <Text style={[styles.th, styles.colQty]}>Aantal</Text>
@@ -489,6 +491,7 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
                   idx % 2 === 0 ? styles.rowEven : styles.rowOdd,
                 ]}
               >
+                <Text style={[styles.tdBold, styles.colNum]}>{idx + 1}</Text>
                 <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
                 <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
                 <Text style={[styles.td, styles.colQty]}>{item.quantity} {item.unit.toLowerCase()}</Text>
