@@ -187,7 +187,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
   },
   // Column widths for new layout
-  colDesc: { width: 140 },
+  colNum: { width: 22, textAlign: 'right', paddingRight: 6 },
+  colDesc: { width: 118 },
   colNote: { width: 60 },
   colUnitPrice: { width: 65, textAlign: 'right' },
   colQty: { width: 50, textAlign: 'right' },
@@ -475,6 +476,7 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
         {/* ========== ITEMS TABLE ========== */}
         <View style={styles.table}>
           <View style={styles.tableHeader}>
+            <Text style={[styles.th, styles.colNum]}>#</Text>
             <Text style={[styles.th, styles.colDesc]}>Omschrijving</Text>
             <Text style={[styles.th, styles.colNote]}>Notitie</Text>
             <Text style={[styles.th, styles.colUnitPrice]}>Eenheidprijs</Text>
@@ -496,6 +498,7 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
                   idx % 2 === 0 ? styles.rowEven : styles.rowOdd,
                 ]}
               >
+                <Text style={[styles.tdBold, styles.colNum]}>{idx + 1}</Text>
                 <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
                 <Text style={[styles.td, styles.colNote]}>{item.note || ''}</Text>
                 <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>

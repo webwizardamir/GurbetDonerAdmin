@@ -253,6 +253,7 @@ export default function DocumentGenerator({
                   {invoiceData.items.map((item, idx) => (
                     <div key={idx} className="flex justify-between text-sm">
                       <span className="text-slate-600 dark:text-slate-400 truncate flex-1">
+                        <span className="inline-block w-6 text-slate-400 dark:text-slate-500 font-mono text-right mr-2">{idx + 1}.</span>
                         {item.quantity}x {item.description}
                       </span>
                       <span className="text-slate-900 dark:text-white font-mono ml-4">
