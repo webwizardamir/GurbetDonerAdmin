@@ -261,6 +261,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     <option value="BE">{t('customers.countries.BE')}</option>
                     <option value="DE">{t('customers.countries.DE')}</option>
                     <option value="FR">{t('customers.countries.FR')}</option>
+                    <option value="IT">{t('customers.countries.IT')}</option>
                     <option value="UK">{t('customers.countries.UK')}</option>
                   </select>
                   {isReverseChargeCountry(formData.billing_country) && (
@@ -351,6 +352,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                       <option value="BE">{t('customers.countries.BE')}</option>
                       <option value="DE">{t('customers.countries.DE')}</option>
                       <option value="FR">{t('customers.countries.FR')}</option>
+                      <option value="IT">{t('customers.countries.IT')}</option>
                       <option value="UK">{t('customers.countries.UK')}</option>
                     </select>
                   </div>
