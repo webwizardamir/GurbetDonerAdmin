@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { usePortalAuth } from '../context/PortalAuthContext'
 import { fetchPortalDocuments } from '../services/portalOrders'
+import { formatPrice } from '../utils/format'
 
 const documentTypeColors: Record<string, string> = {
   invoice: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -63,12 +64,6 @@ export default function PortalDocuments() {
     })
   }, [documents, search, typeFilter])
 
-  const formatPrice = (cents: number) => {
-    return new Intl.NumberFormat('nl-NL', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(cents / 100)
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('nl-NL', {

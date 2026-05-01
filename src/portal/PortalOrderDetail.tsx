@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { usePortalAuth } from '../context/PortalAuthContext'
 import { fetchPortalOrder, type PortalOrder } from '../services/portalOrders'
-import { formatQuantityWithUnit } from '../utils/format'
+import { formatQuantityWithUnit, formatPrice } from '../utils/format'
 interface PortalDocument {
   id: string
   document_number: string
@@ -81,13 +81,6 @@ export default function PortalOrderDetail() {
 
     loadOrder()
   }, [id, user?.customer.id])
-
-  const formatPrice = (cents: number) => {
-    return new Intl.NumberFormat('nl-NL', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(cents / 100)
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('nl-NL', {

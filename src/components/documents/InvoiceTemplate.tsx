@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
+import { formatPrice, formatDate } from '../../utils/format'
 
 // A4: 595.28 x 841.89 points
 // Using Helvetica (built-in) for all text
@@ -362,24 +363,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 })
-
-// Format price from cents to euros
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-  }).format(cents / 100)
-}
-
-// Format date
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('nl-NL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
 
 interface InvoiceTemplateProps {
   data: InvoiceData

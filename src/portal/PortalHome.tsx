@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { usePortalAuth } from '../context/PortalAuthContext'
 import { fetchPortalStats, fetchRecentPortalOrders, type PortalOrder, type PortalStats } from '../services/portalOrders'
+import { formatPrice } from '../utils/format'
 
 const statusColors: Record<string, string> = {
   draft: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
@@ -53,13 +54,6 @@ export default function PortalHome() {
 
     loadData()
   }, [user?.customer.id])
-
-  const formatPrice = (cents: number) => {
-    return new Intl.NumberFormat('nl-NL', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(cents / 100)
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('nl-NL', {

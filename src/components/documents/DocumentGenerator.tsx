@@ -22,6 +22,7 @@ import {
   type InvoiceData,
 } from '../../services/documents'
 import type { DocumentType } from '../../types'
+import { formatPrice } from '../../utils/format'
 
 // Get the appropriate template component based on document type
 function getDocumentTemplate(documentType: DocumentType, data: InvoiceData) {
@@ -236,10 +237,7 @@ export default function DocumentGenerator({
                 <div className="flex justify-between pt-3 border-t border-slate-200 dark:border-slate-700">
                   <span className="text-sm font-semibold text-slate-900 dark:text-white">Total</span>
                   <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                    {new Intl.NumberFormat('nl-NL', {
-                      style: 'currency',
-                      currency: 'EUR',
-                    }).format(invoiceData.grandTotal / 100)}
+                    {formatPrice(invoiceData.grandTotal)}
                   </span>
                 </div>
               </div>
@@ -257,10 +255,7 @@ export default function DocumentGenerator({
                         {item.quantity}x {item.description}
                       </span>
                       <span className="text-slate-900 dark:text-white font-mono ml-4">
-                        {new Intl.NumberFormat('nl-NL', {
-                          style: 'currency',
-                          currency: 'EUR',
-                        }).format(item.total / 100)}
+                        {formatPrice(item.total)}
                       </span>
                     </div>
                   ))}
