@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../services/supabase'
 import { UserProfile, Permission, Resource, Action } from '../types'
@@ -35,7 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [loading, setLoading] = useState(true)
-  const [lastActivity, setLastActivity] = useState(Date.now())
+
+  // lastActivity is read by the inactivity timer and written by user-input
+  // events. Keep it in a ref so scroll/keypress don't re-render every consumer.
+  const lastActivityRef = useRef(Date.now())
+  // Single-flight guard for the visibility-driven refresh, so two admin tabs
+  // returning to focus simultaneously don't race-rotate the refresh token.
+  const refreshInFlightRef = useRef<Promise<Session | null> | null>(null)
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
@@ -82,6 +88,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Single-flight refresh helper. Returns the recovered session, or null on
+  // genuine failure. Used both on visibility return and as a fallback when
+  // Supabase fires SIGNED_OUT after a backgrounded refresh window.
+  const tryRefreshSession = useCallback(async (): Promise<Session | null> => {
+    if (refreshInFlightRef.current) return refreshInFlightRef.current
+    const promise = (async () => {
+      try {
+        const { data, error } = await supabase.auth.refreshSession()
+        if (error || !data.session) return null
+        return data.session
+      } catch (err) {
+        console.error('Session refresh failed:', err)
+        return null
+      } finally {
+        refreshInFlightRef.current = null
+      }
+    })()
+    refreshInFlightRef.current = promise
+    return promise
+  }, [])
+
   // Initialize auth state - runs once on mount
   useEffect(() => {
     let mounted = true
@@ -109,7 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (mounted) setPermissions(userPermissions)
           } else {
             log('No profile found, clearing session')
-            // No profile - sign out
             await supabase.auth.signOut()
             setSession(null)
             setUser(null)
@@ -129,46 +155,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth()
 
-    // Listen for auth changes (sign in/out only)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _newSession) => {
+    // Listen for auth changes. The key change here vs. the old listener:
+    // when SIGNED_OUT fires, attempt a refresh first. Backgrounded tabs
+    // routinely miss their refresh window and Supabase emits SIGNED_OUT
+    // even though the refresh token is still valid — clearing state in
+    // that case logs the user out on every tab return. Only clear if a
+    // proactive refresh genuinely fails (admin-revoked, password rotated).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       log('Auth state changed:', event)
 
       if (event === 'SIGNED_OUT') {
+        const recovered = await tryRefreshSession()
+        if (recovered) {
+          log('SIGNED_OUT recovered via refresh — keeping session')
+          setSession(recovered)
+          setUser(recovered.user)
+          return
+        }
         setSession(null)
         setUser(null)
         setProfile(null)
         setPermissions([])
+        return
       }
 
-      // For SIGNED_IN, we handle it in signIn function directly
-      // This prevents double-fetching and race conditions
+      if (event === 'TOKEN_REFRESHED' && newSession) {
+        setSession(newSession)
+        setUser(newSession.user)
+      }
     })
 
     return () => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [fetchProfile, fetchPermissions])
+  }, [fetchProfile, fetchPermissions, tryRefreshSession])
 
-  // Track user activity
+  // Track user activity. Only real input counts — visibility/focus do NOT,
+  // because tab switching is not the same as the user actively working.
   useEffect(() => {
-    const updateActivity = () => setLastActivity(Date.now())
+    const updateActivity = () => { lastActivityRef.current = Date.now() }
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
     events.forEach(event => window.addEventListener(event, updateActivity))
     return () => events.forEach(event => window.removeEventListener(event, updateActivity))
   }, [])
 
-  // Auto-logout on inactivity
+  // Auto-logout on inactivity. Skip while the tab is hidden (the timer is
+  // throttled and unreliable then) — re-evaluate on visibility return.
   useEffect(() => {
     if (!session) return
-    const checkInactivity = setInterval(() => {
-      if (Date.now() - lastActivity > INACTIVITY_TIMEOUT) {
+
+    const evaluateInactivity = () => {
+      if (Date.now() - lastActivityRef.current > INACTIVITY_TIMEOUT) {
         log('Auto-logout due to inactivity')
         signOut()
       }
+    }
+
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      evaluateInactivity()
     }, 60000)
-    return () => clearInterval(checkInactivity)
-  }, [session, lastActivity])
+
+    return () => clearInterval(interval)
+  }, [session])
+
+  // On tab return: proactively refresh the session before any UI render
+  // can decide to redirect. Also re-evaluate inactivity once we're back.
+  useEffect(() => {
+    if (!session) return
+
+    const onVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') return
+      const recovered = await tryRefreshSession()
+      if (recovered) {
+        setSession(recovered)
+        setUser(recovered.user)
+      }
+      if (Date.now() - lastActivityRef.current > INACTIVITY_TIMEOUT) {
+        log('Auto-logout on visibility — over inactivity threshold')
+        signOut()
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [session, tryRefreshSession])
 
   // Sign in
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
@@ -247,9 +319,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Refresh session
+  // Refresh session (public API for callers that need it)
   const refreshSession = async () => {
-    const { data: { session: newSession } } = await supabase.auth.refreshSession()
+    const newSession = await tryRefreshSession()
     if (newSession) {
       setSession(newSession)
       setUser(newSession.user)
@@ -272,7 +344,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canViewAnalytics = hasPermission('analytics', 'view')
   const canAccessSettings = hasPermission('settings', 'view')
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     user,
     profile,
     session,
@@ -288,7 +360,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     canViewAnalytics,
     canAccessSettings,
     refreshSession,
-  }
+  }), [user, profile, session, permissions, loading, isOwner, isShopManager, isAdmin, hasPermission, canViewCost, canViewAnalytics, canAccessSettings])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

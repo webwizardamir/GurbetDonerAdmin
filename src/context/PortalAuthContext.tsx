@@ -75,7 +75,19 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       log(' Auth state changed:', event)
 
       if (event === 'SIGNED_OUT') {
-        setUser(null)
+        // Backgrounded tabs miss the autoRefreshToken window and Supabase
+        // can fire SIGNED_OUT even when the refresh token is still valid.
+        // Try to recover before nuking the user.
+        try {
+          const { data, error } = await portalSupabase.auth.refreshSession()
+          if (!error && data.session) {
+            log(' SIGNED_OUT recovered via refresh — keeping user')
+            return
+          }
+        } catch (err) {
+          console.error('[PortalAuth] Refresh on SIGNED_OUT failed:', err)
+        }
+        if (mounted) setUser(null)
       } else if (event === 'SIGNED_IN') {
         // Re-check portal user status
         try {
@@ -89,9 +101,27 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
+    // On tab return, proactively refresh the session before any UI render
+    // can decide to redirect.
+    let refreshing = false
+    const onVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') return
+      if (refreshing) return
+      refreshing = true
+      try {
+        await portalSupabase.auth.refreshSession()
+      } catch (err) {
+        console.error('[PortalAuth] Visibility refresh failed:', err)
+      } finally {
+        refreshing = false
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
     return () => {
       mounted = false
       subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
 
