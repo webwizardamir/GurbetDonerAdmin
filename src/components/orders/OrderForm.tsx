@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle } from 'lucide-react'
+import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X } from 'lucide-react'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
 import { useOrders } from '../../hooks/useOrders'
@@ -15,7 +15,7 @@ import { formatPrice } from '../../utils/format'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 
 interface OrderFormProps {
-  onClose: () => void
+  onCancel: () => void
   onSuccess: () => void
   editOrder?: OrderWithItems
 }
@@ -31,7 +31,7 @@ interface OrderLineItem {
   availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
-export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormProps) {
+export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormProps) {
   const { t } = useTranslation()
   // Large pageSize so the customer picker sees ALL customers, not just page 1
   const { customers, loading: customersLoading } = useCustomers({ pageSize: 5000 })
@@ -40,18 +40,6 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
   const { create, updateWithItems } = useOrders()
 
   const isEditMode = !!editOrder
-
-  // Escape key to close and lock body scroll
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    const original = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    document.addEventListener('keydown', handleKey)
-    return () => {
-      document.removeEventListener('keydown', handleKey)
-      document.body.style.overflow = original
-    }
-  }, [onClose])
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [items, setItems] = useState<OrderLineItem[]>([])
@@ -63,6 +51,7 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
   const [loadingPrices, setLoadingPrices] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [initialized, setInitialized] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState(false)
   const [unitTypeSelector, setUnitTypeSelector] = useState<{
     product: Product
     availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
@@ -267,70 +256,137 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
 
   const getUnitTypeLabel = (unitType: UnitType): string => t(`products.form.unitTypes.${unitType}`)
 
+  const customerSummaryLines: string[] = []
+  if (selectedCustomer) {
+    if (selectedCustomer.billing_city) customerSummaryLines.push(selectedCustomer.billing_city)
+    if (selectedCustomer.billing_country) customerSummaryLines.push(selectedCustomer.billing_country)
+    if (selectedCustomer.vat_number) customerSummaryLines.push(`BTW ${selectedCustomer.vat_number}`)
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-4xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${isEditMode ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}>
-              {isEditMode ? <Pencil className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />}
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              {isEditMode ? t('orders.editOrder') : t('orders.newOrder')}
-              {isEditMode && editOrder && (
-                <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">({editOrder.order_number})</span>
-              )}
-            </h2>
-          </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-            <X className="w-5 h-5" />
+    <div className="space-y-4">
+      {/* Action row — inline like other pages' filter rows. No bar chrome. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            onClick={onCancel}
+            className="p-2 -ml-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+            title={t('orders.backToOrders')}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          {isEditMode && editOrder && (
+            <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
+              {editOrder.order_number}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={onCancel}
+            className="px-3 sm:px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || !selectedCustomer || items.length === 0}
+            className={`inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-white font-medium rounded-lg transition-colors text-sm ${isEditMode ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400' : 'bg-green-600 hover:bg-green-700 disabled:bg-green-400'}`}
+          >
+            {saving ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline">{isEditMode ? t('orders.form.updating') : t('orders.form.creating')}</span></>
+            ) : (
+              <>{isEditMode ? <Pencil className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}<span className="hidden sm:inline">{isEditMode ? t('orders.form.saveChanges') : t('orders.saveOrder')}</span></>
+            )}
           </button>
         </div>
+      </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">{error}</div>
-          )}
-          {reverseCharge && selectedCustomer && (
-            selectedCustomer.vat_number?.trim() ? (
-              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-2">
-                <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                <p className="text-sm text-blue-800 dark:text-blue-300">
-                  {t('orders.vat.reverseChargeBanner', {
-                    country: t(`customers.countries.${selectedCustomer.billing_country}`, selectedCustomer.billing_country),
-                    vatNumber: selectedCustomer.vat_number,
-                  })}
-                </p>
-              </div>
-            ) : (
-              <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-800 dark:text-amber-300">
-                  {t('orders.vat.reverseChargeWarning', {
-                    country: t(`customers.countries.${selectedCustomer.billing_country}`, selectedCustomer.billing_country),
-                  })}
-                </p>
-              </div>
-            )
-          )}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-6">
-              <CustomerSelect
-                selectedCustomer={selectedCustomer}
-                customers={customers}
-                customersLoading={customersLoading}
-                onSelect={setSelectedCustomer}
-                onClear={() => setSelectedCustomer(null)}
-              />
+      {/* Body */}
+      <div>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">{error}</div>
+        )}
+        {reverseCharge && selectedCustomer && (
+          selectedCustomer.vat_number?.trim() ? (
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                {t('orders.vat.reverseChargeBanner', {
+                  country: t(`customers.countries.${selectedCustomer.billing_country}`, selectedCustomer.billing_country),
+                  vatNumber: selectedCustomer.vat_number,
+                })}
+              </p>
+            </div>
+          ) : (
+            <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-amber-800 dark:text-amber-300">
+                {t('orders.vat.reverseChargeWarning', {
+                  country: t(`customers.countries.${selectedCustomer.billing_country}`, selectedCustomer.billing_country),
+                })}
+              </p>
+            </div>
+          )
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left column: details */}
+          <div className="lg:col-span-4 space-y-4">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{t('orders.details')}</h3>
+
+              {selectedCustomer && !editingCustomer ? (
+                <div className="flex items-start justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-700/40 rounded-lg">
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">{t('orders.customer')}</p>
+                    <p className="font-medium text-slate-900 dark:text-white truncate">{selectedCustomer.company_name}</p>
+                    {customerSummaryLines.length > 0 && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{customerSummaryLines.join(' · ')}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setEditingCustomer(true)}
+                    className="text-xs text-green-600 dark:text-green-400 hover:underline shrink-0"
+                  >
+                    {t('orders.changeCustomer')}
+                  </button>
+                </div>
+              ) : (
+                <CustomerSelect
+                  selectedCustomer={selectedCustomer}
+                  customers={customers}
+                  customersLoading={customersLoading}
+                  onSelect={(c) => { setSelectedCustomer(c); setEditingCustomer(false) }}
+                  onClear={() => setSelectedCustomer(null)}
+                />
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('orders.orderDate')}</label>
                 <input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500" />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('orders.form.deliveryNotes')}</label>
+                <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} rows={2}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                  placeholder={t('orders.form.deliveryPlaceholder')} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('orders.form.internalNotes')}</label>
+                <textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={2}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                  placeholder={t('orders.form.internalPlaceholder')} />
+              </div>
+            </div>
+          </div>
+
+          {/* Right column: items */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
               <ProductSearch
                 products={products}
                 productsLoading={productsLoading}
@@ -340,58 +396,28 @@ export default function OrderForm({ onClose, onSuccess, editOrder }: OrderFormPr
               />
             </div>
 
-            {/* Right Column */}
-            <div className="space-y-6">
-              <OrderItemsList
-                items={items}
-                subtotal={subtotal}
-                taxTotal={taxTotal}
-                total={total}
-                reverseCharge={reverseCharge}
-                onUpdateQuantity={updateQuantity}
-                onSetQuantity={setQuantity}
-                onRemoveItem={removeItem}
-                onChangeUnitType={changeUnitType}
-                onSetPrice={(lineId, priceInCents) => {
-                  setItems(prev => prev.map(item =>
-                    item.lineId === lineId ? { ...item, unit_price: priceInCents } : item
-                  ))
-                }}
-                onSetNotes={(lineId, notes) => {
-                  setItems(prev => prev.map(item =>
-                    item.lineId === lineId ? { ...item, notes } : item
-                  ))
-                }}
-              />
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('orders.form.deliveryNotes')}</label>
-                  <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} rows={2}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                    placeholder={t('orders.form.deliveryPlaceholder')} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('orders.form.internalNotes')}</label>
-                  <textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={2}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                    placeholder={t('orders.form.internalPlaceholder')} />
-                </div>
-              </div>
-            </div>
+            <OrderItemsList
+              items={items}
+              subtotal={subtotal}
+              taxTotal={taxTotal}
+              total={total}
+              reverseCharge={reverseCharge}
+              onUpdateQuantity={updateQuantity}
+              onSetQuantity={setQuantity}
+              onRemoveItem={removeItem}
+              onChangeUnitType={changeUnitType}
+              onSetPrice={(lineId, priceInCents) => {
+                setItems(prev => prev.map(item =>
+                  item.lineId === lineId ? { ...item, unit_price: priceInCents } : item
+                ))
+              }}
+              onSetNotes={(lineId, notes) => {
+                setItems(prev => prev.map(item =>
+                  item.lineId === lineId ? { ...item, notes } : item
+                ))
+              }}
+            />
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex gap-3">
-          <button onClick={onClose}
-            className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-            {t('common.cancel')}
-          </button>
-          <button onClick={handleSubmit} disabled={saving || !selectedCustomer || items.length === 0}
-            className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-white font-medium rounded-xl transition-colors ${isEditMode ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400' : 'bg-green-600 hover:bg-green-700 disabled:bg-green-400'}`}>
-            {saving ? (<><Loader2 className="w-5 h-5 animate-spin" />{isEditMode ? t('orders.form.updating') : t('orders.form.creating')}</>)
-              : (<>{isEditMode ? <Pencil className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}{isEditMode ? t('orders.form.saveChanges') : t('orders.newOrder')}</>)}
-          </button>
         </div>
       </div>
 

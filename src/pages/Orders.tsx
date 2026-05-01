@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Search,
@@ -25,7 +25,6 @@ import type { OrderStatus, PaymentMethod } from '../types'
 import type { OrderWithItems } from '../services/orders'
 import { bulkUpdateOrderStatus, bulkDeleteOrders } from '../services/orders'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
-import OrderForm from '../components/orders/OrderForm'
 import OrderDetail from '../components/orders/OrderDetail'
 import StatusBadge from '../components/ui/StatusBadge'
 import PaymentBadge from '../components/ui/PaymentBadge'
@@ -35,13 +34,12 @@ import { formatPrice, formatDate } from '../utils/format'
 
 export default function Orders() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { canCreate, canEdit, canDelete } = usePermission('orders')
   const { orders, loading, error, filters, setFilters, refresh, remove, page, setPage, totalPages, totalCount } = useOrders()
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [showForm, setShowForm] = useState(searchParams.get('new') === '1')
-  const [editingOrder, setEditingOrder] = useState<OrderWithItems | null>(null)
+  const [searchParams] = useSearchParams()
   const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -51,7 +49,12 @@ export default function Orders() {
   const [documentInfo, setDocumentInfo] = useState<Map<string, OrderDocumentInfo>>(new Map())
 
   // Read URL params on mount to apply filters (e.g. ?status=pending_payment)
+  // and redirect legacy ?new=1 links to the new editor route.
   useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      navigate('/orders/new', { replace: true })
+      return
+    }
     const urlStatus = searchParams.get('status')
     if (urlStatus) {
       setFilters({ status: urlStatus as OrderStatus })
@@ -212,7 +215,7 @@ export default function Orders() {
           </button>
           <div className="hidden sm:block flex-1" />
           {canCreate && (
-            <button onClick={() => setShowForm(true)}
+            <button onClick={() => navigate('/orders/new')}
               className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0">
               <Plus className="w-5 h-5" />
               <span className="hidden sm:inline">{t('orders.newOrder')}</span>
@@ -327,7 +330,7 @@ export default function Orders() {
                             </button>
                           )}
                           {canEdit && !['completed', 'cancelled', 'refunded'].includes(order.status) && (
-                            <button onClick={() => setEditingOrder(order)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer" title={t('common.edit')}>
+                            <button onClick={() => navigate(`/orders/${order.id}/edit`)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer" title={t('common.edit')}>
                               <Pencil className="w-4 h-4 text-blue-500" />
                             </button>
                           )}
@@ -398,7 +401,7 @@ export default function Orders() {
                     </button>
                   )}
                   {canEdit && !['completed', 'cancelled', 'refunded'].includes(order.status) && (
-                    <button onClick={() => setEditingOrder(order)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium whitespace-nowrap">
+                    <button onClick={() => navigate(`/orders/${order.id}/edit`)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium whitespace-nowrap">
                       <Pencil className="w-4 h-4 flex-shrink-0" />{t('common.edit')}
                     </button>
                   )}
@@ -471,8 +474,6 @@ export default function Orders() {
         </div>
       )}
 
-      {showForm && <OrderForm onClose={() => { setShowForm(false); searchParams.delete('new'); setSearchParams(searchParams) }} onSuccess={() => { setShowForm(false); searchParams.delete('new'); setSearchParams(searchParams); refresh() }} />}
-      {editingOrder && <OrderForm editOrder={editingOrder} onClose={() => setEditingOrder(null)} onSuccess={() => { setEditingOrder(null); refresh() }} />}
       {viewingOrder && <OrderDetail order={viewingOrder} onClose={() => setViewingOrder(null)} onStatusChange={() => { setViewingOrder(null); refresh() }} />}
 
       {/* Payment Method Selection Modal */}

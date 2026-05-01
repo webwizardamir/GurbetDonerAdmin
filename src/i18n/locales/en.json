@@ -342,6 +342,18 @@
     "selectCustomer": "Select Customer",
     "addItems": "Add Items",
     "orderItems": "Order Items",
+    "itemsTable": {
+      "product": "Product",
+      "unit": "Unit",
+      "price": "Price",
+      "qty": "Qty",
+      "total": "Total"
+    },
+    "backToOrders": "Back to Orders",
+    "saveOrder": "Save Order",
+    "summary": "Order Summary",
+    "details": "Order Details",
+    "changeCustomer": "Change",
     "subtotal": "Subtotal",
     "tax": "VAT",
     "total": "Total",

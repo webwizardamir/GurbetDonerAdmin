@@ -11,6 +11,7 @@ import NotificationPanel from './NotificationPanel'
 const PAGE_META: Record<string, { titleKey: string; descKey?: string }> = {
   '/': { titleKey: 'nav.dashboard', descKey: 'dashboard.welcome' },
   '/orders': { titleKey: 'nav.orders', descKey: 'orders.title' },
+  '/orders/new': { titleKey: 'orders.newOrder' },
   '/customers': { titleKey: 'nav.customers', descKey: 'customers.title' },
   '/products': { titleKey: 'nav.products', descKey: 'products.title' },
   '/sold-products': { titleKey: 'nav.soldProducts', descKey: 'soldProducts.subtitle' },
@@ -19,6 +20,13 @@ const PAGE_META: Record<string, { titleKey: string; descKey?: string }> = {
   '/settings/documents': { titleKey: 'settings.documents.title' },
   '/settings/users': { titleKey: 'settings.users.title' },
   '/settings/audit-log': { titleKey: 'settings.auditLog.title' },
+}
+
+// Dynamic-path patterns for routes like /orders/:id/edit
+function resolvePageMeta(pathname: string): { titleKey: string; descKey?: string } {
+  if (PAGE_META[pathname]) return PAGE_META[pathname]
+  if (/^\/orders\/[^/]+\/edit$/.test(pathname)) return { titleKey: 'orders.editOrder' }
+  return { titleKey: 'common.name' }
 }
 
 interface HeaderProps {
@@ -46,7 +54,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   // Reminders
   const { reminders, dueReminders, unreadCount, create, update, markRead, dismiss, remove } = useReminders()
 
-  const pageMeta = PAGE_META[location.pathname] || { titleKey: 'common.name' }
+  const pageMeta = resolvePageMeta(location.pathname)
   const title = t(pageMeta.titleKey)
   const description = pageMeta.descKey ? t(pageMeta.descKey) : undefined
 

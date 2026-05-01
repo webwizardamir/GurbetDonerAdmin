@@ -342,6 +342,18 @@
     "selectCustomer": "Selecteer klant",
     "addItems": "Artikelen toevoegen",
     "orderItems": "Bestelartikelen",
+    "itemsTable": {
+      "product": "Product",
+      "unit": "Eenheid",
+      "price": "Prijs",
+      "qty": "Aantal",
+      "total": "Totaal"
+    },
+    "backToOrders": "Terug naar bestellingen",
+    "saveOrder": "Bestelling opslaan",
+    "summary": "Besteloverzicht",
+    "details": "Bestelgegevens",
+    "changeCustomer": "Wijzigen",
     "subtotal": "Subtotaal",
     "tax": "BTW",
     "total": "Totaal",

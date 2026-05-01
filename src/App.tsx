@@ -16,6 +16,7 @@ import Customers from './pages/Customers'
 import CustomerDetail from './pages/CustomerDetail'
 import Products from './pages/Products'
 import Orders from './pages/Orders'
+import OrderEditor from './pages/OrderEditor'
 import AuditLog from './pages/AuditLog'
 import Users from './pages/Users'
 import DocumentSettings from './pages/DocumentSettings'
@@ -175,6 +176,8 @@ function App() {
 
                 {/* Orders */}
                 <Route path="orders" element={<Orders />} />
+                <Route path="orders/new" element={<OrderEditor mode="new" />} />
+                <Route path="orders/:id/edit" element={<OrderEditor mode="edit" />} />
                 <Route path="invoices" element={<Invoices />} />
                 <Route
                   path="analytics"
