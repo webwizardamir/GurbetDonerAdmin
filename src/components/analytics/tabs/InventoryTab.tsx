@@ -8,6 +8,7 @@ import { useInventoryAnalytics } from '../../../hooks/useInventoryAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
 import StatCard from '../../StatCard'
 import { formatChartCurrency } from '../ChartColors'
+import { formatQuantity, formatRatio } from '../../../utils/format'
 
 interface InventoryTabProps {
   dateRange: DateRange
@@ -84,10 +85,10 @@ export default function InventoryTab({ dateRange }: InventoryTabProps) {
                 {turnover.map(row => (
                   <tr key={row.productName} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{row.productName}</td>
-                    <td className="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{row.stockQty.toLocaleString('nl-NL')}</td>
+                    <td className="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{formatQuantity(row.stockQty)}</td>
                     <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">{formatChartCurrency(row.stockValue)}</td>
                     <td className="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{formatChartCurrency(row.cogsInPeriod)}</td>
-                    <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">{row.turnoverRatio.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">{formatRatio(row.turnoverRatio)}</td>
                     <td className="px-4 py-3 text-sm text-right">
                       {row.daysToSell !== null ? (
                         <span className={`${

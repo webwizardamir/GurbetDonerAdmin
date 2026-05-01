@@ -1,5 +1,6 @@
 import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { formatPercentChange } from '../utils/format'
 
 interface StatCardProps {
   label: string
@@ -39,7 +40,7 @@ export default function StatCard({ label, value, description, trend, icon: Icon,
                 <TrendingDown className="w-4 h-4 text-red-600" />
               )}
               <span className={`text-sm font-semibold ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                {trend.isPositive ? '+' : ''}{Number(trend.value ?? 0).toFixed(1)}%
+                {formatPercentChange(Number(trend.value ?? 0))}
               </span>
               <span className="text-sm text-slate-500 dark:text-slate-400">{t('dashboard.vsLastMonth')}</span>
             </div>

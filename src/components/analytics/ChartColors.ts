@@ -69,28 +69,22 @@ export function useChartColors() {
   }
 }
 
-// Format currency for chart labels/tooltips
-export function formatChartCurrency(cents: number): string {
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(cents / 100)
-}
+import { formatPrice, formatCompactPrice, formatPercentChange } from '../../utils/format'
 
-// Format number with K/M suffixes for compact display
+// Currency for chart tooltips/cells — delegate to the shared 2-decimal formatter.
+// Kept as a named re-export for backwards compatibility with existing imports.
+export { formatPrice as formatChartCurrency }
+
+// Compact currency for chart axes (€1,2K / €2,3M).
+export { formatCompactPrice as formatChartCompactCurrency }
+
+// Compact number with K/M suffix for non-currency chart axes.
 export function formatCompactNumber(value: number): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`
-  }
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}K`
-  }
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000) return `${(value / 1_000).toFixed(1)}K`
   return value.toString()
 }
 
-// Format percentage
-export function formatPercentage(value: number): string {
-  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
-}
+// Signed percentage delta — delegate to shared helper.
+export { formatPercentChange as formatPercentage }

@@ -6,7 +6,7 @@
 import { useTranslation } from 'react-i18next'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts'
-import { formatPrice } from '../../utils/format'
+import { formatPrice, formatPercentChange } from '../../utils/format'
 
 export interface WeeklyStats {
   revenue?: number
@@ -73,7 +73,7 @@ export default function WeeklyMiniChart({ weeklyStats, isOwner }: WeeklyMiniChar
             ) : (
               <TrendingDown className="w-3.5 h-3.5" />
             )}
-            {isPositive ? '+' : ''}{change.toFixed(1)}%
+            {formatPercentChange(change)}
           </span>
         </div>
 

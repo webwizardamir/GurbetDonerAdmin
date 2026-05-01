@@ -22,7 +22,7 @@ import ProductForm, { type ProductFormData } from '../components/products/Produc
 import CategoryManager from '../components/products/CategoryManager'
 import type { Product } from '../types'
 import { exportToExcelGeneric, productExportColumns } from '../utils/export'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatPercent } from '../utils/format'
 
 // Format unit type for display
 function formatUnitType(unitType: string, t: (key: string) => string): string {
@@ -298,7 +298,7 @@ export default function Products() {
                               ? 'text-green-600 dark:text-green-400'
                               : 'text-red-600 dark:text-red-400'
                           }`}>
-                            {((1 - product.cost_cents / product.base_price) * 100).toFixed(1)}%
+                            {formatPercent((1 - product.cost_cents / product.base_price) * 100)}
                           </span>
                         ) : (
                           <span className="text-slate-400">-</span>
@@ -451,7 +451,7 @@ export default function Products() {
                           ? 'text-green-600 dark:text-green-400'
                           : 'text-red-600 dark:text-red-400'
                       }`}>
-                        {t('products.margin')}: {((1 - product.cost_cents / product.base_price) * 100).toFixed(1)}%
+                        {t('products.margin')}: {formatPercent((1 - product.cost_cents / product.base_price) * 100)}
                       </div>
                     )}
                   </div>

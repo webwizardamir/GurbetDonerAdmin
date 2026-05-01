@@ -16,7 +16,7 @@ import { useOrderAnalytics } from '../../../hooks/useOrderAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
 import StatCard from '../../StatCard'
 import { formatChartCurrency } from '../ChartColors'
-import { formatDate } from '../../../utils/format'
+import { formatDate, formatPercent } from '../../../utils/format'
 import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '../../../utils/excelExport'
 
 interface OrdersTabProps {
@@ -250,7 +250,7 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">{formatChartCurrency(row.subtotal)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatChartCurrency(row.totalCost)}</td>
                     <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{formatChartCurrency(row.profit)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{row.profitMargin.toFixed(1)}%</td>
+                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{formatPercent(row.profitMargin)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatChartCurrency(row.taxAmount)}</td>
                   </tr>
                 ))

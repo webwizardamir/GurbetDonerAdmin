@@ -12,7 +12,8 @@ import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell
 import { useFinancialAnalytics } from '../../../hooks/useFinancialAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
 import StatCard from '../../StatCard'
-import { formatChartCurrency, useChartColors } from '../ChartColors'
+import { formatChartCurrency, formatChartCompactCurrency, useChartColors } from '../ChartColors'
+import { formatPercent, formatCount } from '../../../utils/format'
 
 interface FinancialTabProps {
   dateRange: DateRange
@@ -65,7 +66,7 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
   ]
 
   const cashPercentage = (summary.cashRevenue + summary.bankRevenue) > 0
-    ? ((summary.cashRevenue / (summary.cashRevenue + summary.bankRevenue)) * 100).toFixed(1)
+    ? formatPercent((summary.cashRevenue / (summary.cashRevenue + summary.bankRevenue)) * 100).replace('%', '')
     : '0'
 
   // Chart tooltip
@@ -89,7 +90,7 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label={t('analytics.financial.grossMarginPercent')}
-          value={`${summary.grossMargin.toFixed(1)}%`}
+          value={formatPercent(summary.grossMargin)}
           icon={Percent}
           iconColor="text-emerald-600 dark:text-emerald-400"
           iconBg="bg-emerald-50 dark:bg-emerald-900/20"
@@ -130,7 +131,7 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
             <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
               <WaterfallRow label={`= ${t('analytics.financial.grossProfit')}`} value={summary.grossProfit} isBold isProfit />
               <div className="mt-1 text-sm text-slate-500 dark:text-slate-400 pl-2">
-                {t('analytics.financial.grossMargin')}: {summary.grossMargin.toFixed(1)}%
+                {t('analytics.financial.grossMargin')}: {formatPercent(summary.grossMargin)}
               </div>
             </div>
           </div>
@@ -162,15 +163,15 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
                   <tr key={row.label}>
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{row.label}</td>
                     <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">
-                      {row.isCount ? row.current.toLocaleString('nl-NL') : formatChartCurrency(row.current)}
+                      {row.isCount ? formatCount(row.current) : formatChartCurrency(row.current)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-slate-500 dark:text-slate-400">
-                      {row.isCount ? row.previous.toLocaleString('nl-NL') : formatChartCurrency(row.previous)}
+                      {row.isCount ? formatCount(row.previous) : formatChartCurrency(row.previous)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right">
                       <span className={`inline-flex items-center gap-1 ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                         {isPositive ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                        {Math.abs(change).toFixed(1)}%
+                        {formatPercent(Math.abs(change))}
                       </span>
                     </td>
                   </tr>
@@ -200,7 +201,7 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={monthly} margin={{ left: 10, right: 10, top: 5, bottom: 5 }}>
               <XAxis dataKey="monthLabel" tick={{ fill: colors.textSecondary, fontSize: 12 }} />
-              <YAxis tickFormatter={(v: number) => formatChartCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
+              <YAxis tickFormatter={(v: number) => formatChartCompactCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
               <Tooltip content={<MonthlyTooltip />} />
               <Legend
                 formatter={(value: string) => (
@@ -221,7 +222,7 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categories} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
-                <XAxis type="number" tickFormatter={(v: number) => formatChartCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
+                <XAxis type="number" tickFormatter={(v: number) => formatChartCompactCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
                 <YAxis
                   type="category"
                   dataKey="categoryName"
@@ -264,7 +265,7 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
                     <td className="px-3 py-2 text-sm text-right text-slate-900 dark:text-white">{formatChartCurrency(cat.totalRevenue)}</td>
                     <td className="px-3 py-2 text-sm text-right text-slate-600 dark:text-slate-400">{formatChartCurrency(cat.totalCogs)}</td>
                     <td className="px-3 py-2 text-sm text-right text-emerald-600 dark:text-emerald-400">{formatChartCurrency(cat.totalProfit)}</td>
-                    <td className="px-3 py-2 text-sm text-right text-slate-600 dark:text-slate-400">{cat.profitMargin.toFixed(1)}%</td>
+                    <td className="px-3 py-2 text-sm text-right text-slate-600 dark:text-slate-400">{formatPercent(cat.profitMargin)}</td>
                   </tr>
                 ))}
               </tbody>

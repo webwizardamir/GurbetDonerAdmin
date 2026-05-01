@@ -17,8 +17,8 @@ import { useProductAnalytics } from '../../../hooks/useProductAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
 import type { ProductPerformanceRow } from '../../../services/analytics'
 import StatCard from '../../StatCard'
-import { formatChartCurrency, useChartColors } from '../ChartColors'
-import { formatDate } from '../../../utils/format'
+import { formatChartCurrency, formatChartCompactCurrency, useChartColors } from '../ChartColors'
+import { formatDate, formatPercent, formatCount, formatQuantity } from '../../../utils/format'
 import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '../../../utils/excelExport'
 
 interface ProductsTabProps {
@@ -130,7 +130,7 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
         />
         <StatCard
           label={t('analytics.products.bestMargin')}
-          value={bestMarginProduct ? `${bestMarginProduct.profitMargin.toFixed(1)}%` : '-'}
+          value={bestMarginProduct ? formatPercent(bestMarginProduct.profitMargin) : '-'}
           description={bestMarginProduct?.productName}
           icon={TrendingUp}
           iconColor="text-emerald-600 dark:text-emerald-400"
@@ -222,9 +222,9 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">{formatChartCurrency(row.totalRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatChartCurrency(row.totalCogs)}</td>
                     <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{formatChartCurrency(row.totalProfit)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{row.profitMargin.toFixed(1)}%</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{row.totalQuantity.toLocaleString('nl-NL')}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{row.orderCount}</td>
+                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{formatPercent(row.profitMargin)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatQuantity(row.totalQuantity)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatCount(row.orderCount)}</td>
                     <td className="px-4 py-3">
                       <AbcBadge value={row.abcClass} />
                     </td>
@@ -243,7 +243,7 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categories} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
-                <XAxis type="number" tickFormatter={(v: number) => formatChartCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
+                <XAxis type="number" tickFormatter={(v: number) => formatChartCompactCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
                 <YAxis
                   type="category"
                   dataKey="categoryName"
@@ -277,7 +277,7 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
                     <td className="px-3 py-2 text-sm text-slate-900 dark:text-white">{cat.categoryName || t('analytics.products.noCategory')}</td>
                     <td className="px-3 py-2 text-sm text-right text-slate-900 dark:text-white">{formatChartCurrency(cat.totalRevenue)}</td>
                     <td className="px-3 py-2 text-sm text-right text-emerald-600 dark:text-emerald-400">{formatChartCurrency(cat.totalProfit)}</td>
-                    <td className="px-3 py-2 text-sm text-right text-slate-600 dark:text-slate-400">{cat.profitMargin.toFixed(1)}%</td>
+                    <td className="px-3 py-2 text-sm text-right text-slate-600 dark:text-slate-400">{formatPercent(cat.profitMargin)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -316,7 +316,7 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
                     <tr key={row.productId} className={urgency}>
                       <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{row.productName}</td>
                       <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{row.sku || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">{row.currentStock.toLocaleString('nl-NL')}</td>
+                      <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">{formatQuantity(row.currentStock)}</td>
                       <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">{formatChartCurrency(row.stockValue)}</td>
                       <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{row.lastSaleDate ? formatDate(row.lastSaleDate) : t('analytics.products.never')}</td>
                       <td className="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{row.daysSinceLastSale ?? '-'}</td>

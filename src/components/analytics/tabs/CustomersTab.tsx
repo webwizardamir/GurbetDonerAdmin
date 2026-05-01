@@ -24,8 +24,8 @@ import {
 import { useCustomerAnalytics } from '../../../hooks/useCustomerAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
 import StatCard from '../../StatCard'
-import { formatChartCurrency, useChartColors } from '../ChartColors'
-import { formatDate } from '../../../utils/format'
+import { formatChartCurrency, formatChartCompactCurrency, useChartColors } from '../ChartColors'
+import { formatDate, formatPercent, formatCount } from '../../../utils/format'
 import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '../../../utils/excelExport'
 
 interface CustomersTabProps {
@@ -83,7 +83,7 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
 
   // Revenue concentration - Top 5
   const top5Revenue = customers.slice(0, 5).reduce((sum, c) => sum + c.totalRevenue, 0)
-  const top5Share = totalRevenue > 0 ? ((top5Revenue / totalRevenue) * 100).toFixed(1) : '0'
+  const top5Share = totalRevenue > 0 ? formatPercent((top5Revenue / totalRevenue) * 100).replace('%', '') : '0'
 
   // Top 10 for bar chart
   const top10 = customers.slice(0, 10)
@@ -228,8 +228,8 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{row.companyName}</td>
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">{formatChartCurrency(row.totalRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{formatChartCurrency(row.totalProfit)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{row.profitMargin.toFixed(1)}%</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{row.orderCount}</td>
+                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{formatPercent(row.profitMargin)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatCount(row.orderCount)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatChartCurrency(row.avgOrderValue)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatChartCurrency(row.totalTax)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{row.lastOrderDate ? formatDate(row.lastOrderDate) : '-'}</td>
@@ -251,7 +251,7 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={top10} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
-                <XAxis type="number" tickFormatter={(v: number) => formatChartCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
+                <XAxis type="number" tickFormatter={(v: number) => formatChartCompactCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
                 <YAxis
                   type="category"
                   dataKey="companyName"

@@ -20,7 +20,7 @@ import OrdersChart from '../OrdersChart'
 import TopCustomersChart from '../TopCustomersChart'
 import TopProductsChart from '../TopProductsChart'
 import { formatChartCurrency } from '../ChartColors'
-import { formatQuantityWithUnit } from '../../../utils/format'
+import { formatQuantityWithUnit, formatPercent, formatCount, formatQuantity } from '../../../utils/format'
 
 interface OverviewTabProps {
   dateRange: DateRange
@@ -75,14 +75,14 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
         />
         <StatCard
           label={t('analytics.margin')}
-          value={kpis ? `${kpis.profitMargin.toFixed(1)}%` : '0%'}
+          value={kpis ? formatPercent(kpis.profitMargin) : formatPercent(0)}
           icon={Percent}
           iconColor="text-violet-600 dark:text-violet-400"
           iconBg="bg-violet-50 dark:bg-violet-900/20"
         />
         <StatCard
           label={t('analytics.orders')}
-          value={kpis?.totalOrders.toLocaleString('nl-NL') || '0'}
+          value={kpis ? formatCount(kpis.totalOrders) : '0'}
           trend={kpis ? {
             value: Math.abs(kpis.ordersGrowth),
             isPositive: kpis.ordersGrowth >= 0,
@@ -93,7 +93,7 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
         />
         <StatCard
           label={t('analytics.itemsSold')}
-          value={kpis?.totalItems.toLocaleString('nl-NL') || '0'}
+          value={kpis ? formatQuantity(kpis.totalItems) : '0'}
           icon={Package}
           iconColor="text-amber-600 dark:text-amber-400"
           iconBg="bg-amber-50 dark:bg-amber-900/20"
