@@ -296,6 +296,106 @@ All components must support dark mode using Tailwind's `dark:` prefix:
 
 ---
 
+## PDF Document Templates
+
+All PDF templates live in `src/components/documents/` and use `@react-pdf/renderer`. They share a **compact ruleset** designed to fit ~15–16 line items on a single A4 page (even with 2-line product descriptions). When creating or editing a template, follow these conventions verbatim — they have been applied consistently across every document type.
+
+### Templates and brand colors
+
+| Template | File | Primary | Dark accent |
+|---|---|---|---|
+| Invoice | `InvoiceTemplate.tsx` | `#16a34a` (green) | `#166534` |
+| Proforma | `ProformaTemplate.tsx` | `#3b82f6` (blue) | `#1e40af` |
+| Credit Note | `CreditNoteTemplate.tsx` | `#7c3aed` (purple) | `#6d28d9` |
+| Order Confirmation | `OrderConfirmationTemplate.tsx` | `#0891b2` (cyan) | `#0e7490` |
+| Payment Reminder | `PaymentReminderTemplate.tsx` | `#dc2626` (red) | `#991b1b` |
+| Packing Slip | `PackingSlipTemplate.tsx` | `#1e293b` (dark slate) | — |
+| Sold Products | `SoldProductsTemplate.tsx` | `#16a34a` (green) | — |
+
+### Compact ruleset (use these exact values)
+
+**Page** — A4 (595.28 × 841.89pt):
+- `padding: 28`
+- `fontSize: 8` (base)
+
+**Header** (`marginBottom: 10`):
+- Logo: `width: 80`, `maxHeight: 36`, `marginRight: 10`
+- Company name: `fontSize: 11`, `Helvetica-Bold`, `marginBottom: 2`
+- Company details: `fontSize: 7`, `lineHeight: 1.35`
+- Doc title: `fontSize: 18`, uppercase, `letterSpacing: 1`, brand color
+- Doc number badge: `fontSize: 8.5`, light brand bg, `padding: 4 / paddingHorizontal: 10`
+
+**Customer + meta row** (`marginBottom: 8`):
+- Customer box: `width: '55%'`, `borderLeftWidth: 2` (brand color), `paddingLeft: 8`, `paddingVertical: 4`, `bg: #f8fafc`
+- Customer label: `fontSize: 6.5`, uppercase, `letterSpacing: 0.8`, `marginBottom: 2`
+- Customer name: `fontSize: 10`, bold, `marginBottom: 1`
+- Customer detail: `fontSize: 8`, `lineHeight: 1.35`
+- Meta box: `width: '40%'`, rows `marginBottom: 1` / `paddingVertical: 1`
+- Meta label: `fontSize: 7.5`; meta value: `fontSize: 8`
+
+**Address composition** — country gets merged into the city line (e.g. `20089 Rozzano, IT`) to save a row. Use this pattern:
+```typescript
+const cityParts: string[] = []
+if (postalCode && city) cityParts.push(`${postalCode} ${city}`)
+else if (city) cityParts.push(city)
+if (country && country !== city) cityParts.push(country)
+if (cityParts.length) customerLines.push(cityParts.join(', '))
+```
+
+**BTW verlegd notice** (Invoice / Proforma / Credit Note for non-NL customers) — single-line, professional EU-standard wording. Use a left-accent style box, NOT a full bordered block:
+```typescript
+verlegdBox: {
+  borderLeftWidth: 2,
+  borderLeftColor: '#f59e0b',
+  backgroundColor: '#fffbeb',
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  marginBottom: 6,
+},
+verlegdText: { fontSize: 7.5, color: '#78350f', lineHeight: 1.35 },
+verlegdLabel: { fontFamily: 'Helvetica-Bold' },
+```
+```jsx
+<View style={styles.verlegdBox}>
+  <Text style={styles.verlegdText}>
+    <Text style={styles.verlegdLabel}>BTW verlegd — intracommunautaire levering</Text>
+    {' (Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW. BTW-nummer afnemer: '}
+    {data.customer.vatNumber || '—'}
+  </Text>
+</View>
+```
+
+**Items table** (`marginBottom: 8`):
+- Header: `paddingVertical: 4`, `paddingHorizontal: 5`, dark brand bg
+- `th`: `fontSize: 6.5`, bold, white, uppercase
+- Row: `paddingVertical: 3`, `paddingHorizontal: 5`, `borderBottomWidth: 0.5`, `borderBottomColor: '#e2e8f0'`
+- `td`: `fontSize: 7.5`; `tdBold`: `fontSize: 7.5`, bold
+- Alternating row bg: `#f8fafc` / `#ffffff`
+- **Always set `wrap={false}` on each row** so a row never splits across pages
+
+**Bottom section / totals** (`marginBottom: 8`):
+- Totals box: `borderTopWidth: 2` (brand color), `padding: 7`, light bg
+- Total rows: `marginBottom: 2`, `fontSize: 7.5`
+- Grand total row: `paddingTop: 4`, `marginTop: 3`, `borderTopWidth: 1.5` (brand)
+- Grand total label/value: `fontSize: 9`, bold
+- **Always set `wrap={false}` on the bottom section / totals / signature area**
+
+**Banners and notice boxes** (disclaimer, thank-you, urgent, conditions, processing, etc.) follow the same compact pattern: `borderLeftWidth: 2` with brand color, light bg, `paddingHorizontal: 8 / paddingVertical: 4–5`, `marginBottom: 6`. Avoid full `borderWidth` blocks — they waste vertical space.
+
+**Footer** (`marginTop: 'auto'`, `wrap={false}`):
+- `borderTopWidth: 1` (brand), `paddingTop: 6`
+- Footer company: `fontSize: 7.5`, bold
+- Footer detail: `fontSize: 6.5`, `lineHeight: 1.4`
+- Footer center: `fontSize: 6.5`, `marginTop: 3`
+
+### When in doubt
+- All PDFs render in **Dutch only** (legal compliance) regardless of app language.
+- Sequential numbering and immutable price snapshots are enforced server-side; templates only render.
+- The only WC-frozen behavior on these templates is the BTW notice — it appears whenever `customer.country !== 'NL'`. Imported orders preserve the original BTW from WC, but the notice block still renders if applicable.
+- If you're tempted to enlarge any of these values "for readability," resist — the spec was tuned to fit 15–16 items per page across all templates. Add a new template by copying `InvoiceTemplate.tsx` and swapping the brand color.
+
+---
+
 ## Key Business Rules
 
 ### Stock Management
