@@ -24,8 +24,8 @@ const styles = StyleSheet.create({
   // PAGE
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 9,
-    padding: 40,
+    fontSize: 8,
+    padding: 28,
     backgroundColor: '#ffffff',
     color: '#1e293b',
   },
@@ -35,22 +35,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 2,
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
     borderBottomColor: '#16a34a',
   },
   headerLeft: {
     flex: 1,
   },
   title: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
     color: '#16a34a',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   subtitle: {
-    fontSize: 10,
+    fontSize: 8,
     color: '#64748b',
   },
   headerRight: {
@@ -58,77 +58,78 @@ const styles = StyleSheet.create({
   },
   dateBox: {
     backgroundColor: '#f1f5f9',
-    padding: 8,
-    paddingHorizontal: 12,
+    padding: 5,
+    paddingHorizontal: 10,
   },
   dateLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
     textTransform: 'uppercase',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   dateValue: {
-    fontSize: 10,
+    fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
     color: '#1e293b',
   },
 
-  // SUMMARY CARDS
+  // SUMMARY CARDS (compact)
   summaryRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    gap: 8,
+    marginBottom: 8,
   },
   summaryCard: {
     flex: 1,
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#e2e8f0',
-    padding: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
   summaryLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: '#1e293b',
   },
   summaryValueGreen: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: '#16a34a',
   },
   summaryValueAmber: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: '#d97706',
   },
 
   // TABLE
   table: {
-    marginBottom: 20,
+    marginBottom: 8,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#1e293b',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
   th: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     color: '#ffffff',
     textTransform: 'uppercase',
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#e2e8f0',
   },
   rowEven: {
@@ -144,27 +145,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#fffbeb',
   },
   td: {
-    fontSize: 8,
+    fontSize: 7.5,
   },
   tdBold: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
   },
 
-  // Column widths (no revenue column - PDF is for refill workflow only)
-  colProduct: { flex: 2, paddingRight: 8 },
-  colCategory: { flex: 1, paddingRight: 8 },
-  colSold: { width: 70, textAlign: 'right', paddingRight: 8 },
-  colStock: { width: 70, textAlign: 'right', paddingRight: 8 },
-  colStatus: { width: 55, textAlign: 'center', paddingRight: 8 },
-  colRefill: { width: 70, textAlign: 'right' },
+  // Column widths
+  colProduct: { flex: 2, paddingRight: 6 },
+  colCategory: { flex: 1, paddingRight: 6 },
+  colSold: { width: 65, textAlign: 'right', paddingRight: 6 },
+  colStock: { width: 65, textAlign: 'right', paddingRight: 6 },
+  colStatus: { width: 50, textAlign: 'center', paddingRight: 6 },
+  colRefill: { width: 65, textAlign: 'right' },
 
   // Status badges
   statusBadge: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
-    paddingVertical: 2,
-    paddingHorizontal: 4,
+    paddingVertical: 1,
+    paddingHorizontal: 3,
     textAlign: 'center',
   },
   statusCritical: {
@@ -186,32 +187,32 @@ const styles = StyleSheet.create({
 
   // Refill badge
   refillBadge: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     backgroundColor: '#dbeafe',
     color: '#2563eb',
-    paddingVertical: 2,
-    paddingHorizontal: 4,
+    paddingVertical: 1,
+    paddingHorizontal: 3,
     textAlign: 'right',
   },
 
   // FOOTER
   footer: {
-    borderTopWidth: 1,
+    borderTopWidth: 0.5,
     borderTopColor: '#e2e8f0',
-    paddingTop: 10,
+    paddingTop: 6,
     marginTop: 'auto',
   },
   footerText: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#94a3b8',
     textAlign: 'center',
   },
   footerNote: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 3,
     fontStyle: 'italic',
   },
 })
@@ -331,11 +332,11 @@ function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFD
             ]
 
             return (
-              <View key={item.product_id} style={rowStyle}>
+              <View key={item.product_id} wrap={false} style={rowStyle}>
                 <View style={styles.colProduct}>
                   <Text style={styles.tdBold}>{item.product_name}</Text>
                   {item.product_sku && (
-                    <Text style={[styles.td, { fontSize: 7, color: '#64748b' }]}>
+                    <Text style={[styles.td, { fontSize: 6.5, color: '#64748b' }]}>
                       SKU: {item.product_sku}
                     </Text>
                   )}
@@ -371,7 +372,7 @@ function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFD
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={styles.footer} wrap={false}>
           <Text style={styles.footerText}>
             Gegenereerd op {new Date().toLocaleDateString('nl-NL', {
               day: '2-digit',

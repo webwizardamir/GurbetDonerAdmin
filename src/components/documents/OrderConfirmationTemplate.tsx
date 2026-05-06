@@ -15,8 +15,8 @@ import { formatPrice, formatDate } from '../../utils/format'
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 9,
-    padding: 40,
+    fontSize: 8,
+    padding: 28,
     backgroundColor: '#ffffff',
     color: '#1e293b',
   },
@@ -24,29 +24,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   logo: {
-    width: 120,
+    width: 80,
     height: 'auto',
-    maxHeight: 50,
+    maxHeight: 36,
     objectFit: 'contain',
-    marginRight: 12,
+    marginRight: 10,
   },
   companyInfo: {},
   companyName: {
-    fontSize: 14,
+    fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   companyDetail: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#64748b',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   headerRight: {
     alignItems: 'flex-end',
@@ -56,68 +56,67 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 6,
-    color: '#0891b2', // Cyan for order confirmation
+    marginBottom: 3,
+    color: '#0891b2',
   },
   docNumber: {
-    fontSize: 10,
+    fontSize: 8.5,
     color: '#475569',
     backgroundColor: '#cffafe',
-    padding: 6,
-    paddingHorizontal: 12,
+    padding: 4,
+    paddingHorizontal: 10,
   },
 
-  // Thank you banner
+  // Thank you banner (compact)
   thankYouBanner: {
     backgroundColor: '#ecfdf5',
-    borderWidth: 2,
-    borderColor: '#10b981',
-    padding: 15,
-    marginBottom: 20,
-    alignItems: 'center',
+    borderLeftWidth: 2,
+    borderLeftColor: '#10b981',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginBottom: 6,
   },
   thankYouTitle: {
-    fontSize: 14,
+    fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     color: '#059669',
-    marginBottom: 4,
+    marginBottom: 1,
   },
   thankYouText: {
-    fontSize: 9,
+    fontSize: 7.5,
     color: '#047857',
-    textAlign: 'center',
   },
 
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 8,
   },
   customerBox: {
     width: '55%',
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     borderLeftColor: '#0891b2',
-    paddingLeft: 10,
-    paddingVertical: 6,
+    paddingLeft: 8,
+    paddingVertical: 4,
     backgroundColor: '#f8fafc',
   },
   customerLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     color: '#64748b',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  customerName: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
+    letterSpacing: 0.8,
     marginBottom: 2,
   },
+  customerName: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 1,
+  },
   customerDetail: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#475569',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   metaBox: {
     width: '40%',
@@ -125,70 +124,71 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 3,
-    paddingVertical: 2,
+    marginBottom: 1,
+    paddingVertical: 1,
   },
   metaLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
   metaValue: {
-    fontSize: 9,
+    fontSize: 8,
   },
   metaValueHighlight: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#0891b2',
   },
 
-  // Order summary section
+  // Order summary section (compact)
   orderSummary: {
     backgroundColor: '#f0fdfa',
-    borderWidth: 1,
-    borderColor: '#99f6e4',
-    padding: 12,
-    marginBottom: 15,
+    borderLeftWidth: 2,
+    borderLeftColor: '#0891b2',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginBottom: 6,
   },
   summaryTitle: {
-    fontSize: 10,
+    fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
     color: '#0891b2',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   summaryLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#475569',
   },
   summaryValue: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
   },
 
   table: {
-    marginBottom: 15,
+    marginBottom: 8,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#0e7490',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 5,
   },
   th: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     color: '#ffffff',
     textTransform: 'uppercase',
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    borderBottomWidth: 1,
+    paddingVertical: 3,
+    paddingHorizontal: 5,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#e2e8f0',
   },
   rowEven: {
@@ -198,138 +198,141 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   td: {
-    fontSize: 8,
+    fontSize: 7.5,
   },
   tdBold: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
   },
-  colIdx: { width: 30, textAlign: 'center' },
-  colDesc: { flex: 1, paddingRight: 10 },
-  colQty: { width: 80, textAlign: 'center' },
-  colUnitPrice: { width: 80, textAlign: 'right' },
-  colTotal: { width: 80, textAlign: 'right' },
+  colIdx: { width: 25, textAlign: 'center' },
+  colDesc: { flex: 1, paddingRight: 8 },
+  colQty: { width: 70, textAlign: 'center' },
+  colUnitPrice: { width: 70, textAlign: 'right' },
+  colTotal: { width: 70, textAlign: 'right' },
 
   // Totals section (simplified)
   totalsSection: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   totalsBox: {
     width: '40%',
     backgroundColor: '#f8fafc',
-    padding: 10,
+    borderTopWidth: 2,
+    borderTopColor: '#0891b2',
+    padding: 7,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   totalLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
   totalValue: {
-    fontSize: 8,
+    fontSize: 7.5,
     textAlign: 'right',
   },
   grandTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 6,
-    marginTop: 4,
-    borderTopWidth: 2,
+    paddingTop: 4,
+    marginTop: 3,
+    borderTopWidth: 1.5,
     borderTopColor: '#0891b2',
   },
   grandTotalLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
   },
   grandTotalValue: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
     textAlign: 'right',
   },
 
-  // Next steps section
+  // Next steps section (compact)
   nextSteps: {
     backgroundColor: '#f1f5f9',
-    padding: 12,
-    marginBottom: 15,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginBottom: 6,
   },
   nextStepsTitle: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
+    marginBottom: 3,
   },
   nextStepsText: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#475569',
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
 
   // Contact section
   contactSection: {
-    borderTopWidth: 1,
+    borderTopWidth: 0.5,
     borderTopColor: '#e2e8f0',
-    paddingTop: 12,
-    marginBottom: 15,
+    paddingTop: 6,
+    marginBottom: 6,
   },
   contactTitle: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 6,
+    marginBottom: 3,
   },
   contactGrid: {
     flexDirection: 'row',
-    gap: 20,
+    gap: 16,
   },
   contactItem: {
     flexDirection: 'row',
   },
   contactLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
     marginRight: 4,
   },
   contactValue: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
   },
 
   footer: {
-    borderTopWidth: 2,
+    borderTopWidth: 1,
     borderTopColor: '#0891b2',
-    paddingTop: 10,
+    paddingTop: 6,
     marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  footerCompany: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1e293b',
     marginBottom: 2,
   },
+  footerCompany: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 1,
+  },
   footerDetail: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
   footerIban: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     color: '#0e7490',
   },
   footerCenter: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 3,
   },
 })
 
@@ -343,14 +346,16 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
   if (data.customer.street) customerLines.push(data.customer.street)
+  const cityParts: string[] = []
   if (data.customer.postalCode && data.customer.city) {
-    customerLines.push(`${data.customer.postalCode} ${data.customer.city}`)
+    cityParts.push(`${data.customer.postalCode} ${data.customer.city}`)
   } else if (data.customer.city) {
-    customerLines.push(data.customer.city)
+    cityParts.push(data.customer.city)
   }
   if (data.customer.country && data.customer.country !== data.customer.city) {
-    customerLines.push(data.customer.country)
+    cityParts.push(data.customer.country)
   }
+  if (cityParts.length) customerLines.push(cityParts.join(', '))
 
   // Calculate total items
   const totalItems = data.items.reduce((sum, item) => sum + item.quantity, 0)
@@ -444,6 +449,7 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
           {data.items.map((item, idx) => (
             <View
               key={idx}
+              wrap={false}
               style={[
                 styles.tableRow,
                 idx % 2 === 0 ? styles.rowEven : styles.rowOdd,
@@ -459,7 +465,7 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
         </View>
 
         {/* Totals */}
-        <View style={styles.totalsSection}>
+        <View style={styles.totalsSection} wrap={false}>
           <View style={styles.totalsBox}>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Subtotaal</Text>
@@ -508,7 +514,7 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={styles.footer} wrap={false}>
           <View style={styles.footerRow}>
             <View>
               <Text style={styles.footerCompany}>{data.company.name}</Text>

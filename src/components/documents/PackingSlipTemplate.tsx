@@ -12,99 +12,93 @@ import type { InvoiceData } from '../../services/documents'
 // Using Helvetica (built-in) for all text
 
 const styles = StyleSheet.create({
-  // ===========================================
   // PAGE
-  // ===========================================
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 9,
-    padding: 40,
+    fontSize: 8,
+    padding: 28,
     backgroundColor: '#ffffff',
     color: '#1e293b',
   },
 
-  // ===========================================
   // HEADER
-  // ===========================================
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   logo: {
-    width: 120,
+    width: 80,
     height: 'auto',
-    maxHeight: 50,
+    maxHeight: 36,
     objectFit: 'contain',
-    marginRight: 12,
+    marginRight: 10,
   },
   companyInfo: {},
   companyName: {
-    fontSize: 14,
+    fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   companyDetail: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#64748b',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   headerRight: {
     alignItems: 'flex-end',
   },
   docTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 6,
+    marginBottom: 3,
   },
   docNumber: {
-    fontSize: 10,
+    fontSize: 8.5,
     color: '#475569',
     backgroundColor: '#f1f5f9',
-    padding: 6,
-    paddingHorizontal: 12,
+    padding: 4,
+    paddingHorizontal: 10,
   },
 
-  // ===========================================
   // INFO ROW
-  // ===========================================
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 8,
   },
   customerBox: {
     width: '55%',
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     borderLeftColor: '#3b82f6',
-    paddingLeft: 10,
-    paddingVertical: 6,
+    paddingLeft: 8,
+    paddingVertical: 4,
     backgroundColor: '#f8fafc',
   },
   customerLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     color: '#64748b',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  customerName: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
+    letterSpacing: 0.8,
     marginBottom: 2,
   },
+  customerName: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 1,
+  },
   customerDetail: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#475569',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   metaBox: {
     width: '40%',
@@ -112,41 +106,40 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 3,
-    paddingVertical: 2,
+    marginBottom: 1,
+    paddingVertical: 1,
   },
   metaLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
   metaValue: {
-    fontSize: 9,
+    fontSize: 8,
   },
 
-  // ===========================================
   // ITEMS TABLE
-  // ===========================================
   table: {
-    marginBottom: 20,
+    marginBottom: 8,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#1e293b',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
   },
   th: {
-    fontSize: 8,
+    fontSize: 7,
     fontFamily: 'Helvetica-Bold',
     color: '#ffffff',
     textTransform: 'uppercase',
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#e2e8f0',
+    alignItems: 'center',
   },
   rowEven: {
     backgroundColor: '#f8fafc',
@@ -155,108 +148,105 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   td: {
-    fontSize: 9,
+    fontSize: 8,
   },
   tdBold: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
   },
   // Column widths
-  colIdx: { width: 30, textAlign: 'center' },
-  colDesc: { flex: 1, paddingRight: 8 },
-  colQty: { width: 80, textAlign: 'center' },
-  colCheck: { width: 50, textAlign: 'center' },
+  colIdx: { width: 28, textAlign: 'center' },
+  colDesc: { flex: 1, paddingRight: 6 },
+  colQty: { width: 70, textAlign: 'center' },
+  colCheck: { width: 40, textAlign: 'center' },
   checkbox: {
-    width: 14,
-    height: 14,
-    borderWidth: 1.5,
+    width: 11,
+    height: 11,
+    borderWidth: 1,
     borderColor: '#94a3b8',
     marginHorizontal: 'auto',
   },
 
-  // ===========================================
-  // DELIVERY NOTES
-  // ===========================================
+  // DELIVERY NOTES (compact)
   notesSection: {
     backgroundColor: '#fef3c7',
-    borderWidth: 1,
-    borderColor: '#fcd34d',
-    padding: 10,
-    marginBottom: 15,
+    borderLeftWidth: 2,
+    borderLeftColor: '#fcd34d',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 8,
   },
   notesTitle: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     color: '#92400e',
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   notesText: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#92400e',
   },
 
-  // ===========================================
   // SIGNATURE SECTION
-  // ===========================================
   signatureSection: {
     flexDirection: 'row',
-    gap: 15,
-    marginBottom: 15,
+    gap: 10,
+    marginBottom: 8,
   },
   signatureBox: {
     flex: 1,
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#e2e8f0',
-    padding: 10,
+    borderTopWidth: 2,
+    borderTopColor: '#1e293b',
+    padding: 7,
   },
   signatureTitle: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     color: '#475569',
     textTransform: 'uppercase',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   sigField: {
-    marginBottom: 8,
+    marginBottom: 5,
   },
   sigLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   sigLine: {
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#94a3b8',
     borderStyle: 'dashed',
-    height: 14,
+    height: 11,
   },
 
-  // ===========================================
   // FOOTER
-  // ===========================================
   footer: {
-    borderTopWidth: 2,
+    borderTopWidth: 1,
     borderTopColor: '#1e293b',
-    paddingTop: 10,
+    paddingTop: 6,
     marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  footerCompany: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1e293b',
     marginBottom: 2,
   },
+  footerCompany: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 1,
+  },
   footerDetail: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
 })
 
@@ -276,18 +266,20 @@ interface PackingSlipTemplateProps {
 export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
 
-  // Build customer address lines
+  // Build customer address lines (country merged into city line)
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
   if (data.customer.street) customerLines.push(data.customer.street)
+  const cityParts: string[] = []
   if (data.customer.postalCode && data.customer.city) {
-    customerLines.push(`${data.customer.postalCode} ${data.customer.city}`)
+    cityParts.push(`${data.customer.postalCode} ${data.customer.city}`)
   } else if (data.customer.city) {
-    customerLines.push(data.customer.city)
+    cityParts.push(data.customer.city)
   }
   if (data.customer.country && data.customer.country !== data.customer.city) {
-    customerLines.push(data.customer.country)
+    cityParts.push(data.customer.country)
   }
+  if (cityParts.length) customerLines.push(cityParts.join(', '))
 
   return (
     <Document>
@@ -355,6 +347,7 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
           {data.items.map((item, idx) => (
             <View
               key={idx}
+              wrap={false}
               style={[
                 styles.tableRow,
                 idx % 2 === 0 ? styles.rowEven : styles.rowOdd,
@@ -379,7 +372,7 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
         </View>
 
         {/* ========== SIGNATURES ========== */}
-        <View style={styles.signatureSection}>
+        <View style={styles.signatureSection} wrap={false}>
           <View style={styles.signatureBox}>
             <Text style={styles.signatureTitle}>Afzender</Text>
             <View style={styles.sigField}>
@@ -405,7 +398,7 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
         </View>
 
         {/* ========== FOOTER ========== */}
-        <View style={styles.footer}>
+        <View style={styles.footer} wrap={false}>
           <View style={styles.footerRow}>
             <View>
               <Text style={styles.footerCompany}>{data.company.name}</Text>

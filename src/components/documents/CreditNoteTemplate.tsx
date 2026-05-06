@@ -15,8 +15,8 @@ import { formatPrice, formatDate } from '../../utils/format'
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 9,
-    padding: 40,
+    fontSize: 8,
+    padding: 28,
     backgroundColor: '#ffffff',
     color: '#1e293b',
   },
@@ -24,96 +24,95 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   logo: {
-    width: 120,
+    width: 80,
     height: 'auto',
-    maxHeight: 50,
+    maxHeight: 36,
     objectFit: 'contain',
-    marginRight: 12,
+    marginRight: 10,
   },
   companyInfo: {},
   companyName: {
-    fontSize: 14,
+    fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   companyDetail: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#64748b',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   headerRight: {
     alignItems: 'flex-end',
   },
   docTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 6,
-    color: '#7c3aed', // Purple for credit note
+    marginBottom: 3,
+    color: '#7c3aed',
   },
   docNumber: {
-    fontSize: 10,
+    fontSize: 8.5,
     color: '#475569',
     backgroundColor: '#ede9fe',
-    padding: 6,
-    paddingHorizontal: 12,
+    padding: 4,
+    paddingHorizontal: 10,
   },
 
-  // Credit banner
+  // Credit banner (compact)
   creditBanner: {
     backgroundColor: '#ede9fe',
-    borderWidth: 2,
-    borderColor: '#7c3aed',
-    padding: 12,
-    marginBottom: 15,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderLeftWidth: 2,
+    borderLeftColor: '#7c3aed',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 6,
   },
   creditBannerText: {
-    fontSize: 11,
+    fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
     color: '#5b21b6',
+    textAlign: 'center',
   },
 
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 8,
   },
   customerBox: {
     width: '55%',
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     borderLeftColor: '#7c3aed',
-    paddingLeft: 10,
-    paddingVertical: 6,
+    paddingLeft: 8,
+    paddingVertical: 4,
     backgroundColor: '#f8fafc',
   },
   customerLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     color: '#64748b',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  customerName: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
+    letterSpacing: 0.8,
     marginBottom: 2,
   },
+  customerName: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 1,
+  },
   customerDetail: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#475569',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   metaBox: {
     width: '40%',
@@ -121,60 +120,61 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 3,
-    paddingVertical: 2,
+    marginBottom: 1,
+    paddingVertical: 1,
   },
   metaLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
   metaValue: {
-    fontSize: 9,
+    fontSize: 8,
   },
   metaValueHighlight: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#7c3aed',
   },
 
-  // Reference section
+  // Reference section (compact, single line)
   referenceBox: {
     backgroundColor: '#faf5ff',
-    borderWidth: 1,
-    borderColor: '#e9d5ff',
-    padding: 12,
-    marginBottom: 15,
-  },
-  referenceTitle: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
+    borderLeftWidth: 2,
+    borderLeftColor: '#7c3aed',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     marginBottom: 6,
   },
+  referenceTitle: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 2,
+  },
   referenceText: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#6b21a8',
   },
 
   table: {
-    marginBottom: 15,
+    marginBottom: 8,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#6d28d9',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 5,
   },
   th: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     color: '#ffffff',
     textTransform: 'uppercase',
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    borderBottomWidth: 1,
+    paddingVertical: 3,
+    paddingHorizontal: 5,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#e2e8f0',
   },
   rowEven: {
@@ -184,172 +184,169 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   td: {
-    fontSize: 8,
+    fontSize: 7.5,
   },
   tdBold: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
   },
   tdCredit: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#16a34a', // Green for credit amounts
+    color: '#16a34a',
   },
-  colNum: { width: 22, textAlign: 'right', paddingRight: 6 },
-  colDesc: { width: 158 },
-  colUnitPrice: { width: 80, textAlign: 'right' },
-  colQty: { width: 60, textAlign: 'right' },
-  colExclVat: { width: 80, textAlign: 'right' },
-  colVatAmt: { width: 60, textAlign: 'right' },
-  colCredit: { width: 80, textAlign: 'right' },
+  colNum: { width: 20, textAlign: 'right', paddingRight: 5 },
+  colDesc: { width: 165 },
+  colUnitPrice: { width: 70, textAlign: 'right' },
+  colQty: { width: 55, textAlign: 'right' },
+  colExclVat: { width: 70, textAlign: 'right' },
+  colVatAmt: { width: 55, textAlign: 'right' },
+  colCredit: { width: 70, textAlign: 'right' },
 
   // Bottom section
   bottomSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 8,
   },
 
   // Reason box
   reasonBox: {
     width: '55%',
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#e2e8f0',
-    padding: 10,
+    padding: 7,
   },
   reasonTitle: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     color: '#475569',
     textTransform: 'uppercase',
-    marginBottom: 6,
+    marginBottom: 3,
   },
   reasonText: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
 
   // Totals
   totalsBox: {
     width: '40%',
     backgroundColor: '#f8fafc',
-    padding: 10,
+    borderTopWidth: 2,
+    borderTopColor: '#7c3aed',
+    padding: 7,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   totalLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
   totalValue: {
-    fontSize: 8,
+    fontSize: 7.5,
     textAlign: 'right',
   },
   totalValueCredit: {
-    fontSize: 8,
+    fontSize: 7.5,
     textAlign: 'right',
     color: '#16a34a',
   },
   grandTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 6,
-    marginTop: 4,
-    borderTopWidth: 2,
+    paddingTop: 4,
+    marginTop: 3,
+    borderTopWidth: 1.5,
     borderTopColor: '#7c3aed',
   },
   grandTotalLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
   },
   grandTotalValue: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
     textAlign: 'right',
     color: '#16a34a',
   },
 
-  // Processing info
+  // Processing info (compact)
   processingBox: {
     backgroundColor: '#f0fdf4',
-    borderWidth: 1,
-    borderColor: '#86efac',
-    padding: 12,
-    marginBottom: 15,
-  },
-  processingTitle: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: '#166534',
+    borderLeftWidth: 2,
+    borderLeftColor: '#16a34a',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     marginBottom: 6,
   },
-  processingText: {
+  processingTitle: {
     fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
     color: '#166534',
-    lineHeight: 1.5,
+    marginBottom: 3,
+  },
+  processingText: {
+    fontSize: 7.5,
+    color: '#166534',
+    lineHeight: 1.4,
   },
 
   footer: {
-    borderTopWidth: 2,
+    borderTopWidth: 1,
     borderTopColor: '#7c3aed',
-    paddingTop: 10,
+    paddingTop: 6,
     marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  footerCompany: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1e293b',
     marginBottom: 2,
   },
+  footerCompany: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 1,
+  },
   footerDetail: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
   footerIban: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     color: '#5b21b6',
   },
   footerCenter: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 3,
   },
 
-  // BTW verlegd notice (non-NL customer)
+  // BTW verlegd notice (single-line, professional)
   verlegdBox: {
-    borderWidth: 1,
-    borderColor: '#fbbf24',
-    backgroundColor: '#fffbeb',
-    borderLeftWidth: 4,
+    borderLeftWidth: 2,
     borderLeftColor: '#f59e0b',
-    padding: 8,
-    marginBottom: 12,
-  },
-  verlegdTitle: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: '#92400e',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 6,
   },
   verlegdText: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#78350f',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
+  },
+  verlegdLabel: {
+    fontFamily: 'Helvetica-Bold',
   },
 })
 
@@ -364,14 +361,16 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
   if (data.customer.street) customerLines.push(data.customer.street)
+  const cityParts: string[] = []
   if (data.customer.postalCode && data.customer.city) {
-    customerLines.push(`${data.customer.postalCode} ${data.customer.city}`)
+    cityParts.push(`${data.customer.postalCode} ${data.customer.city}`)
   } else if (data.customer.city) {
-    customerLines.push(data.customer.city)
+    cityParts.push(data.customer.city)
   }
   if (data.customer.country && data.customer.country !== data.customer.city) {
-    customerLines.push(data.customer.country)
+    cityParts.push(data.customer.country)
   }
+  if (cityParts.length) customerLines.push(cityParts.join(', '))
   if (data.customer.vatNumber) customerLines.push(`BTW: ${data.customer.vatNumber}`)
 
   return (
@@ -444,10 +443,10 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
         {/* BTW verlegd notice */}
         {isReverseCharge && (
           <View style={styles.verlegdBox}>
-            <Text style={styles.verlegdTitle}>BTW verlegd — intracommunautaire levering</Text>
             <Text style={styles.verlegdText}>
-              0% BTW. De BTW is verlegd naar de afnemer.{'\n'}
-              BTW-nummer afnemer: {data.customer.vatNumber || '—'}
+              <Text style={styles.verlegdLabel}>BTW verlegd — intracommunautaire levering</Text>
+              {' (Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW. BTW-nummer afnemer: '}
+              {data.customer.vatNumber || '—'}
             </Text>
           </View>
         )}
@@ -471,6 +470,7 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
             return (
               <View
                 key={idx}
+                wrap={false}
                 style={[
                   styles.tableRow,
                   idx % 2 === 0 ? styles.rowEven : styles.rowOdd,
@@ -489,7 +489,7 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
         </View>
 
         {/* Bottom: Reason + Totals */}
-        <View style={styles.bottomSection}>
+        <View style={styles.bottomSection} wrap={false}>
           <View style={styles.reasonBox}>
             <Text style={styles.reasonTitle}>Reden creditering</Text>
             <Text style={styles.reasonText}>
@@ -527,7 +527,7 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={styles.footer} wrap={false}>
           <View style={styles.footerRow}>
             <View>
               <Text style={styles.footerCompany}>{data.company.name}</Text>

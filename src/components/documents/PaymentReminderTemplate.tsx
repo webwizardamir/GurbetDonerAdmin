@@ -15,8 +15,8 @@ import { formatPrice, formatDate } from '../../utils/format'
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 9,
-    padding: 40,
+    fontSize: 8,
+    padding: 28,
     backgroundColor: '#ffffff',
     color: '#1e293b',
   },
@@ -24,29 +24,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   logo: {
-    width: 120,
+    width: 80,
     height: 'auto',
-    maxHeight: 50,
+    maxHeight: 36,
     objectFit: 'contain',
-    marginRight: 12,
+    marginRight: 10,
   },
   companyInfo: {},
   companyName: {
-    fontSize: 14,
+    fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   companyDetail: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#64748b',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   headerRight: {
     alignItems: 'flex-end',
@@ -56,34 +56,35 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 6,
-    color: '#dc2626', // Red for reminder
+    marginBottom: 3,
+    color: '#dc2626',
   },
   docNumber: {
-    fontSize: 10,
+    fontSize: 8.5,
     color: '#475569',
     backgroundColor: '#fecaca',
-    padding: 6,
-    paddingHorizontal: 12,
+    padding: 4,
+    paddingHorizontal: 10,
   },
 
-  // Urgent banner
+  // Urgent banner (compact)
   urgentBanner: {
     backgroundColor: '#fef2f2',
-    borderWidth: 2,
-    borderColor: '#dc2626',
-    padding: 15,
-    marginBottom: 20,
+    borderLeftWidth: 2,
+    borderLeftColor: '#dc2626',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginBottom: 8,
   },
   urgentTitle: {
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     color: '#dc2626',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 1,
   },
   urgentText: {
-    fontSize: 9,
+    fontSize: 7.5,
     color: '#991b1b',
     textAlign: 'center',
   },
@@ -91,33 +92,33 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   customerBox: {
     width: '55%',
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     borderLeftColor: '#dc2626',
-    paddingLeft: 10,
-    paddingVertical: 6,
+    paddingLeft: 8,
+    paddingVertical: 4,
     backgroundColor: '#f8fafc',
   },
   customerLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     color: '#64748b',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  customerName: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
+    letterSpacing: 0.8,
     marginBottom: 2,
   },
+  customerName: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 1,
+  },
   customerDetail: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#475569',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   metaBox: {
     width: '40%',
@@ -125,34 +126,35 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 3,
-    paddingVertical: 2,
+    marginBottom: 1,
+    paddingVertical: 1,
   },
   metaLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
   metaValue: {
-    fontSize: 9,
+    fontSize: 8,
   },
   metaValueRed: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#dc2626',
   },
 
-  // Invoice reference box
+  // Invoice reference box (compact)
   invoiceRefBox: {
     backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    padding: 12,
-    marginBottom: 20,
+    borderLeftWidth: 2,
+    borderLeftColor: '#fca5a5',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginBottom: 8,
   },
   invoiceRefTitle: {
-    fontSize: 10,
+    fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   invoiceRefGrid: {
     flexDirection: 'row',
@@ -161,64 +163,66 @@ const styles = StyleSheet.create({
   invoiceRefItem: {
     width: '50%',
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   invoiceRefLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
-    width: 100,
+    width: 95,
   },
   invoiceRefValue: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
   },
 
-  // Amount due box
+  // Amount due box (compact)
   amountDueBox: {
     backgroundColor: '#dc2626',
-    padding: 15,
-    marginBottom: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
     alignItems: 'center',
   },
   amountDueLabel: {
-    fontSize: 10,
+    fontSize: 8.5,
     color: '#ffffff',
-    marginBottom: 4,
+    marginBottom: 1,
   },
   amountDueValue: {
-    fontSize: 24,
+    fontSize: 18,
     fontFamily: 'Helvetica-Bold',
     color: '#ffffff',
   },
 
   // Message section
   messageSection: {
-    marginBottom: 20,
-  },
-  messageTitle: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
     marginBottom: 8,
   },
+  messageTitle: {
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 4,
+  },
   messageText: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#475569',
-    lineHeight: 1.6,
+    lineHeight: 1.4,
   },
 
-  // Bank details (prominent)
+  // Bank details (prominent but compact)
   bankSection: {
     backgroundColor: '#f0fdf4',
-    borderWidth: 2,
-    borderColor: '#22c55e',
-    padding: 15,
-    marginBottom: 20,
+    borderLeftWidth: 2,
+    borderLeftColor: '#22c55e',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 8,
   },
   bankTitle: {
-    fontSize: 11,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
     color: '#16a34a',
-    marginBottom: 10,
+    marginBottom: 5,
     textAlign: 'center',
   },
   bankGrid: {
@@ -229,85 +233,86 @@ const styles = StyleSheet.create({
   bankItem: {
     width: '50%',
     flexDirection: 'row',
-    marginBottom: 6,
+    marginBottom: 3,
     justifyContent: 'center',
   },
   bankLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#475569',
-    marginRight: 8,
+    marginRight: 6,
   },
   bankValue: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
   },
   bankIban: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Courier-Bold',
     color: '#16a34a',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 4,
     letterSpacing: 1,
   },
   paymentRef: {
-    fontSize: 9,
+    fontSize: 8,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 4,
     color: '#475569',
   },
 
-  // Action section
+  // Action section (compact)
   actionSection: {
     backgroundColor: '#fef3c7',
-    borderWidth: 1,
-    borderColor: '#fcd34d',
-    padding: 12,
-    marginBottom: 15,
-  },
-  actionTitle: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: '#92400e',
+    borderLeftWidth: 2,
+    borderLeftColor: '#fcd34d',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     marginBottom: 6,
   },
-  actionText: {
+  actionTitle: {
     fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
     color: '#92400e',
-    lineHeight: 1.5,
+    marginBottom: 3,
+  },
+  actionText: {
+    fontSize: 7.5,
+    color: '#92400e',
+    lineHeight: 1.4,
   },
 
   footer: {
-    borderTopWidth: 2,
+    borderTopWidth: 1,
     borderTopColor: '#dc2626',
-    paddingTop: 10,
+    paddingTop: 6,
     marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  footerCompany: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1e293b',
     marginBottom: 2,
   },
+  footerCompany: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 1,
+  },
   footerDetail: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
   footerIban: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     color: '#991b1b',
   },
   footerCenter: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 3,
   },
 })
 
@@ -332,14 +337,16 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
   if (data.customer.street) customerLines.push(data.customer.street)
+  const cityParts: string[] = []
   if (data.customer.postalCode && data.customer.city) {
-    customerLines.push(`${data.customer.postalCode} ${data.customer.city}`)
+    cityParts.push(`${data.customer.postalCode} ${data.customer.city}`)
   } else if (data.customer.city) {
-    customerLines.push(data.customer.city)
+    cityParts.push(data.customer.city)
   }
   if (data.customer.country && data.customer.country !== data.customer.city) {
-    customerLines.push(data.customer.country)
+    cityParts.push(data.customer.country)
   }
+  if (cityParts.length) customerLines.push(cityParts.join(', '))
 
   // Determine urgency level
   const isUrgent = daysOverdue > 14
@@ -490,7 +497,7 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={styles.footer} wrap={false}>
           <View style={styles.footerRow}>
             <View>
               <Text style={styles.footerCompany}>{data.company.name}</Text>
