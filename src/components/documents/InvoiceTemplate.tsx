@@ -18,8 +18,8 @@ const styles = StyleSheet.create({
   // ===========================================
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 9,
-    padding: 40,
+    fontSize: 8,
+    padding: 28,
     backgroundColor: '#ffffff',
     color: '#1e293b',
   },
@@ -31,40 +31,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   logo: {
-    width: 120,
+    width: 80,
     height: 'auto',
-    maxHeight: 50,
+    maxHeight: 36,
     objectFit: 'contain',
-    marginRight: 12,
+    marginRight: 10,
   },
   companyInfo: {},
   companyName: {
-    fontSize: 14,
+    fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   companyDetail: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#64748b',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   headerRight: {
     alignItems: 'flex-end',
   },
   docTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 6,
-    color: '#16a34a', // Brand green
+    color: '#16a34a',
   },
 
   // ===========================================
@@ -73,33 +72,33 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 8,
   },
   customerBox: {
     width: '55%',
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     borderLeftColor: '#22c55e',
-    paddingLeft: 10,
-    paddingVertical: 6,
+    paddingLeft: 8,
+    paddingVertical: 4,
     backgroundColor: '#f8fafc',
   },
   customerLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     color: '#64748b',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  customerName: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
+    letterSpacing: 0.8,
     marginBottom: 2,
   },
+  customerName: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 1,
+  },
   customerDetail: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#475569',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   metaBox: {
     width: '40%',
@@ -107,71 +106,65 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 3,
-    paddingVertical: 2,
+    marginBottom: 1,
+    paddingVertical: 1,
   },
   metaLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
   metaValue: {
-    fontSize: 9,
+    fontSize: 8,
   },
   metaValueDue: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#dc2626',
   },
 
   // ===========================================
-  // REVERSE-CHARGE NOTICE (BTW verlegd)
+  // REVERSE-CHARGE NOTICE (single-line, professional)
   // ===========================================
   verlegdBox: {
-    borderWidth: 1,
-    borderColor: '#fbbf24',
-    backgroundColor: '#fffbeb',
-    borderLeftWidth: 4,
+    borderLeftWidth: 2,
     borderLeftColor: '#f59e0b',
-    padding: 8,
-    marginBottom: 12,
-  },
-  verlegdTitle: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: '#92400e',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 6,
   },
   verlegdText: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#78350f',
-    lineHeight: 1.4,
+    lineHeight: 1.35,
+  },
+  verlegdLabel: {
+    fontFamily: 'Helvetica-Bold',
   },
 
   // ===========================================
   // ITEMS TABLE
   // ===========================================
   table: {
-    marginBottom: 15,
+    marginBottom: 8,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#166534', // Dark green
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    backgroundColor: '#166534',
+    paddingVertical: 4,
+    paddingHorizontal: 5,
   },
   th: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     color: '#ffffff',
     textTransform: 'uppercase',
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    borderBottomWidth: 1,
+    paddingVertical: 3,
+    paddingHorizontal: 5,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#e2e8f0',
   },
   rowEven: {
@@ -181,21 +174,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   td: {
-    fontSize: 8,
+    fontSize: 7.5,
   },
   tdBold: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
   },
-  // Column widths for new layout
-  colNum: { width: 22, textAlign: 'right', paddingRight: 6 },
-  colDesc: { width: 118 },
+  // Column widths
+  colNum: { width: 20, textAlign: 'right', paddingRight: 5 },
+  colDesc: { width: 130 },
   colNote: { width: 60 },
-  colUnitPrice: { width: 65, textAlign: 'right' },
+  colUnitPrice: { width: 60, textAlign: 'right' },
   colQty: { width: 50, textAlign: 'right' },
-  colExclVat: { width: 70, textAlign: 'right' },
-  colVatAmt: { width: 55, textAlign: 'right' },
-  colInclVat: { width: 70, textAlign: 'right' },
+  colExclVat: { width: 65, textAlign: 'right' },
+  colVatAmt: { width: 50, textAlign: 'right' },
+  colInclVat: { width: 65, textAlign: 'right' },
 
   // ===========================================
   // BOTTOM SECTION
@@ -203,60 +196,60 @@ const styles = StyleSheet.create({
   bottomSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 8,
   },
 
   // Left: Payment + Receipt
   leftColumn: {
     width: '55%',
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   actionBox: {
     flex: 1,
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#e2e8f0',
-    borderTopWidth: 3,
-    borderTopColor: '#16a34a', // Green accent top border
-    padding: 8,
+    borderTopWidth: 2,
+    borderTopColor: '#16a34a',
+    padding: 6,
   },
   actionTitle: {
-    fontSize: 8,
+    fontSize: 7,
     fontFamily: 'Helvetica-Bold',
     color: '#166534',
     textTransform: 'uppercase',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   paymentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   checkbox: {
-    width: 10,
-    height: 10,
-    borderWidth: 1,
+    width: 8,
+    height: 8,
+    borderWidth: 0.5,
     borderColor: '#94a3b8',
-    marginRight: 6,
+    marginRight: 5,
   },
   paymentLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#1e293b',
   },
   sigField: {
-    marginBottom: 6,
+    marginBottom: 4,
   },
   sigLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   sigLine: {
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#94a3b8',
     borderStyle: 'dashed',
-    height: 12,
+    height: 10,
   },
 
   // Right: Totals
@@ -265,43 +258,43 @@ const styles = StyleSheet.create({
   },
   totalsBox: {
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#e2e8f0',
-    borderTopWidth: 3,
-    borderTopColor: '#16a34a', // Green accent top border
-    padding: 10,
+    borderTopWidth: 2,
+    borderTopColor: '#16a34a',
+    padding: 7,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   totalLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
   totalValue: {
-    fontSize: 8,
+    fontSize: 7.5,
     textAlign: 'right',
   },
   grandTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 6,
-    marginTop: 4,
-    borderTopWidth: 2,
-    borderTopColor: '#16a34a', // Brand green
+    paddingTop: 4,
+    marginTop: 3,
+    borderTopWidth: 1.5,
+    borderTopColor: '#16a34a',
   },
   grandTotalLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
     color: '#166534',
   },
   grandTotalValue: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
     textAlign: 'right',
-    color: '#16a34a', // Brand green
+    color: '#16a34a',
   },
 
   // ===========================================
@@ -309,13 +302,14 @@ const styles = StyleSheet.create({
   // ===========================================
   paymentTerms: {
     backgroundColor: '#dcfce7',
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#16a34a',
-    padding: 8,
-    marginBottom: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginBottom: 6,
   },
   paymentTermsText: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     color: '#166534',
     textAlign: 'center',
@@ -325,29 +319,29 @@ const styles = StyleSheet.create({
   // FOOTER
   // ===========================================
   footer: {
-    borderTopWidth: 2,
+    borderTopWidth: 1,
     borderTopColor: '#16a34a',
-    paddingTop: 10,
+    paddingTop: 6,
     marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  footerCompany: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1e293b',
     marginBottom: 2,
   },
+  footerCompany: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 1,
+  },
   footerDetail: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
   footerIban: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     color: '#166534',
   },
@@ -357,10 +351,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   footerCenter: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 3,
   },
 })
 
@@ -372,18 +366,20 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
   const isReverseCharge = !!data.customer.country && data.customer.country.trim().toUpperCase() !== 'NL'
 
-  // Build customer address lines (avoiding duplicates)
+  // Build customer address lines (avoiding duplicates, country merged into city line)
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
   if (data.customer.street) customerLines.push(data.customer.street)
+  const cityParts: string[] = []
   if (data.customer.postalCode && data.customer.city) {
-    customerLines.push(`${data.customer.postalCode} ${data.customer.city}`)
+    cityParts.push(`${data.customer.postalCode} ${data.customer.city}`)
   } else if (data.customer.city) {
-    customerLines.push(data.customer.city)
+    cityParts.push(data.customer.city)
   }
   if (data.customer.country && data.customer.country !== data.customer.city) {
-    customerLines.push(data.customer.country)
+    cityParts.push(data.customer.country)
   }
+  if (cityParts.length) customerLines.push(cityParts.join(', '))
   if (data.customer.vatNumber) customerLines.push(`BTW: ${data.customer.vatNumber}`)
 
   return (
@@ -448,10 +444,10 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
         {/* ========== BTW VERLEGD NOTICE (non-NL customer) ========== */}
         {isReverseCharge && (
           <View style={styles.verlegdBox}>
-            <Text style={styles.verlegdTitle}>BTW verlegd — intracommunautaire levering</Text>
             <Text style={styles.verlegdText}>
-              0% BTW. De BTW is verlegd naar de afnemer.{'\n'}
-              BTW-nummer afnemer: {data.customer.vatNumber || '—'}
+              <Text style={styles.verlegdLabel}>BTW verlegd — intracommunautaire levering</Text>
+              {' (Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW. BTW-nummer afnemer: '}
+              {data.customer.vatNumber || '—'}
             </Text>
           </View>
         )}
@@ -476,6 +472,7 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
             return (
               <View
                 key={idx}
+                wrap={false}
                 style={[
                   styles.tableRow,
                   idx % 2 === 0 ? styles.rowEven : styles.rowOdd,
@@ -495,7 +492,7 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
         </View>
 
         {/* ========== BOTTOM: PAYMENT/RECEIPT + TOTALS ========== */}
-        <View style={styles.bottomSection}>
+        <View style={styles.bottomSection} wrap={false}>
           {/* Left: Payment Method + Receipt */}
           <View style={styles.leftColumn}>
             <View style={styles.actionBox}>
@@ -559,7 +556,7 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
         )}
 
         {/* ========== FOOTER ========== */}
-        <View style={styles.footer}>
+        <View style={styles.footer} wrap={false}>
           <View style={styles.footerRow}>
             <View>
               <Text style={styles.footerCompany}>{data.company.name}</Text>
