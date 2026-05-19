@@ -2,7 +2,7 @@
 // Displays company info, contact, location, VAT, and action menu.
 
 import { useTranslation } from 'react-i18next'
-import { Building2, Phone, Mail, MapPin, Globe } from 'lucide-react'
+import { Building2, Phone, Mail, MapPin, Globe, Tags } from 'lucide-react'
 import type { Customer } from '../../types'
 import CustomerActionMenu from './CustomerActionMenu'
 
@@ -108,6 +108,19 @@ export default function CustomerTableRow({
           </span>
         ) : (
           <span className="text-sm text-slate-400">-</span>
+        )}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap text-center">
+        {customer.price_list ? (
+          <span
+            title={customer.price_list.name}
+            aria-label={`${t('customers.priceList')}: ${customer.price_list.name}`}
+            className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+          >
+            <Tags className="w-3.5 h-3.5" />
+          </span>
+        ) : (
+          <span className="text-sm text-slate-300 dark:text-slate-600">—</span>
         )}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>

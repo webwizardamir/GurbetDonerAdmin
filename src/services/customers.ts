@@ -31,7 +31,7 @@ export interface CustomerFilters {
 export async function fetchCustomers(filters?: CustomerFilters): Promise<Customer[]> {
   let query = supabase
     .from('customers')
-    .select('*')
+    .select('*, price_list:price_lists(id, name, is_active)')
     .order('company_name', { ascending: true })
 
   if (filters?.city) {

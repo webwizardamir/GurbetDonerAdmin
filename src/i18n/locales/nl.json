@@ -377,6 +377,7 @@
     "orderDate": "Besteldatum",
     "customer": "Klant",
     "selectCustomer": "Selecteer klant",
+    "usingPriceList": "Gebruikt prijslijst: {{name}}",
     "addItems": "Artikelen toevoegen",
     "orderItems": "Bestelartikelen",
     "itemsTable": {

@@ -352,6 +352,11 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
                   <div className="min-w-0">
                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">{t('orders.customer')}</p>
                     <p className="font-medium text-slate-900 dark:text-white truncate">{selectedCustomer.company_name}</p>
+                    {selectedCustomer.price_list && (
+                      <p className="mt-0.5 text-xs text-purple-700 dark:text-purple-400 truncate">
+                        {t('orders.usingPriceList', { name: selectedCustomer.price_list.name })}
+                      </p>
+                    )}
                     {customerSummaryLines.length > 0 && (
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{customerSummaryLines.join(' · ')}</p>
                     )}

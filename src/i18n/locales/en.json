@@ -377,6 +377,7 @@
     "orderDate": "Order Date",
     "customer": "Customer",
     "selectCustomer": "Select Customer",
+    "usingPriceList": "Using price list: {{name}}",
     "addItems": "Add Items",
     "orderItems": "Order Items",
     "itemsTable": {
