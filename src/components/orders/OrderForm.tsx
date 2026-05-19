@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X } from 'lucide-react'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
 import { useOrders } from '../../hooks/useOrders'
-import { getEffectivePrice, getAvailableUnitPricesForCustomer } from '../../services/pricing'
+import { supabase } from '../../services/supabase'
 import BarcodeScanner from './BarcodeScanner'
 import CustomerSelect from './CustomerSelect'
 import ProductSearch from './ProductSearch'
@@ -48,7 +48,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [loadingPrices, setLoadingPrices] = useState(false)
+  const [loadingPrices] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [initialized, setInitialized] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState(false)
@@ -56,6 +56,82 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     product: Product
     availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
   } | null>(null)
+
+  // Customer pricing context — pre-fetched once per customer-change so adding
+  // products to the order is instant (no per-click round-trips). Keys are
+  // product_id; values are unit-type → price/tax maps.
+  const [customerPrices, setCustomerPrices] = useState<Map<string, Map<UnitType | '*', number>>>(new Map())
+  const [listItems, setListItems] = useState<Map<string, Map<UnitType, { price: number; tax: number | null }>>>(new Map())
+
+  // Pre-fetch all custom-pricing context for the selected customer in one trip.
+  useEffect(() => {
+    if (!selectedCustomer) {
+      setCustomerPrices(new Map())
+      setListItems(new Map())
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const [cpRes, plRes] = await Promise.all([
+        supabase
+          .from('customer_prices')
+          .select('product_id, unit_type, custom_price')
+          .eq('customer_id', selectedCustomer.id),
+        selectedCustomer.price_list_id
+          ? supabase
+              .from('price_list_items')
+              .select('product_id, unit_type, price_cents, tax_rate')
+              .eq('price_list_id', selectedCustomer.price_list_id)
+          : Promise.resolve({ data: [] as Array<{ product_id: string; unit_type: UnitType; price_cents: number; tax_rate: number | null }>, error: null }),
+      ])
+      if (cancelled) return
+
+      const cpMap = new Map<string, Map<UnitType | '*', number>>()
+      for (const row of (cpRes.data as Array<{ product_id: string; unit_type: UnitType | null; custom_price: number }>) ?? []) {
+        if (!cpMap.has(row.product_id)) cpMap.set(row.product_id, new Map())
+        cpMap.get(row.product_id)!.set(row.unit_type ?? '*', row.custom_price)
+      }
+      setCustomerPrices(cpMap)
+
+      const plMap = new Map<string, Map<UnitType, { price: number; tax: number | null }>>()
+      for (const row of (plRes.data as Array<{ product_id: string; unit_type: UnitType; price_cents: number; tax_rate: number | null }>) ?? []) {
+        if (!plMap.has(row.product_id)) plMap.set(row.product_id, new Map())
+        plMap.get(row.product_id)!.set(row.unit_type, { price: row.price_cents, tax: row.tax_rate })
+      }
+      setListItems(plMap)
+    })()
+    return () => { cancelled = true }
+  }, [selectedCustomer?.id, selectedCustomer?.price_list_id])
+
+  // Synchronous price resolver — walks the full resolution chain using the
+  // pre-fetched context. No round-trips, safe to call in render or click handlers.
+  const resolveEffectivePrice = useCallback((product: Product, unitType: UnitType): number => {
+    const cp = customerPrices.get(product.id)
+    if (cp?.has(unitType)) return cp.get(unitType)!
+    if (cp?.has('*'))      return cp.get('*')!
+    const pl = listItems.get(product.id)?.get(unitType)
+    if (typeof pl?.price === 'number') return pl.price
+    const up = product.unit_prices?.find(u => u.unit_type === unitType && u.price != null)
+    if (typeof up?.price === 'number') return up.price
+    return product.base_price
+  }, [customerPrices, listItems])
+
+  // Union of all unit types available for a product (product entries +
+  // anything the customer's price list adds).
+  const enumerateUnitTypes = useCallback((product: Product): { unitType: UnitType; price: number; isDefault: boolean }[] => {
+    const units = new Set<UnitType>()
+    for (const u of product.unit_prices ?? []) {
+      if (u.price != null) units.add(u.unit_type)
+    }
+    const pl = listItems.get(product.id)
+    if (pl) for (const u of pl.keys()) units.add(u)
+    if (units.size === 0) units.add(product.unit_type)
+    return Array.from(units).map(ut => ({
+      unitType: ut,
+      price: resolveEffectivePrice(product, ut),
+      isDefault: ut === product.unit_type,
+    }))
+  }, [listItems, resolveEffectivePrice])
 
   const generateLineId = () => `line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
@@ -124,38 +200,13 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     }
   }
 
-  const addProduct = async (product: Product) => {
-    setLoadingPrices(true)
-    try {
-      let availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
-      if (selectedCustomer) {
-        availableUnitTypes = await getAvailableUnitPricesForCustomer(
-          selectedCustomer.id, product.id, selectedCustomer.price_list_id,
-        )
-        // Fallback: product has no per-unit price entries. Resolve the default
-        // unit's price via getEffectivePrice so we still respect the customer's
-        // price list / per-customer override.
-        if (availableUnitTypes.length === 0) {
-          const price = await getEffectivePrice(
-            selectedCustomer.id, product.id, product.unit_type, selectedCustomer.price_list_id,
-          )
-          availableUnitTypes = [{ unitType: product.unit_type, price, isDefault: true }]
-        }
-      } else {
-        availableUnitTypes = getProductUnitTypes(product)
-      }
-      if (availableUnitTypes.length === 0) availableUnitTypes = getProductUnitTypes(product)
-      if (availableUnitTypes.length > 1) { setUnitTypeSelector({ product, availableUnitTypes }); return }
-      const defaultUnit = availableUnitTypes[0]
-      addProductWithUnitType(product, defaultUnit.unitType, defaultUnit.price, availableUnitTypes)
-    } catch {
-      const unitTypes = getProductUnitTypes(product)
-      if (unitTypes.length > 1) { setUnitTypeSelector({ product, availableUnitTypes: unitTypes }); return }
-      const defaultUnit = unitTypes[0]
-      addProductWithUnitType(product, defaultUnit.unitType, defaultUnit.price, unitTypes)
-    } finally {
-      setLoadingPrices(false)
-    }
+  const addProduct = (product: Product) => {
+    const availableUnitTypes = selectedCustomer
+      ? enumerateUnitTypes(product)
+      : getProductUnitTypes(product)
+    if (availableUnitTypes.length > 1) { setUnitTypeSelector({ product, availableUnitTypes }); return }
+    const defaultUnit = availableUnitTypes[0]
+    addProductWithUnitType(product, defaultUnit.unitType, defaultUnit.price, availableUnitTypes)
   }
 
   const handleUnitTypeSelect = (unitType: UnitType) => {
@@ -195,37 +246,31 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
 
   const removeItem = (lineId: string) => setItems(items.filter(i => i.lineId !== lineId))
 
-  // Update prices when customer changes
+  // Re-price existing items synchronously when the pricing context changes
+  // (i.e. after selecting a customer, once customer_prices + price_list_items
+  // have been pre-fetched). No round-trips per item.
   useEffect(() => {
     if (!selectedCustomer || items.length === 0) return
-    const updatePrices = async () => {
-      setLoadingPrices(true)
-      try {
-        const updatedItems = await Promise.all(
-          items.map(async item => {
-            const availableUnitTypes = await getAvailableUnitPricesForCustomer(selectedCustomer.id, item.product.id, selectedCustomer.price_list_id)
-            if (availableUnitTypes.length > 0) {
-              const currentUnitInfo = availableUnitTypes.find(ut => ut.unitType === item.selectedUnitType)
-              if (currentUnitInfo) return { ...item, unit_price: currentUnitInfo.price, availableUnitTypes }
-              const defaultUnit = availableUnitTypes.find(ut => ut.isDefault) || availableUnitTypes[0]
-              return { ...item, selectedUnitType: defaultUnit.unitType, unit_price: defaultUnit.price, availableUnitTypes }
-            }
-            const price = await getEffectivePrice(selectedCustomer.id, item.product.id, item.selectedUnitType, selectedCustomer.price_list_id)
-            return { ...item, unit_price: price }
-          })
-        )
-        const mergedItems: OrderLineItem[] = []
-        for (const item of updatedItems) {
-          const existingIdx = mergedItems.findIndex(i => i.product.id === item.product.id && i.selectedUnitType === item.selectedUnitType)
-          if (existingIdx >= 0) { mergedItems[existingIdx] = { ...mergedItems[existingIdx], quantity: mergedItems[existingIdx].quantity + item.quantity } }
-          else { mergedItems.push(item) }
-        }
-        setItems(mergedItems)
-      } catch (err) { console.error('Error updating prices:', err) }
-      finally { setLoadingPrices(false) }
+    const updatedItems = items.map(item => {
+      const available = enumerateUnitTypes(item.product)
+      if (available.length === 0) return item
+      const currentUnit = available.find(ut => ut.unitType === item.selectedUnitType)
+      if (currentUnit) return { ...item, unit_price: currentUnit.price, availableUnitTypes: available }
+      const defaultUnit = available.find(ut => ut.isDefault) || available[0]
+      return { ...item, selectedUnitType: defaultUnit.unitType, unit_price: defaultUnit.price, availableUnitTypes: available }
+    })
+    const mergedItems: OrderLineItem[] = []
+    for (const item of updatedItems) {
+      const existingIdx = mergedItems.findIndex(i => i.product.id === item.product.id && i.selectedUnitType === item.selectedUnitType)
+      if (existingIdx >= 0) {
+        mergedItems[existingIdx] = { ...mergedItems[existingIdx], quantity: mergedItems[existingIdx].quantity + item.quantity }
+      } else {
+        mergedItems.push(item)
+      }
     }
-    updatePrices()
-  }, [selectedCustomer?.id])
+    setItems(mergedItems)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerPrices, listItems])
 
   // Reverse-charge: NL company selling to a non-NL customer charges 0% BTW
   // ("BTW verlegd"). Imported orders are frozen — they keep whatever VAT
@@ -409,6 +454,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
                 loadingPrices={loadingPrices}
                 onAddProduct={addProduct}
                 onOpenScanner={() => setShowScanner(true)}
+                getDisplayPrice={selectedCustomer
+                  ? (p) => resolveEffectivePrice(p, p.unit_type)
+                  : undefined}
               />
             </div>
 

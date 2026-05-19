@@ -13,6 +13,9 @@ interface ProductSearchProps {
   loadingPrices: boolean
   onAddProduct: (product: Product) => void
   onOpenScanner: () => void
+  /** When provided, override the displayed price per product (customer-aware
+   *  resolver). Falls back to product.base_price when undefined. */
+  getDisplayPrice?: (product: Product) => number
 }
 
 export default function ProductSearch({
@@ -21,6 +24,7 @@ export default function ProductSearch({
   loadingPrices,
   onAddProduct,
   onOpenScanner,
+  getDisplayPrice,
 }: ProductSearchProps) {
   const { t } = useTranslation()
   const [productSearch, setProductSearch] = useState('')
@@ -96,7 +100,7 @@ export default function ProductSearch({
                   </div>
                 </div>
                 <span className="text-sm text-slate-600 dark:text-slate-300">
-                  {formatPrice(product.base_price)}
+                  {formatPrice(getDisplayPrice ? getDisplayPrice(product) : product.base_price)}
                 </span>
               </button>
             ))

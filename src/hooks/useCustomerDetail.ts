@@ -75,7 +75,7 @@ export function useCustomerDetail(customerId: string | undefined) {
       const [customerResult, ordersResult] = await Promise.all([
         supabase
           .from('customers')
-          .select('*')
+          .select('*, price_list:price_lists(id, name, is_active)')
           .eq('id', customerId)
           .single(),
         supabase
