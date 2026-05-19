@@ -35,14 +35,12 @@ export function useSoldProducts() {
     key: DateRangeKey,
     customRange?: { start: string; end: string },
   ) => {
-    const presets = getDateRangePresets()
-    if (key === 'custom' && customRange) {
-      setDateRange_({ ...customRange, label: 'Custom' })
-    } else {
-      setDateRange_(presets[key as keyof typeof presets] || presets.yesterday)
-    }
+    const next: DateRange = (key === 'custom' && customRange)
+      ? { ...customRange, label: 'Custom' }
+      : (getDateRangePresets()[key as keyof typeof presets] || getDateRangePresets().yesterday)
+    setDateRangeState(next)
     setDateRangeKey(key)
-    function setDateRange_(r: DateRange) { setDateRangeState(r) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchData = useCallback(async () => {
@@ -58,7 +56,8 @@ export function useSoldProducts() {
     }
   }, [dateRange.start, dateRange.end])
 
-  useEffect(() => { void fetchData() }, [dateRange.start, dateRange.end])
+  // Depend on fetchData itself so any future change to its deps stays in sync.
+  useEffect(() => { void fetchData() }, [fetchData])
 
   // Distinct option lists for filter dropdowns — derived from the loaded breakdown
   const cityOptions = useMemo(() => {
