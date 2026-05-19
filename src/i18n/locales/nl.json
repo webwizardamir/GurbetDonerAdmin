@@ -805,6 +805,13 @@
     "today": "Vandaag",
     "thisWeek": "Deze week",
     "custom": "Aangepast",
+    "filters": {
+      "allCities": "Alle steden",
+      "allCustomers": "Alle klanten",
+      "allCategories": "Alle categorieën",
+      "allUnits": "Alle eenheden",
+      "clear": "Filters wissen"
+    },
     "summary": {
       "products": "Producten",
       "totalQty": "Totaal aantal",

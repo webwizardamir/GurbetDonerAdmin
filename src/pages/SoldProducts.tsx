@@ -5,6 +5,11 @@ import {
   Loader2,
   RefreshCw,
   Calendar,
+  MapPin,
+  Users,
+  Tag,
+  Ruler,
+  X,
   Copy,
   Printer,
   FileText,
@@ -33,6 +38,14 @@ export default function SoldProducts() {
     dateRangeKey,
     setDateRange,
     refresh,
+    cityFilter,     setCityFilter,
+    customerFilter, setCustomerFilter,
+    categoryFilter, setCategoryFilter,
+    unitFilter,     setUnitFilter,
+    cityOptions,
+    customerOptions,
+    categoryOptions,
+    unitOptions,
   } = useSoldProducts()
 
   const [showPDF, setShowPDF] = useState(false)
@@ -180,6 +193,78 @@ export default function SoldProducts() {
           </button>
         </div>
       </div>
+
+      {/* Filters row (Phase 4) — appears once data has loaded */}
+      {(cityOptions.length > 0 || customerOptions.length > 0 || categoryOptions.length > 0 || unitOptions.length > 1) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {cityOptions.length > 0 && (
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={cityFilter}
+                onChange={e => setCityFilter(e.target.value)}
+                className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+              >
+                <option value="">{t('soldProducts.filters.allCities')}</option>
+                {cityOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          )}
+          {customerOptions.length > 0 && (
+            <div className="relative">
+              <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={customerFilter}
+                onChange={e => setCustomerFilter(e.target.value)}
+                className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer max-w-[220px]"
+              >
+                <option value="">{t('soldProducts.filters.allCustomers')}</option>
+                {customerOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
+          {categoryOptions.length > 0 && (
+            <div className="relative">
+              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+                className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+              >
+                <option value="">{t('soldProducts.filters.allCategories')}</option>
+                {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          )}
+          {unitOptions.length > 1 && (
+            <div className="relative">
+              <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={unitFilter}
+                onChange={e => setUnitFilter(e.target.value)}
+                className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+              >
+                <option value="">{t('soldProducts.filters.allUnits')}</option>
+                {unitOptions.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+          )}
+          {(cityFilter || customerFilter || categoryFilter || unitFilter) && (
+            <button
+              onClick={() => {
+                setCityFilter('')
+                setCustomerFilter('')
+                setCategoryFilter('')
+                setUnitFilter('')
+              }}
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+              {t('soldProducts.filters.clear')}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Error State */}
       {error && (

@@ -805,6 +805,13 @@
     "today": "Today",
     "thisWeek": "This Week",
     "custom": "Custom",
+    "filters": {
+      "allCities": "All cities",
+      "allCustomers": "All customers",
+      "allCategories": "All categories",
+      "allUnits": "All units",
+      "clear": "Clear filters"
+    },
     "summary": {
       "products": "Products",
       "totalQty": "Total Qty",
