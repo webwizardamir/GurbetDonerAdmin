@@ -26,6 +26,7 @@ import type { Product } from '../types'
 import { productExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import { downloadProductTemplate } from '../utils/productTemplate'
+import { fetchAllProducts } from '../services/products'
 import { formatPrice, formatPercent } from '../utils/format'
 
 // Format unit type for display
@@ -58,7 +59,24 @@ export default function Products() {
   const [showForm, setShowForm] = useState(false)
   const [showCategories, setShowCategories] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+
+  // Fetch ALL products (paginated) then download as a re-importable .xlsx.
+  // Falls back to blank template if the fetch returns no rows.
+  const handleDownloadTemplate = async () => {
+    if (downloadingTemplate) return
+    setDownloadingTemplate(true)
+    try {
+      const all = await fetchAllProducts()
+      await downloadProductTemplate({
+        includeOwnerColumns: isOwner,
+        existingProducts: all,
+      })
+    } finally {
+      setDownloadingTemplate(false)
+    }
+  }
 
   // Debounced server-side search (skip initial mount)
   const [searchInit, setSearchInit] = useState(false)
@@ -139,11 +157,14 @@ export default function Products() {
         {isOwner && (
           <>
             <button
-              onClick={() => downloadProductTemplate(true)}
-              className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-              title={t('products.downloadTemplate')}
+              onClick={handleDownloadTemplate}
+              disabled={downloadingTemplate}
+              className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title={t('products.downloadTemplateWithData')}
             >
-              <FileDown className="w-5 h-5" />
+              {downloadingTemplate
+                ? <Loader2 className="w-5 h-5 animate-spin" />
+                : <FileDown className="w-5 h-5" />}
             </button>
             <button
               onClick={() => setShowImport(true)}

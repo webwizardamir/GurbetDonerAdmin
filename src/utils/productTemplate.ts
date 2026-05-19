@@ -7,7 +7,7 @@
  *   - `productExportColumns` in `export.ts` so an exported sheet is re-importable
  */
 
-import type { UnitType } from '../types'
+import type { Product, UnitType } from '../types'
 
 export type TemplateColumnKey =
   | 'ID'
@@ -57,12 +57,58 @@ export const TEMPLATE_HEADERS = PRODUCT_TEMPLATE_COLUMNS.map(c => c.header)
 export const UNIT_TYPE_VALUES: UnitType[] = ['kg', 'piece', 'zak', 'doos']
 export const VALID_TAX_RATES = [0, 9, 21]
 
+/** Map a Product to a row keyed by template column key. */
+function productToTemplateRow(p: Product): Partial<Record<TemplateColumnKey, string | number>> {
+  const priceByUnit = new Map<UnitType, number>()
+  for (const u of p.unit_prices ?? []) {
+    if (typeof u.price === 'number') {
+      priceByUnit.set(u.unit_type as UnitType, u.price)   // cents
+    }
+  }
+  const eur = (cents: number | null | undefined): number | '' =>
+    typeof cents === 'number' ? Number((cents / 100).toFixed(2)) : ''
+  return {
+    ID: p.product_code ?? '',
+    Naam: p.name,
+    Categorie: p.category?.name ?? '',
+    SKU: p.sku ?? '',
+    Barcode: p.barcode ?? '',
+    StandaardEenheid: p.unit_type,
+    PrijsKg: eur(priceByUnit.get('kg')),
+    PrijsStuk: eur(priceByUnit.get('piece')),
+    PrijsZak: eur(priceByUnit.get('zak')),
+    PrijsDoos: eur(priceByUnit.get('doos')),
+    Kostprijs: eur(p.cost_cents),
+    BtwPercent: p.tax_rate,
+    Voorraad: p.stock_quantity,
+    VoorraadBijhouden: p.track_stock ? 'Ja' : 'Nee',
+    Beschrijving: p.description ?? '',
+  }
+}
+
+export interface DownloadTemplateOptions {
+  includeOwnerColumns?: boolean
+  /** If provided (and non-empty), the template is filled with one row per product instead of a single sample row. */
+  existingProducts?: Product[]
+}
+
 /**
- * Build and download a blank product template (.xlsx).
- * Includes one sample row, frozen header, branded styling, cell comments,
- * and data validation lists on the enum columns.
+ * Build and download a product Excel template (.xlsx).
+ * Includes frozen header, branded styling, cell comments, and data
+ * validation lists on the enum columns. When `existingProducts` is
+ * provided, one row per product is emitted (bulk-edit mode). Otherwise
+ * a single sample row is emitted (blank-template mode).
  */
-export async function downloadProductTemplate(includeOwnerColumns: boolean = true): Promise<void> {
+export async function downloadProductTemplate(
+  optsOrIncludeOwner: boolean | DownloadTemplateOptions = true,
+): Promise<void> {
+  const opts: DownloadTemplateOptions = typeof optsOrIncludeOwner === 'boolean'
+    ? { includeOwnerColumns: optsOrIncludeOwner }
+    : optsOrIncludeOwner
+  const includeOwnerColumns = opts.includeOwnerColumns ?? true
+  const existing = opts.existingProducts ?? []
+  const withData = existing.length > 0
+
   const ExcelJS = await import('exceljs')
   const workbook = new ExcelJS.Workbook()
   const sheet = workbook.addWorksheet('Producten', {
@@ -96,45 +142,55 @@ export async function downloadProductTemplate(includeOwnerColumns: boolean = tru
   })
   headerRow.height = 22
 
-  // Sample row — illustrative, admins are expected to delete it before importing.
-  const sample: Partial<Record<TemplateColumnKey, string | number>> = {
-    ID: '',
-    Naam: 'Voorbeeld product',
-    Categorie: 'Vlees',
-    SKU: '',
-    Barcode: '',
-    StandaardEenheid: 'kg',
-    PrijsKg: 8.5,
-    PrijsStuk: '',
-    PrijsZak: '',
-    PrijsDoos: '',
-    Kostprijs: 5,
-    BtwPercent: 9,
-    Voorraad: 0,
-    VoorraadBijhouden: 'Ja',
-    Beschrijving: 'Voorbeeld omschrijving',
-  }
-  const sampleRow = sheet.addRow(cols.map(c => sample[c.key] ?? ''))
-  sampleRow.eachCell(cell => {
-    cell.font = { italic: true, color: { argb: 'FF94A3B8' } }
-    cell.border = {
-      top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-      bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-      left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-      right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+  if (withData) {
+    // One row per existing product — re-import-safe for bulk edits.
+    for (const p of existing) {
+      const data = productToTemplateRow(p)
+      sheet.addRow(cols.map(c => data[c.key] ?? ''))
     }
-  })
+  } else {
+    // Single illustrative sample row — delete before importing.
+    const sample: Partial<Record<TemplateColumnKey, string | number>> = {
+      ID: '',
+      Naam: 'Voorbeeld product',
+      Categorie: 'Vlees',
+      SKU: '',
+      Barcode: '',
+      StandaardEenheid: 'kg',
+      PrijsKg: 8.5,
+      PrijsStuk: '',
+      PrijsZak: '',
+      PrijsDoos: '',
+      Kostprijs: 5,
+      BtwPercent: 9,
+      Voorraad: 0,
+      VoorraadBijhouden: 'Ja',
+      Beschrijving: 'Voorbeeld omschrijving',
+    }
+    const sampleRow = sheet.addRow(cols.map(c => sample[c.key] ?? ''))
+    sampleRow.eachCell(cell => {
+      cell.font = { italic: true, color: { argb: 'FF94A3B8' } }
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+      }
+    })
+  }
 
   // Column widths
   cols.forEach((c, i) => {
     sheet.getColumn(i + 1).width = Math.max(c.header.length + 4, 14)
   })
 
-  // Data validation on enum columns (apply to rows 2..1000)
+  // Data validation on enum columns — extend at least 200 rows past the
+  // last data row so admins can append new products with the dropdowns intact.
+  const validationLastRow = Math.max(1000, existing.length + 200)
   const unitColIdx = cols.findIndex(c => c.key === 'StandaardEenheid') + 1
   const trackColIdx = cols.findIndex(c => c.key === 'VoorraadBijhouden') + 1
   if (unitColIdx > 0) {
-    for (let r = 2; r <= 1000; r++) {
+    for (let r = 2; r <= validationLastRow; r++) {
       sheet.getCell(r, unitColIdx).dataValidation = {
         type: 'list',
         allowBlank: false,
@@ -143,7 +199,7 @@ export async function downloadProductTemplate(includeOwnerColumns: boolean = tru
     }
   }
   if (trackColIdx > 0) {
-    for (let r = 2; r <= 1000; r++) {
+    for (let r = 2; r <= validationLastRow; r++) {
       sheet.getCell(r, trackColIdx).dataValidation = {
         type: 'list',
         allowBlank: true,
@@ -159,7 +215,10 @@ export async function downloadProductTemplate(includeOwnerColumns: boolean = tru
   })
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)
-  link.download = 'product-template.xlsx'
+  const dateStr = new Date().toISOString().split('T')[0]
+  link.download = withData
+    ? `products-${dateStr}.xlsx`
+    : 'product-template.xlsx'
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

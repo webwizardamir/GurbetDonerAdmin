@@ -15,6 +15,7 @@ import {
 import { readExcelFile, getValue, type ParsedExcelRow } from '../../utils/excelImport'
 import {
   upsertProductsFromImport,
+  fetchAllProducts,
   type ImportProductInput,
 } from '../../services/products'
 import type { UnitType } from '../../types'
@@ -67,6 +68,21 @@ export default function ProductImport({ onClose, onComplete }: ProductImportProp
   const [validatedRows, setValidatedRows] = useState<ValidatedRow[]>([])
   const [committing, setCommitting] = useState(false)
   const [commitResult, setCommitResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null)
+  const [downloadingWithData, setDownloadingWithData] = useState(false)
+
+  const handleDownloadWithData = async () => {
+    if (downloadingWithData) return
+    setDownloadingWithData(true)
+    try {
+      const all = await fetchAllProducts()
+      await downloadProductTemplate({
+        includeOwnerColumns: isOwner,
+        existingProducts: all,
+      })
+    } finally {
+      setDownloadingWithData(false)
+    }
+  }
 
   if (!isOwner) return null
 
@@ -238,6 +254,8 @@ export default function ProductImport({ onClose, onComplete }: ProductImportProp
             <PickState
               onPick={() => fileInputRef.current?.click()}
               onDownloadTemplate={() => downloadProductTemplate(isOwner)}
+              onDownloadWithData={handleDownloadWithData}
+              downloadingWithData={downloadingWithData}
               t={t}
               parseError={parseError}
             />
@@ -319,10 +337,12 @@ export default function ProductImport({ onClose, onComplete }: ProductImportProp
 }
 
 function PickState({
-  onPick, onDownloadTemplate, t, parseError,
+  onPick, onDownloadTemplate, onDownloadWithData, downloadingWithData, t, parseError,
 }: {
   onPick: () => void
   onDownloadTemplate: () => void
+  onDownloadWithData: () => void
+  downloadingWithData: boolean
   t: (k: string, opts?: Record<string, unknown>) => string
   parseError: string | null
 }) {
@@ -331,15 +351,28 @@ function PickState({
       <p className="text-sm text-slate-600 dark:text-slate-400">
         Upload een .xlsx-bestand volgens het sjabloon. Bestaande producten worden bijgewerkt op basis van ID; rijen zonder ID worden als nieuw aangemaakt en krijgen automatisch een MHF-NNNNN.
       </p>
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-3 gap-3">
         <button
           onClick={onDownloadTemplate}
           className="flex items-center gap-3 p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl text-left hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors"
         >
           <FileDown className="w-6 h-6 text-slate-500 dark:text-slate-400" />
           <div>
-            <div className="font-medium text-slate-900 dark:text-white">{t('products.downloadTemplate')}</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">product-template.xlsx</div>
+            <div className="font-medium text-slate-900 dark:text-white">{t('products.import.blankTemplate')}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{t('products.import.blankTemplateHint')}</div>
+          </div>
+        </button>
+        <button
+          onClick={onDownloadWithData}
+          disabled={downloadingWithData}
+          className="flex items-center gap-3 p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl text-left hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {downloadingWithData
+            ? <Loader2 className="w-6 h-6 text-slate-500 dark:text-slate-400 animate-spin" />
+            : <FileSpreadsheet className="w-6 h-6 text-slate-500 dark:text-slate-400" />}
+          <div>
+            <div className="font-medium text-slate-900 dark:text-white">{t('products.import.withDataTemplate')}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{t('products.import.withDataTemplateHint')}</div>
           </div>
         </button>
         <button

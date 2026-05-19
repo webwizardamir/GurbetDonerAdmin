@@ -54,6 +54,31 @@ export async function fetchProducts(filters: ProductFilters = {}): Promise<Produ
   return (data as unknown as Product[]) || []
 }
 
+/**
+ * Fetch every product (with category + unit prices) in batches of 1000,
+ * since Supabase caps a single response at 1000 rows. Used for exporting
+ * the full product master to Excel.
+ */
+export async function fetchAllProducts(): Promise<Product[]> {
+  const PAGE_SIZE = 1000
+  const all: Product[] = []
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('products')
+      .select(`*, category:categories(*), unit_prices:product_unit_prices(*)`)
+      .order('product_code', { ascending: true, nullsFirst: false })
+      .order('name', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1)
+    if (error) throw error
+    const rows = (data as unknown as Product[]) ?? []
+    all.push(...rows)
+    if (rows.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+  return all
+}
+
 // Fetch product count with filters (for pagination)
 export async function fetchProductCount(filters: ProductFilters = {}): Promise<number> {
   let query = supabase
