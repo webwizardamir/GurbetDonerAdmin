@@ -28,85 +28,13 @@ export interface SoldProductsResult {
   }
 }
 
-// Get sold products for a date range using server-side RPC
-export async function getSoldProducts(
-  startDate: string,
-  endDate: string
-): Promise<SoldProductsResult> {
-  const { data, error } = await supabase.rpc('get_sold_products', {
-    p_start_date: startDate,
-    p_end_date: endDate,
-  })
-
-  if (error) throw error
-
-  // Build result items from RPC data
-  const items: SoldProductItem[] = (data || []).map((row: {
-    product_id: string
-    product_name: string
-    product_sku: string
-    unit_type: string
-    category_name: string
-    total_quantity: number
-    total_revenue: number
-    current_stock: number
-    track_stock: boolean
-    order_count: number
-  }) => ({
-    product_id: row.product_id,
-    product_name: row.product_name,
-    product_sku: row.product_sku || null,
-    unit_type: row.unit_type,
-    category_name: row.category_name || null,
-    total_quantity: Number(row.total_quantity),
-    total_revenue: Number(row.total_revenue),
-    current_stock: row.track_stock ? Number(row.current_stock) : null,
-    track_stock: row.track_stock,
-    order_count: Number(row.order_count),
-  }))
-
-  // Sort: tracked products with low stock first, then by quantity sold
-  items.sort((a, b) => {
-    // Tracked products come first
-    if (a.track_stock && !b.track_stock) return -1
-    if (!a.track_stock && b.track_stock) return 1
-
-    // Among tracked products, sort by urgency (low stock relative to sales)
-    if (a.track_stock && b.track_stock) {
-      const aRatio = (a.current_stock || 0) / (a.total_quantity || 1)
-      const bRatio = (b.current_stock || 0) / (b.total_quantity || 1)
-      if (aRatio !== bRatio) return aRatio - bRatio
-    }
-
-    // Then by quantity sold (descending)
-    return b.total_quantity - a.total_quantity
-  })
-
-  // Calculate summary
-  const trackedItems = items.filter(i => i.track_stock)
-  const lowStockItems = trackedItems.filter(i =>
-    (i.current_stock || 0) < i.total_quantity * 2
-  )
-
-  return {
-    items,
-    summary: {
-      totalProducts: items.length,
-      totalQuantity: items.reduce((sum, i) => sum + i.total_quantity, 0),
-      totalRevenue: items.reduce((sum, i) => sum + i.total_revenue, 0),
-      trackedProducts: trackedItems.length,
-      lowStockCount: lowStockItems.length,
-    },
-    period: {
-      start: startDate,
-      end: endDate,
-    },
-  }
-}
-
 // ===========================================================================
 // Phase 4: per-(product, unit, customer, city) breakdown
 // ===========================================================================
+// The previous flat getSoldProducts() function called the get_sold_products
+// RPC; it's been replaced by getSoldProductsBreakdown() below + client-side
+// aggregation in useSoldProducts. Keep SoldProductsResult around because the
+// PDF template still consumes its `summary` shape.
 
 export interface SoldProductBreakdownRow {
   product_id: string
