@@ -189,6 +189,68 @@ export interface CustomerItemSummary {
   total_profit: number     // cents (owner-only display)
 }
 
+export interface CustomerProductOrder {
+  order_id: string
+  order_number: string
+  order_date: string
+  status: string
+  quantity: number
+  unit_price: number   // cents (immutable snapshot)
+  line_total: number   // cents (qty × unit_price)
+}
+
+/**
+ * Drill-down for the Products tab expandable row: list every order from a
+ * customer that contained a specific (product, unit). Matches by product_id
+ * when set, else falls back to product_name. Excludes cancelled / fully-
+ * refunded orders (matches the summary RPC). No new SQL function needed —
+ * order_items already carries the immutable snapshot we want to show.
+ */
+export async function fetchCustomerProductOrders(args: {
+  customerId: string
+  productId: string | null
+  productName: string
+  unitType: string
+  startDate: string
+  endDate: string
+}): Promise<CustomerProductOrder[]> {
+  let q = supabase
+    .from('order_items')
+    .select('quantity, unit_price, unit_type, product_id, product_name, order:orders!inner(id, order_number, order_date, status, customer_id)')
+    .eq('unit_type', args.unitType)
+    .eq('order.customer_id', args.customerId)
+    .gte('order.order_date', args.startDate)
+    .lte('order.order_date', args.endDate)
+    .not('order.status', 'in', '(cancelled,refunded)')
+
+  if (args.productId) {
+    q = q.eq('product_id', args.productId)
+  } else {
+    q = q.eq('product_name', args.productName).is('product_id', null)
+  }
+
+  const { data, error } = await q
+  if (error) throw error
+
+  type Row = {
+    quantity: number
+    unit_price: number
+    order: { id: string; order_number: string; order_date: string; status: string } | null
+  }
+  return ((data as unknown as Row[]) ?? [])
+    .filter(r => r.order != null)
+    .map(r => ({
+      order_id:     r.order!.id,
+      order_number: r.order!.order_number,
+      order_date:   r.order!.order_date,
+      status:       r.order!.status,
+      quantity:     Number(r.quantity) || 0,
+      unit_price:   Number(r.unit_price) || 0,
+      line_total:   Math.round((Number(r.quantity) || 0) * (Number(r.unit_price) || 0)),
+    }))
+    .sort((a, b) => b.order_date.localeCompare(a.order_date))
+}
+
 /**
  * Per-(product, unit) summary of everything sold to one customer in a date
  * range. Backed by the get_customer_items_summary RPC (migration 00045).

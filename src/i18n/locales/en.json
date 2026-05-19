@@ -269,6 +269,15 @@
       "empty": "No products sold in this date range",
       "allCategories": "All categories",
       "allUnits": "All units",
+      "loadingOrders": "Loading orders…",
+      "noOrdersForLine": "No orders for this line in this date range.",
+      "expanded": {
+        "orderNumber": "Order #",
+        "date": "Date",
+        "qty": "Qty",
+        "unitPrice": "Unit price",
+        "lineTotal": "Line total"
+      },
       "total": "Total",
       "rowsLoaded_one": "{{count}} row",
       "rowsLoaded_other": "{{count}} rows",

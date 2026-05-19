@@ -269,6 +269,15 @@
       "empty": "Geen producten verkocht in deze periode",
       "allCategories": "Alle categorieën",
       "allUnits": "Alle eenheden",
+      "loadingOrders": "Bestellingen laden…",
+      "noOrdersForLine": "Geen bestellingen gevonden voor deze regel in deze periode.",
+      "expanded": {
+        "orderNumber": "Bestelnr",
+        "date": "Datum",
+        "qty": "Aantal",
+        "unitPrice": "Stukprijs",
+        "lineTotal": "Regeltotaal"
+      },
       "total": "Totaal",
       "rowsLoaded_one": "{{count}} regel",
       "rowsLoaded_other": "{{count}} regels",

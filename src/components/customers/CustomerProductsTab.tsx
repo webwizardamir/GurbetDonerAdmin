@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Package, Calendar, AlertCircle, Tag, Ruler } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Loader2, Package, Calendar, AlertCircle, Tag, Ruler, ChevronRight, ChevronDown } from 'lucide-react'
 import {
   fetchCustomerItemsSummary,
+  fetchCustomerProductOrders,
   type CustomerItemSummary,
+  type CustomerProductOrder,
 } from '../../services/customers'
 import { useAuth } from '../../context/AuthContext'
 import { formatPrice } from '../../utils/format'
@@ -55,6 +58,49 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
   const [rows, setRows] = useState<CustomerItemSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Expandable rows — keyed by `${productId ?? productName}::${unit_type}`
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [orderCache, setOrderCache] = useState<Map<string, CustomerProductOrder[]>>(new Map())
+  const [loadingOrders, setLoadingOrders] = useState<Set<string>>(new Set())
+
+  const rowKey = (r: CustomerItemSummary) => `${r.product_id ?? r.product_name}::${r.unit_type}`
+
+  const toggleExpand = (r: CustomerItemSummary) => {
+    const key = rowKey(r)
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+    // Lazy-load orders the first time this row is opened
+    if (!expanded.has(key) && !orderCache.has(key)) {
+      const { start, end } = resolveRange(range)
+      setLoadingOrders(prev => new Set(prev).add(key))
+      fetchCustomerProductOrders({
+        customerId,
+        productId: r.product_id,
+        productName: r.product_name,
+        unitType: r.unit_type,
+        startDate: start,
+        endDate: end,
+      })
+        .then(orders => setOrderCache(prev => new Map(prev).set(key, orders)))
+        .catch(e => setError((e as Error).message))
+        .finally(() => setLoadingOrders(prev => {
+          const next = new Set(prev)
+          next.delete(key)
+          return next
+        }))
+    }
+  }
+
+  // Clear cache when the range changes — drill-down must match the summary's window
+  useEffect(() => {
+    setExpanded(new Set())
+    setOrderCache(new Map())
+  }, [range])
 
   useEffect(() => {
     let cancelled = false
@@ -192,6 +238,7 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
             <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
+                  <th className="px-2 py-3 w-8" />
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.id')}</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.name')}</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.unit')}</th>
@@ -206,38 +253,68 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {filteredRows.map((r, idx) => (
-                  <tr key={`${r.product_id ?? 'x'}-${r.unit_type}-${idx}`} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                    <td className="px-4 py-3 font-mono text-sm text-slate-900 dark:text-white">
-                      {r.product_code ?? <span className="text-slate-400 dark:text-slate-600">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                      {r.product_name}
-                      {r.category_name && (
-                        <div className="text-xs text-slate-500 dark:text-slate-500">{r.category_name}</div>
+                {filteredRows.map((r, idx) => {
+                  const key = rowKey(r)
+                  const isOpen = expanded.has(key)
+                  const isLoadingOrders = loadingOrders.has(key)
+                  const colSpan = isOwner ? 9 : 8
+                  return (
+                    <Fragment key={`${r.product_id ?? 'x'}-${r.unit_type}-${idx}`}>
+                      <tr
+                        className="hover:bg-slate-50 dark:hover:bg-slate-700/40 cursor-pointer"
+                        onClick={() => toggleExpand(r)}
+                      >
+                        <td className="pl-2 pr-1 py-3 text-slate-400">
+                          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-sm text-slate-900 dark:text-white">
+                          {r.product_code ?? <span className="text-slate-400 dark:text-slate-600">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                          {r.product_name}
+                          {r.category_name && (
+                            <div className="text-xs text-slate-500 dark:text-slate-500">{r.category_name}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{r.unit_type}</td>
+                        <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">
+                          {Number(r.total_quantity).toLocaleString('nl-NL', { maximumFractionDigits: 3 })}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">{r.order_count}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          {r.last_ordered ? new Date(r.last_ordered).toLocaleDateString('nl-NL') : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">{formatPrice(r.avg_unit_price)}</td>
+                        <td className="px-4 py-3 text-right text-sm font-medium text-slate-900 dark:text-white tabular-nums">{formatPrice(r.total_revenue)}</td>
+                        {isOwner && (
+                          <td className={`px-4 py-3 text-right text-sm tabular-nums ${r.total_profit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                            {formatPrice(r.total_profit)}
+                          </td>
+                        )}
+                      </tr>
+                      {isOpen && (
+                        <tr className="bg-slate-50/60 dark:bg-slate-900/40">
+                          <td />
+                          <td colSpan={colSpan - 1} className="px-4 py-3">
+                            {isLoadingOrders ? (
+                              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                {t('customerDetail.products.loadingOrders')}
+                              </div>
+                            ) : (
+                              <ExpandedOrders orders={orderCache.get(key) ?? []} t={t} />
+                            )}
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{r.unit_type}</td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">
-                      {Number(r.total_quantity).toLocaleString('nl-NL', { maximumFractionDigits: 3 })}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">{r.order_count}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                      {r.last_ordered ? new Date(r.last_ordered).toLocaleDateString('nl-NL') : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">{formatPrice(r.avg_unit_price)}</td>
-                    <td className="px-4 py-3 text-right text-sm font-medium text-slate-900 dark:text-white tabular-nums">{formatPrice(r.total_revenue)}</td>
-                    {isOwner && (
-                      <td className={`px-4 py-3 text-right text-sm tabular-nums ${r.total_profit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
-                        {formatPrice(r.total_profit)}
-                      </td>
-                    )}
-                  </tr>
-                ))}
+                    </Fragment>
+                  )
+                })}
               </tbody>
               {/* SUM footer */}
               <tfoot className="bg-slate-50 dark:bg-slate-900 border-t-2 border-slate-300 dark:border-slate-600">
                 <tr>
+                  <td />
                   <td className="px-4 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase" colSpan={3}>{t('customerDetail.products.total')}</td>
                   <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900 dark:text-white tabular-nums">
                     {totals.qty.toLocaleString('nl-NL', { maximumFractionDigits: 3 })}
@@ -257,6 +334,52 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ExpandedOrders({
+  orders,
+  t,
+}: {
+  orders: CustomerProductOrder[]
+  t: (k: string, opts?: Record<string, unknown>) => string
+}) {
+  if (orders.length === 0) {
+    return <p className="text-sm text-slate-500 dark:text-slate-400 italic">{t('customerDetail.products.noOrdersForLine')}</p>
+  }
+  return (
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <table className="min-w-full text-xs">
+        <thead className="bg-slate-100 dark:bg-slate-800">
+          <tr>
+            <th className="px-3 py-2 text-left font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.expanded.orderNumber')}</th>
+            <th className="px-3 py-2 text-left font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.expanded.date')}</th>
+            <th className="px-3 py-2 text-right font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.expanded.qty')}</th>
+            <th className="px-3 py-2 text-right font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.expanded.unitPrice')}</th>
+            <th className="px-3 py-2 text-right font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.expanded.lineTotal')}</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+          {orders.map(o => (
+            <tr key={o.order_id} className="bg-white dark:bg-slate-900/30">
+              <td className="px-3 py-1.5">
+                <Link to={`/orders/${o.order_id}/edit`} className="font-mono text-green-700 dark:text-green-400 hover:underline">
+                  {o.order_number}
+                </Link>
+              </td>
+              <td className="px-3 py-1.5 text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                {new Date(o.order_date).toLocaleDateString('nl-NL')}
+              </td>
+              <td className="px-3 py-1.5 text-right tabular-nums text-slate-700 dark:text-slate-300">
+                {Number(o.quantity).toLocaleString('nl-NL', { maximumFractionDigits: 3 })}
+              </td>
+              <td className="px-3 py-1.5 text-right tabular-nums text-slate-700 dark:text-slate-300">{formatPrice(o.unit_price)}</td>
+              <td className="px-3 py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatPrice(o.line_total)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
