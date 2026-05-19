@@ -115,11 +115,37 @@ export interface Customer {
   shipping_city?: string
   shipping_postal_code?: string
   shipping_country?: string
+  // Pricing
+  price_list_id?: string | null
+  price_list?: PriceList | null
   // Other
   internal_notes?: string
   created_by?: string
   created_at: string
   updated_at: string
+}
+
+export interface PriceList {
+  id: string
+  name: string
+  description?: string | null
+  currency: string
+  is_active: boolean
+  created_by?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PriceListItem {
+  id: string
+  price_list_id: string
+  product_id: string
+  unit_type: UnitType
+  price_cents: number
+  tax_rate?: number | null
+  created_at: string
+  updated_at: string
+  product?: Product | null
 }
 
 // =====================================================

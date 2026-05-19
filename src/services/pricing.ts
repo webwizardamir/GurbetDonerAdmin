@@ -34,15 +34,21 @@ export async function fetchPriceHistory(customerPriceId: string): Promise<PriceH
 }
 
 // Get effective price for a customer/product/unit-type
-// Priority: customer price for unit type → customer price (null unit type) → product unit price → base price
+// Priority:
+//   1. customer_prices for this unit_type
+//   2. customer_prices with null unit_type (applies to all unit types)
+//   3. price_list_items (if priceListId provided — i.e. customer is on a list)
+//   4. product_unit_prices for this unit_type
+//   5. products.base_price
 export async function getEffectivePrice(
   customerId: string,
   productId: string,
-  unitType?: UnitType
+  unitType?: UnitType,
+  priceListId?: string | null,
 ): Promise<number> {
   if (!productId || !customerId) return 0
 
-  // First try to get customer-specific price for this unit type
+  // 1. customer-specific price for this unit type
   if (unitType) {
     const { data: customerPriceForUnit } = await supabase
       .from('customer_prices')
@@ -57,7 +63,7 @@ export async function getEffectivePrice(
     }
   }
 
-  // Try customer price with null unit_type (applies to all unit types)
+  // 2. customer price with null unit_type (applies to all unit types)
   const { data: customerPrice } = await supabase
     .from('customer_prices')
     .select('custom_price')
@@ -70,7 +76,22 @@ export async function getEffectivePrice(
     return customerPrice.custom_price
   }
 
-  // Try product unit price for this specific unit type (if table exists)
+  // 3. price-list override (customer is on a list)
+  if (priceListId && unitType) {
+    const { data: listItem } = await supabase
+      .from('price_list_items')
+      .select('price_cents')
+      .eq('price_list_id', priceListId)
+      .eq('product_id', productId)
+      .eq('unit_type', unitType)
+      .maybeSingle()
+
+    if (listItem && typeof listItem.price_cents === 'number') {
+      return listItem.price_cents
+    }
+  }
+
+  // 4. product_unit_prices for this unit type (if table exists)
   if (unitType) {
     try {
       const { data: unitPrice, error } = await supabase
@@ -88,7 +109,7 @@ export async function getEffectivePrice(
     }
   }
 
-  // Fall back to base price
+  // 5. base price
   const { data: product } = await supabase
     .from('products')
     .select('base_price')
@@ -99,9 +120,15 @@ export async function getEffectivePrice(
 }
 
 // Get available unit prices for a customer/product combination
+// Priority per unit_type (matches getEffectivePrice):
+//   1. customer_prices for this unit_type
+//   2. customer_prices with null unit_type
+//   3. price_list_items (if priceListId provided)
+//   4. product_unit_prices
 export async function getAvailableUnitPricesForCustomer(
   customerId: string,
-  productId: string
+  productId: string,
+  priceListId?: string | null,
 ): Promise<{ unitType: UnitType; price: number; isDefault: boolean }[]> {
   if (!productId || !customerId) return []
 
@@ -134,25 +161,37 @@ export async function getAvailableUnitPricesForCustomer(
     .eq('customer_id', customerId)
     .eq('product_id', productId)
 
-  // Build a map of customer prices by unit type
   const customerPriceMap = new Map<UnitType | null, number>()
   if (customerPrices) {
     for (const cp of customerPrices) {
       customerPriceMap.set(cp.unit_type, cp.custom_price)
     }
   }
-
-  // Get customer price that applies to all unit types (null unit_type)
   const defaultCustomerPrice = customerPriceMap.get(null)
 
-  // Calculate effective price for each unit type
+  // Get price-list items for this product on the customer's list
+  const priceListMap = new Map<UnitType, number>()
+  if (priceListId) {
+    const { data: listItems } = await supabase
+      .from('price_list_items')
+      .select('unit_type, price_cents')
+      .eq('price_list_id', priceListId)
+      .eq('product_id', productId)
+    if (listItems) {
+      for (const it of listItems as { unit_type: UnitType; price_cents: number }[]) {
+        priceListMap.set(it.unit_type, it.price_cents)
+      }
+    }
+  }
+
   return unitPrices.map((up: ProductUnitPrice) => {
-    // Priority: unit-specific customer price → default customer price → product unit price
     let price = up.price!
     if (customerPriceMap.has(up.unit_type)) {
       price = customerPriceMap.get(up.unit_type)!
     } else if (defaultCustomerPrice !== undefined) {
       price = defaultCustomerPrice
+    } else if (priceListMap.has(up.unit_type)) {
+      price = priceListMap.get(up.unit_type)!
     }
 
     return {

@@ -192,14 +192,14 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       try {
         const updatedItems = await Promise.all(
           items.map(async item => {
-            const availableUnitTypes = await getAvailableUnitPricesForCustomer(selectedCustomer.id, item.product.id)
+            const availableUnitTypes = await getAvailableUnitPricesForCustomer(selectedCustomer.id, item.product.id, selectedCustomer.price_list_id)
             if (availableUnitTypes.length > 0) {
               const currentUnitInfo = availableUnitTypes.find(ut => ut.unitType === item.selectedUnitType)
               if (currentUnitInfo) return { ...item, unit_price: currentUnitInfo.price, availableUnitTypes }
               const defaultUnit = availableUnitTypes.find(ut => ut.isDefault) || availableUnitTypes[0]
               return { ...item, selectedUnitType: defaultUnit.unitType, unit_price: defaultUnit.price, availableUnitTypes }
             }
-            const price = await getEffectivePrice(selectedCustomer.id, item.product.id, item.selectedUnitType)
+            const price = await getEffectivePrice(selectedCustomer.id, item.product.id, item.selectedUnitType, selectedCustomer.price_list_id)
             return { ...item, unit_price: price }
           })
         )
