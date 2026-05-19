@@ -72,17 +72,23 @@ export default function PriceListImport({
   const [committing, setCommitting] = useState(false)
   const [commitResult, setCommitResult] = useState<{ inserted: number; updated: number; errors: string[] } | null>(null)
   const [productByCode, setProductByCode] = useState<Map<string, string>>(new Map())
+  const [productsLoaded, setProductsLoaded] = useState(false)
   const [downloadingWithData, setDownloadingWithData] = useState(false)
 
-  // Preload product_code → id map for validation
+  // Preload product_code → id map for validation. If this silently fails the
+  // whole import becomes useless ("unknown product" on every row) — surface
+  // the failure as a parse error and block the file picker.
   useEffect(() => {
-    void fetchAllProducts().then(prods => {
-      const m = new Map<string, string>()
-      for (const p of prods) {
-        if (p.product_code) m.set(p.product_code.toLowerCase().trim(), p.id)
-      }
-      setProductByCode(m)
-    })
+    void fetchAllProducts()
+      .then(prods => {
+        const m = new Map<string, string>()
+        for (const p of prods) {
+          if (p.product_code) m.set(p.product_code.toLowerCase().trim(), p.id)
+        }
+        setProductByCode(m)
+        setProductsLoaded(true)
+      })
+      .catch(e => setParseError(`Kon producten niet laden: ${(e as Error).message}`))
   }, [])
 
   const handleDownloadWithData = async () => {
@@ -263,7 +269,8 @@ export default function PriceListImport({
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-3 p-4 border-2 border-dashed border-green-500 rounded-xl text-left bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
+                  disabled={!productsLoaded}
+                  className="flex items-center gap-3 p-4 border-2 border-dashed border-green-500 rounded-xl text-left bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <Upload className="w-6 h-6 text-green-600" />
                   <div>
