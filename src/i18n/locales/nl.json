@@ -53,6 +53,13 @@
     "showing": "Toont",
     "of": "van"
   },
+  "export": {
+    "menu": "Exporteren",
+    "excel": "Excel (.xlsx)",
+    "csv": "CSV (.csv)",
+    "pdf": "PDF (.pdf)",
+    "openAria": "Open exportmenu"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "customers": "Klanten",

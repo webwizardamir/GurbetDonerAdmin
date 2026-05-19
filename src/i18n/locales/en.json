@@ -53,6 +53,13 @@
     "showing": "Showing",
     "of": "of"
   },
+  "export": {
+    "menu": "Export",
+    "excel": "Excel (.xlsx)",
+    "csv": "CSV (.csv)",
+    "pdf": "PDF (.pdf)",
+    "openAria": "Open export menu"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "customers": "Customers",
