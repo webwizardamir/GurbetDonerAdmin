@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  DollarSign,
+  Euro,
   ShoppingCart,
   Package,
   TrendingUp,
@@ -58,7 +58,7 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
             value: Math.abs(kpis.revenueGrowth),
             isPositive: kpis.revenueGrowth >= 0,
           } : undefined}
-          icon={DollarSign}
+          icon={Euro}
           iconColor="text-green-600 dark:text-green-400"
           iconBg="bg-green-50 dark:bg-green-900/20"
         />
@@ -101,7 +101,7 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
         <StatCard
           label={t('analytics.averageOrder')}
           value={kpis ? formatChartCurrency(kpis.averageOrderValue) : '€0'}
-          icon={DollarSign}
+          icon={Euro}
           iconColor="text-slate-600 dark:text-slate-400"
           iconBg="bg-slate-50 dark:bg-slate-900/20"
         />

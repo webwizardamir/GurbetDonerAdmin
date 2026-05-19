@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   X,
   Loader2,
-  DollarSign,
+  Euro,
   Search,
   Check,
   RotateCcw,
@@ -102,7 +102,7 @@ export default function CustomerPricing({ customer, onClose }: CustomerPricingPr
       title={
         <div className="flex items-center gap-3">
           <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-            <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <Euro className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">

@@ -8,7 +8,7 @@ import {
   Package,
   Users,
   ShoppingCart,
-  DollarSign,
+  Euro,
   Warehouse,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -29,7 +29,7 @@ const TABS: { key: TabKey; icon: typeof LayoutDashboard; labelKey: string }[] = 
   { key: 'products', icon: Package, labelKey: 'analytics.tabs.products' },
   { key: 'customers', icon: Users, labelKey: 'analytics.tabs.customers' },
   { key: 'orders', icon: ShoppingCart, labelKey: 'analytics.tabs.orders' },
-  { key: 'financial', icon: DollarSign, labelKey: 'analytics.tabs.financial' },
+  { key: 'financial', icon: Euro, labelKey: 'analytics.tabs.financial' },
   { key: 'inventory', icon: Warehouse, labelKey: 'analytics.tabs.inventory' },
 ]
 

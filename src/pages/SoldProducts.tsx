@@ -13,7 +13,7 @@ import {
   MinusCircle,
   TrendingUp,
   ShoppingCart,
-  DollarSign,
+  Euro,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSoldProducts, type DateRangeKey } from '../hooks/useSoldProducts'
@@ -220,7 +220,7 @@ export default function SoldProducts() {
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
-                  <DollarSign className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                  <Euro className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.revenue')}</p>

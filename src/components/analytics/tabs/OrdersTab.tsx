@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   ShoppingCart,
-  DollarSign,
+  Euro,
   TrendingUp,
   Receipt,
   Loader2,
@@ -130,7 +130,7 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
         <StatCard
           label={t('analytics.orderReport.totalRevenue')}
           value={formatChartCurrency(totalRevenue)}
-          icon={DollarSign}
+          icon={Euro}
           iconColor="text-green-600 dark:text-green-400"
           iconBg="bg-green-50 dark:bg-green-900/20"
         />

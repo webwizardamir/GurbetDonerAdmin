@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Users,
-  DollarSign,
+  Euro,
   TrendingUp,
   ShoppingCart,
   Loader2,
@@ -142,7 +143,7 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
         <StatCard
           label={t('analytics.customers.totalRevenue')}
           value={formatChartCurrency(totalRevenue)}
-          icon={DollarSign}
+          icon={Euro}
           iconColor="text-green-600 dark:text-green-400"
           iconBg="bg-green-50 dark:bg-green-900/20"
         />
@@ -225,7 +226,14 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
                 sortedCustomers.map((row, idx) => (
                   <tr key={row.customerId} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">{idx + 1}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{row.companyName}</td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      <Link
+                        to={`/customers/${row.customerId}`}
+                        className="text-slate-900 dark:text-white hover:text-green-600 dark:hover:text-green-400 hover:underline"
+                      >
+                        {row.companyName}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">{formatChartCurrency(row.totalRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{formatChartCurrency(row.totalProfit)}</td>
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{formatPercent(row.profitMargin)}</td>

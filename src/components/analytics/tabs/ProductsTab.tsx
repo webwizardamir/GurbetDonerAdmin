@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Package,
   TrendingUp,
-  DollarSign,
+  Euro,
   AlertTriangle,
   Loader2,
   ArrowUpDown,
@@ -140,7 +140,7 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
           label={t('analytics.products.topProduct')}
           value={topProduct ? formatChartCurrency(topProduct.totalRevenue) : '-'}
           description={topProduct?.productName}
-          icon={DollarSign}
+          icon={Euro}
           iconColor="text-green-600 dark:text-green-400"
           iconBg="bg-green-50 dark:bg-green-900/20"
         />
