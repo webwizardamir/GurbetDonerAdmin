@@ -267,6 +267,8 @@
     "products": {
       "tab": "Products",
       "empty": "No products sold in this date range",
+      "allCategories": "All categories",
+      "allUnits": "All units",
       "total": "Total",
       "rowsLoaded_one": "{{count}} row",
       "rowsLoaded_other": "{{count}} rows",

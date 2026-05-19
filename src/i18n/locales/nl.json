@@ -267,6 +267,8 @@
     "products": {
       "tab": "Producten",
       "empty": "Geen producten verkocht in deze periode",
+      "allCategories": "Alle categorieën",
+      "allUnits": "Alle eenheden",
       "total": "Totaal",
       "rowsLoaded_one": "{{count}} regel",
       "rowsLoaded_other": "{{count}} regels",

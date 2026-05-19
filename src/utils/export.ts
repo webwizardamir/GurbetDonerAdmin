@@ -282,6 +282,21 @@ export const customerExportColumns = [
   { key: 'created_at', header: 'Aangemaakt', format: (v: unknown) => formatExportDateTime(v as string) },
 ]
 
+// Customer products summary (one row per (product, unit_type))
+// Profit column is filtered out for non-owners at the call site.
+export const customerItemsSummaryExportColumns = [
+  { key: 'product_code',   header: 'Product ID' },
+  { key: 'product_name',   header: 'Naam' },
+  { key: 'category_name',  header: 'Categorie' },
+  { key: 'unit_type',      header: 'Eenheid' },
+  { key: 'total_quantity', header: 'Aantal' },
+  { key: 'order_count',    header: 'Bestellingen' },
+  { key: 'last_ordered',   header: 'Laatst besteld', format: (v: unknown) => formatExportDate(v as string) },
+  { key: 'avg_unit_price', header: 'Gem. prijs',     format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'total_revenue',  header: 'Omzet',          format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'total_profit',   header: 'Winst',          format: (v: unknown) => formatExportCurrency(v as number) },
+]
+
 // Documents export columns
 export const documentExportColumns = [
   { key: 'document_number', header: 'Documentnummer' },

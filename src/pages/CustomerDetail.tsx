@@ -570,7 +570,7 @@ export default function CustomerDetail() {
           </div>
         </div>
       ) : activeTab === 'products' ? (
-        <CustomerProductsTab customerId={customer.id} />
+        <CustomerProductsTab customerId={customer.id} customerName={customer.company_name} />
       ) : (
         <CustomerDetailsTab customer={customer} />
       )}
