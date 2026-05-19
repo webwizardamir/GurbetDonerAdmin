@@ -255,6 +255,140 @@ interface SoldProductsPDFDocumentProps {
   dateRange: DateRange
 }
 
+// Driver-routing mode: one Page per group, page break in between automatically
+// from @react-pdf's Page elements. Each group's header shows the city/customer
+// name so the driver can identify their printout at a glance.
+interface SoldProductsGroup {
+  key: string
+  name: string
+  items: SoldProductItem[]
+  totalQuantity: number
+  totalRevenue: number
+}
+
+interface SoldProductsGroupedPDFProps {
+  groups: SoldProductsGroup[]
+  dateRange: DateRange
+  groupByLabel: string  // localized 'Stad' / 'Klant' for the cover
+}
+
+function GroupedItemsTable({ items }: { items: SoldProductItem[] }) {
+  return (
+    <View style={styles.table}>
+      <View style={styles.tableHeader}>
+        <Text style={[styles.th, styles.colProduct]}>Product</Text>
+        <Text style={[styles.th, styles.colCategory]}>Categorie</Text>
+        <Text style={[styles.th, styles.colSold]}>Verkocht</Text>
+        <Text style={[styles.th, styles.colStock]}>Voorraad</Text>
+        <Text style={[styles.th, styles.colStatus]}>Status</Text>
+        <Text style={[styles.th, styles.colRefill]}>Bijvullen</Text>
+      </View>
+      {items.map((item, idx) => {
+        const status = getStockStatus(item)
+        const refill = getSuggestedRefill(item)
+        const rowStyle = [
+          styles.tableRow,
+          status.status === 'critical' ? styles.rowCritical :
+          status.status === 'low' ? styles.rowLow :
+          idx % 2 === 0 ? styles.rowEven : styles.rowOdd,
+        ]
+        const statusStyle = [
+          styles.statusBadge,
+          status.status === 'critical' ? styles.statusCritical :
+          status.status === 'low' ? styles.statusLow :
+          status.status === 'ok' ? styles.statusOk :
+          styles.statusNA,
+        ]
+        return (
+          <View key={`${item.product_id}-${item.unit_type}`} wrap={false} style={rowStyle}>
+            <View style={styles.colProduct}>
+              <Text style={styles.tdBold}>{item.product_name}</Text>
+              {item.product_sku && (
+                <Text style={[styles.td, { fontSize: 6.5, color: '#64748b' }]}>SKU: {item.product_sku}</Text>
+              )}
+            </View>
+            <Text style={[styles.td, styles.colCategory]}>{item.category_name || '—'}</Text>
+            <Text style={[styles.tdBold, styles.colSold]}>{formatQuantity(item.total_quantity, item.unit_type)}</Text>
+            <Text style={[styles.td, styles.colStock]}>
+              {item.track_stock ? formatQuantity(item.current_stock || 0, item.unit_type) : '—'}
+            </Text>
+            <View style={styles.colStatus}>
+              <Text style={statusStyle}>
+                {status.status === 'critical' ? 'CRIT' :
+                 status.status === 'low' ? 'LAAG' :
+                 status.status === 'ok' ? 'OK' : 'N/A'}
+              </Text>
+            </View>
+            <View style={styles.colRefill}>
+              {refill !== null && refill > 0 ? (
+                <Text style={styles.refillBadge}>+{formatQuantity(refill, item.unit_type)}</Text>
+              ) : (
+                <Text style={styles.td}>—</Text>
+              )}
+            </View>
+          </View>
+        )
+      })}
+    </View>
+  )
+}
+
+function SoldProductsGroupedPDFDocument({ groups, dateRange, groupByLabel }: SoldProductsGroupedPDFProps) {
+  return (
+    <Document>
+      {groups.map(g => {
+        const groupTotalQty = g.items.reduce((s, i) => s + i.total_quantity, 0)
+        return (
+          <Page key={g.key} size="A4" style={styles.page}>
+            {/* Header — group name is dominant, period is the subtitle */}
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Text style={styles.title}>{g.name}</Text>
+                <Text style={styles.subtitle}>
+                  {groupByLabel} · Verkochte producten voor bijvullen
+                </Text>
+              </View>
+              <View style={styles.headerRight}>
+                <View style={styles.dateBox}>
+                  <Text style={styles.dateLabel}>Periode</Text>
+                  <Text style={styles.dateValue}>
+                    {dateRange.start === dateRange.end
+                      ? formatDate(dateRange.start)
+                      : `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Compact summary for this group */}
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>Producten</Text>
+                <Text style={styles.summaryValue}>{g.items.length}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>Totaal verkocht</Text>
+                <Text style={styles.summaryValue}>{Math.round(groupTotalQty)}</Text>
+              </View>
+            </View>
+
+            <GroupedItemsTable items={g.items} />
+
+            <View style={styles.footer} wrap={false}>
+              <Text style={styles.footerText}>
+                Gegenereerd op {new Date().toLocaleDateString('nl-NL', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit',
+                })}
+              </Text>
+            </View>
+          </Page>
+        )
+      })}
+    </Document>
+  )
+}
+
 // The actual PDF document
 function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFDocumentProps) {
   const trackedCount = items.filter(i => i.track_stock).length
@@ -399,6 +533,10 @@ interface SoldProductsPDFProps {
   summary: SoldProductsResult['summary'] | null
   dateRange: DateRange
   onClose: () => void
+  // Driver-routing mode (Phase 4) — when both are supplied, the PDF renders
+  // one page per group instead of the flat document.
+  groups?: SoldProductsGroup[]
+  groupByLabel?: string
 }
 
 export default function SoldProductsPDF({
@@ -406,18 +544,23 @@ export default function SoldProductsPDF({
   summary,
   dateRange,
   onClose,
+  groups,
+  groupByLabel,
 }: SoldProductsPDFProps) {
   const [showPreview, setShowPreview] = useState(false)
   const [generating, setGenerating] = useState(false)
 
   if (!summary) return null
 
+  const grouped = groups && groups.length > 0
+  const renderDoc = () => grouped
+    ? <SoldProductsGroupedPDFDocument groups={groups!} dateRange={dateRange} groupByLabel={groupByLabel ?? ''} />
+    : <SoldProductsPDFDocument items={items} summary={summary} dateRange={dateRange} />
+
   const handleDownload = async () => {
     setGenerating(true)
     try {
-      const blob = await pdf(
-        <SoldProductsPDFDocument items={items} summary={summary} dateRange={dateRange} />
-      ).toBlob()
+      const blob = await pdf(renderDoc()).toBlob()
 
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -437,9 +580,7 @@ export default function SoldProductsPDF({
   const handlePrint = async () => {
     setGenerating(true)
     try {
-      const blob = await pdf(
-        <SoldProductsPDFDocument items={items} summary={summary} dateRange={dateRange} />
-      ).toBlob()
+      const blob = await pdf(renderDoc()).toBlob()
       const url = URL.createObjectURL(blob)
 
       const printWindow = window.open(url, '_blank')
@@ -490,7 +631,7 @@ export default function SoldProductsPDF({
           {showPreview ? (
             <div className="h-full">
               <PDFViewer width="100%" height="100%" showToolbar={false}>
-                <SoldProductsPDFDocument items={items} summary={summary} dateRange={dateRange} />
+                {renderDoc()}
               </PDFViewer>
             </div>
           ) : (

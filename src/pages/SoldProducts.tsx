@@ -670,6 +670,8 @@ export default function SoldProducts() {
           summary={summary}
           dateRange={dateRange}
           onClose={() => setShowPDF(false)}
+          groups={groupBy !== 'none' ? groups : undefined}
+          groupByLabel={groupBy !== 'none' ? t(`soldProducts.groupBy.${groupBy}`) : undefined}
         />
       )}
     </div>
