@@ -12,6 +12,7 @@ import {
   PackageX,
   ChevronLeft,
   ChevronRight,
+  FileDown,
 } from 'lucide-react'
 import { useProducts } from '../hooks/useProducts'
 import { useCategories } from '../hooks/useCategories'
@@ -22,6 +23,7 @@ import CategoryManager from '../components/products/CategoryManager'
 import type { Product } from '../types'
 import { productExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
+import { downloadProductTemplate } from '../utils/productTemplate'
 import { formatPrice, formatPercent } from '../utils/format'
 
 // Format unit type for display
@@ -131,6 +133,15 @@ export default function Products() {
           className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" title={t('products.categories')}>
           <Tag className="w-5 h-5" />
         </button>
+        {isOwner && (
+          <button
+            onClick={() => downloadProductTemplate(true)}
+            className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            title={t('products.downloadTemplate')}
+          >
+            <FileDown className="w-5 h-5" />
+          </button>
+        )}
         <ExportMenu
           data={filteredProducts}
           columns={productExportColumns as never}

@@ -262,6 +262,7 @@
   "products": {
     "title": "Products",
     "id": "ID",
+    "downloadTemplate": "Download template",
     "addProduct": "Add Product",
     "editProduct": "Edit Product",
     "deleteProduct": "Delete Product",

@@ -262,6 +262,7 @@
   "products": {
     "title": "Producten",
     "id": "ID",
+    "downloadTemplate": "Sjabloon downloaden",
     "addProduct": "Product toevoegen",
     "editProduct": "Product bewerken",
     "deleteProduct": "Product verwijderen",
