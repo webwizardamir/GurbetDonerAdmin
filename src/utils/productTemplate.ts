@@ -58,22 +58,36 @@ export const UNIT_TYPE_VALUES: UnitType[] = ['kg', 'piece', 'zak', 'doos']
 export const VALID_TAX_RATES = [0, 9, 21]
 
 /** Map a Product to a row keyed by template column key. */
-function productToTemplateRow(p: Product): Partial<Record<TemplateColumnKey, string | number>> {
+function productToTemplateRow(
+  p: Product,
+  overlay?: PriceOverlay,
+): Partial<Record<TemplateColumnKey, string | number>> {
   const priceByUnit = new Map<UnitType, number>()
-  for (const u of p.unit_prices ?? []) {
-    if (typeof u.price === 'number') {
-      priceByUnit.set(u.unit_type as UnitType, u.price)   // cents
+  if (overlay) {
+    // Price-list mode — prices come from overlay only; absent products = blank.
+    const fromList = overlay.prices.get(p.id)
+    if (fromList) {
+      for (const [unit, cents] of fromList) priceByUnit.set(unit, cents)
     }
-  }
-  // `base_price` on the products row is the canonical price for the default
-  // unit_type. Many legacy rows only have base_price and no product_unit_prices
-  // entries, so without this fallback their export columns would be blank.
-  const defaultUnit = p.unit_type as UnitType
-  if (!priceByUnit.has(defaultUnit) && typeof p.base_price === 'number' && p.base_price > 0) {
-    priceByUnit.set(defaultUnit, p.base_price)
+  } else {
+    for (const u of p.unit_prices ?? []) {
+      if (typeof u.price === 'number') {
+        priceByUnit.set(u.unit_type as UnitType, u.price)   // cents
+      }
+    }
+    // `base_price` on the products row is the canonical price for the default
+    // unit_type. Many legacy rows only have base_price and no product_unit_prices
+    // entries, so without this fallback their export columns would be blank.
+    const defaultUnit = p.unit_type as UnitType
+    if (!priceByUnit.has(defaultUnit) && typeof p.base_price === 'number' && p.base_price > 0) {
+      priceByUnit.set(defaultUnit, p.base_price)
+    }
   }
   const eur = (cents: number | null | undefined): number | '' =>
     typeof cents === 'number' ? Number((cents / 100).toFixed(2)) : ''
+  const taxValue: number | '' = overlay
+    ? (overlay.tax.get(p.id) ?? '')
+    : p.tax_rate
   return {
     ID: p.product_code ?? '',
     Naam: p.name,
@@ -85,18 +99,34 @@ function productToTemplateRow(p: Product): Partial<Record<TemplateColumnKey, str
     PrijsStuk: eur(priceByUnit.get('piece')),
     PrijsZak: eur(priceByUnit.get('zak')),
     PrijsDoos: eur(priceByUnit.get('doos')),
-    Kostprijs: eur(p.cost_cents),
-    BtwPercent: p.tax_rate,
-    Voorraad: p.stock_quantity,
-    VoorraadBijhouden: p.track_stock ? 'Ja' : 'Nee',
+    Kostprijs: overlay ? '' : eur(p.cost_cents),
+    BtwPercent: taxValue,
+    Voorraad: overlay ? '' : p.stock_quantity,
+    VoorraadBijhouden: overlay ? '' : (p.track_stock ? 'Ja' : 'Nee'),
     Beschrijving: p.description ?? '',
   }
+}
+
+export interface PriceOverlay {
+  /** product_id → unit_type → price in cents. Replaces the product's natural prices. */
+  prices: Map<string, Map<UnitType, number>>
+  /** product_id → tax_rate. Replaces the product's natural tax_rate. */
+  tax: Map<string, number>
+  /** Filename override (e.g. "italy-2026-2026-05-19.xlsx"). */
+  filename: string
 }
 
 export interface DownloadTemplateOptions {
   includeOwnerColumns?: boolean
   /** If provided (and non-empty), the template is filled with one row per product instead of a single sample row. */
   existingProducts?: Product[]
+  /**
+   * Price-list mode: replace each product's prices with overlay values.
+   * Products absent from the overlay maps get blank price/tax cells, signaling
+   * "not on this list yet — fill in to add". Used by the Price Lists detail
+   * page so the same product template doubles as the price-list template.
+   */
+  priceOverlay?: PriceOverlay
 }
 
 /**
@@ -114,6 +144,7 @@ export async function downloadProductTemplate(
     : optsOrIncludeOwner
   const includeOwnerColumns = opts.includeOwnerColumns ?? true
   const existing = opts.existingProducts ?? []
+  const overlay = opts.priceOverlay
   const withData = existing.length > 0
 
   const ExcelJS = await import('exceljs')
@@ -152,7 +183,7 @@ export async function downloadProductTemplate(
   if (withData) {
     // One row per existing product — re-import-safe for bulk edits.
     for (const p of existing) {
-      const data = productToTemplateRow(p)
+      const data = productToTemplateRow(p, overlay)
       sheet.addRow(cols.map(c => data[c.key] ?? ''))
     }
   } else {
@@ -223,9 +254,9 @@ export async function downloadProductTemplate(
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)
   const dateStr = new Date().toISOString().split('T')[0]
-  link.download = withData
-    ? `products-${dateStr}.xlsx`
-    : 'product-template.xlsx'
+  link.download = overlay
+    ? overlay.filename
+    : (withData ? `products-${dateStr}.xlsx` : 'product-template.xlsx')
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

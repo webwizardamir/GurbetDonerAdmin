@@ -6,17 +6,15 @@ import {
 import {
   PRICE_LIST_TEMPLATE_COLUMNS,
   PRICE_LIST_HEADERS,
-  UNIT_TYPE_VALUES,
   VALID_TAX_RATES,
-  downloadPriceListTemplate,
+  downloadBlankPriceListTemplate,
+  downloadCurrentPriceList,
 } from '../../utils/priceListTemplate'
 import { readExcelFile, getValue, type ParsedExcelRow } from '../../utils/excelImport'
 import { fetchAllProducts } from '../../services/products'
 import {
   upsertPriceListItems,
-  fetchPriceListItems,
   type ImportPriceListItemInput,
-  type PriceListItemWithProduct,
 } from '../../services/priceLists'
 import type { UnitType } from '../../types'
 
@@ -34,7 +32,9 @@ interface RowError {
 
 interface ValidatedRow {
   source: ParsedExcelRow
-  parsed: ImportPriceListItemInput | null
+  /** One row from the product template can produce up to 4 list items
+   *  (one per non-blank price column). Empty array = skip on commit. */
+  parsedItems: ImportPriceListItemInput[]
   errors: RowError[]
 }
 
@@ -87,8 +87,7 @@ export default function PriceListImport({
     if (downloadingWithData) return
     setDownloadingWithData(true)
     try {
-      const items: PriceListItemWithProduct[] = await fetchPriceListItems(priceListId)
-      await downloadPriceListTemplate({ listName: priceListName, existingItems: items })
+      await downloadCurrentPriceList(priceListId, priceListName)
     } finally {
       setDownloadingWithData(false)
     }
@@ -106,62 +105,81 @@ export default function PriceListImport({
 
     const seenKeys = new Set<string>()
 
+    // (price column header → unit_type) lookup
+    const priceColumns: Array<[string, UnitType]> = [
+      ['Prijs per kg (€)',   'kg'],
+      ['Prijs per stuk (€)', 'piece'],
+      ['Prijs per zak (€)',  'zak'],
+      ['Prijs per doos (€)', 'doos'],
+    ]
+
     const validated: ValidatedRow[] = rows.map(source => {
       const errors: RowError[] = []
-      const productCode = trimOrNull(getValue(source, 'Product ID'))
-      const unitRaw = trimOrNull(getValue(source, 'Eenheid'))?.toLowerCase()
-      const price = parseNumber(getValue(source, 'Prijs (€)'))
-      const taxRaw = parseNumber(getValue(source, 'BTW % (optioneel)'))
+      const productCode = trimOrNull(getValue(source, 'ID'))
+      const taxRaw = parseNumber(getValue(source, 'BTW %'))
 
-      if (!productCode) {
-        errors.push({ field: 'ProductID', message: t('priceLists.import.missingProductId') })
-      }
+      // Resolve product
       let productId: string | undefined
       if (productCode) {
         productId = productByCode.get(productCode.toLowerCase())
         if (!productId) {
-          errors.push({ field: 'ProductID', message: t('priceLists.import.unknownProduct', { code: productCode }) })
+          errors.push({ field: 'ID', message: t('priceLists.import.unknownProduct', { code: productCode }) })
         }
       }
+      // Rows without an ID are info-only — skip silently (not an error).
 
-      let unitType: UnitType | undefined
-      if (!unitRaw) {
-        errors.push({ field: 'Eenheid', message: t('priceLists.import.missingUnit') })
-      } else if (!UNIT_TYPE_VALUES.includes(unitRaw as UnitType)) {
-        errors.push({ field: 'Eenheid', message: t('priceLists.import.invalidUnit', { value: unitRaw }) })
-      } else {
-        unitType = unitRaw as UnitType
-      }
-
-      if (price === null) {
-        errors.push({ field: 'Prijs', message: t('priceLists.import.missingPrice') })
-      } else if (price < 0 || !Number.isFinite(price)) {
-        errors.push({ field: 'Prijs', message: t('priceLists.import.invalidPrice') })
-      }
-
+      // Tax validation (one value applies to every emitted item on this row)
       if (taxRaw !== null && !VALID_TAX_RATES.includes(taxRaw)) {
         errors.push({ field: 'BtwPercent', message: t('priceLists.import.invalidTax') })
       }
 
-      // In-file duplicate (product_id + unit_type)
-      if (productId && unitType) {
-        const key = `${productId}::${unitType}`
-        if (seenKeys.has(key)) {
-          errors.push({ field: 'ProductID', message: t('priceLists.import.duplicateInFile', { code: productCode, unit: unitType }) })
+      // Walk each price column → one list item per non-blank price
+      const parsedItems: ImportPriceListItemInput[] = []
+      for (const [header, unit] of priceColumns) {
+        const raw = getValue(source, header)
+        if (raw === null || raw === undefined || raw === '') continue
+        const price = parseNumber(raw)
+        if (price === null || !Number.isFinite(price) || price < 0) {
+          errors.push({
+            field: header === 'Prijs per kg (€)' ? 'PrijsKg'
+              : header === 'Prijs per stuk (€)' ? 'PrijsStuk'
+              : header === 'Prijs per zak (€)' ? 'PrijsZak'
+              : 'PrijsDoos',
+            message: t('priceLists.import.invalidPrice'),
+          })
+          continue
         }
-        seenKeys.add(key)
+        if (productId) {
+          const key = `${productId}::${unit}`
+          if (seenKeys.has(key)) {
+            errors.push({
+              field: 'ID',
+              message: t('priceLists.import.duplicateInFile', { code: productCode ?? '', unit }),
+            })
+            continue
+          }
+          seenKeys.add(key)
+          parsedItems.push({
+            product_id: productId,
+            unit_type: unit,
+            price_cents: Math.round(price * 100),
+            tax_rate: taxRaw,
+          })
+        }
       }
 
-      const parsed: ImportPriceListItemInput | null = errors.length > 0 || !productId || !unitType || price === null
-        ? null
-        : {
-          product_id: productId,
-          unit_type: unitType,
-          price_cents: Math.round(price * 100),
-          tax_rate: taxRaw,
-        }
+      // If the row has prices but no resolvable product, it's an error.
+      // If the row has neither product nor prices, it's info-only — clear stray errors.
+      if (!productId && parsedItems.length === 0) {
+        // No prices in this row at all → not a price-list row, skip silently
+        return { source, parsedItems: [], errors: [] }
+      }
 
-      return { source, parsed, errors }
+      return {
+        source,
+        parsedItems: errors.length > 0 ? [] : parsedItems,
+        errors,
+      }
     })
 
     setValidatedRows(validated)
@@ -173,16 +191,18 @@ export default function PriceListImport({
     if (f) void handleFile(f)
   }
 
-  const okCount = validatedRows.filter(r => r.errors.length === 0).length
-  const errCount = validatedRows.length - okCount
+  // okCount = total list items that will be committed across all rows
+  const okCount = validatedRows.reduce((n, r) => n + r.parsedItems.length, 0)
+  const errCount = validatedRows.filter(r => r.errors.length > 0).length
+  const skippedCount = validatedRows.filter(r => r.errors.length === 0 && r.parsedItems.length === 0).length
 
   const handleCommit = async () => {
     if (errCount > 0) return
     setCommitting(true)
     setView('committing')
     try {
-      const rows = validatedRows.map(r => r.parsed).filter((r): r is ImportPriceListItemInput => r !== null)
-      const result = await upsertPriceListItems(priceListId, rows)
+      const items = validatedRows.flatMap(r => r.parsedItems)
+      const result = await upsertPriceListItems(priceListId, items)
       setCommitResult(result)
       setView('done')
       if (result.errors.length === 0) onComplete()
@@ -217,13 +237,13 @@ export default function PriceListImport({
               <p className="text-sm text-slate-600 dark:text-slate-400">{t('priceLists.import.intro')}</p>
               <div className="grid sm:grid-cols-3 gap-3">
                 <button
-                  onClick={() => downloadPriceListTemplate({ listName: priceListName })}
+                  onClick={() => downloadBlankPriceListTemplate()}
                   className="flex items-center gap-3 p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl text-left hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors"
                 >
                   <FileDown className="w-6 h-6 text-slate-500 dark:text-slate-400" />
                   <div>
                     <div className="font-medium text-slate-900 dark:text-white">{t('priceLists.import.blankTemplate')}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">price-list-template.xlsx</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">product-template.xlsx</div>
                   </div>
                 </button>
                 <button
@@ -268,8 +288,13 @@ export default function PriceListImport({
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
-                    <CheckCircle className="w-4 h-4" /> {t('priceLists.import.ok', { count: okCount })}
+                    <CheckCircle className="w-4 h-4" /> {t('priceLists.import.itemsReady', { count: okCount })}
                   </span>
+                  {skippedCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                      {t('priceLists.import.skippedRows', { count: skippedCount })}
+                    </span>
+                  )}
                   {errCount > 0 && (
                     <span className="inline-flex items-center gap-1 text-red-700 dark:text-red-400">
                       <AlertCircle className="w-4 h-4" /> {t('priceLists.import.errors', { count: errCount })}

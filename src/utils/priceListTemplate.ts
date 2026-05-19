@@ -1,151 +1,69 @@
 /**
- * Price-list Excel template — single source of truth for the column spec.
+ * Price-list templates are the **same** Excel format as product templates.
+ * One header set, one mental model. This file is a thin wrapper around
+ * `downloadProductTemplate` that switches the price source from the
+ * product's own pricing to the price list's overlay.
  *
- * Used by:
- *   - `downloadPriceListTemplate()` to produce the template (blank or with
- *     existing items)
- *   - `PriceListImport.tsx` to validate uploaded files
- *
- * Mirrors the product-template pattern in `productTemplate.ts`.
+ * For an existing list, "Download current items" emits every product as a
+ * row; only products that are on the list have their Prijs* / BtwPercent
+ * columns filled. Cost / stock / track-stock columns are blanked because
+ * they don't apply at the list level.
  */
 
-import type { PriceListItemWithProduct } from '../services/priceLists'
+import { fetchAllProducts } from '../services/products'
+import { fetchPriceListItems } from '../services/priceLists'
+import {
+  downloadProductTemplate,
+  type PriceOverlay,
+} from './productTemplate'
 import type { UnitType } from '../types'
 
-export type PriceListColumnKey =
-  | 'ProductID'
-  | 'ProductNaam'
-  | 'Eenheid'
-  | 'Prijs'
-  | 'BtwPercent'
+export { PRODUCT_TEMPLATE_COLUMNS as PRICE_LIST_TEMPLATE_COLUMNS,
+         TEMPLATE_HEADERS as PRICE_LIST_HEADERS,
+         UNIT_TYPE_VALUES,
+         VALID_TAX_RATES } from './productTemplate'
 
-export interface PriceListTemplateColumn {
-  key: PriceListColumnKey
-  header: string
-  required: boolean
-  comment: string
+/** Build a blank product-template-format file for a price list. */
+export async function downloadBlankPriceListTemplate(): Promise<void> {
+  await downloadProductTemplate({ includeOwnerColumns: false })
 }
 
-export const PRICE_LIST_TEMPLATE_COLUMNS: readonly PriceListTemplateColumn[] = [
-  { key: 'ProductID',   header: 'Product ID',     required: true,  comment: 'Bestaand product (MHF-NNNNN). Onbekende ID = rij wordt overgeslagen.' },
-  { key: 'ProductNaam', header: 'Productnaam',    required: false, comment: 'Alleen ter referentie — wordt niet gebruikt voor matching. Mag leeg blijven.' },
-  { key: 'Eenheid',     header: 'Eenheid',        required: true,  comment: 'kg, piece, zak of doos.' },
-  { key: 'Prijs',       header: 'Prijs (€)',      required: true,  comment: 'Verkoopprijs in euro voor deze (product, eenheid) op deze lijst.' },
-  { key: 'BtwPercent',  header: 'BTW % (optioneel)', required: false, comment: '0, 9 of 21. Leeg laten = BTW van het product gebruiken.' },
-] as const
+/**
+ * Build and download the current contents of a price list as an editable
+ * product-template-format file. Re-uploading the file via the import flow
+ * replaces the list's prices.
+ */
+export async function downloadCurrentPriceList(
+  priceListId: string,
+  listName: string,
+): Promise<void> {
+  const [products, items] = await Promise.all([
+    fetchAllProducts(),
+    fetchPriceListItems(priceListId),
+  ])
 
-export const PRICE_LIST_HEADERS = PRICE_LIST_TEMPLATE_COLUMNS.map(c => c.header)
-export const UNIT_TYPE_VALUES: UnitType[] = ['kg', 'piece', 'zak', 'doos']
-export const VALID_TAX_RATES = [0, 9, 21]
-
-function itemToRow(it: PriceListItemWithProduct): Partial<Record<PriceListColumnKey, string | number>> {
-  return {
-    ProductID:   it.product?.product_code ?? '',
-    ProductNaam: it.product?.name ?? '',
-    Eenheid:     it.unit_type,
-    Prijs:       Number((it.price_cents / 100).toFixed(2)),
-    BtwPercent:  it.tax_rate ?? '',
-  }
-}
-
-export interface DownloadPriceListTemplateOptions {
-  listName?: string
-  existingItems?: PriceListItemWithProduct[]
-}
-
-export async function downloadPriceListTemplate(opts: DownloadPriceListTemplateOptions = {}): Promise<void> {
-  const existing = opts.existingItems ?? []
-  const withData = existing.length > 0
-
-  const ExcelJS = await import('exceljs')
-  const workbook = new ExcelJS.Workbook()
-  const sheet = workbook.addWorksheet('Prijslijst', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
-
-  const cols = PRICE_LIST_TEMPLATE_COLUMNS
-
-  // Header row
-  const headerRow = sheet.addRow(cols.map(c => c.header))
-  headerRow.eachCell((cell, colNumber) => {
-    const col = cols[colNumber - 1]
-    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: col.required ? 'FF166534' : 'FF16A34A' },
-    }
-    cell.border = {
-      top: { style: 'thin' },
-      bottom: { style: 'thin' },
-      left: { style: 'thin' },
-      right: { style: 'thin' },
-    }
-    cell.alignment = { vertical: 'middle', horizontal: 'left' }
-    cell.note = {
-      texts: [{ text: col.comment }],
-      margins: { insetmode: 'auto' },
-    }
-  })
-  headerRow.height = 22
-
-  if (withData) {
-    for (const it of existing) {
-      const data = itemToRow(it)
-      sheet.addRow(cols.map(c => data[c.key] ?? ''))
-    }
-  } else {
-    // Sample row
-    const sample: Partial<Record<PriceListColumnKey, string | number>> = {
-      ProductID: 'MHF-00001',
-      ProductNaam: 'Voorbeeld product',
-      Eenheid: 'kg',
-      Prijs: 8.5,
-      BtwPercent: 9,
-    }
-    const sampleRow = sheet.addRow(cols.map(c => sample[c.key] ?? ''))
-    sampleRow.eachCell(cell => {
-      cell.font = { italic: true, color: { argb: 'FF94A3B8' } }
-      cell.border = {
-        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-        right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-      }
-    })
-  }
-
-  // Column widths
-  cols.forEach((c, i) => {
-    sheet.getColumn(i + 1).width = Math.max(c.header.length + 4, 14)
-  })
-
-  // Data validation on Eenheid column — extend past last row for appended entries.
-  const validationLastRow = Math.max(1000, existing.length + 200)
-  const unitColIdx = cols.findIndex(c => c.key === 'Eenheid') + 1
-  if (unitColIdx > 0) {
-    for (let r = 2; r <= validationLastRow; r++) {
-      sheet.getCell(r, unitColIdx).dataValidation = {
-        type: 'list',
-        allowBlank: false,
-        formulae: ['"kg,piece,zak,doos"'],
-      }
+  // Build overlay from list items
+  const prices = new Map<string, Map<UnitType, number>>()
+  const tax = new Map<string, number>()
+  for (const it of items) {
+    if (!prices.has(it.product_id)) prices.set(it.product_id, new Map())
+    prices.get(it.product_id)!.set(it.unit_type, it.price_cents)
+    if (it.tax_rate != null && !tax.has(it.product_id)) {
+      tax.set(it.product_id, it.tax_rate)
     }
   }
 
-  const buffer = await workbook.xlsx.writeBuffer()
-  const blob = new Blob([buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
   const dateStr = new Date().toISOString().split('T')[0]
-  const safeName = (opts.listName ?? 'price-list').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-  link.download = withData
-    ? `${safeName}-${dateStr}.xlsx`
-    : 'price-list-template.xlsx'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(link.href)
+  const safeName = listName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+  const overlay: PriceOverlay = {
+    prices,
+    tax,
+    filename: `${safeName || 'price-list'}-${dateStr}.xlsx`,
+  }
+
+  await downloadProductTemplate({
+    includeOwnerColumns: false,
+    existingProducts: products,
+    priceOverlay: overlay,
+  })
 }

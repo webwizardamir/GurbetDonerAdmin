@@ -10,7 +10,7 @@ import {
   deletePriceListItem,
   type PriceListItemWithProduct,
 } from '../services/priceLists'
-import { downloadPriceListTemplate } from '../utils/priceListTemplate'
+import { downloadCurrentPriceList } from '../utils/priceListTemplate'
 import PriceListImport from '../components/priceLists/PriceListImport'
 import type { PriceList } from '../types'
 import { formatPrice } from '../utils/format'
@@ -61,7 +61,7 @@ export default function PriceListDetail() {
     if (downloadingTemplate || !list) return
     setDownloadingTemplate(true)
     try {
-      await downloadPriceListTemplate({ listName: list.name, existingItems: items })
+      await downloadCurrentPriceList(list.id, list.name)
     } finally {
       setDownloadingTemplate(false)
     }
