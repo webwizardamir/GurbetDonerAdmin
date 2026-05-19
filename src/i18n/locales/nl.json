@@ -812,6 +812,16 @@
       "allUnits": "Alle eenheden",
       "clear": "Filters wissen"
     },
+    "groupBy": {
+      "label": "Groeperen",
+      "none": "Geen",
+      "city": "Stad",
+      "customer": "Klant",
+      "qty": "Aantal",
+      "revenue": "Omzet",
+      "itemCount_one": "{{count}} product",
+      "itemCount_other": "{{count}} producten"
+    },
     "summary": {
       "products": "Producten",
       "totalQty": "Totaal aantal",

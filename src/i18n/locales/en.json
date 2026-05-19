@@ -812,6 +812,16 @@
       "allUnits": "All units",
       "clear": "Clear filters"
     },
+    "groupBy": {
+      "label": "Group by",
+      "none": "None",
+      "city": "City",
+      "customer": "Customer",
+      "qty": "Qty",
+      "revenue": "Revenue",
+      "itemCount_one": "{{count}} product",
+      "itemCount_other": "{{count}} products"
+    },
     "summary": {
       "products": "Products",
       "totalQty": "Total Qty",

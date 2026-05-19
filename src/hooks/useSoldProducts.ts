@@ -29,6 +29,7 @@ export function useSoldProducts() {
   const [customerFilter, setCustomerFilter] = useState<string>('')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [unitFilter, setUnitFilter] = useState<string>('')
+  const [groupBy, setGroupBy] = useState<'none' | 'city' | 'customer'>('none')
 
   const setDateRange = useCallback((
     key: DateRangeKey,
@@ -145,6 +146,72 @@ export function useSoldProducts() {
     return arr
   }, [filteredBreakdown])
 
+  // Grouped derivation — for driver-routing view (Group by City) and
+  // per-customer breakdown (Group by Customer). Each group contains
+  // its own per-(product, unit) aggregated items + totals.
+  interface SoldProductsGroup {
+    key: string
+    name: string
+    items: SoldProductItem[]
+    totalQuantity: number
+    totalRevenue: number
+    orderCount: number     // distinct order count in this group, approximate
+  }
+
+  const groups: SoldProductsGroup[] = useMemo(() => {
+    if (groupBy === 'none') return []
+
+    // Bucket breakdown rows by the chosen dimension
+    const buckets = new Map<string, { name: string; rows: SoldProductBreakdownRow[] }>()
+    for (const r of filteredBreakdown) {
+      const key  = groupBy === 'city' ? (r.city || '__none__') : r.customer_id
+      const name = groupBy === 'city' ? (r.city || '—') : r.customer_name
+      let b = buckets.get(key)
+      if (!b) { b = { name, rows: [] }; buckets.set(key, b) }
+      b.rows.push(r)
+    }
+
+    // Aggregate each bucket's rows to (product_id, unit_type) items
+    const out: SoldProductsGroup[] = []
+    for (const [key, { name, rows }] of buckets) {
+      const acc = new Map<string, SoldProductItem>()
+      for (const r of rows) {
+        const k = `${r.product_id}::${r.unit_type}`
+        let row = acc.get(k)
+        if (!row) {
+          row = {
+            product_id: r.product_id,
+            product_name: r.product_name,
+            product_sku: r.product_sku,
+            unit_type: r.unit_type,
+            category_name: r.category_name,
+            total_quantity: 0,
+            total_revenue: 0,
+            current_stock: r.current_stock,
+            track_stock: r.track_stock,
+            order_count: 0,
+          }
+          acc.set(k, row)
+        }
+        row.total_quantity += r.total_quantity
+        row.total_revenue  += r.total_revenue
+        row.order_count    += r.order_count
+      }
+      const items = Array.from(acc.values()).sort((a, b) => b.total_revenue - a.total_revenue)
+      out.push({
+        key,
+        name,
+        items,
+        totalQuantity: items.reduce((s, i) => s + i.total_quantity, 0),
+        totalRevenue:  items.reduce((s, i) => s + i.total_revenue,  0),
+        orderCount:    items.reduce((s, i) => s + i.order_count,    0),
+      })
+    }
+
+    out.sort((a, b) => b.totalRevenue - a.totalRevenue)
+    return out
+  }, [filteredBreakdown, groupBy])
+
   const summary: SoldProductsResult['summary'] = useMemo(() => {
     const tracked = items.filter(i => i.track_stock)
     const lowStock = tracked.filter(i => (i.current_stock || 0) < i.total_quantity * 2)
@@ -178,5 +245,7 @@ export function useSoldProducts() {
     customerOptions,
     categoryOptions,
     unitOptions,
+    groupBy,           setGroupBy,
+    groups,
   }
 }
