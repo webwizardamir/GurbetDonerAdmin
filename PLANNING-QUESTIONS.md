@@ -1,7 +1,64 @@
 # MelekHalalFood — Major Feature Round Planning
 
-> **Status:** Awaiting your answers before I lock the implementation plan.
-> **Read time:** ~10 min. Skim the **TL;DR**, answer the **❓ Questions**, ignore the rest unless curious.
+> **Status (2026-05-20):** Phases 0–4 shipped + post-Phase-4 review hardening.
+> Phase 5 (email/Outbox) and Phase 6 (sortable columns) are next.
+> See **Current state** below for the punch list.
+
+---
+
+## ✅ Current state
+
+### Shipped
+| Phase | What | Status |
+|---|---|---|
+| 0 | Quick wins (Euro sweep, clickable customer names, unified ExportMenu) | ✅ |
+| 1 | Product IDs (`MHF-NNNNN`) + Excel product import (template + bulk upsert) | ✅ |
+| 2 | Country/customer price lists (CRUD, items, customer assignment, OrderForm wiring) | ✅ |
+| 3 | Customer Products tab (filters, footer SUMs, export, expandable orders drill-down) | ✅ |
+| 4 | Sold Products filters + Group-by-City driver-routing PDF | ✅ |
+
+### Post-Phase-4 review (4 agents: security, performance, UI/UX, code quality)
+| Severity | What was fixed | Commits |
+|---|---|---|
+| HIGH | Admin guard + role-aware profit on new RPCs (migration 00047) | `d54c29f` |
+| HIGH | Bulk `upsertProductsFromImport` (~12 min → ~3 sec for 6000 rows) | `a6a306d` |
+| HIGH | `overflow-x-auto` on mobile-broken tables | `8b1a0fb` |
+| HIGH | Delete dead `getSoldProducts` | `26d0ff5` |
+| HIGH | Stale-closure in `CustomerProductsTab.toggleExpand` | `4a152c6` |
+| MED  | Session-expired guard on imports + creates | `519cd8c` |
+| MED  | Inactive price lists no longer resolve at order time | `21d1ed1` |
+| MED  | Excel formula-injection guard (`=`/`+`/`-`/`@`/tab/CR prefix) | `68dab84` |
+| MED  | `useSoldProducts` hook cleanup (nested fn + useEffect deps) | `f0a0a7d` |
+| MED  | Canonical `customers.price_list` join shape | `a75d3b2` |
+| MED  | Touch-friendly inline errors in import preview | `433da8b` |
+| MED  | Branded `ConfirmDialog` replaces browser `confirm()`/`alert()` on price-list pages | `ff2f496` |
+| MED  | `productByCode` preload-failure surfacing in PriceListImport | `e91332e` |
+
+### Migrations applied (paste into Supabase Studio)
+- 00042 — `product_code` column + trigger
+- 00043 — backfill product_code for legacy WC-imported rows
+- 00044 — `price_lists` + `price_list_items` + `customers.price_list_id`
+- 00045 — `get_customer_items_summary` RPC
+- 00046 — `get_sold_products_breakdown` RPC
+- 00047 — admin guard + role-aware profit on 00045/00046
+
+### Remaining LOW items from the review (next polish sweep)
+- Missing indexes for "all-time" range (`idx_orders(customer_id, order_date)`, `idx_order_refund_items(product_id)`)
+- Backfill migration 00043 sequence-gap risk if interrupted (not load-bearing)
+- Tags-icon column in Customers list → also show truncated name on `md:`+
+- "Using price list: X" note in OrderForm → make it a pill with Tags icon
+- BTW inline-edit select → visually separate "inherit" from "0%"
+- Date selects on SoldProducts (`py-2`) → `py-2.5` for 44px touch target
+- Hardcoded English in SoldProducts (`"to"`, `"order(s)"`, mobile-card labels) — i18n
+- `priceListTemplate.ts` is a barely-a-wrapper — inline or earn its keep
+- Some new cards use `rounded-xl` where design-system specifies `rounded-2xl`
+- Extract shared `<ExcelImportShell>` from ProductImport + PriceListImport (~80% duplication)
+- Naming inconsistency: `base_price` vs `price_cents` vs revenue without suffix
+
+### What's next
+- **Phase 5** — Email/send system + Outbox page (needs Q7 answers; biggest item)
+- **Phase 6** — Sortable columns on every table (deferred earlier)
+- **LOW polish sweep** — can roll into either phase
 
 ---
 
