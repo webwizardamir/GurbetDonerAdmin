@@ -68,6 +68,7 @@
     "invoices": "Facturen",
     "analytics": "Analyses",
     "soldProducts": "Verkochte Producten",
+    "priceLists": "Prijslijsten",
     "settings": "Instellingen",
     "users": "Gebruikers",
     "auditLog": "Auditlogboek",
@@ -679,6 +680,33 @@
       "noBatches": "Geen batches gevonden",
       "batches": "batches",
       "batch": "batch"
+    }
+  },
+  "priceLists": {
+    "subtitle": "Beheer prijslijsten per land of segment",
+    "detailTitle": "Prijslijst",
+    "intro": "Een prijslijst overschrijft productprijzen voor klanten die eraan toegewezen zijn. Klant-specifieke prijzen hebben nog steeds voorrang.",
+    "create": "Nieuwe prijslijst",
+    "edit": "Prijslijst bewerken",
+    "empty": "Nog geen prijslijsten",
+    "active": "Actief",
+    "inactive": "Inactief",
+    "activate": "Activeren",
+    "deactivate": "Deactiveren",
+    "backToList": "Terug naar prijslijsten",
+    "notFound": "Prijslijst niet gevonden.",
+    "detailComingSoon": "Lijstitems en import volgen in de volgende commit.",
+    "namePlaceholder": "Bijv. Italië 2026",
+    "descriptionPlaceholder": "Optionele omschrijving",
+    "confirmDelete": "Deze prijslijst verwijderen ({{items}} regels)?",
+    "confirmDeleteWithUsage": "Deze prijslijst is toegewezen aan {{customers}} klanten en bevat {{items}} regels. Toch verwijderen?",
+    "columns": {
+      "name": "Naam",
+      "description": "Omschrijving",
+      "items": "Regels",
+      "customers": "Klanten",
+      "active": "Status",
+      "actions": "Acties"
     }
   },
   "soldProducts": {

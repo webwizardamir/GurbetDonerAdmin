@@ -15,6 +15,8 @@ import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import CustomerDetail from './pages/CustomerDetail'
 import Products from './pages/Products'
+import PriceLists from './pages/PriceLists'
+import PriceListDetail from './pages/PriceListDetail'
 import Orders from './pages/Orders'
 import OrderEditor from './pages/OrderEditor'
 import AuditLog from './pages/AuditLog'
@@ -172,6 +174,22 @@ function App() {
 
                 {/* Products */}
                 <Route path="products" element={<Products />} />
+                <Route
+                  path="price-lists"
+                  element={
+                    <OwnerRoute>
+                      <PriceLists />
+                    </OwnerRoute>
+                  }
+                />
+                <Route
+                  path="price-lists/:id"
+                  element={
+                    <OwnerRoute>
+                      <PriceListDetail />
+                    </OwnerRoute>
+                  }
+                />
                 <Route path="sold-products" element={<SoldProducts />} />
 
                 {/* Orders */}

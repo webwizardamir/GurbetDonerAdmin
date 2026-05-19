@@ -14,6 +14,7 @@ const PAGE_META: Record<string, { titleKey: string; descKey?: string }> = {
   '/orders/new': { titleKey: 'orders.newOrder' },
   '/customers': { titleKey: 'nav.customers', descKey: 'customers.title' },
   '/products': { titleKey: 'nav.products', descKey: 'products.title' },
+  '/price-lists': { titleKey: 'nav.priceLists', descKey: 'priceLists.subtitle' },
   '/sold-products': { titleKey: 'nav.soldProducts', descKey: 'soldProducts.subtitle' },
   '/invoices': { titleKey: 'nav.invoices', descKey: 'documents.title' },
   '/analytics': { titleKey: 'nav.analytics', descKey: 'analytics.title' },
@@ -26,6 +27,7 @@ const PAGE_META: Record<string, { titleKey: string; descKey?: string }> = {
 function resolvePageMeta(pathname: string): { titleKey: string; descKey?: string } {
   if (PAGE_META[pathname]) return PAGE_META[pathname]
   if (/^\/orders\/[^/]+\/edit$/.test(pathname)) return { titleKey: 'orders.editOrder' }
+  if (/^\/price-lists\/[^/]+$/.test(pathname)) return { titleKey: 'priceLists.detailTitle' }
   return { titleKey: 'common.name' }
 }
 

@@ -68,6 +68,7 @@
     "invoices": "Invoices",
     "analytics": "Analytics",
     "soldProducts": "Sold Products",
+    "priceLists": "Price Lists",
     "settings": "Settings",
     "users": "Users",
     "auditLog": "Audit Log",
@@ -679,6 +680,33 @@
       "noBatches": "No batches found",
       "batches": "batches",
       "batch": "batch"
+    }
+  },
+  "priceLists": {
+    "subtitle": "Manage price lists per country or segment",
+    "detailTitle": "Price list",
+    "intro": "A price list overrides product prices for customers assigned to it. Customer-specific prices still take precedence.",
+    "create": "New price list",
+    "edit": "Edit price list",
+    "empty": "No price lists yet",
+    "active": "Active",
+    "inactive": "Inactive",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "backToList": "Back to price lists",
+    "notFound": "Price list not found.",
+    "detailComingSoon": "Line items and import are coming in the next commit.",
+    "namePlaceholder": "e.g. Italy 2026",
+    "descriptionPlaceholder": "Optional description",
+    "confirmDelete": "Delete this price list ({{items}} items)?",
+    "confirmDeleteWithUsage": "This price list is assigned to {{customers}} customer(s) and has {{items}} items. Delete anyway?",
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "items": "Items",
+      "customers": "Customers",
+      "active": "Status",
+      "actions": "Actions"
     }
   },
   "soldProducts": {
