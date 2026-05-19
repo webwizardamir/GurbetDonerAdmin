@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   X, Upload, Loader2, CheckCircle, AlertCircle, FileDown, FileSpreadsheet,
@@ -326,24 +326,39 @@ export default function PriceListImport({
                     {validatedRows.map((row, idx) => {
                       const errFields = new Set(row.errors.map(e => e.field))
                       const errMessages = row.errors.map(e => `${e.field}: ${e.message}`).join('\n')
+                      const hasErrors = row.errors.length > 0
                       return (
-                        <tr key={idx} className={row.errors.length > 0 ? 'bg-red-50 dark:bg-red-900/10' : ''}>
-                          <td className="px-2 py-1.5 text-slate-500 dark:text-slate-400">{row.source.__rowNumber}</td>
-                          {PRICE_LIST_HEADERS.map(h => {
-                            const key = headerKeyMap.get(h) ?? h
-                            const hasErr = errFields.has(key)
-                            const val = row.source[h]
-                            return (
-                              <td
-                                key={h}
-                                title={hasErr ? errMessages : undefined}
-                                className={`px-2 py-1.5 whitespace-nowrap ${hasErr ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 font-medium' : 'text-slate-700 dark:text-slate-300'}`}
-                              >
-                                {val !== null && val !== undefined && val !== '' ? String(val) : ''}
+                        <Fragment key={idx}>
+                          <tr className={hasErrors ? 'bg-red-50 dark:bg-red-900/10' : ''}>
+                            <td className="px-2 py-1.5 text-slate-500 dark:text-slate-400">{row.source.__rowNumber}</td>
+                            {PRICE_LIST_HEADERS.map(h => {
+                              const key = headerKeyMap.get(h) ?? h
+                              const hasErr = errFields.has(key)
+                              const val = row.source[h]
+                              return (
+                                <td
+                                  key={h}
+                                  title={hasErr ? errMessages : undefined}
+                                  className={`px-2 py-1.5 whitespace-nowrap ${hasErr ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 font-medium' : 'text-slate-700 dark:text-slate-300'}`}
+                                >
+                                  {val !== null && val !== undefined && val !== '' ? String(val) : ''}
+                                </td>
+                              )
+                            })}
+                          </tr>
+                          {hasErrors && (
+                            <tr className="bg-red-50 dark:bg-red-900/10">
+                              <td />
+                              <td colSpan={PRICE_LIST_HEADERS.length} className="px-2 pb-1.5 pt-0 text-[11px] text-red-700 dark:text-red-300">
+                                {row.errors.map((e, i) => (
+                                  <span key={i} className="inline-block mr-2">
+                                    <strong>{e.field}:</strong> {e.message}
+                                  </span>
+                                ))}
                               </td>
-                            )
-                          })}
-                        </tr>
+                            </tr>
+                          )}
+                        </Fragment>
                       )
                     })}
                   </tbody>
