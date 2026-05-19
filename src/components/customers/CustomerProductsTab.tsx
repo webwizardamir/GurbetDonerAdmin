@@ -68,14 +68,18 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
 
   const toggleExpand = (r: CustomerItemSummary) => {
     const key = rowKey(r)
+    // Decide once based on the captured closure state — this is the same
+    // value that setExpanded(prev => ...) will see, so the "should I fetch?"
+    // branch below stays consistent with the new expanded state.
+    const willOpen = !expanded.has(key)
     setExpanded(prev => {
       const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      if (willOpen) next.add(key)
+      else next.delete(key)
       return next
     })
     // Lazy-load orders the first time this row is opened
-    if (!expanded.has(key) && !orderCache.has(key)) {
+    if (willOpen && !orderCache.has(key)) {
       const { start, end } = resolveRange(range)
       setLoadingOrders(prev => new Set(prev).add(key))
       fetchCustomerProductOrders({
