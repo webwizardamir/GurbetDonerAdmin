@@ -261,6 +261,7 @@
   },
   "products": {
     "title": "Producten",
+    "id": "ID",
     "addProduct": "Product toevoegen",
     "editProduct": "Product bewerken",
     "deleteProduct": "Product verwijderen",

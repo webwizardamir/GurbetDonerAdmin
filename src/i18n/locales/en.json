@@ -261,6 +261,7 @@
   },
   "products": {
     "title": "Products",
+    "id": "ID",
     "addProduct": "Add Product",
     "editProduct": "Edit Product",
     "deleteProduct": "Delete Product",

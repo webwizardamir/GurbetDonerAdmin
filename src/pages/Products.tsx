@@ -190,6 +190,9 @@ export default function Products() {
             <table className="w-full min-w-[800px]">
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    {t('products.id')}
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {t('products.productName')}
                   </th>
@@ -230,6 +233,9 @@ export default function Products() {
                     onClick={() => canEdit && handleEdit(product)}
                     className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${canEdit ? 'cursor-pointer' : ''}`}
                   >
+                    <td className="px-3 py-3 text-xs font-mono font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                      {product.product_code ?? '—'}
+                    </td>
                     <td className="px-4 py-3">
                       <div>
                         <div className="font-medium text-slate-900 dark:text-white">
@@ -404,6 +410,11 @@ export default function Products() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
+                    {product.product_code && (
+                      <div className="text-xs font-mono font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
+                        {product.product_code}
+                      </div>
+                    )}
                     <h3 className="font-medium text-slate-900 dark:text-white">{product.name}</h3>
                     {product.category && (
                       <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded">
