@@ -359,74 +359,101 @@ export async function upsertProductsFromImport(
     }
   }
 
-  // Apply unit prices for one product (after its main row has been written)
-  const applyUnitPrices = async (productId: string, prices: Partial<Record<UnitType, number>>) => {
-    const entries = (Object.entries(prices) as [UnitType, number][])
-      .filter(([, price]) => typeof price === 'number' && price >= 0)
-    if (entries.length === 0) return
-    const upserts = entries.map(([unit_type, price]) => ({
-      product_id: productId,
-      unit_type,
-      price,
-    }))
-    const { error } = await supabase
-      .from('product_unit_prices')
-      .upsert(upserts, { onConflict: 'product_id,unit_type' })
-    if (error) result.errors.push(`Unit prices for ${productId}: ${error.message}`)
+  // Partition rows by whether we already have a matching product_code.
+  // Updates go through a bulk upsert on the primary key; inserts go through
+  // a bulk .insert() and we zip the returned IDs back by input order so we
+  // can attach unit-price rows to each.
+  type ProductRow = {
+    id?: string
+    name: string
+    category_id: string
+    unit_type: UnitType
+    sku: string | null
+    barcode: string | null
+    tax_rate: number
+    stock_quantity: number
+    stock_unit_type: UnitType
+    track_stock: boolean
+    description: string | null
+    base_price: number
+    cost_cents?: number
+    product_code?: string
+    created_by?: string
+  }
+  const updates: Array<{ id: string; payload: ProductRow; prices: Partial<Record<UnitType, number>> }> = []
+  const inserts: Array<{ payload: ProductRow; prices: Partial<Record<UnitType, number>> }> = []
+
+  for (const row of rows) {
+    const code = row.product_code?.trim() || null
+    const matchedId = code ? existing[code] : undefined
+
+    const base: ProductRow = {
+      name: row.name,
+      category_id: row.category_id,
+      unit_type: row.default_unit_type,
+      sku: row.sku?.trim() || null,
+      barcode: row.barcode?.trim() || null,
+      tax_rate: row.tax_rate ?? 9.00,
+      stock_quantity: row.stock_quantity ?? 0,
+      stock_unit_type: row.default_unit_type,
+      track_stock: row.track_stock ?? true,
+      description: row.description ?? null,
+      base_price: row.unit_prices[row.default_unit_type] ?? 0,
+      ...(row.cost_cents !== undefined && row.cost_cents !== null ? { cost_cents: row.cost_cents } : {}),
+    }
+
+    if (matchedId) {
+      updates.push({ id: matchedId, payload: { ...base, id: matchedId }, prices: row.unit_prices })
+    } else {
+      const insertPayload: ProductRow = { ...base, created_by: userId, ...(code ? { product_code: code } : {}) }
+      inserts.push({ payload: insertPayload, prices: row.unit_prices })
+    }
   }
 
-  // Process rows in batches of 50 to limit single-call payload
-  const BATCH_SIZE = 50
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const batch = rows.slice(i, i + BATCH_SIZE)
-    for (const row of batch) {
-      const code = row.product_code?.trim() || null
-      const matchedId = code ? existing[code] : undefined
+  // Run the product-row upsert and insert in parallel — two round-trips
+  // instead of 2N for the old per-row implementation.
+  const [updateRes, insertRes] = await Promise.all([
+    updates.length > 0
+      ? supabase.from('products').upsert(updates.map(u => u.payload), { onConflict: 'id' })
+      : Promise.resolve({ error: null }),
+    inserts.length > 0
+      ? supabase.from('products').insert(inserts.map(i => i.payload)).select('id')
+      : Promise.resolve({ error: null, data: [] as { id: string }[] }),
+  ])
 
-      const payload: Record<string, unknown> = {
-        name: row.name,
-        category_id: row.category_id,
-        unit_type: row.default_unit_type,
-        sku: row.sku?.trim() || null,
-        barcode: row.barcode?.trim() || null,
-        tax_rate: row.tax_rate ?? 9.00,
-        stock_quantity: row.stock_quantity ?? 0,
-        stock_unit_type: row.default_unit_type,
-        track_stock: row.track_stock ?? true,
-        description: row.description ?? null,
-        base_price: row.unit_prices[row.default_unit_type] ?? 0,
-      }
-      if (row.cost_cents !== undefined && row.cost_cents !== null) {
-        payload.cost_cents = row.cost_cents
-      }
+  if (updateRes.error) {
+    result.errors.push(`Bulk update: ${updateRes.error.message}`)
+  } else {
+    result.updated = updates.length
+  }
 
-      if (matchedId) {
-        const { error } = await supabase
-          .from('products')
-          .update(payload)
-          .eq('id', matchedId)
-        if (error) {
-          result.errors.push(`Update ${code}: ${error.message}`)
-          continue
-        }
-        await applyUnitPrices(matchedId, row.unit_prices)
-        result.updated += 1
-      } else {
-        const insertData: Record<string, unknown> = { ...payload, created_by: userId }
-        if (code) insertData.product_code = code
-        const { data, error } = await supabase
-          .from('products')
-          .insert(insertData)
-          .select('id')
-          .single()
-        if (error || !data) {
-          result.errors.push(`Insert ${row.name}: ${error?.message ?? 'unknown error'}`)
-          continue
-        }
-        await applyUnitPrices(data.id, row.unit_prices)
-        result.created += 1
+  let insertedIds: { id: string }[] = []
+  if (insertRes.error) {
+    result.errors.push(`Bulk insert: ${insertRes.error.message}`)
+  } else {
+    insertedIds = ('data' in insertRes ? insertRes.data : []) ?? []
+    result.created = insertedIds.length
+  }
+
+  // Bulk-upsert unit prices for all rows (updates + inserts) in one round-trip.
+  // Inserts come back in input order from PostgREST so we zip by index.
+  type UnitPriceRow = { product_id: string; unit_type: UnitType; price: number }
+  const unitPrices: UnitPriceRow[] = []
+  const addPrices = (productId: string, prices: Partial<Record<UnitType, number>>) => {
+    for (const [unit_type, price] of Object.entries(prices) as [UnitType, number][]) {
+      if (typeof price === 'number' && price >= 0) {
+        unitPrices.push({ product_id: productId, unit_type, price })
       }
     }
+  }
+  for (const u of updates) addPrices(u.id, u.prices)
+  for (let i = 0; i < insertedIds.length; i++) addPrices(insertedIds[i].id, inserts[i].prices)
+
+  if (unitPrices.length > 0) {
+    const { error } = await supabase
+      .from('product_unit_prices')
+      .upsert(unitPrices, { onConflict: 'product_id,unit_type' })
+    if (error) result.errors.push(`Unit prices bulk upsert: ${error.message}`)
   }
 
   return result
