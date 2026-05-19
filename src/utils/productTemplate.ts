@@ -65,6 +65,13 @@ function productToTemplateRow(p: Product): Partial<Record<TemplateColumnKey, str
       priceByUnit.set(u.unit_type as UnitType, u.price)   // cents
     }
   }
+  // `base_price` on the products row is the canonical price for the default
+  // unit_type. Many legacy rows only have base_price and no product_unit_prices
+  // entries, so without this fallback their export columns would be blank.
+  const defaultUnit = p.unit_type as UnitType
+  if (!priceByUnit.has(defaultUnit) && typeof p.base_price === 'number' && p.base_price > 0) {
+    priceByUnit.set(defaultUnit, p.base_price)
+  }
   const eur = (cents: number | null | undefined): number | '' =>
     typeof cents === 'number' ? Number((cents / 100).toFixed(2)) : ''
   return {
