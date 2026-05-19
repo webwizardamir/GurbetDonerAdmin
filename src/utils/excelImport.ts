@@ -107,3 +107,27 @@ export function getValue(row: ParsedExcelRow, header: string): unknown {
   }
   return null
 }
+
+/**
+ * CSV/XLSX formula-injection guard.
+ *
+ * Excel and Google Sheets interpret a cell whose value starts with =, +, -, @,
+ * tab, or carriage return as a formula. An attacker who can write text into
+ * a row (e.g. a product name) can craft a value like `=cmd|'/c calc'!A1` or
+ * `=HYPERLINK(...)` that executes / phishes when the row round-trips through
+ * a re-exported sheet. Prefixing with a single quote neutralises this without
+ * affecting display in spreadsheet apps.
+ *
+ * Call this on every string field read from an Excel import before writing
+ * to the DB. Returns non-string values unchanged.
+ */
+export function sanitizeCellValue(v: unknown): unknown {
+  if (typeof v !== 'string') return v
+  if (v.length === 0) return v
+  const first = v.charCodeAt(0)
+  // = (61), + (43), - (45), @ (64), \t (9), \r (13)
+  if (first === 61 || first === 43 || first === 45 || first === 64 || first === 9 || first === 13) {
+    return `'${v}`
+  }
+  return v
+}

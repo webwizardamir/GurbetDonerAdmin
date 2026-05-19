@@ -10,7 +10,7 @@ import {
   downloadBlankPriceListTemplate,
   downloadCurrentPriceList,
 } from '../../utils/priceListTemplate'
-import { readExcelFile, getValue, type ParsedExcelRow } from '../../utils/excelImport'
+import { readExcelFile, getValue, sanitizeCellValue, type ParsedExcelRow } from '../../utils/excelImport'
 import { fetchAllProducts } from '../../services/products'
 import {
   upsertPriceListItems,
@@ -53,7 +53,9 @@ const parseNumber = (v: unknown): number | null => {
 
 const trimOrNull = (v: unknown): string | null => {
   if (v === null || v === undefined) return null
-  const s = String(v).trim()
+  // Neutralise any Excel/CSV formula-injection prefix before storing.
+  const sanitized = sanitizeCellValue(v)
+  const s = String(sanitized).trim()
   return s ? s : null
 }
 
