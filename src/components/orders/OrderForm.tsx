@@ -129,7 +129,18 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     try {
       let availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
       if (selectedCustomer) {
-        availableUnitTypes = await getAvailableUnitPricesForCustomer(selectedCustomer.id, product.id)
+        availableUnitTypes = await getAvailableUnitPricesForCustomer(
+          selectedCustomer.id, product.id, selectedCustomer.price_list_id,
+        )
+        // Fallback: product has no per-unit price entries. Resolve the default
+        // unit's price via getEffectivePrice so we still respect the customer's
+        // price list / per-customer override.
+        if (availableUnitTypes.length === 0) {
+          const price = await getEffectivePrice(
+            selectedCustomer.id, product.id, product.unit_type, selectedCustomer.price_list_id,
+          )
+          availableUnitTypes = [{ unitType: product.unit_type, price, isDefault: true }]
+        }
       } else {
         availableUnitTypes = getProductUnitTypes(product)
       }
