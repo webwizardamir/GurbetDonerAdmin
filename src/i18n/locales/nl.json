@@ -707,6 +707,46 @@
       "customers": "Klanten",
       "active": "Status",
       "actions": "Acties"
+    },
+    "detail": {
+      "itemsCount_one": "{{count}} regel",
+      "itemsCount_other": "{{count}} regels",
+      "downloadTemplate": "Sjabloon downloaden",
+      "importItems": "Items importeren",
+      "noItems": "Nog geen prijzen op deze lijst",
+      "deletedProduct": "Verwijderd product",
+      "inheritTax": "BTW van product",
+      "confirmDeleteItem": "Deze regel verwijderen ({{name}})?",
+      "columns": {
+        "productId": "Product ID",
+        "productName": "Productnaam",
+        "unit": "Eenheid",
+        "price": "Prijs",
+        "tax": "BTW",
+        "actions": "Acties"
+      }
+    },
+    "import": {
+      "title": "Items importeren",
+      "intro": "Upload een .xlsx-bestand om prijzen op deze lijst toe te voegen of bij te werken. Bestaande regels (zelfde product + eenheid) worden overschreven.",
+      "blankTemplate": "Leeg sjabloon",
+      "currentItems": "Huidige items",
+      "currentItemsHint": "Alle regels op deze lijst · bewerken + importeren",
+      "selectFile": "Bestand kiezen",
+      "ok": "{{count}} rijen OK",
+      "errors": "{{count}} fouten gevonden",
+      "fixAndRetry": "Los de fouten op en upload opnieuw",
+      "confirm": "Importeren bevestigen",
+      "done": "Klaar",
+      "result": "{{inserted}} toegevoegd · {{updated}} bijgewerkt",
+      "missingProductId": "Product ID is verplicht",
+      "unknownProduct": "Onbekend product: {{code}}",
+      "missingUnit": "Eenheid is verplicht",
+      "invalidUnit": "Ongeldige eenheid: {{value}}",
+      "missingPrice": "Prijs is verplicht",
+      "invalidPrice": "Ongeldige prijs",
+      "invalidTax": "BTW moet 0, 9 of 21 zijn",
+      "duplicateInFile": "Dubbele combinatie in bestand: {{code}} / {{unit}}"
     }
   },
   "soldProducts": {

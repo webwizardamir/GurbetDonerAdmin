@@ -707,6 +707,46 @@
       "customers": "Customers",
       "active": "Status",
       "actions": "Actions"
+    },
+    "detail": {
+      "itemsCount_one": "{{count}} item",
+      "itemsCount_other": "{{count}} items",
+      "downloadTemplate": "Download template",
+      "importItems": "Import items",
+      "noItems": "No prices on this list yet",
+      "deletedProduct": "Deleted product",
+      "inheritTax": "from product",
+      "confirmDeleteItem": "Delete this item ({{name}})?",
+      "columns": {
+        "productId": "Product ID",
+        "productName": "Product Name",
+        "unit": "Unit",
+        "price": "Price",
+        "tax": "VAT",
+        "actions": "Actions"
+      }
+    },
+    "import": {
+      "title": "Import items",
+      "intro": "Upload an .xlsx file to add or update prices on this list. Existing items (same product + unit) are overwritten.",
+      "blankTemplate": "Blank template",
+      "currentItems": "Current items",
+      "currentItemsHint": "All items on this list · edit + re-import",
+      "selectFile": "Choose file",
+      "ok": "{{count}} rows OK",
+      "errors": "{{count}} errors found",
+      "fixAndRetry": "Fix the errors and re-upload",
+      "confirm": "Confirm import",
+      "done": "Done",
+      "result": "{{inserted}} inserted · {{updated}} updated",
+      "missingProductId": "Product ID is required",
+      "unknownProduct": "Unknown product: {{code}}",
+      "missingUnit": "Unit type is required",
+      "invalidUnit": "Invalid unit type: {{value}}",
+      "missingPrice": "Price is required",
+      "invalidPrice": "Invalid price",
+      "invalidTax": "VAT must be 0, 9 or 21",
+      "duplicateInFile": "Duplicate row in file: {{code}} / {{unit}}"
     }
   },
   "soldProducts": {
