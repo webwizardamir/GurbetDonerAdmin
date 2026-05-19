@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  ChevronLeft, Loader2, AlertCircle, Upload, FileDown, Trash2, Package,
+  ChevronLeft, Loader2, AlertCircle, Upload, FileDown, Trash2, Package, Pencil, Check, X,
 } from 'lucide-react'
 import {
   fetchPriceListById,
   fetchPriceListItems,
   deletePriceListItem,
+  updatePriceListItem,
   type PriceListItemWithProduct,
 } from '../services/priceLists'
 import { downloadCurrentPriceList } from '../utils/priceListTemplate'
@@ -24,6 +25,58 @@ export default function PriceListDetail() {
   const [error, setError] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
+
+  // Inline edit state. editingId = which row is being edited; editPrice / editTax
+  // are the staged string inputs (kept as strings so blank ↔ "use product BTW"
+  // round-trips cleanly).
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editPrice, setEditPrice] = useState('')
+  const [editTax, setEditTax] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  const startEdit = (item: PriceListItemWithProduct) => {
+    setEditingId(item.id)
+    setEditPrice((item.price_cents / 100).toFixed(2).replace('.', ','))
+    setEditTax(item.tax_rate != null ? String(item.tax_rate) : '')
+    setEditError(null)
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditError(null)
+  }
+
+  const saveEdit = async (item: PriceListItemWithProduct) => {
+    const priceNum = Number(editPrice.replace(',', '.'))
+    if (!Number.isFinite(priceNum) || priceNum < 0) {
+      setEditError(t('priceLists.detail.invalidPrice'))
+      return
+    }
+    let taxValue: number | null = null
+    if (editTax.trim() !== '') {
+      const taxNum = Number(editTax.replace(',', '.'))
+      if (![0, 9, 21].includes(taxNum)) {
+        setEditError(t('priceLists.detail.invalidTax'))
+        return
+      }
+      taxValue = taxNum
+    }
+    setSavingEdit(true)
+    setEditError(null)
+    try {
+      await updatePriceListItem(item.id, {
+        price_cents: Math.round(priceNum * 100),
+        tax_rate: taxValue,
+      })
+      setEditingId(null)
+      await load()
+    } catch (e) {
+      setEditError((e as Error).message)
+    } finally {
+      setSavingEdit(false)
+    }
+  }
 
   const load = async () => {
     if (!id) return
@@ -146,6 +199,13 @@ export default function PriceListDetail() {
         </div>
       )}
 
+      {editError && (
+        <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div className="text-sm text-red-700 dark:text-red-300">{editError}</div>
+        </div>
+      )}
+
       {/* Items table */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         {items.length === 0 ? (
@@ -173,36 +233,107 @@ export default function PriceListDetail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {items.map(item => (
-                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                  <td className="px-4 py-3 font-mono text-sm text-slate-900 dark:text-white">
-                    {item.product?.product_code ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                    {item.product?.name ?? t('priceLists.detail.deletedProduct')}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                    {item.unit_type}
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white tabular-nums font-medium">
-                    {formatPrice(item.price_cents)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">
-                    {item.tax_rate != null
-                      ? `${item.tax_rate}%`
-                      : <span className="text-slate-400 dark:text-slate-600 italic">{t('priceLists.detail.inheritTax')}</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDeleteItem(item)}
-                      className="p-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      title={t('common.delete')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {items.map(item => {
+                const isEditing = editingId === item.id
+                return (
+                  <tr key={item.id} className={isEditing ? 'bg-purple-50/40 dark:bg-purple-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'}>
+                    <td className="px-4 py-3 font-mono text-sm text-slate-900 dark:text-white">
+                      {item.product?.product_code ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                      {item.product?.name ?? t('priceLists.detail.deletedProduct')}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                      {item.unit_type}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white tabular-nums font-medium">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={editPrice}
+                          onChange={e => setEditPrice(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') void saveEdit(item)
+                            else if (e.key === 'Escape') cancelEdit()
+                          }}
+                          autoFocus
+                          disabled={savingEdit}
+                          className="w-24 px-2 py-1 text-right bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      ) : (
+                        formatPrice(item.price_cents)
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">
+                      {isEditing ? (
+                        <select
+                          value={editTax}
+                          onChange={e => setEditTax(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') void saveEdit(item)
+                            else if (e.key === 'Escape') cancelEdit()
+                          }}
+                          disabled={savingEdit}
+                          className="w-24 px-2 py-1 text-right bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                          <option value="">{t('priceLists.detail.inheritTax')}</option>
+                          <option value="0">0%</option>
+                          <option value="9">9%</option>
+                          <option value="21">21%</option>
+                        </select>
+                      ) : (
+                        item.tax_rate != null
+                          ? `${item.tax_rate}%`
+                          : <span className="text-slate-400 dark:text-slate-600 italic">{t('priceLists.detail.inheritTax')}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-1">
+                        {isEditing ? (
+                          <>
+                            <button
+                              onClick={() => void saveEdit(item)}
+                              disabled={savingEdit}
+                              className="p-1.5 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 disabled:opacity-50 transition-colors"
+                              title={t('common.save')}
+                            >
+                              {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              disabled={savingEdit}
+                              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                              title={t('common.cancel')}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startEdit(item)}
+                              disabled={editingId !== null}
+                              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                              title={t('common.edit')}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteItem(item)}
+                              disabled={editingId !== null}
+                              className="p-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 transition-colors"
+                              title={t('common.delete')}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}

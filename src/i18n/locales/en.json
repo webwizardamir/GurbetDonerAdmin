@@ -722,6 +722,8 @@
       "noItems": "No prices on this list yet",
       "deletedProduct": "Deleted product",
       "inheritTax": "from product",
+      "invalidPrice": "Invalid price",
+      "invalidTax": "VAT must be 0, 9 or 21",
       "confirmDeleteItem": "Delete this item ({{name}})?",
       "columns": {
         "productId": "Product ID",

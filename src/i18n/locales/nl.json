@@ -722,6 +722,8 @@
       "noItems": "Nog geen prijzen op deze lijst",
       "deletedProduct": "Verwijderd product",
       "inheritTax": "BTW van product",
+      "invalidPrice": "Ongeldige prijs",
+      "invalidTax": "BTW moet 0, 9 of 21 zijn",
       "confirmDeleteItem": "Deze regel verwijderen ({{name}})?",
       "columns": {
         "productId": "Product ID",

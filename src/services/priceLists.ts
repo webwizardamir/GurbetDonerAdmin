@@ -197,3 +197,19 @@ export async function deletePriceListItem(id: string): Promise<void> {
   const { error } = await supabase.from('price_list_items').delete().eq('id', id)
   if (error) throw error
 }
+
+export interface UpdatePriceListItemInput {
+  price_cents: number
+  tax_rate: number | null
+}
+
+export async function updatePriceListItem(id: string, patch: UpdatePriceListItemInput): Promise<void> {
+  const { error } = await supabase
+    .from('price_list_items')
+    .update({
+      price_cents: patch.price_cents,
+      tax_rate: patch.tax_rate,
+    })
+    .eq('id', id)
+  if (error) throw error
+}
