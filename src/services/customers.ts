@@ -17,6 +17,7 @@ export interface CustomerFormData {
   shipping_postal_code?: string
   shipping_country?: string
   internal_notes?: string
+  price_list_id?: string | null
 }
 
 export interface CustomerFilters {
@@ -88,7 +89,7 @@ export async function fetchCustomerCount(filters?: CustomerFilters): Promise<num
 export async function fetchCustomer(id: string): Promise<Customer | null> {
   const { data, error } = await supabase
     .from('customers')
-    .select('*')
+    .select('*, price_list:price_lists(*)')
     .eq('id', id)
     .single()
 

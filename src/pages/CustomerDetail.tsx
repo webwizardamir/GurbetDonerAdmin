@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
@@ -20,6 +20,7 @@ import {
   Calendar,
   Globe,
   Pencil,
+  Tags,
 } from 'lucide-react'
 import { useCustomerDetail } from '../hooks/useCustomerDetail'
 import CustomerOrderRow from '../components/customers/CustomerOrderRow'
@@ -41,6 +42,7 @@ function DetailRow({
   label,
   value,
   link,
+  internalLink,
   mono,
   badge,
 }: {
@@ -48,6 +50,7 @@ function DetailRow({
   label: string
   value?: string | null
   link?: string
+  internalLink?: boolean
   mono?: boolean
   badge?: React.ReactNode
 }) {
@@ -62,9 +65,15 @@ function DetailRow({
         </p>
         {hasValue ? (
           link ? (
-            <a href={link} className={`text-green-600 hover:text-green-700 break-words ${mono ? 'font-mono' : ''}`}>
-              {value}
-            </a>
+            internalLink ? (
+              <Link to={link} className={`text-green-600 hover:text-green-700 break-words ${mono ? 'font-mono' : ''}`}>
+                {value}
+              </Link>
+            ) : (
+              <a href={link} className={`text-green-600 hover:text-green-700 break-words ${mono ? 'font-mono' : ''}`}>
+                {value}
+              </a>
+            )
           ) : (
             <p className={`text-slate-900 dark:text-white break-words ${mono ? 'font-mono' : ''}`}>{value}</p>
           )
@@ -124,6 +133,13 @@ function CustomerDetailsTab({ customer }: { customer: Customer }) {
             value={customer.vat_number}
             mono
             badge={verlegdBadge}
+          />
+          <DetailRow
+            icon={<Tags className="w-5 h-5" />}
+            label={t('customers.priceList')}
+            value={customer.price_list?.name}
+            link={customer.price_list ? `/price-lists/${customer.price_list.id}` : undefined}
+            internalLink
           />
         </div>
       </div>

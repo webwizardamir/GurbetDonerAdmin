@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Building2, User, Mail, Phone, MapPin, FileText, CreditCard } from 'lucide-react'
-import { Customer } from '../../types'
+import { Loader2, Building2, User, Mail, Phone, MapPin, FileText, CreditCard, Tags } from 'lucide-react'
+import { Customer, PriceList } from '../../types'
 import { CustomerFormData, checkEmailExists } from '../../services/customers'
+import { fetchPriceLists } from '../../services/priceLists'
 import Modal from '../ui/Modal'
 import { isReverseChargeCountry } from '../../utils/vat'
 
@@ -32,10 +33,16 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
     shipping_postal_code: customer?.shipping_postal_code || '',
     shipping_country: customer?.shipping_country || 'NL',
     internal_notes: customer?.internal_notes || '',
+    price_list_id: customer?.price_list_id ?? null,
   })
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [priceLists, setPriceLists] = useState<PriceList[]>([])
+
+  useEffect(() => {
+    void fetchPriceLists({ activeOnly: true }).then(setPriceLists).catch(() => setPriceLists([]))
+  }, [])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -43,7 +50,9 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
     const { name, value, type } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+      [name]: type === 'checkbox'
+        ? (e.target as HTMLInputElement).checked
+        : (name === 'price_list_id' ? (value || null) : value),
     }))
   }
 
@@ -358,6 +367,33 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Pricing */}
+            <div className="space-y-4">
+              <h3 className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                <Tags className="w-4 h-4" />
+                {t('customers.form.pricing')}
+              </h3>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t('customers.form.priceList')}
+                </label>
+                <select
+                  name="price_list_id"
+                  value={formData.price_list_id ?? ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+                >
+                  <option value="">{t('customers.form.priceListNone')}</option>
+                  {priceLists.map(pl => (
+                    <option key={pl.id} value={pl.id}>{pl.name}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  {t('customers.form.priceListHint')}
+                </p>
+              </div>
             </div>
 
             {/* Internal Notes */}
