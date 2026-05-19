@@ -89,7 +89,7 @@ export async function fetchCustomerCount(filters?: CustomerFilters): Promise<num
 export async function fetchCustomer(id: string): Promise<Customer | null> {
   const { data, error } = await supabase
     .from('customers')
-    .select('*, price_list:price_lists(*)')
+    .select('*, price_list:price_lists(id, name, is_active)')
     .eq('id', id)
     .single()
 
