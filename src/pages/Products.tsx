@@ -12,6 +12,7 @@ import {
   PackageX,
   ChevronLeft,
   ChevronRight,
+  Upload,
   FileDown,
 } from 'lucide-react'
 import { useProducts } from '../hooks/useProducts'
@@ -20,6 +21,7 @@ import { usePermission } from '../hooks/usePermission'
 import { useAuth } from '../context/AuthContext'
 import ProductForm, { type ProductFormData } from '../components/products/ProductForm'
 import CategoryManager from '../components/products/CategoryManager'
+import ProductImport from '../components/products/ProductImport'
 import type { Product } from '../types'
 import { productExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
@@ -55,6 +57,7 @@ export default function Products() {
   const [categoryFilter, setCategoryFilter] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [showCategories, setShowCategories] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
   // Debounced server-side search (skip initial mount)
@@ -134,13 +137,22 @@ export default function Products() {
           <Tag className="w-5 h-5" />
         </button>
         {isOwner && (
-          <button
-            onClick={() => downloadProductTemplate(true)}
-            className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            title={t('products.downloadTemplate')}
-          >
-            <FileDown className="w-5 h-5" />
-          </button>
+          <>
+            <button
+              onClick={() => downloadProductTemplate(true)}
+              className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              title={t('products.downloadTemplate')}
+            >
+              <FileDown className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowImport(true)}
+              className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              title={t('products.import.title')}
+            >
+              <Upload className="w-5 h-5" />
+            </button>
+          </>
         )}
         <ExportMenu
           data={filteredProducts}
@@ -526,6 +538,14 @@ export default function Products() {
             setShowCategories(false)
             refresh()
           }}
+        />
+      )}
+
+      {/* Product Import Modal */}
+      {showImport && (
+        <ProductImport
+          onClose={() => setShowImport(false)}
+          onComplete={refresh}
         />
       )}
     </div>

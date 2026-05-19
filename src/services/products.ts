@@ -272,3 +272,137 @@ export async function isSkuUnique(sku: string, excludeId?: string): Promise<bool
   if (error) throw error
   return !data || data.length === 0
 }
+
+// ===========================================================================
+// Bulk Excel import
+// ===========================================================================
+
+export interface ImportProductInput {
+  product_code?: string | null
+  sku?: string | null
+  name: string
+  category_id: string
+  barcode?: string | null
+  default_unit_type: UnitType
+  unit_prices: Partial<Record<UnitType, number>>   // cents
+  cost_cents?: number | null
+  tax_rate?: number | null
+  stock_quantity?: number | null
+  track_stock?: boolean
+  description?: string | null
+}
+
+export interface ImportProductsResult {
+  created: number
+  updated: number
+  errors: string[]
+}
+
+/**
+ * Upsert products from a validated Excel import.
+ *
+ * - Rows with a product_code matching an existing row → UPDATE
+ * - Rows with an unknown product_code → INSERT with that code (admin-set)
+ * - Rows with blank product_code → INSERT; trigger auto-assigns MHF-NNNNN
+ *
+ * Caller is expected to have run client-side validation already; errors
+ * returned here are infrastructural (DB constraint violations, etc.).
+ */
+export async function upsertProductsFromImport(
+  rows: ImportProductInput[],
+): Promise<ImportProductsResult> {
+  const result: ImportProductsResult = { created: 0, updated: 0, errors: [] }
+  if (rows.length === 0) return result
+
+  const { data: userData } = await supabase.auth.getUser()
+  const userId = userData?.user?.id
+
+  // Resolve existing IDs by product_code in a single query
+  const codes = rows.map(r => r.product_code?.trim()).filter((c): c is string => !!c)
+  const existing: Record<string, string> = {}   // product_code -> id
+  if (codes.length > 0) {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, product_code')
+      .in('product_code', codes)
+    if (error) {
+      result.errors.push(`Lookup failed: ${error.message}`)
+      return result
+    }
+    for (const row of data ?? []) {
+      if (row.product_code) existing[row.product_code] = row.id
+    }
+  }
+
+  // Apply unit prices for one product (after its main row has been written)
+  const applyUnitPrices = async (productId: string, prices: Partial<Record<UnitType, number>>) => {
+    const entries = (Object.entries(prices) as [UnitType, number][])
+      .filter(([, price]) => typeof price === 'number' && price >= 0)
+    if (entries.length === 0) return
+    const upserts = entries.map(([unit_type, price]) => ({
+      product_id: productId,
+      unit_type,
+      price,
+    }))
+    const { error } = await supabase
+      .from('product_unit_prices')
+      .upsert(upserts, { onConflict: 'product_id,unit_type' })
+    if (error) result.errors.push(`Unit prices for ${productId}: ${error.message}`)
+  }
+
+  // Process rows in batches of 50 to limit single-call payload
+  const BATCH_SIZE = 50
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE)
+    for (const row of batch) {
+      const code = row.product_code?.trim() || null
+      const matchedId = code ? existing[code] : undefined
+
+      const payload: Record<string, unknown> = {
+        name: row.name,
+        category_id: row.category_id,
+        unit_type: row.default_unit_type,
+        sku: row.sku?.trim() || null,
+        barcode: row.barcode?.trim() || null,
+        tax_rate: row.tax_rate ?? 9.00,
+        stock_quantity: row.stock_quantity ?? 0,
+        stock_unit_type: row.default_unit_type,
+        track_stock: row.track_stock ?? true,
+        description: row.description ?? null,
+        base_price: row.unit_prices[row.default_unit_type] ?? 0,
+      }
+      if (row.cost_cents !== undefined && row.cost_cents !== null) {
+        payload.cost_cents = row.cost_cents
+      }
+
+      if (matchedId) {
+        const { error } = await supabase
+          .from('products')
+          .update(payload)
+          .eq('id', matchedId)
+        if (error) {
+          result.errors.push(`Update ${code}: ${error.message}`)
+          continue
+        }
+        await applyUnitPrices(matchedId, row.unit_prices)
+        result.updated += 1
+      } else {
+        const insertData: Record<string, unknown> = { ...payload, created_by: userId }
+        if (code) insertData.product_code = code
+        const { data, error } = await supabase
+          .from('products')
+          .insert(insertData)
+          .select('id')
+          .single()
+        if (error || !data) {
+          result.errors.push(`Insert ${row.name}: ${error?.message ?? 'unknown error'}`)
+          continue
+        }
+        await applyUnitPrices(data.id, row.unit_prices)
+        result.created += 1
+      }
+    }
+  }
+
+  return result
+}
