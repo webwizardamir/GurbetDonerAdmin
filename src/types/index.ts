@@ -153,6 +153,7 @@ export interface ProductUnitPrice {
 
 export interface Product {
   id: string
+  product_code?: string | null // System-generated stable Product ID (MHF-NNNNN)
   name: string
   sku?: string
   barcode?: string
