@@ -11,7 +11,6 @@ import {
   ChevronDown,
   ChevronUp,
   Building2,
-  Upload,
 } from 'lucide-react'
 import { pdf } from '@react-pdf/renderer'
 import { fetchDocuments, type InvoiceData } from '../services/documents'
@@ -26,7 +25,8 @@ import { CreditNoteTemplate } from '../components/documents/CreditNoteTemplate'
 import { PackingSlipTemplate } from '../components/documents/PackingSlipTemplate'
 import InvoiceStats from '../components/documents/InvoiceStats'
 import { InvoiceTableRow, InvoiceMobileCard } from '../components/documents/InvoiceRow'
-import { exportToExcelGeneric, documentExportColumns } from '../utils/export'
+import { documentExportColumns } from '../utils/export'
+import ExportMenu from '../components/ui/ExportMenu'
 
 // ─── Helpers ──────────────────────────────────────────
 
@@ -300,13 +300,30 @@ export default function Invoices() {
     } finally { setBulkProcessing(false) }
   }
 
-  const handleExport = () => {
-    const exportData = filteredDocuments.map(doc => {
-      const { customerName, orderNumber } = getSnapshotData(doc)
-      return { document_number: doc.document_number, document_type: doc.document_type, customer_name: customerName, order_number: orderNumber, generated_at: doc.generated_at }
-    })
-    exportToExcelGeneric(exportData, documentExportColumns, `${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`)
-  }
+  const exportData = useMemo(() => filteredDocuments.map(doc => {
+    const { customerName, orderNumber } = getSnapshotData(doc)
+    return {
+      document_number: doc.document_number,
+      document_type: doc.document_type,
+      customer_name: customerName,
+      order_number: orderNumber,
+      generated_at: doc.generated_at,
+    }
+  }), [filteredDocuments])
+
+  const exportFilterSummary = useMemo(() => {
+    const parts: string[] = []
+    if (typeFilter) {
+      const typeMap: Record<string, string> = {
+        invoice: 'Factuur', proforma: 'Proforma', credit_note: 'Creditnota',
+        packing_slip: 'Pakbon', order_confirmation: 'Orderbevestiging', payment_reminder: 'Betalingsherinnering',
+      }
+      parts.push(`Type: ${typeMap[typeFilter] || typeFilter}`)
+    }
+    if (customerFilter) parts.push(`Klant: ${customerFilter}`)
+    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
+    return parts.join(' · ')
+  }, [typeFilter, customerFilter, searchQuery])
 
   const handleTypeFilterClick = (type: DocumentType) => {
     setTypeFilter(prev => (prev === type ? '' : type))
@@ -365,11 +382,13 @@ export default function Invoices() {
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
         )}
-        <button onClick={handleExport} disabled={filteredDocuments.length === 0}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 whitespace-nowrap">
-          <Upload className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('common.export')}</span>
-        </button>
+        <ExportMenu
+          data={exportData}
+          columns={documentExportColumns as never}
+          filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
+          pdfTitle="Documenten"
+          pdfFilterSummary={exportFilterSummary || undefined}
+        />
       </div>
 
       {/* Custom Date Inputs */}

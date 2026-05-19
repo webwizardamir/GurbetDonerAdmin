@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { supabase } from '../services/supabase'
 import { AuditLog as AuditLogType } from '../types'
 import {
   History,
   Search,
   Filter,
-  Download,
   ChevronDown,
   ChevronRight,
   User,
@@ -16,6 +15,7 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react'
+import ExportMenu from '../components/ui/ExportMenu'
 
 const ACTION_ICONS = {
   create: FilePlus,
@@ -47,7 +47,6 @@ export default function AuditLog() {
   const [entityFilter, setEntityFilter] = useState<string>('')
   const [actionFilter, setActionFilter] = useState<string>('')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
-  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     fetchLogs()
@@ -100,43 +99,47 @@ export default function AuditLog() {
     })
   }
 
-  const handleExportExcel = async () => {
-    setExporting(true)
-    try {
-      // Fetch all logs for export
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      if (!data || data.length === 0) {
-        alert('No data to export')
-        return
-      }
-
-      const { exportToExcelGeneric } = await import('../utils/export')
-      const today = new Date().toISOString().split('T')[0]
-      await exportToExcelGeneric(data, [
-        { key: 'created_at', header: 'Datum/tijd', format: (v: unknown) => formatDate(v as string) },
-        { key: 'user_email', header: 'Gebruiker' },
-        { key: 'action', header: 'Actie', format: (v: unknown) => {
-          const map: Record<string, string> = { create: 'Aangemaakt', update: 'Gewijzigd', delete: 'Verwijderd' }
-          return map[v as string] || (v as string)
-        }},
-        { key: 'entity_type', header: 'Type' },
-        { key: 'entity_id', header: 'ID' },
-        { key: 'old_values', header: 'Oude waarden', format: (v: unknown) => JSON.stringify(v || {}) },
-        { key: 'new_values', header: 'Nieuwe waarden', format: (v: unknown) => JSON.stringify(v || {}) },
-      ], `audit-log-${today}`)
-    } catch (error) {
-      console.error('Export error:', error)
-      alert('Failed to export data')
-    } finally {
-      setExporting(false)
-    }
+  const fetchAllLogsForExport = async () => {
+    let query = supabase
+      .from('audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (entityFilter) query = query.eq('entity_type', entityFilter)
+    if (actionFilter) query = query.eq('action', actionFilter)
+    const { data, error } = await query
+    if (error) throw error
+    if (!searchQuery) return data ?? []
+    const q = searchQuery.toLowerCase()
+    return (data ?? []).filter(log =>
+      log.user_email.toLowerCase().includes(q) ||
+      log.entity_type.toLowerCase().includes(q) ||
+      log.entity_id.toLowerCase().includes(q)
+    )
   }
+
+  const auditExportColumns = useMemo(() => [
+    { key: 'created_at', header: 'Datum/tijd', format: (v: unknown) => formatDate(v as string) },
+    { key: 'user_email', header: 'Gebruiker' },
+    { key: 'action', header: 'Actie', format: (v: unknown) => {
+      const map: Record<string, string> = { create: 'Aangemaakt', update: 'Gewijzigd', delete: 'Verwijderd' }
+      return map[v as string] || (v as string)
+    }},
+    { key: 'entity_type', header: 'Type' },
+    { key: 'entity_id', header: 'ID' },
+    { key: 'old_values', header: 'Oude waarden', format: (v: unknown) => JSON.stringify(v || {}) },
+    { key: 'new_values', header: 'Nieuwe waarden', format: (v: unknown) => JSON.stringify(v || {}) },
+  ], [])
+
+  const exportFilterSummary = useMemo(() => {
+    const parts: string[] = []
+    if (entityFilter) parts.push(`Type: ${entityFilter}`)
+    if (actionFilter) {
+      const map: Record<string, string> = { create: 'Aangemaakt', update: 'Gewijzigd', delete: 'Verwijderd' }
+      parts.push(`Actie: ${map[actionFilter] || actionFilter}`)
+    }
+    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
+    return parts.join(' · ')
+  }, [entityFilter, actionFilter, searchQuery])
 
   const filteredLogs = logs.filter((log) => {
     if (!searchQuery) return true
@@ -216,18 +219,14 @@ export default function AuditLog() {
         >
           <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
         </button>
-        <button
-          onClick={handleExportExcel}
-          disabled={exporting || logs.length === 0}
-          className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {exporting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-          Export
-        </button>
+        <ExportMenu
+          getData={fetchAllLogsForExport}
+          columns={auditExportColumns as never}
+          filename={`audit-log-${new Date().toISOString().split('T')[0]}`}
+          pdfTitle="Auditlogboek"
+          pdfFilterSummary={exportFilterSummary || undefined}
+          disabled={logs.length === 0}
+        />
       </div>
 
       {/* Filters */}

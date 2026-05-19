@@ -19,7 +19,10 @@ export type ExportColumn<T> = {
 }
 
 export interface ExportMenuProps<T> {
-  data: T[]
+  data?: T[]
+  /** Async data getter — called on each format pick. Use when the visible
+   *  list is paged/truncated and the export must hit the full dataset. */
+  getData?: () => Promise<T[]>
   columns: ExportColumn<T>[]
   filename: string
   pdfTitle: string
@@ -35,6 +38,7 @@ type Format = 'excel' | 'csv' | 'pdf'
 
 export default function ExportMenu<T>({
   data,
+  getData,
   columns,
   filename,
   pdfTitle,
@@ -68,8 +72,13 @@ export default function ExportMenu<T>({
     }
   }, [open])
 
-  const isDisabled = disabled || data.length === 0
+  const isDisabled = disabled || (!getData && (!data || data.length === 0))
   const buttonLabel = label ?? t('export.menu')
+
+  const resolveData = async (): Promise<T[]> => {
+    if (getData) return await getData()
+    return data ?? []
+  }
 
   const padding = size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm'
 
@@ -79,17 +88,19 @@ export default function ExportMenu<T>({
   const handleExcel = async () => {
     setBusy('excel')
     try {
-      await exportToExcelGeneric(data as Record<string, unknown>[], stripPdfMeta(columns) as never, filename)
+      const rows = await resolveData()
+      await exportToExcelGeneric(rows as Record<string, unknown>[], stripPdfMeta(columns) as never, filename)
     } finally {
       setBusy(null)
       setOpen(false)
     }
   }
 
-  const handleCsv = () => {
+  const handleCsv = async () => {
     setBusy('csv')
     try {
-      exportToCSV(data as Record<string, unknown>[], stripPdfMeta(columns) as never, `${filename}.csv`)
+      const rows = await resolveData()
+      exportToCSV(rows as Record<string, unknown>[], stripPdfMeta(columns) as never, `${filename}.csv`)
     } finally {
       setBusy(null)
       setOpen(false)
@@ -99,10 +110,11 @@ export default function ExportMenu<T>({
   const handlePdf = async () => {
     setBusy('pdf')
     try {
-      const [{ pdf }, { default: DataExportTemplate }, settings] = await Promise.all([
+      const [{ pdf }, { default: DataExportTemplate }, settings, rows] = await Promise.all([
         import('@react-pdf/renderer'),
         import('../documents/DataExportTemplate'),
         fetchDocumentSettings(),
+        resolveData(),
       ])
 
       const pdfColumns: DataExportColumn<T>[] = columns.map(c => ({
@@ -116,7 +128,7 @@ export default function ExportMenu<T>({
       const element = (
         <DataExportTemplate<T>
           title={pdfTitle}
-          data={data}
+          data={rows}
           columns={pdfColumns}
           company={settings}
           filterSummary={pdfFilterSummary}

@@ -15,7 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Banknote,
-  Download,
   FileText,
   Check,
 } from 'lucide-react'
@@ -29,7 +28,8 @@ import OrderDetail from '../components/orders/OrderDetail'
 import StatusBadge from '../components/ui/StatusBadge'
 import PaymentBadge from '../components/ui/PaymentBadge'
 import BulkActionsBar from '../components/orders/BulkActionsBar'
-import { exportToExcelGeneric, orderExportColumns } from '../utils/export'
+import { orderExportColumns } from '../utils/export'
+import ExportMenu from '../components/ui/ExportMenu'
 import { formatPrice, formatDate } from '../utils/format'
 
 export default function Orders() {
@@ -116,7 +116,20 @@ export default function Orders() {
 
   const handleStatusFilter = (status: OrderStatus | '') => setFilters({ ...filters, status: status || undefined })
   const handlePaymentFilter = (method: PaymentMethod | '') => setFilters({ ...filters, paymentMethod: method || undefined })
-  const handleExport = () => exportToExcelGeneric(filteredOrders, orderExportColumns, `orders-${new Date().toISOString().split('T')[0]}`)
+
+  const exportFilterSummary = useMemo(() => {
+    const parts: string[] = []
+    if (filters.status) {
+      const statusMap: Record<string, string> = {
+        draft: 'Concept', pending_payment: 'In afwachting', completed: 'Voltooid',
+        cancelled: 'Geannuleerd', refunded: 'Terugbetaald', on_hold: 'In wacht',
+      }
+      parts.push(`Status: ${statusMap[filters.status] || filters.status}`)
+    }
+    if (filters.paymentMethod) parts.push(`Betaling: ${filters.paymentMethod === 'cash' ? 'Contant' : 'Bank'}`)
+    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
+    return parts.join(' · ')
+  }, [filters.status, filters.paymentMethod, searchQuery])
 
   const toggleSelect = (id: string) => {
     const newSet = new Set(selectedIds)
@@ -208,11 +221,13 @@ export default function Orders() {
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
-          <button onClick={handleExport} disabled={filteredOrders.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-colors whitespace-nowrap disabled:opacity-50" title={t('common.export')}>
-            <Download className="w-5 h-5" />
-            <span className="hidden lg:inline">{t('common.export')}</span>
-          </button>
+          <ExportMenu
+            data={filteredOrders}
+            columns={orderExportColumns as never}
+            filename={`orders-${new Date().toISOString().split('T')[0]}`}
+            pdfTitle="Bestellingen"
+            pdfFilterSummary={exportFilterSummary || undefined}
+          />
           <div className="hidden sm:block flex-1" />
           {canCreate && (
             <button onClick={() => navigate('/orders/new')}

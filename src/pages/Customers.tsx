@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -8,7 +8,6 @@ import {
   Loader2,
   Filter,
   Upload,
-  Download,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -20,7 +19,8 @@ import CustomerImport from '../components/customers/CustomerImport'
 import CustomerPricing from '../components/pricing/CustomerPricing'
 import CustomerTableRow from '../components/customers/CustomerTableRow'
 import CustomerCard from '../components/customers/CustomerCard'
-import { exportToExcelGeneric, customerExportColumns } from '../utils/export'
+import { customerExportColumns } from '../utils/export'
+import ExportMenu from '../components/ui/ExportMenu'
 import { supabase } from '../services/supabase'
 import type { CustomerAccount } from '../services/portalAuth'
 
@@ -87,7 +87,12 @@ export default function Customers() {
   }
 
   const handleFormClose = () => { setShowForm(false); setEditingCustomer(null) }
-  const handleExport = () => exportToExcelGeneric(filteredCustomers, customerExportColumns, `customers-${new Date().toISOString().split('T')[0]}`)
+  const exportFilterSummary = useMemo(() => {
+    const parts: string[] = []
+    if (cityFilter) parts.push(`Plaats: ${cityFilter}`)
+    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
+    return parts.join(' · ')
+  }, [cityFilter, searchQuery])
 
   return (
     <div className="space-y-4 min-w-0">
@@ -109,10 +114,13 @@ export default function Customers() {
               </select>
             </div>
           )}
-          <button onClick={handleExport} disabled={filteredCustomers.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-colors whitespace-nowrap disabled:opacity-50" title="Export to Excel">
-            <Download className="w-5 h-5" /><span className="hidden lg:inline">{t('common.export')}</span>
-          </button>
+          <ExportMenu
+            data={filteredCustomers}
+            columns={customerExportColumns as never}
+            filename={`customers-${new Date().toISOString().split('T')[0]}`}
+            pdfTitle="Klanten"
+            pdfFilterSummary={exportFilterSummary || undefined}
+          />
           {canCreate && (
             <button onClick={() => setShowImport(true)}
               className="inline-flex items-center justify-center gap-2 px-3 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">

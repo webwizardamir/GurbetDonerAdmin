@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -10,7 +10,6 @@ import {
   Loader2,
   Package,
   PackageX,
-  Download,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -21,7 +20,8 @@ import { useAuth } from '../context/AuthContext'
 import ProductForm, { type ProductFormData } from '../components/products/ProductForm'
 import CategoryManager from '../components/products/CategoryManager'
 import type { Product } from '../types'
-import { exportToExcelGeneric, productExportColumns } from '../utils/export'
+import { productExportColumns } from '../utils/export'
+import ExportMenu from '../components/ui/ExportMenu'
 import { formatPrice, formatPercent } from '../utils/format'
 
 // Format unit type for display
@@ -103,10 +103,15 @@ export default function Products() {
     setEditingProduct(null)
   }
 
-  const handleExport = () => {
-    const today = new Date().toISOString().split('T')[0]
-    exportToExcelGeneric(filteredProducts, productExportColumns, `products-${today}`)
-  }
+  const exportFilterSummary = useMemo(() => {
+    const parts: string[] = []
+    if (categoryFilter) {
+      const cat = categories.find(c => c.id === categoryFilter)
+      if (cat) parts.push(`Categorie: ${cat.name}`)
+    }
+    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
+    return parts.join(' · ')
+  }, [categoryFilter, searchQuery, categories])
 
   return (
     <div className="space-y-6">
@@ -126,10 +131,13 @@ export default function Products() {
           className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" title={t('products.categories')}>
           <Tag className="w-5 h-5" />
         </button>
-        <button onClick={handleExport} disabled={filteredProducts.length === 0}
-          className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50" title={t('common.export')}>
-          <Download className="w-5 h-5" />
-        </button>
+        <ExportMenu
+          data={filteredProducts}
+          columns={productExportColumns as never}
+          filename={`products-${new Date().toISOString().split('T')[0]}`}
+          pdfTitle="Producten"
+          pdfFilterSummary={exportFilterSummary || undefined}
+        />
         <div className="flex-1" />
         {canCreate && (
           <button onClick={handleCreate}
