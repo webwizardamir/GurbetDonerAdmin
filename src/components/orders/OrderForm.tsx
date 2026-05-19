@@ -77,7 +77,10 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
           .from('customer_prices')
           .select('product_id, unit_type, custom_price')
           .eq('customer_id', selectedCustomer.id),
-        selectedCustomer.price_list_id
+        // Only pull list items if the assigned list is still active — the
+        // is_active flag is the UI's "deactivate" switch and must not silently
+        // keep overriding prices on new orders.
+        (selectedCustomer.price_list_id && selectedCustomer.price_list?.is_active !== false)
           ? supabase
               .from('price_list_items')
               .select('product_id, unit_type, price_cents, tax_rate')
