@@ -612,8 +612,8 @@ export default function SoldProducts() {
                     </div>
                   </button>
                   {!collapsed && (
-                    <div className="border-t border-slate-100 dark:border-slate-700">
-                      <table className="w-full text-sm">
+                    <div className="border-t border-slate-100 dark:border-slate-700 overflow-x-auto">
+                      <table className="w-full min-w-[640px] text-sm">
                         <thead className="bg-slate-50 dark:bg-slate-900/50">
                           <tr>
                             <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('soldProducts.table.product')}</th>
