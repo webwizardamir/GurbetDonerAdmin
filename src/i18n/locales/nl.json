@@ -730,6 +730,7 @@
     "intro": "Een prijslijst overschrijft productprijzen voor klanten die eraan toegewezen zijn. Klant-specifieke prijzen hebben nog steeds voorrang.",
     "create": "Nieuwe prijslijst",
     "edit": "Prijslijst bewerken",
+    "delete": "Prijslijst verwijderen",
     "empty": "Nog geen prijslijsten",
     "active": "Actief",
     "inactive": "Inactief",

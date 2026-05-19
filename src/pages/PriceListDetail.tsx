@@ -13,6 +13,7 @@ import {
 } from '../services/priceLists'
 import { downloadCurrentPriceList } from '../utils/priceListTemplate'
 import PriceListImport from '../components/priceLists/PriceListImport'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import type { PriceList } from '../types'
 import { formatPrice } from '../utils/format'
 
@@ -25,6 +26,7 @@ export default function PriceListDetail() {
   const [error, setError] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
+  const [deleteItemTarget, setDeleteItemTarget] = useState<PriceListItemWithProduct | null>(null)
 
   // Inline edit state. editingId = which row is being edited; editPrice / editTax
   // are the staged string inputs (kept as strings so blank ↔ "use product BTW"
@@ -100,13 +102,17 @@ export default function PriceListDetail() {
     void load()
   }, [id])
 
-  const handleDeleteItem = async (item: PriceListItemWithProduct) => {
-    if (!confirm(t('priceLists.detail.confirmDeleteItem', { name: item.product?.name ?? '' }))) return
+  const handleDeleteItem = (item: PriceListItemWithProduct) => setDeleteItemTarget(item)
+
+  const confirmDeleteItem = async () => {
+    if (!deleteItemTarget) return
     try {
-      await deletePriceListItem(item.id)
+      await deletePriceListItem(deleteItemTarget.id)
       await load()
     } catch (e) {
-      alert((e as Error).message)
+      setError((e as Error).message)
+    } finally {
+      setDeleteItemTarget(null)
     }
   }
 
@@ -349,6 +355,16 @@ export default function PriceListDetail() {
           onComplete={() => { setShowImport(false); void load() }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteItemTarget}
+        title={t('common.delete')}
+        message={t('priceLists.detail.confirmDeleteItem', { name: deleteItemTarget?.product?.name ?? '' })}
+        variant="danger"
+        confirmLabel={t('common.delete')}
+        onConfirm={confirmDeleteItem}
+        onCancel={() => setDeleteItemTarget(null)}
+      />
     </div>
   )
 }

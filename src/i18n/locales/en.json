@@ -730,6 +730,7 @@
     "intro": "A price list overrides product prices for customers assigned to it. Customer-specific prices still take precedence.",
     "create": "New price list",
     "edit": "Edit price list",
+    "delete": "Delete price list",
     "empty": "No price lists yet",
     "active": "Active",
     "inactive": "Inactive",

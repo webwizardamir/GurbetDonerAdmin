@@ -13,6 +13,7 @@ import {
   deletePriceList,
 } from '../services/priceLists'
 import type { PriceList } from '../types'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 
 export default function PriceLists() {
   const { t } = useTranslation()
@@ -23,6 +24,7 @@ export default function PriceLists() {
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState<PriceList | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<PriceList | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -57,18 +59,17 @@ export default function PriceLists() {
     setShowForm(true)
   }
 
-  const handleDelete = async (list: PriceList) => {
-    const usedBy = customerCounts[list.id] ?? 0
-    const items = itemCounts[list.id] ?? 0
-    const msg = usedBy > 0
-      ? t('priceLists.confirmDeleteWithUsage', { items, customers: usedBy })
-      : t('priceLists.confirmDelete', { items })
-    if (!confirm(msg)) return
+  const handleDelete = (list: PriceList) => setDeleteTarget(list)
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
     try {
-      await deletePriceList(list.id)
+      await deletePriceList(deleteTarget.id)
       await load()
     } catch (e) {
-      alert((e as Error).message)
+      setError((e as Error).message)
+    } finally {
+      setDeleteTarget(null)
     }
   }
 
@@ -77,9 +78,15 @@ export default function PriceLists() {
       await updatePriceList(list.id, { is_active: !list.is_active })
       await load()
     } catch (e) {
-      alert((e as Error).message)
+      setError((e as Error).message)
     }
   }
+
+  const deleteMessage = deleteTarget
+    ? (((customerCounts[deleteTarget.id] ?? 0) > 0)
+        ? t('priceLists.confirmDeleteWithUsage', { items: itemCounts[deleteTarget.id] ?? 0, customers: customerCounts[deleteTarget.id] ?? 0 })
+        : t('priceLists.confirmDelete', { items: itemCounts[deleteTarget.id] ?? 0 }))
+    : ''
 
   return (
     <div className="space-y-4">
@@ -201,6 +208,16 @@ export default function PriceLists() {
           onSaved={() => { setShowForm(false); setEditing(null); void load() }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={t('priceLists.delete')}
+        message={deleteMessage}
+        variant="danger"
+        confirmLabel={t('common.delete')}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }
