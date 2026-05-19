@@ -25,13 +25,14 @@ import {
 import { useCustomerDetail } from '../hooks/useCustomerDetail'
 import CustomerOrderRow from '../components/customers/CustomerOrderRow'
 import CustomerForm from '../components/customers/CustomerForm'
+import CustomerProductsTab from '../components/customers/CustomerProductsTab'
 import PortalAccessModal from '../components/customers/PortalAccessModal'
 import { updateCustomer, type CustomerFormData } from '../services/customers'
 import { formatPrice } from '../utils/format'
 import { isReverseChargeCountry } from '../utils/vat'
 import type { Customer } from '../types'
 
-type TabType = 'orders' | 'details'
+type TabType = 'orders' | 'products' | 'details'
 type DateRangeKey = 'all' | 'last7' | 'last30' | 'last90' | 'thisYear'
 
 // Renders one label + value row. Empty values fall back to "—" so the field is
@@ -475,6 +476,19 @@ export default function CustomerDetail() {
             </div>
           </button>
           <button
+            onClick={() => setActiveTab('products')}
+            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'products'
+                ? 'border-green-600 text-green-600 dark:text-green-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              {t('customerDetail.products.tab')}
+            </div>
+          </button>
+          <button
             onClick={() => setActiveTab('details')}
             className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'details'
@@ -555,6 +569,8 @@ export default function CustomerDetail() {
             )}
           </div>
         </div>
+      ) : activeTab === 'products' ? (
+        <CustomerProductsTab customerId={customer.id} />
       ) : (
         <CustomerDetailsTab customer={customer} />
       )}

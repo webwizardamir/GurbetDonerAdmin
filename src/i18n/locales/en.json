@@ -263,6 +263,31 @@
       "last30": "Last 30 Days",
       "last90": "Last 90 Days",
       "thisYear": "This Year"
+    },
+    "products": {
+      "tab": "Products",
+      "empty": "No products sold in this date range",
+      "total": "Total",
+      "rowsLoaded_one": "{{count}} row",
+      "rowsLoaded_other": "{{count}} rows",
+      "ranges": {
+        "last3": "Last 3 months",
+        "last6": "Last 6 months",
+        "last12": "Last 12 months",
+        "thisYear": "This year",
+        "all": "All time"
+      },
+      "columns": {
+        "id": "Product ID",
+        "name": "Name",
+        "unit": "Unit",
+        "qty": "Qty",
+        "orders": "Orders",
+        "lastOrdered": "Last ordered",
+        "avgPrice": "Avg price",
+        "revenue": "Revenue",
+        "profit": "Profit"
+      }
     }
   },
   "products": {

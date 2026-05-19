@@ -175,6 +175,38 @@ export async function getCustomerCities(): Promise<string[]> {
   return cities as string[]
 }
 
+export interface CustomerItemSummary {
+  product_id: string | null
+  product_code: string | null
+  product_name: string
+  category_name: string
+  unit_type: string
+  total_quantity: number
+  order_count: number
+  last_ordered: string
+  avg_unit_price: number   // cents
+  total_revenue: number    // cents
+  total_profit: number     // cents (owner-only display)
+}
+
+/**
+ * Per-(product, unit) summary of everything sold to one customer in a date
+ * range. Backed by the get_customer_items_summary RPC (migration 00045).
+ */
+export async function fetchCustomerItemsSummary(
+  customerId: string,
+  startDate: string,
+  endDate: string,
+): Promise<CustomerItemSummary[]> {
+  const { data, error } = await supabase.rpc('get_customer_items_summary', {
+    p_customer_id: customerId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+  })
+  if (error) throw error
+  return (data as CustomerItemSummary[]) ?? []
+}
+
 // Check if email is already used by another customer
 export async function checkEmailExists(email: string, excludeCustomerId?: string): Promise<boolean> {
   if (!email || email.trim() === '') return false
