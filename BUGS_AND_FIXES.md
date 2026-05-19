@@ -319,3 +319,117 @@ After the sync: 7,013 rows updated across 74 products. 2026-04-20 profit now rea
 
 **Prevention:**
 Any import that snapshots data from products (cost, tax_rate, name, sku) must run AFTER those fields are known-good on the products table. Otherwise the import captures zeros/stale values that then live forever on line_items.
+
+---
+
+## Phase 1-4 Review Round (2026-05-19 / 2026-05-20)
+
+Four-agent review (security, performance, UI/UX, code quality) after Phase 1-4 shipped. 13 issues fixed across 13 commits. See **PLANNING-QUESTIONS.md → Current state** for the full table; key learnings captured below.
+
+### HIGH: `total_profit` was leakable to Shop Manager via direct RPC call
+
+**Symptom:**
+`get_customer_items_summary` was created `SECURITY DEFINER` with `GRANT EXECUTE … TO authenticated`. The UI hid the profit column for `!isOwner`, but a Shop Manager could call `supabase.rpc('get_customer_items_summary', …)` from DevTools and read profit straight from the returned rows. Same RPC also had no caller authorization — any `authenticated` role (including future customer-portal accounts) could enumerate revenue/profit per customer.
+
+**Solution:**
+Migration `00047_secure_phase34_rpcs.sql` converts both new RPCs (`get_customer_items_summary`, `get_sold_products_breakdown`) from `LANGUAGE sql` to `plpgsql` so we can guard them:
+
+```sql
+IF NOT is_admin_user() THEN
+  RAISE EXCEPTION 'forbidden: admin access required';
+END IF;
+```
+
+For `get_customer_items_summary` the profit column is wrapped in a per-row case:
+
+```sql
+CASE WHEN is_owner()
+     THEN (revenue - cogs - refunds)::bigint
+     ELSE NULL::bigint
+END
+```
+
+so even an admin Shop Manager calling the RPC directly sees NULL profit.
+
+**Prevention:**
+Every new `SECURITY DEFINER` RPC must (a) start with an `is_admin_user()` (or stricter) guard, and (b) gate any sensitive column with `is_owner()` server-side — UI hiding alone is not enough.
+
+---
+
+### HIGH: `upsertProductsFromImport` was ~12 minutes wall-clock for 6000 rows
+
+**Symptom:**
+Each row in the Excel import did one `UPDATE` or `INSERT` then one `product_unit_prices.upsert` — sequentially awaited. The `BATCH_SIZE = 50` outer loop was a no-op because the inner loop didn't parallelize. At ~60 ms/round-trip × 12000 calls = ~12 minutes for a 6000-row sheet. Users assumed the app had hung.
+
+**Solution:**
+Partition rows into updates (matched by `product_code`) and inserts, then:
+
+```ts
+await Promise.all([
+  supabase.from('products').upsert(updates,  { onConflict: 'id' }),
+  supabase.from('products').insert(inserts).select('id'),
+])
+// then one bulk product_unit_prices.upsert for both groups,
+// zipping inserted IDs by input order
+```
+
+Three round-trips total. ~3 seconds for the same 6000-row sheet. `upsertPriceListItems` already used this pattern.
+
+**Prevention:**
+Any per-row Supabase mutation in a hot import path needs a bulk-upsert plan from the start. Sequential N+1 with `await` in a for-loop is the canonical bad-import bug.
+
+---
+
+### MED: Excel formula-injection on imported text cells
+
+**Symptom:**
+Cell values starting with `=`, `+`, `-`, `@`, tab, or carriage return are interpreted as formulas in Excel and Google Sheets. An admin who imported a sheet with such values, then re-downloaded the product list later, would open a sheet that could execute `=cmd|'/c calc'!A1` or display a `=HYPERLINK(...)` phishing link.
+
+**Solution:**
+`sanitizeCellValue(v)` in `src/utils/excelImport.ts` prefixes any string starting with those characters with a single quote (the standard Excel escape — Sheets and Excel hide the quote and render the rest literally). Wired into the `trimOrNull` helper in both ProductImport and PriceListImport so every string field landing in the DB passes through the guard.
+
+**Prevention:**
+Any feature that imports user-provided text into the DB and later re-exports it via .xlsx/.csv must sanitize on the way in. The output side (export.ts) doesn't need separate logic because the prefix-quote is preserved end-to-end.
+
+---
+
+### MED: Inactive `price_lists` still resolved at order time
+
+**Symptom:**
+Setting a price list `is_active = false` in the UI was decorative — `OrderForm` still pulled the list's items as long as `customer.price_list_id` pointed to it.
+
+**Solution:**
+The OrderForm pricing-context preload now skips the `price_list_items` query when `selectedCustomer.price_list?.is_active === false`. Pricing falls through to `product_unit_prices` / `base_price`. Historical orders are unaffected — the immutable `unit_price` snapshot on `order_items` is the source of truth for analytics.
+
+**Prevention:**
+Any "active/inactive" toggle on a join target should be honored at the resolver layer, not just hidden from the UI dropdown.
+
+---
+
+### MED: Stale-closure in `CustomerProductsTab.toggleExpand`
+
+**Symptom:**
+```ts
+setExpanded(prev => { /* toggle key */ })
+if (!expanded.has(key) && !orderCache.has(key)) { /* fetch */ }
+```
+
+The fetch guard read `expanded` (the closure-captured pre-update value), not the new state. Accidentally correct today because the truth-table came out right — but the code reads the *opposite* of intent.
+
+**Solution:**
+Compute `const willOpen = !expanded.has(key)` once at the top, use it for both the `setExpanded` and the fetch branch:
+
+```ts
+const willOpen = !expanded.has(key)
+setExpanded(prev => { /* uses willOpen */ })
+if (willOpen && !orderCache.has(key)) { /* fetch */ }
+```
+
+**Prevention:**
+Any `useState` toggle that also triggers a conditional side-effect must compute the "next state" boolean before the `setState(prev => …)` callback, then use the same boolean for the side-effect — never read the still-captured pre-update state in the same function body.
+
+---
+
+### LOW reference: branded `ConfirmDialog` component
+
+The price-list pages used to call `window.confirm()` and `window.alert()` for destructive actions — those break dark mode and look unbranded. New component `src/components/ui/ConfirmDialog.tsx` (open boolean + title/message/onConfirm/onCancel + `'default'`/`'danger'` variant) is the replacement. Going forward, prefer it everywhere over native `confirm()`/`alert()`.
