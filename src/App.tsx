@@ -23,6 +23,7 @@ import AuditLog from './pages/AuditLog'
 import Users from './pages/Users'
 import DocumentSettings from './pages/DocumentSettings'
 import Invoices from './pages/Invoices'
+import Outbox from './pages/Outbox'
 import Analytics from './pages/Analytics'
 import SoldProducts from './pages/SoldProducts'
 import TestConnection from './pages/TestConnection'
@@ -197,6 +198,14 @@ function App() {
                 <Route path="orders/new" element={<OrderEditor mode="new" />} />
                 <Route path="orders/:id/edit" element={<OrderEditor mode="edit" />} />
                 <Route path="invoices" element={<Invoices />} />
+                <Route
+                  path="outbox"
+                  element={
+                    <OwnerRoute>
+                      <Outbox />
+                    </OwnerRoute>
+                  }
+                />
                 <Route
                   path="analytics"
                   element={

@@ -10,6 +10,7 @@ import {
   Package,
   PackageSearch,
   Tags,
+  Mail,
   FileText,
   BarChart3,
   Settings,
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { icon: Tags, labelKey: 'nav.priceLists', href: '/price-lists', ownerOnly: true },
   { icon: PackageSearch, labelKey: 'nav.soldProducts', href: '/sold-products' },
   { icon: FileText, labelKey: 'nav.invoices', href: '/invoices' },
+  { icon: Mail, labelKey: 'nav.outbox', href: '/outbox', ownerOnly: true },
   { icon: BarChart3, labelKey: 'nav.analytics', href: '/analytics', ownerOnly: true },
   {
     icon: Settings,

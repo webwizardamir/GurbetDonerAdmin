@@ -17,6 +17,7 @@ const PAGE_META: Record<string, { titleKey: string; descKey?: string }> = {
   '/price-lists': { titleKey: 'nav.priceLists', descKey: 'priceLists.subtitle' },
   '/sold-products': { titleKey: 'nav.soldProducts', descKey: 'soldProducts.subtitle' },
   '/invoices': { titleKey: 'nav.invoices', descKey: 'documents.title' },
+  '/outbox': { titleKey: 'nav.outbox', descKey: 'outbox.subtitle' },
   '/analytics': { titleKey: 'nav.analytics', descKey: 'analytics.title' },
   '/settings/documents': { titleKey: 'settings.documents.title' },
   '/settings/users': { titleKey: 'settings.users.title' },

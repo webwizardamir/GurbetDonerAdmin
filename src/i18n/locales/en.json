@@ -69,6 +69,7 @@
     "analytics": "Analytics",
     "soldProducts": "Sold Products",
     "priceLists": "Price Lists",
+    "outbox": "Outbox",
     "settings": "Settings",
     "users": "Users",
     "auditLog": "Audit Log",
@@ -734,6 +735,27 @@
       "noBatches": "No batches found",
       "batches": "batches",
       "batch": "batch"
+    }
+  },
+  "outbox": {
+    "subtitle": "Log of sent documents",
+    "empty": "No sent documents yet",
+    "searchPlaceholder": "Search by recipient, subject or error...",
+    "viewOrder": "View order",
+    "status": {
+      "all": "All",
+      "sent": "Sent",
+      "pending": "Pending",
+      "failed": "Failed",
+      "bounced": "Bounced"
+    },
+    "columns": {
+      "status": "Status",
+      "sentAt": "Date",
+      "type": "Type",
+      "recipient": "Recipient",
+      "subject": "Subject",
+      "order": "Order"
     }
   },
   "priceLists": {

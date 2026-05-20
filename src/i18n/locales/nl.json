@@ -69,6 +69,7 @@
     "analytics": "Analyses",
     "soldProducts": "Verkochte Producten",
     "priceLists": "Prijslijsten",
+    "outbox": "Outbox",
     "settings": "Instellingen",
     "users": "Gebruikers",
     "auditLog": "Auditlogboek",
@@ -734,6 +735,27 @@
       "noBatches": "Geen batches gevonden",
       "batches": "batches",
       "batch": "batch"
+    }
+  },
+  "outbox": {
+    "subtitle": "Logboek van verzonden documenten",
+    "empty": "Nog geen verzonden documenten",
+    "searchPlaceholder": "Zoek op ontvanger, onderwerp of fout...",
+    "viewOrder": "Bestelling bekijken",
+    "status": {
+      "all": "Alles",
+      "sent": "Verzonden",
+      "pending": "In behandeling",
+      "failed": "Mislukt",
+      "bounced": "Bounced"
+    },
+    "columns": {
+      "status": "Status",
+      "sentAt": "Datum",
+      "type": "Type",
+      "recipient": "Ontvanger",
+      "subject": "Onderwerp",
+      "order": "Bestelling"
     }
   },
   "priceLists": {
