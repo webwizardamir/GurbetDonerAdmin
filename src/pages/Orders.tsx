@@ -26,6 +26,8 @@ import type { OrderWithItems } from '../services/orders'
 import { bulkUpdateOrderStatus, bulkDeleteOrders } from '../services/orders'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
 import { fetchSendCountsByOrder } from '../services/documentEmail'
+import SortableTh from '../components/ui/SortableTh'
+import { useTableSort } from '../hooks/useTableSort'
 import OrderDetail from '../components/orders/OrderDetail'
 import StatusBadge from '../components/ui/StatusBadge'
 import PaymentBadge from '../components/ui/PaymentBadge'
@@ -84,7 +86,7 @@ export default function Orders() {
 
   // Client-side filter also matches customer name and legacy WC invoice numbers
   // (server-side search already queries order_number + woo_invoice_number).
-  const filteredOrders = useMemo(() => orders.filter(order => {
+  const filteredOrdersUnsorted = useMemo(() => orders.filter(order => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
     const invoiceNum = documentInfo.get(order.id)?.invoiceNumber?.toLowerCase() || ''
@@ -96,6 +98,19 @@ export default function Orders() {
       wooInvoice.includes(query)
     )
   }), [orders, searchQuery, documentInfo])
+
+  // Phase 6: sortable columns. Default = order_date desc (newest first)
+  type OrderSortKey = 'order_number' | 'customer' | 'order_date' | 'status' | 'invoice' | 'total'
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<OrderSortKey>('order_date', 'desc')
+
+  const filteredOrders = useMemo(() => sortBy(filteredOrdersUnsorted, {
+    order_number: o => o.order_number,
+    customer:     o => o.customer?.company_name ?? '',
+    order_date:   o => o.order_date ?? o.created_at ?? '',
+    status:       o => o.status,
+    invoice:      o => documentInfo.get(o.id)?.invoiceNumber ?? (o.woo_invoice_number ? String(o.woo_invoice_number) : ''),
+    total:        o => o.total ?? 0,
+  }), [filteredOrdersUnsorted, sortBy, documentInfo])
 
   useEffect(() => {
     const orderIds = orders.map(o => o.id)
@@ -281,12 +296,12 @@ export default function Orders() {
                     <input type="checkbox" checked={selectedIds.size === filteredOrders.length && filteredOrders.length > 0} onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('orders.orderNumber')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('orders.customer')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('common.date')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('common.status')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('orders.invoice')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('common.total')}</th>
+                  <SortableTh sortKey="order_number" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.orderNumber')}</SortableTh>
+                  <SortableTh sortKey="customer"     current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.customer')}</SortableTh>
+                  <SortableTh sortKey="order_date"   current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('common.date')}</SortableTh>
+                  <SortableTh sortKey="status"       current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('common.status')}</SortableTh>
+                  <SortableTh sortKey="invoice"      current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.invoice')}</SortableTh>
+                  <SortableTh sortKey="total"        current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('common.total')}</SortableTh>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('common.actions')}</th>
                 </tr>
               </thead>
