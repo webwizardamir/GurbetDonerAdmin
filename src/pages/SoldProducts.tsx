@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Package,
@@ -28,6 +28,8 @@ import { useSoldProducts, type DateRangeKey } from '../hooks/useSoldProducts'
 import { getStockStatus, getSuggestedRefill, type SoldProductItem } from '../services/soldProducts'
 import { formatPrice, formatQuantityWithUnit } from '../utils/format'
 import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
+import SortableTh from '../components/ui/SortableTh'
+import { useTableSort } from '../hooks/useTableSort'
 
 export default function SoldProducts() {
   const { t } = useTranslation()
@@ -54,6 +56,24 @@ export default function SoldProducts() {
   } = useSoldProducts()
 
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+
+  // Phase 6: sortable columns. Default = null so the hook's existing
+  // low-stock-first → qty-desc ordering shows initially. User click overrides.
+  type SPSortKey = 'product' | 'category' | 'qty' | 'revenue' | 'stock' | 'status' | 'refill'
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<SPSortKey>(null, 'asc')
+  const sortedItems = useMemo(() => sortBy(items, {
+    product:  i => i.product_name,
+    category: i => i.category_name ?? '',
+    qty:      i => Number(i.total_quantity) || 0,
+    revenue:  i => Number(i.total_revenue) || 0,
+    stock:    i => i.track_stock ? (i.current_stock ?? 0) : -Infinity,
+    status:   i => i.track_stock ? (i.current_stock ?? 0) / Math.max(1, i.total_quantity) : 999,
+    refill:   i => {
+      if (!i.track_stock) return -Infinity
+      const target = i.total_quantity * 3
+      return Math.max(0, target - (i.current_stock ?? 0))
+    },
+  }), [items, sortBy])
   const toggleGroup = (key: string) => setCollapsedGroups(prev => {
     const next = new Set(prev)
     if (next.has(key)) next.delete(key)
@@ -387,33 +407,19 @@ export default function SoldProducts() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700">
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      {t('soldProducts.table.product')}
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      {t('soldProducts.table.category')}
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      {t('soldProducts.table.qtySold')}
-                    </th>
+                    <SortableTh sortKey="product"  current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6">{t('soldProducts.table.product')}</SortableTh>
+                    <SortableTh sortKey="category" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6">{t('soldProducts.table.category')}</SortableTh>
+                    <SortableTh sortKey="qty"      current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="right">{t('soldProducts.table.qtySold')}</SortableTh>
                     {isOwner && (
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                        {t('soldProducts.table.revenue')}
-                      </th>
+                      <SortableTh sortKey="revenue" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="right">{t('soldProducts.table.revenue')}</SortableTh>
                     )}
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      {t('soldProducts.table.currentStock')}
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      {t('common.status')}
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      {t('soldProducts.table.suggestedRefill')}
-                    </th>
+                    <SortableTh sortKey="stock"  current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="right">{t('soldProducts.table.currentStock')}</SortableTh>
+                    <SortableTh sortKey="status" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="center">{t('common.status')}</SortableTh>
+                    <SortableTh sortKey="refill" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="right">{t('soldProducts.table.suggestedRefill')}</SortableTh>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {items.map(item => {
+                  {sortedItems.map(item => {
                     const status = getStockStatus(item)
                     const refill = getSuggestedRefill(item)
 
@@ -504,7 +510,7 @@ export default function SoldProducts() {
 
             {/* Mobile Cards */}
             <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-700">
-              {items.map(item => {
+              {sortedItems.map(item => {
                 const status = getStockStatus(item)
                 const refill = getSuggestedRefill(item)
 
