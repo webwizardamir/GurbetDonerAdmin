@@ -8,7 +8,9 @@ import {
   FileText,
   Eye,
   Printer,
+  Send,
 } from 'lucide-react'
+import SendDocumentModal from './SendDocumentModal'
 import { InvoiceTemplate } from './InvoiceTemplate'
 import { ProformaTemplate } from './ProformaTemplate'
 import { OrderConfirmationTemplate } from './OrderConfirmationTemplate'
@@ -64,6 +66,7 @@ export default function DocumentGenerator({
   const [error, setError] = useState<string | null>(null)
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [showSend, setShowSend] = useState(false)
 
   // Load invoice data
   useEffect(() => {
@@ -286,6 +289,17 @@ export default function DocumentGenerator({
                 <span className="hidden sm:inline">Print</span>
               </button>
 
+              {invoiceData && (
+                <button
+                  onClick={() => setShowSend(true)}
+                  disabled={generating}
+                  className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 whitespace-nowrap"
+                >
+                  <Send className="w-4 h-4" />
+                  <span className="hidden sm:inline">Email</span>
+                </button>
+              )}
+
               <button
                 onClick={handleDownload}
                 disabled={generating}
@@ -302,6 +316,18 @@ export default function DocumentGenerator({
           </div>
         )}
       </div>
+
+      {showSend && invoiceData && (
+        <SendDocumentModal
+          orderId={orderId}
+          documentType={documentType as import('../../types').EmailDocumentType}
+          documentId={null}
+          invoiceData={invoiceData}
+          pdfElement={getDocumentTemplate(documentType, invoiceData)}
+          onClose={() => setShowSend(false)}
+          onSent={() => { onGenerated?.() }}
+        />
+      )}
     </div>
   )
 }

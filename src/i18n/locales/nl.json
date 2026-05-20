@@ -522,6 +522,18 @@
   "documents": {
     "title": "Documenten",
     "generate": "Genereren",
+    "send": {
+      "title": "Document verzenden",
+      "to": "Aan",
+      "bcc": "BCC",
+      "subject": "Onderwerp",
+      "body": "Berichttekst",
+      "sendButton": "Verzenden",
+      "recipientRequired": "Ontvanger e-mailadres is verplicht",
+      "pdfAttached": "PDF wordt automatisch als bijlage toegevoegd: {{filename}}",
+      "sentTo": "Verzonden naar {{recipient}}",
+      "bccCopy": "BCC: {{bcc}}"
+    },
     "documentNumber": "Documentnummer",
     "documentDate": "Documentdatum",
     "dueDate": "Vervaldatum",

@@ -522,6 +522,18 @@
   "documents": {
     "title": "Documents",
     "generate": "Generate",
+    "send": {
+      "title": "Send document",
+      "to": "To",
+      "bcc": "BCC",
+      "subject": "Subject",
+      "body": "Body",
+      "sendButton": "Send",
+      "recipientRequired": "Recipient email is required",
+      "pdfAttached": "PDF will be attached automatically: {{filename}}",
+      "sentTo": "Sent to {{recipient}}",
+      "bccCopy": "BCC: {{bcc}}"
+    },
     "documentNumber": "Document Number",
     "documentDate": "Document Date",
     "dueDate": "Due Date",
