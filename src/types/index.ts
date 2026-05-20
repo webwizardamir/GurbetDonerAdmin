@@ -473,9 +473,48 @@ export interface DocumentSettings {
   // Footer
   footer_text?: string
 
+  // Email (Phase 5)
+  email_bcc?: string | null
+  email_templates?: EmailTemplateMap | null
+
   // Timestamps
   created_at: string
   updated_at: string
+}
+
+// Phase 5: per-document-type email template
+export type EmailDocumentType =
+  | 'invoice'
+  | 'proforma'
+  | 'credit_note'
+  | 'packing_slip'
+  | 'order_confirmation'
+  | 'payment_reminder'
+
+export interface EmailTemplate {
+  subject: string
+  body: string
+}
+
+export type EmailTemplateMap = Partial<Record<EmailDocumentType, EmailTemplate>>
+
+export type DocumentSendStatus = 'pending' | 'sent' | 'failed' | 'bounced'
+
+export interface DocumentSend {
+  id: string
+  document_id: string | null
+  order_id: string | null
+  document_type: EmailDocumentType
+  recipient_email: string
+  bcc_email: string | null
+  subject: string
+  body: string
+  status: DocumentSendStatus
+  error_message: string | null
+  resend_message_id: string | null
+  sent_at: string | null
+  sent_by: string | null
+  created_at: string
 }
 
 // =====================================================
