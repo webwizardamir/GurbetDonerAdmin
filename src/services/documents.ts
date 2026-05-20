@@ -127,6 +127,27 @@ export async function fetchDocumentById(id: string): Promise<Document | null> {
   return data
 }
 
+/**
+ * Find the most recent document of a given type on an order, if one exists.
+ * Used by DocumentGenerator so that reopening an order doesn't burn a fresh
+ * invoice number — the existing document is reused instead.
+ */
+export async function fetchLatestDocumentForOrder(
+  orderId: string,
+  docType: DocumentType,
+): Promise<Document | null> {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('order_id', orderId)
+    .eq('document_type', docType)
+    .order('generated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
 export async function getNextDocumentNumber(docType: DocumentType): Promise<string> {
   // Get current settings
   const settings = await fetchDocumentSettings()

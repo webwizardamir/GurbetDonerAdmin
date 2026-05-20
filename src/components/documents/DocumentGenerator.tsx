@@ -21,6 +21,7 @@ import {
   buildInvoiceData,
   getNextDocumentNumber,
   createDocument,
+  fetchLatestDocumentForOrder,
   type InvoiceData,
 } from '../../services/documents'
 import type { DocumentType } from '../../types'
@@ -67,6 +68,9 @@ export default function DocumentGenerator({
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [showSend, setShowSend] = useState(false)
+  // Set when an existing documents row was reused on mount — Download skips
+  // the createDocument step, and Send links the audit row to it.
+  const [existingDocumentId, setExistingDocumentId] = useState<string | null>(null)
 
   // Load invoice data
   useEffect(() => {
@@ -77,10 +81,20 @@ export default function DocumentGenerator({
     setLoading(true)
     setError(null)
     try {
-      const data = await buildInvoiceData(orderId, documentType)
-      // Get next document number
-      const docNumber = await getNextDocumentNumber(documentType)
-      data.documentNumber = docNumber
+      const [data, existing] = await Promise.all([
+        buildInvoiceData(orderId, documentType),
+        fetchLatestDocumentForOrder(orderId, documentType),
+      ])
+      if (existing) {
+        // Reuse the existing document number — generating today and emailing
+        // 2 days later must not produce a second invoice with a new number.
+        data.documentNumber = existing.document_number
+        setExistingDocumentId(existing.id)
+      } else {
+        const docNumber = await getNextDocumentNumber(documentType)
+        data.documentNumber = docNumber
+        setExistingDocumentId(null)
+      }
       setInvoiceData(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load document data')
@@ -109,15 +123,18 @@ export default function DocumentGenerator({
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
-      // Save document record to database
-      await createDocument(
-        orderId,
-        documentType,
-        invoiceData.documentNumber,
-        invoiceData as unknown as Record<string, unknown>,
-        undefined, // No storage URL for now
-        blob.size
-      )
+      // Only insert a new documents row when this is the first download of
+      // this type for the order. Subsequent downloads reuse the existing row.
+      if (!existingDocumentId) {
+        await createDocument(
+          orderId,
+          documentType,
+          invoiceData.documentNumber,
+          invoiceData as unknown as Record<string, unknown>,
+          undefined, // No storage URL for now
+          blob.size
+        )
+      }
 
       onGenerated?.()
     } catch (err) {
@@ -321,7 +338,7 @@ export default function DocumentGenerator({
         <SendDocumentModal
           orderId={orderId}
           documentType={documentType as import('../../types').EmailDocumentType}
-          documentId={null}
+          documentId={existingDocumentId}
           invoiceData={invoiceData}
           pdfElement={getDocumentTemplate(documentType, invoiceData)}
           onClose={() => setShowSend(false)}
