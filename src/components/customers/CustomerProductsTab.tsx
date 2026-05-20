@@ -11,6 +11,8 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { formatPrice } from '../../utils/format'
 import ExportMenu from '../ui/ExportMenu'
+import SortableTh from '../ui/SortableTh'
+import { useTableSort } from '../../hooks/useTableSort'
 import { customerItemsSummaryExportColumns } from '../../utils/export'
 
 interface CustomerProductsTabProps {
@@ -131,13 +133,29 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
     return Array.from(s).sort()
   }, [rows])
 
+  // Phase 6: sortable columns. Default = revenue desc (matches the RPC's
+  // own ORDER BY total_revenue DESC).
+  type ItemSortKey = 'product_code' | 'name' | 'unit' | 'qty' | 'orders' | 'last_ordered' | 'avg_price' | 'revenue' | 'profit'
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<ItemSortKey>('revenue', 'desc')
+
   const filteredRows = useMemo(() => {
-    return rows.filter(r => {
+    const filtered = rows.filter(r => {
       if (categoryFilter && r.category_name !== categoryFilter) return false
       if (unitFilter && r.unit_type !== unitFilter) return false
       return true
     })
-  }, [rows, categoryFilter, unitFilter])
+    return sortBy(filtered, {
+      product_code: r => r.product_code ?? '',
+      name:         r => r.product_name,
+      unit:         r => r.unit_type,
+      qty:          r => Number(r.total_quantity) || 0,
+      orders:       r => Number(r.order_count)    || 0,
+      last_ordered: r => r.last_ordered ?? '',
+      avg_price:    r => Number(r.avg_unit_price) || 0,
+      revenue:      r => Number(r.total_revenue)  || 0,
+      profit:       r => Number(r.total_profit)   || 0,
+    })
+  }, [rows, categoryFilter, unitFilter, sortBy])
 
   // Footer SUMs — over the *filtered* set so they always match what's visible
   const totals = useMemo(() => {
@@ -243,16 +261,16 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
                   <th className="px-2 py-3 w-8" />
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.id')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.name')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.unit')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.qty')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.orders')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.lastOrdered')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.avgPrice')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.revenue')}</th>
+                  <SortableTh sortKey="product_code" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customerDetail.products.columns.id')}</SortableTh>
+                  <SortableTh sortKey="name"         current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customerDetail.products.columns.name')}</SortableTh>
+                  <SortableTh sortKey="unit"         current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customerDetail.products.columns.unit')}</SortableTh>
+                  <SortableTh sortKey="qty"          current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.qty')}</SortableTh>
+                  <SortableTh sortKey="orders"       current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.orders')}</SortableTh>
+                  <SortableTh sortKey="last_ordered" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customerDetail.products.columns.lastOrdered')}</SortableTh>
+                  <SortableTh sortKey="avg_price"    current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.avgPrice')}</SortableTh>
+                  <SortableTh sortKey="revenue"      current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.revenue')}</SortableTh>
                   {isOwner && (
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.columns.profit')}</th>
+                    <SortableTh sortKey="profit" current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.profit')}</SortableTh>
                   )}
                 </tr>
               </thead>
