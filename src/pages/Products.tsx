@@ -25,6 +25,8 @@ import ProductImport from '../components/products/ProductImport'
 import type { Product } from '../types'
 import { productExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
+import SortableTh from '../components/ui/SortableTh'
+import { useTableSort } from '../hooks/useTableSort'
 import { downloadProductTemplate } from '../utils/productTemplate'
 import { fetchAllProducts } from '../services/products'
 import { formatPrice, formatPercent } from '../utils/format'
@@ -95,7 +97,21 @@ export default function Products() {
     setFilters({ category_id: categoryFilter || undefined })
   }, [categoryFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filteredProducts = products
+  // Phase 6: sortable columns
+  type ProductSortKey = 'product_code' | 'name' | 'category' | 'sku' | 'unit_type' | 'stock' | 'cost' | 'price' | 'margin'
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<ProductSortKey>('name', 'asc')
+
+  const filteredProducts = useMemo(() => sortBy(products, {
+    product_code: p => p.product_code ?? '',
+    name:         p => p.name,
+    category:     p => p.category?.name ?? '',
+    sku:          p => p.sku ?? '',
+    unit_type:    p => p.unit_type,
+    stock:        p => p.track_stock ? p.stock_quantity : -Infinity,
+    cost:         p => p.cost_cents ?? 0,
+    price:        p => p.base_price ?? 0,
+    margin:       p => (p.cost_cents && p.base_price > 0) ? (1 - p.cost_cents / p.base_price) : -Infinity,
+  }), [products, sortBy])
 
   const handleCreate = () => {
     setEditingProduct(null)
@@ -234,36 +250,18 @@ export default function Products() {
             <table className="w-full min-w-[800px]">
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    {t('products.id')}
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    {t('products.productName')}
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    {t('products.category')}
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    {t('products.sku')} / {t('products.barcode')}
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    {t('products.unitType')}
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    {t('products.stock')}
-                  </th>
+                  <SortableTh sortKey="product_code" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-3 py-3">{t('products.id')}</SortableTh>
+                  <SortableTh sortKey="name"         current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.productName')}</SortableTh>
+                  <SortableTh sortKey="category"     current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.category')}</SortableTh>
+                  <SortableTh sortKey="sku"          current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.sku')} / {t('products.barcode')}</SortableTh>
+                  <SortableTh sortKey="unit_type"    current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.unitType')}</SortableTh>
+                  <SortableTh sortKey="stock"        current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('products.stock')}</SortableTh>
                   {isOwner && (
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      {t('products.costPrice')}
-                    </th>
+                    <SortableTh sortKey="cost" current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('products.costPrice')}</SortableTh>
                   )}
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    {t('common.price')}
-                  </th>
+                  <SortableTh sortKey="price" current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('common.price')}</SortableTh>
                   {isOwner && (
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      {t('products.margin')}
-                    </th>
+                    <SortableTh sortKey="margin" current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('products.margin')}</SortableTh>
                   )}
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {t('common.actions')}
