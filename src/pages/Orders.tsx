@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Banknote,
   FileText,
+  Mail,
   Check,
 } from 'lucide-react'
 import { useOrders } from '../hooks/useOrders'
@@ -24,6 +25,7 @@ import type { OrderStatus, PaymentMethod } from '../types'
 import type { OrderWithItems } from '../services/orders'
 import { bulkUpdateOrderStatus, bulkDeleteOrders } from '../services/orders'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
+import { fetchSendCountsByOrder } from '../services/documentEmail'
 import OrderDetail from '../components/orders/OrderDetail'
 import StatusBadge from '../components/ui/StatusBadge'
 import PaymentBadge from '../components/ui/PaymentBadge'
@@ -47,6 +49,7 @@ export default function Orders() {
   const [showPaymentModal, setShowPaymentModal] = useState<'single' | 'bulk' | null>(null)
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null)
   const [documentInfo, setDocumentInfo] = useState<Map<string, OrderDocumentInfo>>(new Map())
+  const [sendInfo, setSendInfo] = useState<Record<string, { total: number; sent: number; failed: number }>>({})
 
   // Read URL params on mount to apply filters (e.g. ?status=pending_payment)
   // and redirect legacy ?new=1 links to the new editor route.
@@ -99,6 +102,8 @@ export default function Orders() {
     if (orderIds.length > 0) {
       fetchDocumentInfoByOrder(orderIds).then(info => setDocumentInfo(info)).catch(console.error)
     }
+    // Phase 5: one query for every order's send-status indicator
+    fetchSendCountsByOrder().then(setSendInfo).catch(console.error)
   }, [orders])
 
   useEffect(() => { setSelectedIds(new Set()) }, [filters, searchQuery])
@@ -339,6 +344,24 @@ export default function Orders() {
                               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-violet-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{docInfo.count}</span>
                             </div>
                           )}
+                          {(() => {
+                            const s = sendInfo[order.id]
+                            if (!s || s.total === 0) return null
+                            const allOk = s.failed === 0
+                            return (
+                              <div
+                                className="relative p-2"
+                                title={`${s.sent}/${s.total} ${allOk ? 'sent' : `sent (${s.failed} failed)`}`}
+                              >
+                                <Mail className={`w-4 h-4 ${allOk ? 'text-emerald-500' : 'text-red-500'}`} />
+                                {s.total > 1 && (
+                                  <span className={`absolute -top-0.5 -right-0.5 w-4 h-4 ${allOk ? 'bg-emerald-500' : 'bg-red-500'} text-white text-[10px] font-bold rounded-full flex items-center justify-center`}>
+                                    {s.total}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })()}
                           {canComplete && (
                             <button onClick={() => handleQuickComplete(order.id)} className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.markComplete')}>
                               <Check className="w-4 h-4 text-green-600" />
