@@ -21,6 +21,8 @@ import CustomerTableRow from '../components/customers/CustomerTableRow'
 import CustomerCard from '../components/customers/CustomerCard'
 import { customerExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
+import SortableTh from '../components/ui/SortableTh'
+import { useTableSort } from '../hooks/useTableSort'
 import { supabase } from '../services/supabase'
 import type { CustomerAccount } from '../services/portalAuth'
 
@@ -66,7 +68,17 @@ export default function Customers() {
     setFilters({ city: cityFilter || undefined })
   }, [cityFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filteredCustomers = customers
+  // Phase 6: sortable columns
+  type CustomerSortKey = 'company_name' | 'contact_person' | 'city' | 'vat_number' | 'price_list'
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<CustomerSortKey>('company_name', 'asc')
+
+  const filteredCustomers = useMemo(() => sortBy(customers, {
+    company_name:   c => c.company_name,
+    contact_person: c => c.contact_person ?? '',
+    city:           c => c.billing_city ?? '',
+    vat_number:     c => c.vat_number ?? '',
+    price_list:     c => c.price_list?.name ?? '',
+  }), [customers, sortBy])
 
   const handleEdit = (customer: Customer) => { setEditingCustomer(customer); setShowForm(true) }
 
@@ -158,11 +170,11 @@ export default function Customers() {
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('customers.companyName')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('customers.contactPerson')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('customers.city')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('customers.vatNumber')}</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('customers.priceList')}</th>
+                  <SortableTh sortKey="company_name"   current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.companyName')}</SortableTh>
+                  <SortableTh sortKey="contact_person" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.contactPerson')}</SortableTh>
+                  <SortableTh sortKey="city"           current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.city')}</SortableTh>
+                  <SortableTh sortKey="vat_number"     current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.vatNumber')}</SortableTh>
+                  <SortableTh sortKey="price_list"     current={sortKey} dir={sortDir} onToggle={toggleSort} align="center">{t('customers.priceList')}</SortableTh>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('common.actions')}</th>
                 </tr>
               </thead>
