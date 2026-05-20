@@ -7,17 +7,19 @@ import {
   CreditCard,
   FileText,
   Tag,
+  Mail,
   Settings,
   X,
 } from 'lucide-react'
 import { useDocumentSettings } from '../hooks/useDocumentSettings'
-import type { DocumentSettings } from '../types'
+import type { DocumentSettings, EmailTemplateMap } from '../types'
 import CompanyTab from '../components/settings/CompanyTab'
 import BankPaymentTab from '../components/settings/BankPaymentTab'
 import NumberingTab from '../components/settings/NumberingTab'
 import LabelsTab from '../components/settings/LabelsTab'
+import EmailTab from '../components/settings/EmailTab'
 
-type TabId = 'company' | 'bank' | 'numbering' | 'labels'
+type TabId = 'company' | 'bank' | 'numbering' | 'labels' | 'email'
 
 interface TabConfig {
   id: TabId
@@ -30,6 +32,7 @@ const tabs: TabConfig[] = [
   { id: 'bank', labelKey: 'settings.documents.tabs.bank', icon: <CreditCard className="w-4 h-4" /> },
   { id: 'numbering', labelKey: 'settings.documents.tabs.numbering', icon: <FileText className="w-4 h-4" /> },
   { id: 'labels', labelKey: 'settings.documents.tabs.labels', icon: <Tag className="w-4 h-4" /> },
+  { id: 'email', labelKey: 'settings.documents.tabs.email', icon: <Mail className="w-4 h-4" /> },
 ]
 
 export default function DocumentSettingsPage() {
@@ -48,6 +51,11 @@ export default function DocumentSettingsPage() {
 
   const handleChange = (field: keyof DocumentSettings, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    setSaveSuccess(false)
+  }
+
+  const handleTemplatesChange = (templates: EmailTemplateMap) => {
+    setFormData(prev => ({ ...prev, email_templates: templates }))
     setSaveSuccess(false)
   }
 
@@ -148,6 +156,9 @@ export default function DocumentSettingsPage() {
         )}
         {activeTab === 'labels' && (
           <LabelsTab formData={formData} onChange={handleChange} />
+        )}
+        {activeTab === 'email' && (
+          <EmailTab formData={formData} onChange={handleChange} onTemplatesChange={handleTemplatesChange} />
         )}
       </div>
     </div>

@@ -908,7 +908,25 @@
         "company": "Company",
         "bank": "Bank & Payment",
         "numbering": "Numbering",
-        "labels": "Labels"
+        "labels": "Labels",
+        "email": "Email"
+      },
+      "email": {
+        "resendNotice": "Resend API key lives as a Supabase edge-function secret. No UI field; set it once in Supabase Studio.",
+        "bccLabel": "Company BCC address",
+        "bccHint": "Optional. Added automatically to every sent email so a copy always lands in the company mailbox.",
+        "placeholdersTitle": "Available placeholders (use in subject + body):",
+        "subjectLabel": "Subject",
+        "bodyLabel": "Body",
+        "usingDefault": "Using default — leave blank to keep default",
+        "types": {
+          "invoice": "Invoice",
+          "proforma": "Proforma",
+          "credit_note": "Credit Note",
+          "packing_slip": "Packing Slip",
+          "order_confirmation": "Order Confirmation",
+          "payment_reminder": "Payment Reminder"
+        }
       },
       "company": {
         "title": "Company Information",

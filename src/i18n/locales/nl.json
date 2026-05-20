@@ -908,7 +908,25 @@
         "company": "Bedrijf",
         "bank": "Bank & Betaling",
         "numbering": "Nummering",
-        "labels": "Labels"
+        "labels": "Labels",
+        "email": "E-mail"
+      },
+      "email": {
+        "resendNotice": "Resend API-sleutel staat als Supabase edge-function secret. UI heeft geen invoer; stel hem eenmalig in Supabase Studio in.",
+        "bccLabel": "Bedrijf-BCC adres",
+        "bccHint": "Optioneel. Wordt automatisch toegevoegd aan elke verzonden e-mail zodat er altijd een kopie naar het bedrijfsadres gaat.",
+        "placeholdersTitle": "Beschikbare placeholders (gebruik in onderwerp + tekst):",
+        "subjectLabel": "Onderwerp",
+        "bodyLabel": "Berichttekst",
+        "usingDefault": "Standaard wordt gebruikt — laat leeg om standaard te behouden",
+        "types": {
+          "invoice": "Factuur",
+          "proforma": "Proforma",
+          "credit_note": "Creditnota",
+          "packing_slip": "Pakbon",
+          "order_confirmation": "Orderbevestiging",
+          "payment_reminder": "Betalingsherinnering"
+        }
       },
       "company": {
         "title": "Bedrijfsgegevens",
