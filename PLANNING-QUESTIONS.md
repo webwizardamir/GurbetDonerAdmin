@@ -1,8 +1,18 @@
 # MelekHalalFood — Major Feature Round Planning
 
-> **Status (2026-05-20):** Phases 0–4 shipped + post-Phase-4 review hardening.
-> Phase 5 (email/Outbox) and Phase 6 (sortable columns) are next.
+> **Status (2026-05-20):** Phases 0–5 UI shipped. Phase 5 (email/Outbox) is functionally complete on the codebase side but **awaits the Resend API key + verified sender domain** to actually deliver mail. Phase 6 (sortable columns) is next.
 > See **Current state** below for the punch list.
+
+---
+
+## ⏳ Phase 5 — Resend setup pending
+
+The send-document-email edge function expects two secrets that aren't set yet:
+
+1. **`RESEND_API_KEY`** — sign up at resend.com, create an API key, then in Supabase Studio → Edge Functions → `send-document-email` → Secrets, paste the key.
+2. **`RESEND_FROM_ADDRESS`** — e.g. `documenten@melekhalalfood.com`. The sending domain must be verified in Resend (DNS records, ~10 min).
+
+Until both are set, the UI works end-to-end (templates editable, Send modal opens, Outbox page exists, envelope icon on Orders list), but clicking Send fails with `RESEND_API_KEY secret is not set on this edge function`. No code change needed once the secrets are configured.
 
 ---
 
@@ -16,6 +26,7 @@
 | 2 | Country/customer price lists (CRUD, items, customer assignment, OrderForm wiring) | ✅ |
 | 3 | Customer Products tab (filters, footer SUMs, export, expandable orders drill-down) | ✅ |
 | 4 | Sold Products filters + Group-by-City driver-routing PDF | ✅ |
+| 5 | Email send system + Outbox (UI complete; awaits Resend API key) | 🟡 awaiting Resend |
 
 ### Post-Phase-4 review (4 agents: security, performance, UI/UX, code quality)
 | Severity | What was fixed | Commits |
@@ -54,6 +65,10 @@
 - Some new cards use `rounded-xl` where design-system specifies `rounded-2xl`
 - Extract shared `<ExcelImportShell>` from ProductImport + PriceListImport (~80% duplication)
 - Naming inconsistency: `base_price` vs `price_cents` vs revenue without suffix
+
+### Found during Phase 5 testing (fixed below)
+- ✅ DocumentGenerator modal footer overflowed on smaller widths after adding the Email button — Download button got cut off (fix pending in this commit batch)
+- ✅ DocumentGenerator opened with a fresh invoice number every time, so "generate today, send 2 days later" would double-number — fix reuses any existing document of the same type on the order (fix pending in this commit batch)
 
 ### What's next
 - **Phase 5** — Email/send system + Outbox page (needs Q7 answers; biggest item)
