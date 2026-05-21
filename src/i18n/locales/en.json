@@ -479,6 +479,7 @@
       "noProductsFound": "No products found",
       "addProducts": "Add Products",
       "searchAndAdd": "Search and add products",
+      "scopedToPriceList": "Only products on '{{name}}' — edit the price list to add more",
       "selectCustomerError": "Please select a customer",
       "addProductError": "Please add at least one product",
       "createError": "Failed to create order",

@@ -461,6 +461,19 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
                 getDisplayPrice={selectedCustomer
                   ? (p) => resolveEffectivePrice(p, p.unit_type)
                   : undefined}
+                // Scope the picker to the customer's price list when one is
+                // active. Admin can edit the list to add products if they
+                // need to sell something not on it today.
+                allowedProductIds={
+                  selectedCustomer?.price_list_id && selectedCustomer.price_list?.is_active !== false && listItems.size > 0
+                    ? new Set(listItems.keys())
+                    : null
+                }
+                scopeNote={
+                  selectedCustomer?.price_list_id && selectedCustomer.price_list?.is_active !== false && selectedCustomer.price_list
+                    ? t('orders.form.scopedToPriceList', { name: selectedCustomer.price_list.name })
+                    : undefined
+                }
               />
             </div>
 

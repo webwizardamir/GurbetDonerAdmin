@@ -479,6 +479,7 @@
       "noProductsFound": "Geen producten gevonden",
       "addProducts": "Producten toevoegen",
       "searchAndAdd": "Zoek en voeg producten toe",
+      "scopedToPriceList": "Alleen producten op '{{name}}' — bewerk de prijslijst om meer toe te voegen",
       "selectCustomerError": "Selecteer een klant",
       "addProductError": "Voeg minimaal één product toe",
       "createError": "Kan bestelling niet aanmaken",

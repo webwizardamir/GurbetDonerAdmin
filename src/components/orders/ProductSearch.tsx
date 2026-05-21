@@ -16,6 +16,11 @@ interface ProductSearchProps {
   /** When provided, override the displayed price per product (customer-aware
    *  resolver). Falls back to product.base_price when undefined. */
   getDisplayPrice?: (product: Product) => number
+  /** When provided, only products with these IDs are searchable. Used when
+   *  the selected customer is on a price list — only listed products appear. */
+  allowedProductIds?: Set<string> | null
+  /** Note shown under the search input when the picker is scoped to a list. */
+  scopeNote?: string
 }
 
 export default function ProductSearch({
@@ -25,11 +30,14 @@ export default function ProductSearch({
   onAddProduct,
   onOpenScanner,
   getDisplayPrice,
+  allowedProductIds,
+  scopeNote,
 }: ProductSearchProps) {
   const { t } = useTranslation()
   const [productSearch, setProductSearch] = useState('')
 
   const filteredProducts = products.filter(p => {
+    if (allowedProductIds && !allowedProductIds.has(p.id)) return false
     if (!productSearch) return true
     const query = productSearch.toLowerCase()
     return (
@@ -65,6 +73,9 @@ export default function ProductSearch({
           <span className="hidden sm:inline">{t('scanner.scanBarcode')}</span>
         </button>
       </div>
+      {scopeNote && (
+        <p className="mt-1.5 text-xs text-purple-700 dark:text-purple-400">{scopeNote}</p>
+      )}
       {productSearch && (
         <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-lg">
           {productsLoading ? (
