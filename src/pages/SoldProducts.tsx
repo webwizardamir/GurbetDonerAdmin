@@ -164,7 +164,7 @@ export default function SoldProducts() {
                 onChange={(e) => setCustomStart(e.target.value)}
                 className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
-              <span className="text-slate-400">to</span>
+              <span className="text-slate-400">{t('common.to')}</span>
               <input
                 type="date"
                 value={customEnd}
@@ -180,7 +180,7 @@ export default function SoldProducts() {
                 disabled={!customStart || !customEnd}
                 className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white text-sm font-medium rounded-xl transition-colors"
               >
-                Apply
+                {t('common.apply')}
               </button>
             </div>
           )}
@@ -545,27 +545,27 @@ export default function SoldProducts() {
 
                     <div className={`grid ${isOwner ? 'grid-cols-2' : 'grid-cols-3'} gap-2 text-sm`}>
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Sold</p>
+                        <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.qtySold')}</p>
                         <p className="font-semibold text-slate-900 dark:text-white">
                           {formatQty(item.total_quantity, item.unit_type)}
                         </p>
                       </div>
                       {isOwner && (
                         <div>
-                          <p className="text-slate-500 dark:text-slate-400">Revenue</p>
+                          <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.revenue')}</p>
                           <p className="font-medium text-green-600 dark:text-green-400">
                             {formatPrice(item.total_revenue)}
                           </p>
                         </div>
                       )}
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Stock</p>
+                        <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.currentStock')}</p>
                         <p className="font-medium text-slate-900 dark:text-white">
                           {item.track_stock ? formatQty(item.current_stock || 0, item.unit_type) : '—'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Refill</p>
+                        <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.suggestedRefill')}</p>
                         <p className="font-medium text-blue-600 dark:text-blue-400">
                           {refill !== null && refill > 0 ? `+${formatQty(refill, item.unit_type)}` : '—'}
                         </p>
