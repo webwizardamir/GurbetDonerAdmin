@@ -144,7 +144,7 @@ export default function SoldProducts() {
                   setDateRange(key)
                 }
               }}
-              className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+              className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
             >
               <option value="yesterday">{t('soldProducts.yesterday')}</option>
               <option value="today">{t('soldProducts.today')}</option>
@@ -162,14 +162,14 @@ export default function SoldProducts() {
                 type="date"
                 value={customStart}
                 onChange={(e) => setCustomStart(e.target.value)}
-                className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <span className="text-slate-400">{t('common.to')}</span>
               <input
                 type="date"
                 value={customEnd}
                 onChange={(e) => setCustomEnd(e.target.value)}
-                className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <button
                 onClick={() => {
@@ -178,7 +178,7 @@ export default function SoldProducts() {
                   }
                 }}
                 disabled={!customStart || !customEnd}
-                className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white text-sm font-medium rounded-xl transition-colors"
+                className="px-3 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white text-sm font-medium rounded-xl transition-colors"
               >
                 {t('common.apply')}
               </button>
@@ -189,7 +189,7 @@ export default function SoldProducts() {
           <button
             onClick={refresh}
             disabled={loading}
-            className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             title="Refresh"
           >
             <RefreshCw className={`w-4 h-4 text-slate-600 dark:text-slate-400 ${loading ? 'animate-spin' : ''}`} />
@@ -199,7 +199,7 @@ export default function SoldProducts() {
           <button
             onClick={handleCopy}
             disabled={items.length === 0}
-            className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+            className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
             title="Copy to clipboard"
           >
             <Copy className={`w-4 h-4 ${copied ? 'text-green-500' : 'text-slate-600 dark:text-slate-400'}`} />
@@ -209,7 +209,7 @@ export default function SoldProducts() {
           <button
             onClick={handlePrint}
             disabled={items.length === 0}
-            className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+            className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
             title="Print / Export PDF"
           >
             <Printer className="w-4 h-4 text-slate-600 dark:text-slate-400" />
@@ -219,7 +219,7 @@ export default function SoldProducts() {
           <button
             onClick={() => setShowPDF(true)}
             disabled={items.length === 0}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
           >
             <FileText className="w-4 h-4" />
             {t('soldProducts.actions.exportPdf')}
@@ -236,7 +236,7 @@ export default function SoldProducts() {
               <select
                 value={cityFilter}
                 onChange={e => setCityFilter(e.target.value)}
-                className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+                className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
               >
                 <option value="">{t('soldProducts.filters.allCities')}</option>
                 {cityOptions.map(c => <option key={c} value={c}>{c}</option>)}
@@ -249,7 +249,7 @@ export default function SoldProducts() {
               <select
                 value={customerFilter}
                 onChange={e => setCustomerFilter(e.target.value)}
-                className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer max-w-[220px]"
+                className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer max-w-[220px]"
               >
                 <option value="">{t('soldProducts.filters.allCustomers')}</option>
                 {customerOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -262,7 +262,7 @@ export default function SoldProducts() {
               <select
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
-                className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+                className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
               >
                 <option value="">{t('soldProducts.filters.allCategories')}</option>
                 {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
@@ -275,7 +275,7 @@ export default function SoldProducts() {
               <select
                 value={unitFilter}
                 onChange={e => setUnitFilter(e.target.value)}
-                className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+                className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
               >
                 <option value="">{t('soldProducts.filters.allUnits')}</option>
                 {unitOptions.map(u => <option key={u} value={u}>{u}</option>)}
