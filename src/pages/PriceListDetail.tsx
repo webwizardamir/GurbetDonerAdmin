@@ -297,7 +297,7 @@ export default function PriceListDetail() {
                           disabled={savingEdit}
                           className="w-24 px-2 py-1 text-right bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                         >
-                          <option value="">{t('priceLists.detail.inheritTax')}</option>
+                          <option value="">— {t('priceLists.detail.inheritTax')} —</option>
                           <option value="0">0%</option>
                           <option value="9">9%</option>
                           <option value="21">21%</option>
