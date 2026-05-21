@@ -591,66 +591,69 @@ export default function SoldProducts() {
           <div className="space-y-3">
             {groups.map(g => {
               const collapsed = collapsedGroups.has(g.key)
+              const gridCols = isOwner
+                ? 'grid-cols-[minmax(0,1fr)_88px] sm:grid-cols-[minmax(0,1fr)_88px_104px]'
+                : 'grid-cols-[minmax(0,1fr)_88px]'
               return (
-                <div key={g.key} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div key={g.key} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  {/* Header — denser, totals as stacked metric chips */}
                   <button
                     onClick={() => toggleGroup(g.key)}
-                    className="w-full flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       {collapsed
                         ? <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                         : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
                       <h3 className="font-semibold text-slate-900 dark:text-white truncate">{g.name}</h3>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">
-                        · {t('soldProducts.groupBy.itemCount', { count: g.items.length })}
-                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">{g.items.length}</span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm shrink-0">
-                      <span className="text-slate-600 dark:text-slate-400 tabular-nums">
-                        {t('soldProducts.groupBy.qty')}: <span className="font-medium text-slate-900 dark:text-white">{g.totalQuantity.toLocaleString('nl-NL', { maximumFractionDigits: 3 })}</span>
-                      </span>
+                    <div className="flex items-center gap-5 shrink-0">
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('soldProducts.groupBy.qty')}</div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white tabular-nums">
+                          {g.totalQuantity.toLocaleString('nl-NL', { maximumFractionDigits: 3 })}
+                        </div>
+                      </div>
                       {isOwner && (
-                        <span className="text-slate-600 dark:text-slate-400 tabular-nums">
-                          {t('soldProducts.groupBy.revenue')}: <span className="font-medium text-slate-900 dark:text-white">{formatPrice(g.totalRevenue)}</span>
-                        </span>
+                        <div className="text-right">
+                          <div className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('soldProducts.groupBy.revenue')}</div>
+                          <div className="text-sm font-semibold text-green-600 dark:text-green-400 tabular-nums">{formatPrice(g.totalRevenue)}</div>
+                        </div>
                       )}
                     </div>
                   </button>
+                  {/* Body — grid list (no table chrome). Fixed column template
+                      so qty/revenue line up across multiple open cards. */}
                   {!collapsed && (
-                    <div className="border-t border-slate-100 dark:border-slate-700 overflow-x-auto">
-                      <table className="w-full min-w-[640px] text-sm">
-                        <thead className="bg-slate-50 dark:bg-slate-900/50">
-                          <tr>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('soldProducts.table.product')}</th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('soldProducts.table.category')}</th>
-                            <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('soldProducts.table.qtySold')}</th>
-                            {isOwner && (
-                              <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('soldProducts.summary.revenue')}</th>
+                    <ul className="border-t border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
+                      {g.items.map(item => (
+                        <li
+                          key={`${g.key}-${item.product_id}-${item.unit_type}`}
+                          className={`grid items-center gap-3 px-4 py-1.5 ${gridCols}`}
+                        >
+                          <span className="text-sm text-slate-900 dark:text-white truncate">
+                            {item.product_name}
+                            {item.product_sku && (
+                              <span className="ml-2 text-xs font-mono text-slate-400 dark:text-slate-500">{item.product_sku}</span>
                             )}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                          {g.items.map(item => (
-                            <tr key={`${g.key}-${item.product_id}-${item.unit_type}`} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                              <td className="px-4 py-2 text-slate-900 dark:text-white">
-                                {item.product_name}
-                                {item.product_sku && (
-                                  <span className="ml-2 text-xs text-slate-500 dark:text-slate-500 font-mono">{item.product_sku}</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{item.category_name || '—'}</td>
-                              <td className="px-4 py-2 text-right tabular-nums text-slate-900 dark:text-white">
-                                {formatQty(item.total_quantity, item.unit_type)}
-                              </td>
-                              {isOwner && (
-                                <td className="px-4 py-2 text-right tabular-nums text-slate-900 dark:text-white">{formatPrice(item.total_revenue)}</td>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </span>
+                          <span className="text-sm tabular-nums text-right text-slate-900 dark:text-white">
+                            {formatQty(item.total_quantity, item.unit_type)}
+                          </span>
+                          {isOwner && (
+                            <span className="hidden sm:block text-sm tabular-nums text-right text-slate-600 dark:text-slate-400">
+                              {formatPrice(item.total_revenue)}
+                            </span>
+                          )}
+                          {isOwner && (
+                            <span className="sm:hidden col-span-2 -mt-1 text-xs tabular-nums text-right text-slate-500 dark:text-slate-400">
+                              {formatPrice(item.total_revenue)}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
               )
