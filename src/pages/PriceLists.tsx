@@ -14,6 +14,8 @@ import {
 } from '../services/priceLists'
 import type { PriceList } from '../types'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import SortableTh from '../components/ui/SortableTh'
+import { useTableSort } from '../hooks/useTableSort'
 
 export default function PriceLists() {
   const { t } = useTranslation()
@@ -25,6 +27,17 @@ export default function PriceLists() {
   const [editing, setEditing] = useState<PriceList | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<PriceList | null>(null)
+
+  // Phase 6: sortable columns. Default = name asc.
+  type PLSortKey = 'name' | 'description' | 'items' | 'customers' | 'active'
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<PLSortKey>('name', 'asc')
+  const sortedLists = useMemo(() => sortBy(lists, {
+    name:        l => l.name,
+    description: l => l.description ?? '',
+    items:       l => itemCounts[l.id] ?? 0,
+    customers:   l => customerCounts[l.id] ?? 0,
+    active:      l => l.is_active ? 1 : 0,
+  }), [lists, itemCounts, customerCounts, sortBy])
 
   const load = async () => {
     setLoading(true)
@@ -134,16 +147,16 @@ export default function PriceLists() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.columns.name')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.columns.description')}</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.columns.items')}</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.columns.customers')}</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.columns.active')}</th>
+                <SortableTh sortKey="name"        current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.columns.name')}</SortableTh>
+                <SortableTh sortKey="description" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.columns.description')}</SortableTh>
+                <SortableTh sortKey="items"       current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('priceLists.columns.items')}</SortableTh>
+                <SortableTh sortKey="customers"   current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('priceLists.columns.customers')}</SortableTh>
+                <SortableTh sortKey="active"      current={sortKey} dir={sortDir} onToggle={toggleSort} align="center">{t('priceLists.columns.active')}</SortableTh>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.columns.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {lists.map(list => (
+              {sortedLists.map(list => (
                 <tr key={list.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
                   <td className="px-4 py-3">
                     <Link
