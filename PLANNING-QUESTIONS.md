@@ -27,6 +27,7 @@ Until both are set, the UI works end-to-end (templates editable, Send modal open
 | 3 | Customer Products tab (filters, footer SUMs, export, expandable orders drill-down) | ✅ |
 | 4 | Sold Products filters + Group-by-City driver-routing PDF | ✅ |
 | 5 | Email send system + Outbox (UI complete; awaits Resend API key) | 🟡 awaiting Resend |
+| 6 | Sortable columns on every table (`useTableSort` + `SortableTh`) | ✅ |
 
 ### Post-Phase-4 review (4 agents: security, performance, UI/UX, code quality)
 | Severity | What was fixed | Commits |
