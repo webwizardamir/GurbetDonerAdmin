@@ -154,7 +154,7 @@ export default function PriceListDetail() {
           <ChevronLeft className="w-4 h-4" />
           {t('priceLists.backToList')}
         </Link>
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
           <p className="text-slate-600 dark:text-slate-400">{t('priceLists.notFound')}</p>
         </div>
       </div>
@@ -170,7 +170,7 @@ export default function PriceListDetail() {
       </Link>
 
       {/* Header card */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex items-center justify-between flex-wrap gap-3">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 flex items-center justify-between flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold text-slate-900 dark:text-white">{list.name}</h1>
@@ -226,7 +226,7 @@ export default function PriceListDetail() {
       )}
 
       {/* Items table */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <Package className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-3" />
