@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -14,6 +14,8 @@ import {
 import { downloadCurrentPriceList } from '../utils/priceListTemplate'
 import PriceListImport from '../components/priceLists/PriceListImport'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import SortableTh from '../components/ui/SortableTh'
+import { useTableSort } from '../hooks/useTableSort'
 import type { PriceList } from '../types'
 import { formatPrice } from '../utils/format'
 
@@ -27,6 +29,17 @@ export default function PriceListDetail() {
   const [showImport, setShowImport] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [deleteItemTarget, setDeleteItemTarget] = useState<PriceListItemWithProduct | null>(null)
+
+  // Phase 6: sortable columns. Default = name asc.
+  type PLIKey = 'product_code' | 'product_name' | 'unit' | 'price' | 'tax'
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<PLIKey>('product_name', 'asc')
+  const sortedItems = useMemo(() => sortBy(items, {
+    product_code: it => it.product?.product_code ?? '',
+    product_name: it => it.product?.name ?? '',
+    unit:         it => it.unit_type,
+    price:        it => it.price_cents ?? 0,
+    tax:          it => it.tax_rate ?? -1,
+  }), [items, sortBy])
 
   // Inline edit state. editingId = which row is being edited; editPrice / editTax
   // are the staged string inputs (kept as strings so blank ↔ "use product BTW"
@@ -231,16 +244,16 @@ export default function PriceListDetail() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.productId')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.productName')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.unit')}</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.price')}</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.tax')}</th>
+                <SortableTh sortKey="product_code" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.detail.columns.productId')}</SortableTh>
+                <SortableTh sortKey="product_name" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.detail.columns.productName')}</SortableTh>
+                <SortableTh sortKey="unit"         current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.detail.columns.unit')}</SortableTh>
+                <SortableTh sortKey="price"        current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('priceLists.detail.columns.price')}</SortableTh>
+                <SortableTh sortKey="tax"          current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('priceLists.detail.columns.tax')}</SortableTh>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {items.map(item => {
+              {sortedItems.map(item => {
                 const isEditing = editingId === item.id
                 return (
                   <tr key={item.id} className={isEditing ? 'bg-purple-50/40 dark:bg-purple-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'}>
