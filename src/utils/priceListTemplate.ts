@@ -18,11 +18,6 @@ import {
 } from './productTemplate'
 import type { UnitType } from '../types'
 
-export { PRODUCT_TEMPLATE_COLUMNS as PRICE_LIST_TEMPLATE_COLUMNS,
-         TEMPLATE_HEADERS as PRICE_LIST_HEADERS,
-         UNIT_TYPE_VALUES,
-         VALID_TAX_RATES } from './productTemplate'
-
 /** Build a blank product-template-format file for a price list. */
 export async function downloadBlankPriceListTemplate(): Promise<void> {
   await downloadProductTemplate({ includeOwnerColumns: false })

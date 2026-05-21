@@ -4,9 +4,11 @@ import {
   X, Upload, Loader2, CheckCircle, AlertCircle, FileDown, FileSpreadsheet,
 } from 'lucide-react'
 import {
-  PRICE_LIST_TEMPLATE_COLUMNS,
-  PRICE_LIST_HEADERS,
+  PRODUCT_TEMPLATE_COLUMNS,
+  TEMPLATE_HEADERS,
   VALID_TAX_RATES,
+} from '../../utils/productTemplate'
+import {
   downloadBlankPriceListTemplate,
   downloadCurrentPriceList,
 } from '../../utils/priceListTemplate'
@@ -105,7 +107,7 @@ export default function PriceListImport({
     setFileName(file.name)
     setParseError(null)
 
-    const { rows, parseErrors } = await readExcelFile(file, [...PRICE_LIST_HEADERS])
+    const { rows, parseErrors } = await readExcelFile(file, [...TEMPLATE_HEADERS])
     if (parseErrors.length > 0) {
       setParseError(parseErrors.join(' · '))
       return
@@ -221,7 +223,7 @@ export default function PriceListImport({
 
   const headerKeyMap = useMemo(() => {
     const m = new Map<string, string>()
-    PRICE_LIST_TEMPLATE_COLUMNS.forEach(c => m.set(c.header, c.key))
+    PRODUCT_TEMPLATE_COLUMNS.forEach(c => m.set(c.header, c.key))
     return m
   }, [])
 
@@ -324,7 +326,7 @@ export default function PriceListImport({
                   <thead className="bg-slate-100 dark:bg-slate-900 sticky top-0 z-10">
                     <tr>
                       <th className="px-2 py-2 text-left font-semibold text-slate-500 dark:text-slate-400 w-12">#</th>
-                      {PRICE_LIST_HEADERS.map(h => (
+                      {TEMPLATE_HEADERS.map(h => (
                         <th key={h} className="px-2 py-2 text-left font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -338,7 +340,7 @@ export default function PriceListImport({
                         <Fragment key={idx}>
                           <tr className={hasErrors ? 'bg-red-50 dark:bg-red-900/10' : ''}>
                             <td className="px-2 py-1.5 text-slate-500 dark:text-slate-400">{row.source.__rowNumber}</td>
-                            {PRICE_LIST_HEADERS.map(h => {
+                            {TEMPLATE_HEADERS.map(h => {
                               const key = headerKeyMap.get(h) ?? h
                               const hasErr = errFields.has(key)
                               const val = row.source[h]
@@ -356,7 +358,7 @@ export default function PriceListImport({
                           {hasErrors && (
                             <tr className="bg-red-50 dark:bg-red-900/10">
                               <td />
-                              <td colSpan={PRICE_LIST_HEADERS.length} className="px-2 pb-1.5 pt-0 text-[11px] text-red-700 dark:text-red-300">
+                              <td colSpan={TEMPLATE_HEADERS.length} className="px-2 pb-1.5 pt-0 text-[11px] text-red-700 dark:text-red-300">
                                 {row.errors.map((e, i) => (
                                   <span key={i} className="inline-block mr-2">
                                     <strong>{e.field}:</strong> {e.message}
