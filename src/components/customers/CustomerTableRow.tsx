@@ -115,9 +115,12 @@ export default function CustomerTableRow({
           <span
             title={customer.price_list.name}
             aria-label={`${t('customers.priceList')}: ${customer.price_list.name}`}
-            className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 max-w-[180px]"
           >
-            <Tags className="w-3.5 h-3.5" />
+            <Tags className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden lg:inline text-xs font-medium truncate">
+              {customer.price_list.name}
+            </span>
           </span>
         ) : (
           <span className="text-sm text-slate-300 dark:text-slate-600">—</span>
