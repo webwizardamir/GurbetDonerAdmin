@@ -54,18 +54,22 @@ Until both are set, the UI works end-to-end (templates editable, Send modal open
 - 00046 — `get_sold_products_breakdown` RPC
 - 00047 — admin guard + role-aware profit on 00045/00046
 
-### Remaining LOW items from the review (next polish sweep)
-- Missing indexes for "all-time" range (`idx_orders(customer_id, order_date)`, `idx_order_refund_items(product_id)`)
-- Backfill migration 00043 sequence-gap risk if interrupted (not load-bearing)
-- Tags-icon column in Customers list → also show truncated name on `md:`+
-- "Using price list: X" note in OrderForm → make it a pill with Tags icon
-- BTW inline-edit select → visually separate "inherit" from "0%"
-- Date selects on SoldProducts (`py-2`) → `py-2.5` for 44px touch target
-- Hardcoded English in SoldProducts (`"to"`, `"order(s)"`, mobile-card labels) — i18n
-- `priceListTemplate.ts` is a barely-a-wrapper — inline or earn its keep
-- Some new cards use `rounded-xl` where design-system specifies `rounded-2xl`
-- Extract shared `<ExcelImportShell>` from ProductImport + PriceListImport (~80% duplication)
-- Naming inconsistency: `base_price` vs `price_cents` vs revenue without suffix
+### Polish sweep (completed 2026-05-21)
+| Item | Status |
+|---|---|
+| Drop priceListTemplate alias re-exports | ✅ `300bf3e` |
+| i18n: hardcoded English in SoldProducts (to / Apply / mobile labels) | ✅ `a92e097` |
+| Bump SoldProducts touch targets to 44px (py-2.5) | ✅ `a0d1b8e` |
+| "Using price list" → pill with Tags icon | ✅ `df1283f` |
+| Customers Tags-column shows name on lg+ | ✅ `32d88d2` |
+| BTW select: separate "inherit" with em-dashes | ✅ `1ebed75` |
+| Card containers: rounded-xl → rounded-2xl (design system) | ✅ `b4721a2` |
+| Indexes for Phase 3-4 RPCs (migration 00049) | ✅ `d3a3f83` |
+
+### Deferred (intentionally)
+- **Backfill 00043 sequence-gap risk** — migration already ran clean once; "interrupted retry" risk is moot in practice
+- **Naming inconsistency `base_price` vs `price_cents`** — `base_price` is a DB column name (not just a TS field), so a rename would mean a non-trivial migration on a 6000-row table for purely cosmetic gain. New code consistently uses `_cents` suffix; legacy columns grandfathered
+- **Extract shared `<ExcelImportShell>`** — meaningful refactor of two ~400-line components. Big-bang risk vs polish-sweep size. Worth doing as its own dedicated feature commit if/when the import flows diverge in a way that hurts maintenance
 
 ### Found during Phase 5 testing (fixed below)
 - ✅ DocumentGenerator modal footer overflowed on smaller widths after adding the Email button — Download button got cut off (fix pending in this commit batch)
