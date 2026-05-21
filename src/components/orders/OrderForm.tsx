@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X } from 'lucide-react'
+import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X, Tags } from 'lucide-react'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
 import { useOrders } from '../../hooks/useOrders'
@@ -401,9 +401,10 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">{t('orders.customer')}</p>
                     <p className="font-medium text-slate-900 dark:text-white truncate">{selectedCustomer.company_name}</p>
                     {selectedCustomer.price_list && (
-                      <p className="mt-0.5 text-xs text-purple-700 dark:text-purple-400 truncate">
-                        {t('orders.usingPriceList', { name: selectedCustomer.price_list.name })}
-                      </p>
+                      <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-xs font-medium text-purple-700 dark:text-purple-400 max-w-full">
+                        <Tags className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{selectedCustomer.price_list.name}</span>
+                      </span>
                     )}
                     {customerSummaryLines.length > 0 && (
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{customerSummaryLines.join(' · ')}</p>
