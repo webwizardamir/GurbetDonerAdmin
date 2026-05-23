@@ -1,7 +1,6 @@
 # MelekHalalFood — Major Feature Round Planning
 
-> **Status (2026-05-20):** Phases 0–5 UI shipped. Phase 5 (email/Outbox) is functionally complete on the codebase side but **awaits the Resend API key + verified sender domain** to actually deliver mail. Phase 6 (sortable columns) is next.
-> See **Current state** below for the punch list.
+> **Status (2026-05-23):** Phases 0–6 done. Only blocker is Phase 5's **Resend API key + verified sender domain** (UI complete, mail can't actually send until secrets are set). Polish sweep done. Two post-Phase-6 refinements shipped (Sold Products redesign + price-list scoped order picker). No active workstream — see **Recent refinements** + **Current state** for what's live and what's deferred.
 
 ---
 
@@ -13,6 +12,16 @@ The send-document-email edge function expects two secrets that aren't set yet:
 2. **`RESEND_FROM_ADDRESS`** — e.g. `documenten@melekhalalfood.com`. The sending domain must be verified in Resend (DNS records, ~10 min).
 
 Until both are set, the UI works end-to-end (templates editable, Send modal opens, Outbox page exists, envelope icon on Orders list), but clicking Send fails with `RESEND_API_KEY secret is not set on this edge function`. No code change needed once the secrets are configured.
+
+---
+
+## 🆕 Recent refinements (2026-05-23)
+
+Two post-Phase-6 improvements requested after testing:
+
+1. **Sold Products grouped-sections redesign** (`0574e1b`) — the Group-by-City/Customer view was a per-card `<table>`; columns didn't line up across expanded cards and the Categorie column was redundant. Replaced with a CSS-grid `<ul>` using an identical fixed column template on every card (so qty/revenue align by construction), header totals as metric chips, no table chrome, revenue tucks under product name on mobile. Driver-routing PDF (`SoldProductsTemplate.tsx`) intentionally left unchanged. Done from a UI/UX-agent spec.
+
+2. **Price-list scoped order product picker** (`17b2ff4`) — when the selected customer is on an **active** price list, the OrderForm product search now only shows products that are on that list (the list = that customer's catalog). No list / inactive list → all products, as before. Purple scope note under the search box explains it. Reuses the already-preloaded `listItems` map. `ProductSearch` gained `allowedProductIds` + `scopeNote` props.
 
 ---
 
@@ -46,13 +55,18 @@ Until both are set, the UI works end-to-end (templates editable, Send modal open
 | MED  | Branded `ConfirmDialog` replaces browser `confirm()`/`alert()` on price-list pages | `ff2f496` |
 | MED  | `productByCode` preload-failure surfacing in PriceListImport | `e91332e` |
 
-### Migrations applied (paste into Supabase Studio)
-- 00042 — `product_code` column + trigger
-- 00043 — backfill product_code for legacy WC-imported rows
-- 00044 — `price_lists` + `price_list_items` + `customers.price_list_id`
-- 00045 — `get_customer_items_summary` RPC
-- 00046 — `get_sold_products_breakdown` RPC
-- 00047 — admin guard + role-aware profit on 00045/00046
+### Migrations (paste into Supabase Studio)
+- 00042 — `product_code` column + trigger — ✅ applied
+- 00043 — backfill product_code for legacy WC-imported rows — ✅ applied
+- 00044 — `price_lists` + `price_list_items` + `customers.price_list_id` — ✅ applied
+- 00045 — `get_customer_items_summary` RPC — ✅ applied
+- 00046 — `get_sold_products_breakdown` RPC — ✅ applied
+- 00047 — admin guard + role-aware profit on 00045/00046 — ✅ applied
+- 00048 — `document_sends` + email columns on `document_settings` (Phase 5) — ✅ applied
+- 00049 — indexes for Phase 3-4 RPC all-time queries — ⏳ **not yet applied** (cheap, recommended)
+
+### Edge function to deploy (Phase 5)
+- `supabase/functions/send-document-email/` — deploy via Studio or CLI; set secrets `RESEND_API_KEY` + `RESEND_FROM_ADDRESS` once Resend account is ready.
 
 ### Polish sweep (completed 2026-05-21)
 | Item | Status |
