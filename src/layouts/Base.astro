@@ -1,0 +1,126 @@
+---
+import "../styles/global.css";
+import { site } from "../lib/site";
+import Header from "../components/Header.astro";
+import MobileMenu from "../components/MobileMenu.astro";
+import Footer from "../components/Footer.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  noIndex?: boolean;
+  bodyClass?: string;
+}
+
+const {
+  title,
+  description = site.description,
+  ogImage = "/og-default.jpg",
+  noIndex = false,
+  bodyClass = "",
+} = Astro.props;
+
+const pageTitle = title ? `${title} · ${site.fullName}` : `${site.fullName} · ${site.tagline}`;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site).toString();
+// Block indexing per-page OR site-wide while site.indexable is false (test deploy).
+const blockIndex = noIndex || !site.indexable;
+---
+
+<!doctype html>
+<html lang="en" class="antialiased">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light only" />
+    <meta name="theme-color" content="#0f5132" />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    {blockIndex && <meta name="robots" content="noindex,nofollow" />}
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site).toString()} />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content={site.fullName} />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(ogImage, Astro.site).toString()} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+
+    <!-- Fonts: Fraunces (variable serif) for headings + Inter for body. Two faces, period. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..700,0..100&family=Inter:wght@400;500;600;700&display=swap"
+    />
+
+    <!-- JSON-LD: Organization -->
+    <script
+      is:inline
+      type="application/ld+json"
+      set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: site.fullName,
+        url: site.url,
+        logo: `${site.url}/logo.png`,
+        email: site.email,
+        sameAs: [site.social.instagram, site.social.linkedin],
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: site.address.line1,
+          postalCode: site.address.postal,
+          addressLocality: site.address.city,
+          addressCountry: "NL",
+        },
+      })}
+    />
+
+    <slot name="head" />
+  </head>
+  <body class={bodyClass}>
+    <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-[var(--color-emerald)] focus:text-[var(--color-bone)] focus:px-3 focus:py-2 focus:rounded">
+      Skip to content
+    </a>
+    <Header />
+    <MobileMenu />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+
+    <script>
+      // Scroll-reveal observer. Runs once per element.
+      const els = document.querySelectorAll(".reveal");
+      if ("IntersectionObserver" in window && els.length) {
+        const io = new IntersectionObserver(
+          (entries) => {
+            for (const e of entries) {
+              if (e.isIntersecting) {
+                e.target.classList.add("is-visible");
+                io.unobserve(e.target);
+              }
+            }
+          },
+          { rootMargin: "0px 0px -10% 0px", threshold: 0.05 },
+        );
+        els.forEach((el) => io.observe(el));
+      } else {
+        els.forEach((el) => el.classList.add("is-visible"));
+      }
+    </script>
+  </body>
+</html>

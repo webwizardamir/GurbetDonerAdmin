@@ -1,0 +1,4 @@
+# Test deploy: block all crawling until launch.
+# For production, replace with an allow rule + sitemap reference.
+User-agent: *
+Disallow: /

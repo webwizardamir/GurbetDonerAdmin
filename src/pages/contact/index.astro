@@ -1,0 +1,132 @@
+---
+import Base from "../../layouts/Base.astro";
+import { site } from "../../lib/site";
+---
+
+<Base
+  title="Contact"
+  description="Get in touch with Melek for sales, quality, or general enquiries."
+>
+  <section class="cnt">
+    <div class="container-x section">
+      <div class="cnt__grid">
+        <div class="cnt__intro">
+          <p class="eyebrow">Contact</p>
+          <h1 class="text-display font-display cnt__title">
+            We answer fast. <em>Real people, business hours, CET.</em>
+          </h1>
+          <p class="text-body-lg cnt__lede">
+            For tenders, sampling, certifications or general enquiries — write us. For partnership
+            applications, please use the distributor brief so we can route you correctly.
+          </p>
+
+          <ul class="cnt__panels">
+            <li>
+              <p class="cnt__panel-eyebrow">Sales &amp; distribution</p>
+              <a href={`mailto:${site.email}`} class="cnt__email">{site.email}</a>
+              <p class="cnt__sub">Distributor briefs, quotes, samples.</p>
+            </li>
+            <li>
+              <p class="cnt__panel-eyebrow">General enquiries</p>
+              <a href={`mailto:${site.emailGeneral}`} class="cnt__email">{site.emailGeneral}</a>
+              <p class="cnt__sub">Press, jobs, anything else.</p>
+            </li>
+            <li>
+              <p class="cnt__panel-eyebrow">Headquarters</p>
+              <address class="cnt__address">
+                {site.address.line1}<br />
+                {site.address.postal} {site.address.city}<br />
+                {site.address.country}
+              </address>
+            </li>
+          </ul>
+        </div>
+
+        <form class="cnt__form card" method="post" action="?_form=contact" novalidate>
+          <h2 class="font-display cnt__form-title">Send us a note</h2>
+          <p class="cnt__form-sub">We reply within two business days.</p>
+          <div>
+            <label class="label" for="c-name">Name</label>
+            <input class="input" id="c-name" name="name" required autocomplete="name" />
+          </div>
+          <div>
+            <label class="label" for="c-email">Email</label>
+            <input class="input" id="c-email" name="email" type="email" required autocomplete="email" />
+          </div>
+          <div>
+            <label class="label" for="c-company">Company (optional)</label>
+            <input class="input" id="c-company" name="company" autocomplete="organization" />
+          </div>
+          <div>
+            <label class="label" for="c-message">Message</label>
+            <textarea class="textarea" id="c-message" name="message" rows="5" required></textarea>
+          </div>
+          <label class="cnt__consent">
+            <input type="checkbox" name="consent" required />
+            <span>I agree to be contacted about this enquiry. See our <a href="/legal/privacy/">privacy policy</a>.</span>
+          </label>
+          <button type="submit" class="btn btn-primary cnt__submit">
+            Send message
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .cnt { background: var(--color-bone); }
+  .cnt__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(2.5rem, 5vw, 4rem);
+  }
+  @media (min-width: 1000px) {
+    .cnt__grid { grid-template-columns: 5fr 6fr; align-items: start; }
+  }
+  .cnt__title { margin: 1rem 0 0; color: var(--color-charcoal); max-inline-size: 18ch; }
+  .cnt__title em { font-style: italic; font-family: var(--font-serif); font-weight: 400; color: var(--color-emerald); }
+  .cnt__lede { margin-block-start: 1.25rem; color: var(--color-slate-700); max-inline-size: 48ch; }
+
+  .cnt__panels { list-style: none; margin: 2.5rem 0 0; padding: 0; display: grid; gap: 1.5rem; }
+  .cnt__panel-eyebrow { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--color-slate-500); margin: 0 0 0.5rem; font-weight: 600; }
+  .cnt__email { font-family: var(--font-display); font-size: 1.125rem; color: var(--color-emerald); text-decoration: none; border-block-end: 1px solid transparent; transition: border-color 0.2s var(--ease-out-expo); }
+  .cnt__email:hover { border-block-end-color: var(--color-emerald); }
+  .cnt__sub { margin: 0.35rem 0 0; font-size: 0.8125rem; color: var(--color-slate-500); }
+  .cnt__address { font-style: normal; font-size: 0.9375rem; color: var(--color-slate-700); line-height: 1.5; margin: 0; }
+
+  .cnt__form { padding: clamp(1.5rem, 3vw, 2.25rem); display: flex; flex-direction: column; gap: 1.125rem; }
+  .cnt__form-title { font-size: 1.5rem; margin: 0; color: var(--color-charcoal); letter-spacing: -0.015em; }
+  .cnt__form-sub { margin: 0 0 0.5rem; font-size: 0.875rem; color: var(--color-slate-500); }
+  .cnt__consent {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.625rem;
+    align-items: flex-start;
+    font-size: 0.8125rem;
+    color: var(--color-slate-700);
+    line-height: 1.5;
+  }
+  .cnt__consent a { color: var(--color-emerald); text-decoration: underline; text-underline-offset: 2px; }
+  .cnt__submit { margin-block-start: 0.5rem; align-self: flex-start; }
+</style>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("form[action*='contact']");
+  form?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    console.info("[Melek] Contact submitted:", data);
+    const panel = document.createElement("div");
+    panel.setAttribute("role", "status");
+    panel.style.padding = "1rem 1.25rem";
+    panel.style.border = "1px solid var(--color-emerald)";
+    panel.style.borderRadius = "var(--radius)";
+    panel.style.background = "color-mix(in srgb, var(--color-emerald) 8%, var(--color-bone))";
+    panel.style.color = "var(--color-emerald)";
+    panel.style.fontSize = "0.9375rem";
+    panel.innerHTML = "Thanks — your message is in. We'll reply within two business days.";
+    form.replaceWith(panel);
+  });
+</script>

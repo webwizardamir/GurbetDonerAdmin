@@ -1,0 +1,167 @@
+---
+const steps = [
+  {
+    n: "01",
+    title: "Sourcing",
+    body: "Approved-supplier programme with continuous performance review. Every farm and abattoir audited against halal and EU food-safety baselines before a single delivery.",
+  },
+  {
+    n: "02",
+    title: "Production",
+    body: "Recipe-led marination and forming, batch-numbered at every step. Temperature, weight and coating tolerances are measured, not estimated.",
+  },
+  {
+    n: "03",
+    title: "Quality release",
+    body: "Lab-tested for each lot. Microbiology, metal detection, sensory check. A pallet does not leave the floor without a signed release.",
+  },
+  {
+    n: "04",
+    title: "Logistics",
+    body: "EU-wide cold-chain distribution. Documentation, customs and pallet specs designed for buyers who unload at scale.",
+  },
+];
+---
+
+<section id="process" class="proc section" aria-labelledby="proc-title">
+  <div class="container-x">
+    <div class="proc__head reveal">
+      <div class="proc__head-text">
+        <p class="eyebrow">From kitchen to cabinet</p>
+        <h2 id="proc-title" class="text-display proc__title">
+          Four stages. Zero shortcuts.
+        </h2>
+      </div>
+      <div class="proc__head-aside">
+        <p>
+          Halal frozen food at scale is a discipline problem before a recipe problem.
+          This is how we hold the standard, every shift, every container, every market.
+        </p>
+        <ul class="proc__quickstats">
+          <li><strong>4</strong><span>process stages</span></li>
+          <li><strong>100%</strong><span>lot traceability</span></li>
+          <li><strong>EU</strong><span>cold-chain</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <ol class="proc__steps">
+      {steps.map((s, i) => (
+        <li class="proc__step reveal" style={`--i:${i};`}>
+          <div class="proc__rule" aria-hidden="true"></div>
+          <span class="proc__num font-display">{s.n}</span>
+          <h3 class="proc__name font-display">{s.title}</h3>
+          <p class="proc__body">{s.body}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<style>
+  .proc { background: var(--color-bone); }
+  .proc__head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    align-items: end;
+    margin-block-end: clamp(2rem, 4vw, 3rem);
+  }
+  @media (min-width: 880px) {
+    .proc__head { grid-template-columns: 6fr 5fr; gap: clamp(2rem, 4vw, 4rem); }
+  }
+  .proc__title { margin: 0.75rem 0 0; color: var(--color-charcoal); max-inline-size: 14ch; }
+  .proc__head-aside { color: var(--color-slate-700); }
+  .proc__head-aside p { margin: 0; line-height: 1.55; font-size: 1.0625rem; max-inline-size: 42ch; }
+
+  .proc__quickstats {
+    list-style: none;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    border-block-start: 1px solid var(--color-line);
+    padding-block-start: 1rem;
+    max-inline-size: 28rem;
+  }
+  .proc__quickstats li { display: flex; flex-direction: column; gap: 0.15rem; }
+  .proc__quickstats strong {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--color-emerald);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  .proc__quickstats span {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-slate-500);
+  }
+
+  .proc__steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  @media (min-width: 720px) { .proc__steps { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1100px) { .proc__steps { grid-template-columns: repeat(4, 1fr); gap: 0; } }
+
+  .proc__step {
+    position: relative;
+    padding: 1.5rem 1.5rem 1.75rem;
+    transition-delay: calc(var(--i, 0) * 80ms);
+  }
+  @media (min-width: 1100px) {
+    .proc__step {
+      padding-inline-start: clamp(1.5rem, 2.5vw, 2.5rem);
+      padding-inline-end: clamp(1rem, 2.5vw, 2.5rem);
+      border-inline-start: 1px solid var(--color-line);
+    }
+  }
+  @media (max-width: 1099px) {
+    .proc__step {
+      background: var(--color-bone);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-lg);
+    }
+  }
+  .proc__rule {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--color-gold), transparent 80%);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.6s var(--ease-out-expo);
+  }
+  .proc__step.reveal.is-visible .proc__rule { transform: scaleX(1); }
+  .proc__num {
+    display: inline-block;
+    color: var(--color-gold);
+    font-size: 0.875rem;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+    margin-block-start: 0.875rem;
+  }
+  .proc__name {
+    margin: 0.5rem 0 0.5rem;
+    font-size: 1.375rem;
+    line-height: 1.18;
+    letter-spacing: -0.018em;
+    color: var(--color-charcoal);
+    font-weight: 500;
+    font-variation-settings: "opsz" 36;
+  }
+  .proc__body {
+    margin: 0;
+    color: var(--color-slate-700);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+</style>

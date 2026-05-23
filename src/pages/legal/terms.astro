@@ -1,0 +1,26 @@
+---
+import Base from "../../layouts/Base.astro";
+---
+
+<Base title="Terms" description="Terms of use for the Melek website.">
+  <article class="legal">
+    <div class="container-narrow section">
+      <p class="eyebrow">Legal</p>
+      <h1 class="text-display font-display legal__title">Terms of use.</h1>
+      <p class="text-body-lg legal__lede">
+        Standard terms of use for this website. Commercial contracts are governed separately.
+      </p>
+      <p class="legal__draft">
+        Placeholder draft pending legal review.
+      </p>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .legal { background: var(--color-bone); }
+  .legal__title { margin: 1rem 0 0; color: var(--color-charcoal); }
+  .legal__lede { margin-block-start: 1.25rem; color: var(--color-slate-700); max-inline-size: 60ch; }
+  .legal p { margin: 1.25rem 0 0; color: var(--color-slate-700); line-height: 1.7; max-inline-size: 64ch; }
+  .legal__draft { font-style: italic; color: var(--color-slate-500); }
+</style>

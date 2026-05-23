@@ -1,0 +1,105 @@
+---
+const items = [
+  { label: "Halal", caption: "Certified", featured: true },
+  { label: "HACCP", caption: "Food safety" },
+  { label: "IFS", caption: "Food standard" },
+  { label: "BRC", caption: "Global standard" },
+  { label: "ISO 22000", caption: "Quality systems" },
+];
+---
+
+<section id="trust" class="trust" aria-label="Certifications">
+  <div class="container-x">
+    <div class="trust__rail">
+      <p class="trust__intro">
+        <span class="trust__star" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+            <path d="M12 2 L13.8 8.4 L20.5 8.6 L15 12.6 L17 19 L12 15.3 L7 19 L9 12.6 L3.5 8.6 L10.2 8.4 Z" fill="currentColor"/>
+          </svg>
+        </span>
+        Trusted to the standards your buyers audit you against
+      </p>
+      <ul class="trust__list">
+        {items.map((i) => (
+          <li class={`trust__item${i.featured ? " is-featured" : ""}`}>
+            <span class="trust__label">{i.label}</span>
+            <span class="trust__caption">{i.caption}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .trust {
+    padding-block: clamp(36px, 5vw, 56px);
+    background: var(--color-bone);
+    border-block-end: 1px solid var(--color-line);
+  }
+  .trust__rail {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  @media (min-width: 960px) {
+    .trust__rail { flex-direction: row; align-items: center; gap: 3rem; }
+  }
+  .trust__intro {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-slate-500);
+    font-weight: 600;
+    flex-shrink: 0;
+    max-inline-size: 36ch;
+  }
+  .trust__star {
+    inline-size: 22px;
+    block-size: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gold);
+    background: rgba(201, 162, 75, 0.12);
+    border-radius: 9999px;
+  }
+  .trust__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 1rem 1.5rem;
+    inline-size: 100%;
+  }
+  .trust__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-inline-start: 1rem;
+    border-inline-start: 1px solid var(--color-line);
+  }
+  .trust__item.is-featured {
+    border-inline-start-color: var(--color-emerald);
+    border-inline-start-width: 2px;
+  }
+  .trust__label {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.125rem;
+    color: var(--color-charcoal);
+    letter-spacing: -0.01em;
+    font-variation-settings: "opsz" 48;
+  }
+  .trust__item.is-featured .trust__label { color: var(--color-emerald); }
+  .trust__caption {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-slate-500);
+  }
+</style>

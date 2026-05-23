@@ -1,0 +1,367 @@
+---
+import Base from "../../layouts/Base.astro";
+import DistributorCTA from "../../components/sections/DistributorCTA.astro";
+import { getCollection } from "astro:content";
+import { site } from "../../lib/site";
+
+type ProductData = {
+  name: string;
+  category: "chicken" | "beef" | "snacks";
+  weight?: string;
+  tagline?: string;
+  image?: string;
+};
+
+type RelatedItem = {
+  id: string;
+  name: string;
+  category: string;
+  weight?: string;
+  image?: string;
+};
+
+export async function getStaticPaths() {
+  const all = await getCollection("products");
+  return all.map((p) => ({
+    params: { slug: p.id },
+    props: { data: p.data as ProductData, allProducts: all.map((q) => ({ id: q.id, ...q.data })) },
+  }));
+}
+
+const { data, allProducts } = Astro.props;
+const slug = Astro.params.slug;
+const cat = site.productCategories.find((c) => c.slug === data.category);
+
+const related: RelatedItem[] = (allProducts as Array<{ id: string } & ProductData>)
+  .filter((p) => p.category === data.category && p.id !== slug)
+  .slice(0, 4)
+  .map((p) => ({ id: p.id, name: p.name, category: p.category, weight: p.weight, image: p.image }));
+---
+
+<Base title={data.name} description={data.tagline ?? `Halal ${data.name}, made in the Netherlands.`}>
+  <article class="product">
+    <div class="container-x section-sm">
+      <nav class="product__crumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <span aria-hidden="true">/</span>
+        <a href="/products/">Products</a>
+        {cat && (
+          <>
+            <span aria-hidden="true">/</span>
+            <a href={`/products/#${cat.slug}`}>{cat.name}</a>
+          </>
+        )}
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{data.name}</span>
+      </nav>
+
+      <div class="product__grid">
+        <figure class="product__media" aria-hidden={!data.image}>
+          {data.image ? (
+            <img src={data.image} alt={data.name} loading="eager" />
+          ) : (
+            <div class="product__placeholder">
+              <span>{data.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+            </div>
+          )}
+        </figure>
+
+        <div class="product__body">
+          {cat && <p class="eyebrow">{cat.name}</p>}
+          <h1 class="text-display product__title">{data.name}</h1>
+          {data.tagline && <p class="text-body-lg product__tag">{data.tagline}</p>}
+
+          <dl class="product__facts">
+            <div>
+              <dt>Unit weight</dt>
+              <dd>{data.weight ?? "On request"}</dd>
+            </div>
+            <div>
+              <dt>Certification</dt>
+              <dd>Halal, HACCP, IFS, BRC</dd>
+            </div>
+            <div>
+              <dt>Origin</dt>
+              <dd>The Netherlands</dd>
+            </div>
+            <div>
+              <dt>Packaging</dt>
+              <dd>Retail and HoReCa cases on request</dd>
+            </div>
+          </dl>
+
+          <div class="product__actions">
+            <a href={`/samples/?product=${encodeURIComponent(data.name)}`} class="btn btn-primary">
+              Request a sample
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+            <a href="/contact/" class="btn btn-secondary">Request a quote</a>
+          </div>
+
+          <p class="product__note">
+            Full spec sheet, nutrition table and case-pack details available on request.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {related.length > 0 && (
+      <section class="related" aria-labelledby="related-title">
+        <div class="container-x">
+          <header class="related__head">
+            <div>
+              <p class="eyebrow">{cat?.name ?? "More products"}</p>
+              <h2 id="related-title" class="text-h2 related__title">
+                More from the {cat?.name.toLowerCase() ?? "range"}.
+              </h2>
+            </div>
+            <a href={`/products/#${cat?.slug ?? ""}`} class="btn btn-ghost">View all {cat?.name.toLowerCase()} →</a>
+          </header>
+          <ul class="related__grid">
+            {related.map((p) => (
+              <li>
+                <a class="related__card" href={`/products/${p.id}/`}>
+                  <figure class="related__media" aria-hidden="true">
+                    {p.image ? (
+                      <img src={p.image} alt={p.name} loading="lazy" />
+                    ) : (
+                      <span class="related__mono">{p.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+                    )}
+                  </figure>
+                  <div class="related__body">
+                    <h3 class="related__name">{p.name}</h3>
+                    <div class="related__meta">
+                      <span>{p.weight ?? "—"}</span>
+                      <span class="related__arrow" aria-hidden="true">→</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )}
+  </article>
+
+  <DistributorCTA />
+</Base>
+
+<style>
+  .product { background: var(--color-bone); padding-block: 2rem 0; }
+
+  .product__crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--color-slate-500);
+    margin-block-end: 2rem;
+  }
+  .product__crumbs a {
+    color: var(--color-slate-700);
+    text-decoration: none;
+    transition: color 0.2s var(--ease-out-expo);
+  }
+  .product__crumbs a:hover { color: var(--color-emerald); }
+
+  .product__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    padding-block-end: clamp(2.5rem, 5vw, 4rem);
+  }
+  @media (min-width: 900px) {
+    .product__grid {
+      grid-template-columns: 6fr 5fr;
+      align-items: start;
+    }
+  }
+
+  .product__media {
+    margin: 0;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background: var(--color-cream);
+    border: 1px solid var(--color-line);
+    background-image:
+      radial-gradient(540px 360px at 70% 30%, rgba(201, 162, 75, 0.25), transparent 65%),
+      linear-gradient(135deg, var(--color-cream), color-mix(in srgb, var(--color-cream) 65%, white));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .product__media img {
+    inline-size: 86%;
+    block-size: 86%;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 36px rgba(22, 19, 17, 0.18));
+  }
+  .product__placeholder {
+    inline-size: 100%;
+    block-size: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .product__placeholder span {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 10vw, 7rem);
+    font-weight: 600;
+    color: rgba(15, 81, 50, 0.22);
+    letter-spacing: -0.04em;
+  }
+
+  .product__title {
+    margin: 0.75rem 0 0;
+    color: var(--color-charcoal);
+  }
+  .product__tag {
+    margin-block-start: 1rem;
+    color: var(--color-slate-700);
+    max-inline-size: 50ch;
+  }
+
+  .product__facts {
+    margin: 2rem 0 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    background: var(--color-cream);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-line);
+  }
+  .product__facts dt {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-slate-500);
+    font-weight: 600;
+  }
+  .product__facts dd {
+    margin: 0.4rem 0 0;
+    font-family: var(--font-display);
+    font-size: 1.0625rem;
+    color: var(--color-charcoal);
+    letter-spacing: -0.01em;
+    font-weight: 500;
+    font-variation-settings: "opsz" 24;
+  }
+
+  .product__actions {
+    margin-block-start: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .product__note {
+    margin-block-start: 1.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-slate-500);
+  }
+
+  /* Related products band (cream) */
+  .related {
+    background: var(--color-cream);
+    border-block-start: 1px solid var(--color-line);
+    padding-block: clamp(48px, 7vw, 88px);
+  }
+  .related__head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-block-end: clamp(1.5rem, 3vw, 2.25rem);
+  }
+  .related__title {
+    margin: 0.5rem 0 0;
+    color: var(--color-charcoal);
+  }
+  .related__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+    gap: 1rem;
+  }
+  .related__card {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bone);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s var(--ease-out-expo),
+                box-shadow 0.3s var(--ease-out-expo),
+                border-color 0.3s var(--ease-out-expo);
+  }
+  .related__card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--color-emerald) 22%, var(--color-line));
+    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.04),
+                0 18px 32px -22px rgba(22, 19, 17, 0.22);
+  }
+  .related__media {
+    aspect-ratio: 5 / 4;
+    margin: 0;
+    background:
+      radial-gradient(280px 200px at 70% 30%, rgba(201, 162, 75, 0.18), transparent 65%),
+      linear-gradient(135deg, var(--color-cream), color-mix(in srgb, var(--color-cream) 70%, white));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .related__media img {
+    inline-size: 84%;
+    block-size: 84%;
+    object-fit: contain;
+    transition: transform 0.4s var(--ease-out-expo);
+  }
+  .related__card:hover .related__media img { transform: scale(1.04); }
+  .related__mono {
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: 600;
+    color: rgba(15, 81, 50, 0.22);
+    letter-spacing: -0.04em;
+  }
+  .related__body {
+    padding: 1rem 1.125rem 1.125rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1 1 auto;
+  }
+  .related__name {
+    font-family: var(--font-display);
+    font-size: 1.0625rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--color-charcoal);
+    margin: 0;
+    font-weight: 500;
+    font-variation-settings: "opsz" 24;
+  }
+  .related__meta {
+    margin-block-start: auto;
+    padding-block-start: 0.625rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-block-start: 1px dashed var(--color-line);
+    font-size: 0.8125rem;
+    color: var(--color-slate-500);
+  }
+  .related__arrow {
+    color: var(--color-emerald);
+    transition: transform 0.2s var(--ease-out-expo);
+  }
+  .related__card:hover .related__arrow { transform: translateX(3px); }
+</style>

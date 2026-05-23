@@ -1,0 +1,329 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./hero.css";
+@import "./about.css";
+
+/* ----------------------------------------------------------------
+   Base
+----------------------------------------------------------------- */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv02", "cv11";
+  background-color: var(--color-bone);
+  color: var(--color-charcoal);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Header is position: fixed; main reserves space for it by default.
+   Pages with a dark hero (body.has-dark-hero) let the hero extend up under the header. */
+main { padding-block-start: var(--header-h); }
+body.has-dark-hero main { padding-block-start: 0; }
+
+::selection {
+  background: var(--color-emerald);
+  color: var(--color-bone);
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ----------------------------------------------------------------
+   Typography helpers
+----------------------------------------------------------------- */
+
+.font-display {
+  font-family: var(--font-display);
+  font-feature-settings: "ss01", "ss02";
+}
+
+.text-hero {
+  font-family: var(--font-display);
+  font-size: var(--text-hero);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  font-variation-settings: "opsz" 144, "SOFT" 50;
+}
+.text-display {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+  font-variation-settings: "opsz" 96, "SOFT" 50;
+}
+.text-h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  font-weight: 500;
+  font-variation-settings: "opsz" 72;
+}
+.text-h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 500;
+  font-variation-settings: "opsz" 48;
+}
+.text-body-lg {
+  font-size: var(--text-body-lg);
+  line-height: 1.6;
+}
+
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 600;
+  color: var(--color-emerald);
+  display: inline-block;
+}
+.eyebrow--gold { color: var(--color-gold); }
+.eyebrow--bone { color: var(--color-gold-soft); }
+
+/* ----------------------------------------------------------------
+   Layout primitives
+----------------------------------------------------------------- */
+
+.container-x {
+  width: 100%;
+  max-width: var(--container-width);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.container-narrow {
+  width: 100%;
+  max-width: var(--container-narrow);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section {
+  padding-block: var(--section-y);
+}
+.section-sm {
+  padding-block: var(--section-y-sm);
+}
+
+/* ----------------------------------------------------------------
+   Buttons
+----------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1.5rem;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  letter-spacing: -0.005em;
+  transition:
+    transform 0.2s var(--ease-out-expo),
+    background-color 0.2s var(--ease-in-out),
+    color 0.2s var(--ease-in-out),
+    box-shadow 0.2s var(--ease-in-out),
+    border-color 0.2s var(--ease-in-out);
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+.btn-primary {
+  background: var(--color-emerald);
+  color: var(--color-bone);
+}
+.btn-primary:hover {
+  background: var(--color-emerald-soft);
+  transform: translateY(-1px);
+  box-shadow: 0 1px 0 rgba(22, 19, 17, 0.04), 0 18px 28px -18px rgba(15, 81, 50, 0.55);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--color-charcoal);
+  border-color: var(--color-charcoal);
+}
+.btn-secondary:hover {
+  background: var(--color-charcoal);
+  color: var(--color-bone);
+}
+.btn-secondary-light {
+  background: transparent;
+  color: var(--color-bone);
+  border-color: rgba(251, 248, 240, 0.4);
+}
+.btn-secondary-light:hover {
+  background: var(--color-bone);
+  color: var(--color-emerald-deep);
+  border-color: var(--color-bone);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-charcoal);
+  padding-inline: 0;
+  position: relative;
+}
+.btn-ghost::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.25;
+  transition: opacity 0.2s var(--ease-out-expo);
+}
+.btn-ghost:hover::after {
+  opacity: 1;
+  background: var(--color-gold);
+}
+
+/* ----------------------------------------------------------------
+   Cards
+----------------------------------------------------------------- */
+
+.card {
+  background: var(--color-bone);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  transition:
+    transform 0.3s var(--ease-out-expo),
+    box-shadow 0.3s var(--ease-out-expo),
+    border-color 0.3s var(--ease-out-expo);
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--color-emerald) 18%, var(--color-line));
+  box-shadow: 0 1px 0 rgba(22, 19, 17, 0.04), 0 18px 32px -22px rgba(22, 19, 17, 0.22);
+}
+
+/* Reveal-on-scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.7s var(--ease-out-expo),
+    transform 0.7s var(--ease-out-expo);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Marquee */
+.marquee {
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee__track {
+  display: flex;
+  align-items: center;
+  gap: clamp(2rem, 5vw, 4rem);
+  animation: marquee 38s linear infinite;
+  flex-shrink: 0;
+  padding-right: clamp(2rem, 5vw, 4rem);
+}
+.marquee:hover .marquee__track { animation-play-state: paused; }
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .marquee__track { animation: none !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* ----------------------------------------------------------------
+   Forms
+----------------------------------------------------------------- */
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  background: var(--color-bone);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: 0.875rem 1rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--color-charcoal);
+  transition: border-color 0.2s var(--ease-out-expo), box-shadow 0.2s var(--ease-out-expo);
+}
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--color-emerald);
+  box-shadow: 0 0 0 3px rgba(15, 81, 50, 0.12);
+}
+.textarea {
+  min-height: 9rem;
+  resize: vertical;
+}
+.label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--color-slate-700);
+  letter-spacing: -0.005em;
+}
+
+/* ----------------------------------------------------------------
+   Decorative
+----------------------------------------------------------------- */
+
+.bg-emerald-gradient {
+  background:
+    radial-gradient(1200px 600px at 90% -10%, rgba(201, 162, 75, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 10% 100%, rgba(31, 106, 71, 0.35), transparent 55%),
+    linear-gradient(180deg, var(--color-emerald-deep), #061f13);
+}
+
+/* Section divider (wave) inheriting host color via currentColor */
+.divider-wave {
+  display: block;
+  width: 100%;
+  height: clamp(40px, 6vw, 96px);
+  color: var(--color-bone);
+}
+.divider-wave svg { display: block; width: 100%; height: 100%; }

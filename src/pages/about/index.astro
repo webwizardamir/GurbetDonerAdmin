@@ -1,0 +1,181 @@
+---
+import Base from "../../layouts/Base.astro";
+import HalalPromise from "../../components/sections/HalalPromise.astro";
+import Process from "../../components/sections/Process.astro";
+import Certifications from "../../components/sections/Certifications.astro";
+import DistributorCTA from "../../components/sections/DistributorCTA.astro";
+
+// Google Street View virtual tour. Location reused with permission from the reference site.
+const VIRTUAL_TOUR_SRC =
+  "https://www.google.com/maps/embed?pb=!1m0!4v1508762781415!6m8!1m7!1sCAoSLEFGMVFpcE12RXNjeXl3SG0wS3hNdFFtdjVYRlBwelZ4TWYtMmJVR2lfMEZi!2m2!1d51.64973803355711!2d17.35716885252691!3f28!4f-6!5f0.7820865974627469";
+
+const values = [
+  {
+    title: "Our mission",
+    body: "Make halal frozen food that buyers can stock with total confidence. Consistent every shift, every container, every market.",
+  },
+  {
+    title: "Our vision",
+    body: "Become the halal range European distributors reach for first, recognised for quality, traceability and reliability rather than price alone.",
+  },
+  {
+    title: "Our standard",
+    body: "Quality is not a department. It is recipe-led production, lot-level traceability and continuous auditing built into every line we run.",
+  },
+];
+
+const gallery = [
+  { src: "/images/facility/exterior-1.jpg", alt: "Production facility interior" },
+  { src: "/images/facility/exterior-2.jpg", alt: "Facility reception" },
+  { src: "/images/facility/line-1.jpg", alt: "Cold-chain logistics fleet" },
+  { src: "/images/facility/line-2.jpg", alt: "Production line" },
+  { src: "/images/facility/line-3.jpg", alt: "Production line" },
+];
+---
+
+<Base
+  title="About Melek"
+  description="A halal food brand from the Netherlands, shipping certified frozen ranges across Europe. Take a virtual tour of the facility."
+>
+  <!-- Hero -->
+  <section class="ab-hero">
+    <div class="container-x">
+      <div class="ab-hero__grid">
+        <div class="ab-hero__main">
+          <p class="eyebrow">About Melek</p>
+          <h1 class="text-display ab-hero__title">Built in the Netherlands. Trusted across Europe.</h1>
+          <p class="ab-hero__lede">
+            Melek is a halal food brand for distributors and operators who cannot afford
+            inconsistency. We focus on three things: a tight product range, an auditable halal
+            protocol, and a cold-chain that lands when it is supposed to.
+          </p>
+          <div class="ab-hero__actions">
+            <a href="#virtual-tour" class="btn btn-primary">
+              Take the virtual tour
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+            <a href="/products/" class="btn btn-secondary">Browse the range</a>
+          </div>
+        </div>
+        <ul class="ab-hero__facts" aria-label="At a glance">
+          <li><strong>3</strong><span>product ranges</span></li>
+          <li><strong>40+</strong><span>SKUs</span></li>
+          <li><strong>EU-wide</strong><span>distribution</span></li>
+          <li><strong>Halal</strong><span>certified</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Values: mission / vision / standard -->
+  <section class="ab-values" aria-labelledby="values-title">
+    <div class="container-x">
+      <header class="ab-values__head reveal">
+        <p class="eyebrow">The Melek way</p>
+        <h2 id="values-title" class="text-h2 ab-values__title">How we think about the work.</h2>
+      </header>
+      <ul class="ab-values__grid">
+        {values.map((v, i) => (
+          <li class="ab-values__card reveal" style={`--i:${i};`}>
+            <span class="ab-values__num font-display">{String(i + 1).padStart(2, "0")}</span>
+            <h3 class="ab-values__name font-display">{v.title}</h3>
+            <p class="ab-values__body">{v.body}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- Divider: values (bone) -> tour (cream) -->
+  <div class="ab-divider" style="--ab-above: var(--color-bone);" aria-hidden="true">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,40 C240,8 480,8 720,38 C960,68 1200,68 1440,30 L1440,80 L0,80 Z" fill="var(--color-cream)"/>
+    </svg>
+  </div>
+
+  <!-- Virtual tour -->
+  <section id="virtual-tour" class="ab-tour" aria-labelledby="tour-title">
+    <div class="container-x">
+      <header class="ab-tour__head reveal">
+        <div>
+          <p class="eyebrow">Virtual tour</p>
+          <h2 id="tour-title" class="text-display ab-tour__title">Walk the facility from where you are.</h2>
+        </div>
+        <p class="ab-tour__lede">
+          Drag to look around and step through the site in Google Street View. Drop a pin for a
+          guided visit and our team will host you in person.
+        </p>
+      </header>
+      <div class="ab-tour__frame reveal">
+        <iframe
+          src={VIRTUAL_TOUR_SRC}
+          title="Melek facility virtual tour"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- Divider: tour (cream) -> video (emerald) -->
+  <div class="ab-divider" style="--ab-above: var(--color-cream);" aria-hidden="true">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,40 C240,8 480,8 720,38 C960,68 1200,68 1440,30 L1440,80 L0,80 Z" fill="var(--color-emerald-deep)"/>
+    </svg>
+  </div>
+
+  <!-- Video -->
+  <section class="ab-video" aria-labelledby="video-title">
+    <div class="container-x">
+      <header class="ab-video__head reveal">
+        <p class="eyebrow eyebrow--bone">Inside Melek</p>
+        <h2 id="video-title" class="text-display ab-video__title">From the line to the loading bay.</h2>
+      </header>
+      <div class="ab-video__frame reveal">
+        <video
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          poster="/images/hero/field.webp"
+          controls
+        >
+          <source src="/videos/hero.mp4" type="video/mp4" />
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <!-- Divider: video (emerald) -> gallery (cream) -->
+  <div class="ab-divider" style="--ab-above: var(--color-emerald-deep);" aria-hidden="true">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,40 C240,8 480,8 720,38 C960,68 1200,68 1440,30 L1440,80 L0,80 Z" fill="var(--color-cream)"/>
+    </svg>
+  </div>
+
+  <!-- Facility gallery -->
+  <section class="ab-gallery" aria-labelledby="gallery-title">
+    <div class="container-x">
+      <header class="ab-gallery__head reveal">
+        <div>
+          <p class="eyebrow">The facility</p>
+          <h2 id="gallery-title" class="text-h2 ab-gallery__title">Where it all comes together.</h2>
+        </div>
+      </header>
+      <ul class="ab-gallery__grid">
+        {gallery.map((g, i) => (
+          <li class={`ab-gallery__item reveal ${i === 0 ? "is-wide" : ""}`} style={`--i:${i};`}>
+            <img src={g.src} alt={g.alt} loading="lazy" />
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <HalalPromise />
+  <Process />
+  <DistributorCTA />
+  <Certifications />
+</Base>

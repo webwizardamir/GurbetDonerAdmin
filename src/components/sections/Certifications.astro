@@ -1,0 +1,143 @@
+---
+const certs = [
+  {
+    code: "HALAL",
+    image: "/images/certifications/halal.png",
+    body: "Issued by an accredited halal authority. Available on request for every product range.",
+  },
+  {
+    code: "BRC FOOD",
+    image: "/images/certifications/brc.png",
+    body: "BRCGS Food Safety global standard. Recognised by retailers worldwide.",
+  },
+  {
+    code: "IFS FOOD",
+    image: "/images/certifications/ifs.png",
+    body: "International Featured Standards. The food safety standard most European retailers ask for.",
+  },
+  {
+    code: "HACCP",
+    body: "Hazard analysis and critical control points. The regulatory baseline for food safety.",
+  },
+  {
+    code: "ISO 22000",
+    body: "Quality and food-safety management framework.",
+  },
+];
+---
+
+<section id="certifications" class="certs" aria-labelledby="certs-title">
+  <div class="container-x certs__pad">
+    <div class="certs__head reveal">
+      <div class="certs__head-text">
+        <p class="eyebrow">Certifications</p>
+        <h2 id="certs-title" class="text-display certs__title">Standards, in writing.</h2>
+      </div>
+      <div class="certs__head-aside">
+        <p>
+          Procurement teams ask for proof. We hand it over without negotiating. Specific certificates,
+          authority names and issue dates are available on request, including for tenders.
+        </p>
+      </div>
+    </div>
+
+    <ul class="certs__grid">
+      {certs.map((c, i) => (
+        <li class="certs__card reveal" style={`--i:${i};`}>
+          <div class="certs__badge" aria-hidden="true">
+            {c.image ? (
+              <img src={c.image} alt="" loading="lazy" />
+            ) : (
+              <span class="certs__badge-text">{c.code}</span>
+            )}
+          </div>
+          <p class="certs__name font-display">{c.code}</p>
+          <p class="certs__body">{c.body}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .certs { background: var(--color-bone); }
+  .certs__pad { padding-block: clamp(48px, 7vw, 88px); }
+  .certs__head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-block-end: clamp(2rem, 4vw, 2.75rem);
+    align-items: end;
+  }
+  @media (min-width: 880px) {
+    .certs__head { grid-template-columns: 6fr 5fr; gap: clamp(2rem, 4vw, 4rem); }
+  }
+  .certs__title { margin: 0.75rem 0 0; color: var(--color-charcoal); max-inline-size: 14ch; }
+  .certs__head-aside p { margin: 0; color: var(--color-slate-700); font-size: 1.0625rem; line-height: 1.55; max-inline-size: 50ch; }
+
+  .certs__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: 0.875rem;
+  }
+  .certs__card {
+    background: var(--color-bone);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    transition: border-color 0.3s var(--ease-out-expo), background 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo);
+    transition-delay: calc(var(--i, 0) * 50ms);
+  }
+  .certs__card:hover {
+    border-color: color-mix(in srgb, var(--color-emerald) 30%, var(--color-line));
+    background: color-mix(in srgb, var(--color-cream) 30%, var(--color-bone));
+    transform: translateY(-2px);
+  }
+
+  .certs__badge {
+    inline-size: 88px;
+    block-size: 88px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    background: rgba(15, 81, 50, 0.04);
+    padding: 0.625rem;
+  }
+  .certs__badge img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .certs__badge-text {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    color: var(--color-emerald);
+    letter-spacing: 0.04em;
+    font-variation-settings: "opsz" 18;
+    text-align: center;
+  }
+
+  .certs__name {
+    font-size: 1rem;
+    margin: 0;
+    color: var(--color-charcoal);
+    letter-spacing: -0.005em;
+    font-weight: 500;
+    font-variation-settings: "opsz" 18;
+  }
+  .certs__body {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--color-slate-700);
+    margin: 0;
+  }
+</style>
