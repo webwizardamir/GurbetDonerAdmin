@@ -1,6 +1,6 @@
 ---
 import Base from "../../layouts/Base.astro";
-import DistributorCTA from "../../components/sections/DistributorCTA.astro";
+import ExportCTA from "../../components/sections/ExportCTA.astro";
 import { getCollection } from "astro:content";
 import { site } from "../../lib/site";
 
@@ -12,13 +12,7 @@ type ProductData = {
   image?: string;
 };
 
-type RelatedItem = {
-  id: string;
-  name: string;
-  category: string;
-  weight?: string;
-  image?: string;
-};
+type RelatedItem = { id: string; name: string; category: string; weight?: string; image?: string };
 
 export async function getStaticPaths() {
   const all = await getCollection("products");
@@ -33,335 +27,175 @@ const slug = Astro.params.slug;
 const cat = site.productCategories.find((c) => c.slug === data.category);
 
 const related: RelatedItem[] = (allProducts as Array<{ id: string } & ProductData>)
-  .filter((p) => p.category === data.category && p.id !== slug)
+  .filter((p) => p.category === data.category && p.id !== slug && p.image)
   .slice(0, 4)
   .map((p) => ({ id: p.id, name: p.name, category: p.category, weight: p.weight, image: p.image }));
+
+const facts = [
+  { k: "Unit weight", v: data.weight ?? "On request" },
+  { k: "Certification", v: "Halal · BRC · IFS" },
+  { k: "Origin", v: "Amsterdam, Netherlands" },
+  { k: "Packaging", v: "Retail and HoReCa cases on request" },
+];
 ---
 
-<Base title={data.name} description={data.tagline ?? `Halal ${data.name}, made in the Netherlands.`}>
-  <article class="product">
-    <div class="container-x section-sm">
-      <nav class="product__crumbs" aria-label="Breadcrumb">
-        <a href="/">Home</a>
-        <span aria-hidden="true">/</span>
+<Base
+  title={data.name}
+  description={data.tagline ?? `Halal ${data.name}, made in the Netherlands.`}
+  bodyClass="has-dark-hero"
+>
+  <article class="scene pd" data-scene="black">
+    <div class="grain grain--strong" aria-hidden="true"></div>
+    <div class="container-x">
+      <nav class="pd__crumbs op-label" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span>
         <a href="/products/">Products</a>
-        {cat && (
-          <>
-            <span aria-hidden="true">/</span>
-            <a href={`/products/#${cat.slug}`}>{cat.name}</a>
-          </>
-        )}
+        {cat && (<><span aria-hidden="true">/</span><a href={`/products/#${cat.slug}`}>{cat.name}</a></>)}
         <span aria-hidden="true">/</span>
-        <span aria-current="page">{data.name}</span>
+        <span class="pd__crumb-current" aria-current="page">{data.name}</span>
       </nav>
 
-      <div class="product__grid">
-        <figure class="product__media" aria-hidden={!data.image}>
-          {data.image ? (
-            <img src={data.image} alt={data.name} loading="eager" />
-          ) : (
-            <div class="product__placeholder">
-              <span>{data.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
-            </div>
-          )}
+      <div class="pd__grid">
+        <figure class="pd__media">
+          {data.image
+            ? <img src={data.image} alt={data.name} loading="eager" />
+            : <span class="pd__placeholder font-x">{data.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>}
         </figure>
 
-        <div class="product__body">
-          {cat && <p class="eyebrow">{cat.name}</p>}
-          <h1 class="text-display product__title">{data.name}</h1>
-          {data.tagline && <p class="text-body-lg product__tag">{data.tagline}</p>}
+        <div class="pd__body">
+          {cat && <p class="op-label text-accent">{cat.name}</p>}
+          <h1 class="pd__title text-hero">{data.name}</h1>
+          {data.tagline && <p class="pd__tag ink-dim">{data.tagline}</p>}
 
-          <dl class="product__facts">
-            <div>
-              <dt>Unit weight</dt>
-              <dd>{data.weight ?? "On request"}</dd>
-            </div>
-            <div>
-              <dt>Certification</dt>
-              <dd>Halal, HACCP, IFS, BRC</dd>
-            </div>
-            <div>
-              <dt>Origin</dt>
-              <dd>The Netherlands</dd>
-            </div>
-            <div>
-              <dt>Packaging</dt>
-              <dd>Retail and HoReCa cases on request</dd>
-            </div>
+          <dl class="pd__facts">
+            {facts.map((f) => (
+              <div class="pd__fact">
+                <dt class="op-label ink-dim">{f.k}</dt>
+                <dd class="pd__fact-val">{f.v}</dd>
+              </div>
+            ))}
           </dl>
 
-          <div class="product__actions">
+          <div class="pd__actions">
             <a href={`/samples/?product=${encodeURIComponent(data.name)}`} class="btn btn-primary">
               Request a sample
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </a>
-            <a href="/contact/" class="btn btn-secondary">Request a quote</a>
+            <a href="/contact/" class="btn btn-secondary-light">Request a quote</a>
           </div>
 
-          <p class="product__note">
-            Full spec sheet, nutrition table and case-pack details available on request.
-          </p>
+          <p class="op-label ink-dim pd__note">Full spec sheet, nutrition table and case-pack details on request.</p>
         </div>
       </div>
     </div>
 
     {related.length > 0 && (
-      <section class="related" aria-labelledby="related-title">
-        <div class="container-x">
-          <header class="related__head">
-            <div>
-              <p class="eyebrow">{cat?.name ?? "More products"}</p>
-              <h2 id="related-title" class="text-h2 related__title">
-                More from the {cat?.name.toLowerCase() ?? "range"}.
-              </h2>
-            </div>
-            <a href={`/products/#${cat?.slug ?? ""}`} class="btn btn-ghost">View all {cat?.name.toLowerCase()} →</a>
-          </header>
-          <ul class="related__grid">
-            {related.map((p) => (
-              <li>
-                <a class="related__card" href={`/products/${p.id}/`}>
-                  <figure class="related__media" aria-hidden="true">
-                    {p.image ? (
-                      <img src={p.image} alt={p.name} loading="lazy" />
-                    ) : (
-                      <span class="related__mono">{p.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
-                    )}
-                  </figure>
-                  <div class="related__body">
-                    <h3 class="related__name">{p.name}</h3>
-                    <div class="related__meta">
-                      <span>{p.weight ?? "—"}</span>
-                      <span class="related__arrow" aria-hidden="true">→</span>
-                    </div>
-                  </div>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      <div class="container-x pd__related">
+        <header class="pd__related-head">
+          <h2 class="pd__related-title text-display">More from {cat?.name.toLowerCase() ?? "the range"}.</h2>
+          <a href={`/products/#${cat?.slug ?? ""}`} class="op-label text-accent pd__related-all">View all {cat?.name.toLowerCase()}</a>
+        </header>
+        <ul class="cat-grid">
+          {related.map((p) => (
+            <li class="cat-card" data-reveal>
+              <a class="cat-card__link" href={`/products/${p.id}/`}>
+                <div class="cat-card__media"><img src={p.image} alt={p.name} loading="lazy" decoding="async" /></div>
+                <div class="cat-card__meta">
+                  <span class="op-label ink-dim">{cat?.name}{p.weight ? ` · ${p.weight}` : ""}</span>
+                  <span class="cat-card__name" title={p.name}>{p.name}</span>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
     )}
   </article>
 
-  <DistributorCTA />
+  <ExportCTA />
 </Base>
 
+<script>
+  import { revealOnScroll, initSmoothScroll } from "../../lib/motion";
+  initSmoothScroll();
+  revealOnScroll(document.querySelectorAll(".pd__related [data-reveal]"), { y: 24, stagger: 0.05 });
+</script>
+
 <style>
-  .product { background: var(--color-bone); padding-block: 2rem 0; }
+  .pd { --scene-pad: 0; padding-block: calc(var(--header-h) + clamp(1.5rem, 4vw, 2.5rem)) clamp(3rem, 6vw, 5rem); }
 
-  .product__crumbs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    font-size: 0.8125rem;
-    color: var(--color-slate-500);
-    margin-block-end: 2rem;
-  }
-  .product__crumbs a {
-    color: var(--color-slate-700);
-    text-decoration: none;
-    transition: color 0.2s var(--ease-out-expo);
-  }
-  .product__crumbs a:hover { color: var(--color-emerald); }
+  .pd__crumbs { display: flex; flex-wrap: wrap; gap: 0.5rem; color: var(--scene-ink-dim); margin-block-end: clamp(1.5rem, 4vw, 2.5rem); }
+  .pd__crumbs a { color: var(--scene-ink-dim); text-decoration: none; transition: color 0.2s var(--ease-out-expo); }
+  .pd__crumbs a:hover { color: var(--scene-accent); }
+  .pd__crumb-current { color: var(--scene-ink); }
 
-  .product__grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: clamp(2rem, 5vw, 4rem);
-    padding-block-end: clamp(2.5rem, 5vw, 4rem);
-  }
-  @media (min-width: 900px) {
-    .product__grid {
-      grid-template-columns: 6fr 5fr;
-      align-items: start;
-    }
-  }
+  .pd__grid { display: grid; grid-template-columns: 1fr; gap: clamp(2rem, 5vw, 4rem); }
+  @media (min-width: 900px) { .pd__grid { grid-template-columns: 6fr 5fr; align-items: start; } }
 
-  .product__media {
+  .pd__media {
     margin: 0;
+    position: relative;
     aspect-ratio: 4 / 3;
     border-radius: var(--radius-xl);
     overflow: hidden;
-    background: var(--color-cream);
-    border: 1px solid var(--color-line);
-    background-image:
-      radial-gradient(540px 360px at 70% 30%, rgba(201, 162, 75, 0.25), transparent 65%),
-      linear-gradient(135deg, var(--color-cream), color-mix(in srgb, var(--color-cream) 65%, white));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .product__media img {
-    inline-size: 86%;
-    block-size: 86%;
-    object-fit: contain;
-    filter: drop-shadow(0 18px 36px rgba(22, 19, 17, 0.18));
-  }
-  .product__placeholder {
-    inline-size: 100%;
-    block-size: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .product__placeholder span {
-    font-family: var(--font-display);
-    font-size: clamp(4rem, 10vw, 7rem);
-    font-weight: 600;
-    color: rgba(15, 81, 50, 0.22);
-    letter-spacing: -0.04em;
-  }
-
-  .product__title {
-    margin: 0.75rem 0 0;
-    color: var(--color-charcoal);
-  }
-  .product__tag {
-    margin-block-start: 1rem;
-    color: var(--color-slate-700);
-    max-inline-size: 50ch;
-  }
-
-  .product__facts {
-    margin: 2rem 0 0;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
-    padding: 1.5rem;
-    background: var(--color-cream);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-line);
-  }
-  .product__facts dt {
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: var(--color-slate-500);
-    font-weight: 600;
-  }
-  .product__facts dd {
-    margin: 0.4rem 0 0;
-    font-family: var(--font-display);
-    font-size: 1.0625rem;
-    color: var(--color-charcoal);
-    letter-spacing: -0.01em;
-    font-weight: 500;
-    font-variation-settings: "opsz" 24;
-  }
-
-  .product__actions {
-    margin-block-start: 2rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-  .product__note {
-    margin-block-start: 1.75rem;
-    font-size: 0.8125rem;
-    color: var(--color-slate-500);
-  }
-
-  /* Related products band (cream) */
-  .related {
-    background: var(--color-cream);
-    border-block-start: 1px solid var(--color-line);
-    padding-block: clamp(48px, 7vw, 88px);
-  }
-  .related__head {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 2rem;
-    flex-wrap: wrap;
-    margin-block-end: clamp(1.5rem, 3vw, 2.25rem);
-  }
-  .related__title {
-    margin: 0.5rem 0 0;
-    color: var(--color-charcoal);
-  }
-  .related__grid {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
-    gap: 1rem;
-  }
-  .related__card {
-    display: flex;
-    flex-direction: column;
-    background: var(--color-bone);
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    text-decoration: none;
-    color: inherit;
-    transition: transform 0.3s var(--ease-out-expo),
-                box-shadow 0.3s var(--ease-out-expo),
-                border-color 0.3s var(--ease-out-expo);
-  }
-  .related__card:hover {
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--color-emerald) 22%, var(--color-line));
-    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.04),
-                0 18px 32px -22px rgba(22, 19, 17, 0.22);
-  }
-  .related__media {
-    aspect-ratio: 5 / 4;
-    margin: 0;
+    border: 1px solid var(--scene-line);
     background:
-      radial-gradient(280px 200px at 70% 30%, rgba(201, 162, 75, 0.18), transparent 65%),
-      linear-gradient(135deg, var(--color-cream), color-mix(in srgb, var(--color-cream) 70%, white));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+      radial-gradient(70% 60% at 50% 40%, rgba(169, 134, 63, 0.28), transparent 70%),
+      var(--color-char-900);
+    display: flex; align-items: center; justify-content: center;
   }
-  .related__media img {
-    inline-size: 84%;
-    block-size: 84%;
-    object-fit: contain;
-    transition: transform 0.4s var(--ease-out-expo);
+  .pd__media img {
+    inline-size: 82%; block-size: 82%; object-fit: contain;
+    filter: drop-shadow(0 26px 42px rgba(0, 0, 0, 0.55));
   }
-  .related__card:hover .related__media img { transform: scale(1.04); }
-  .related__mono {
-    font-family: var(--font-display);
-    font-size: 2.25rem;
-    font-weight: 600;
-    color: rgba(15, 81, 50, 0.22);
-    letter-spacing: -0.04em;
+  .pd__placeholder { font-size: clamp(4rem, 10vw, 7rem); font-weight: 800; color: rgba(199, 207, 202, 0.18); }
+
+  .pd__title { color: var(--scene-ink); margin-block-start: 0.6rem; }
+  .pd__tag { margin-block-start: 1rem; max-inline-size: 46ch; font-size: var(--text-body-lg); line-height: 1.6; }
+
+  .pd__facts { margin: clamp(1.75rem, 3vw, 2.25rem) 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .pd__fact {
+    display: flex; flex-direction: column; gap: 0.4rem;
+    padding: 1rem 0;
+    border-block-start: 1px solid var(--scene-line);
   }
-  .related__body {
-    padding: 1rem 1.125rem 1.125rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    flex: 1 1 auto;
+  .pd__fact:nth-child(odd) { padding-inline-end: 1.25rem; }
+  .pd__fact:nth-child(even) { padding-inline-start: 1.25rem; border-inline-start: 1px solid var(--scene-line); }
+  .pd__fact-val { font-family: var(--font-display); font-size: 1.0625rem; font-weight: 600; color: var(--scene-ink); line-height: 1.2; }
+
+  .pd__actions { margin-block-start: clamp(1.75rem, 3vw, 2.25rem); display: flex; flex-wrap: wrap; gap: 0.7rem; }
+  .pd__note { margin-block-start: 1.5rem; }
+
+  /* Related */
+  .pd__related { margin-block-start: clamp(3.5rem, 7vw, 6rem); padding-block-start: clamp(2rem, 4vw, 3rem); border-block-start: 1px solid var(--scene-line); }
+  .pd__related-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem 2rem; margin-block-end: clamp(1.5rem, 3vw, 2rem); }
+  .pd__related-title { color: var(--scene-ink); }
+  .pd__related-all { text-decoration: none; }
+  .pd__related-all:hover { text-decoration: underline; }
+
+  /* Reuse the catalog tile look (carousel on mobile, grid on desktop). */
+  .cat-grid {
+    list-style: none; margin: 0; padding: 0 0 1rem;
+    display: flex; gap: clamp(0.9rem, 3vw, 1.25rem);
+    overflow-x: auto; scroll-snap-type: x proximity;
+    scrollbar-width: thin; scrollbar-color: var(--scene-accent) transparent;
   }
-  .related__name {
-    font-family: var(--font-display);
-    font-size: 1.0625rem;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    color: var(--color-charcoal);
-    margin: 0;
-    font-weight: 500;
-    font-variation-settings: "opsz" 24;
+  .cat-grid::-webkit-scrollbar { height: 4px; }
+  .cat-grid::-webkit-scrollbar-thumb { background: var(--scene-line); border-radius: 99px; }
+  .cat-card { flex: 0 0 auto; inline-size: clamp(150px, 52vw, 210px); scroll-snap-align: start; }
+  @media (min-width: 760px) {
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: clamp(0.9rem, 2vw, 1.5rem); overflow: visible; padding-block-end: 0; }
+    .cat-card { inline-size: auto; scroll-snap-align: none; }
   }
-  .related__meta {
-    margin-block-start: auto;
-    padding-block-start: 0.625rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-block-start: 1px dashed var(--color-line);
-    font-size: 0.8125rem;
-    color: var(--color-slate-500);
+  .cat-card__link { text-decoration: none; color: inherit; display: block; }
+  .cat-card__media {
+    position: relative; aspect-ratio: 4 / 5; border-radius: var(--radius-lg); overflow: hidden;
+    border: 1px solid var(--scene-line);
+    background: radial-gradient(80% 60% at 50% 38%, rgba(169, 134, 63, 0.22), transparent 70%), var(--color-char-900);
   }
-  .related__arrow {
-    color: var(--color-emerald);
-    transition: transform 0.2s var(--ease-out-expo);
-  }
-  .related__card:hover .related__arrow { transform: translateX(3px); }
+  .cat-card__media img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; padding: clamp(1rem, 2vw, 1.5rem); transition: transform 0.6s var(--ease-out-expo); }
+  .cat-card__link:hover .cat-card__media img, .cat-card__link:focus-visible .cat-card__media img { transform: scale(1.07); }
+  .cat-card__link:focus-visible .cat-card__media { outline: 2px solid var(--scene-accent); outline-offset: 3px; }
+  .cat-card__meta { padding-block-start: 0.8rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .cat-card__name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; line-height: 1.2; color: var(--scene-ink); display: block; max-inline-size: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

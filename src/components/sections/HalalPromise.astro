@@ -1,4 +1,10 @@
 ---
+// topBg matches the section above so the empty top of the wave SVG has no seam. Defaults to
+// cream (About page). The cinematic homepage passes a dark token (ProductWorlds sits above).
+// dividers=false turns the wave dividers off so the section abuts its neighbours as a flat dark
+// cut (cinematic homepage). Default true keeps them for the About page's bone/cream context.
+interface Props { topBg?: string; dividers?: boolean; }
+const { topBg = "var(--color-cream)", dividers = true } = Astro.props;
 const pillars = [
   {
     title: "Certified, not claimed.",
@@ -15,12 +21,13 @@ const pillars = [
 ];
 ---
 
-<!-- Top wave divider into the dark halal section -->
-<div class="halal-divider-top" aria-hidden="true">
-  <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M0,80 L0,30 C240,72 480,72 720,42 C960,12 1200,12 1440,50 L1440,80 Z" fill="var(--color-emerald-deep)"/>
-  </svg>
-</div>
+{dividers && (
+  <div class="halal-divider-top" style={`background:${topBg}`} aria-hidden="true">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,80 L0,30 C240,72 480,72 720,42 C960,12 1200,12 1440,50 L1440,80 Z" fill="var(--color-emerald-deep)"/>
+    </svg>
+  </div>
+)}
 
 <section id="halal" class="halal" aria-labelledby="halal-title">
   <div class="halal__bg" aria-hidden="true"><div class="halal__grain"></div></div>
@@ -67,12 +74,13 @@ const pillars = [
   </div>
 </section>
 
-<!-- Bottom wave divider out of the dark halal section -->
-<div class="halal-divider-bottom" aria-hidden="true">
-  <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M0,0 L0,30 C240,72 480,72 720,42 C960,12 1200,12 1440,50 L1440,0 Z" fill="var(--color-emerald-deep)"/>
-  </svg>
-</div>
+{dividers && (
+  <div class="halal-divider-bottom" aria-hidden="true">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,0 L0,30 C240,72 480,72 720,42 C960,12 1200,12 1440,50 L1440,0 Z" fill="var(--color-emerald-deep)"/>
+    </svg>
+  </div>
+)}
 
 <style>
   .halal-divider-top,

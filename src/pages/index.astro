@@ -1,22 +1,25 @@
 ---
 import Base from "../layouts/Base.astro";
 import Hero from "../components/sections/Hero.astro";
-import Marquee from "../components/sections/Marquee.astro";
-import Categories from "../components/sections/Categories.astro";
-import FeaturedProducts from "../components/sections/FeaturedProducts.astro";
-import HalalPromise from "../components/sections/HalalPromise.astro";
-import Process from "../components/sections/Process.astro";
-import Certifications from "../components/sections/Certifications.astro";
-import DistributorCTA from "../components/sections/DistributorCTA.astro";
+import OperationalStrip from "../components/sections/OperationalStrip.astro";
+import ProductionStory from "../components/sections/ProductionStory.astro";
+import ProductWorlds from "../components/sections/ProductWorlds.astro";
+import HalalConfidence from "../components/sections/HalalConfidence.astro";
+import ExportCTA from "../components/sections/ExportCTA.astro";
+import TrustArtifacts from "../components/sections/TrustArtifacts.astro";
 ---
 
 <Base bodyClass="has-dark-hero">
   <Hero />
-  <Marquee />
-  <Categories />
-  <FeaturedProducts />
-  <HalalPromise />
-  <Process />
-  <DistributorCTA />
-  <Certifications />
+  <OperationalStrip />
+  <ProductionStory />
+  <ProductWorlds />
+  <HalalConfidence />
+  <ExportCTA />
+  <TrustArtifacts />
 </Base>
+
+<script>
+  import { initSmoothScroll } from "../lib/motion";
+  initSmoothScroll();
+</script>

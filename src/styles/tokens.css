@@ -12,11 +12,23 @@
   --color-gold: #c9a24b;
   --color-gold-soft: #e3c781;
 
+  /* Cinematic / industrial extension (v6 redesign)
+     oxidized brass, freezer silver, spice, olive, and the deepest cinematic shadow. */
+  --color-emerald-black: #051a10;
+  --color-brass: #a9863f;
+  --color-brass-deep: #7c5f28;
+  --color-silver: #c7cfca;
+  --color-silver-dim: #8c958f;
+  --color-spice: #b1492a;
+  --color-olive: #6f6c3c;
+
   /* Neutrals (warm) */
+  --color-paper: #f1efe8; /* de-beiged off-white: relief scenes in the dark-cinematic flow */
   --color-bone: #fbf8f0;
   --color-cream: #f4eedd;
   --color-cream-deep: #ede4cd;
   --color-charcoal: #161311;
+  --color-char-900: #0c0a09;
   --color-slate-700: #3a3733;
   --color-slate-500: #75716b;
   --color-line: #e5decb;
@@ -26,9 +38,12 @@
   --color-success: #2f7d55;
   --color-error: #a33a2a;
 
-  /* Fonts: two only. Headings serif, body sans. No decorative third face. */
-  --font-display: "Fraunces", "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Type system: two faces. Bodoni Moda = high-contrast editorial serif (headlines, scene
+     titles). Archivo = industrial grotesk (body, UI, operational labels); its wdth axis drives
+     the expanded brutalist caps via font-stretch. Mono stack is system-only (rare SKU strings). */
+  --font-display: "Bodoni Moda", "Times New Roman", Georgia, serif;
+  --font-sans: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-grotesk-x: "Archivo", system-ui, sans-serif; /* render expanded with font-stretch: 125% */
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
   /* Container */
@@ -44,6 +59,8 @@
 
 /* Fluid type scale + spacing as CSS vars (kept out of @theme so utilities stay native) */
 :root {
+  /* Mega = film-title scale, reserved for cinematic moments (hero, scene headings). */
+  --text-mega: clamp(2.85rem, 9vw, 8.5rem);
   --text-hero: clamp(2.5rem, 7vw, 5rem);
   --text-display: clamp(1.875rem, 4.5vw, 3rem);
   --text-h2: clamp(1.5rem, 3vw, 2.125rem);

@@ -1,0 +1,99 @@
+---
+// Scene 02 — Operational Proof Strip. Replaces the old keyword Marquee.
+// A flat, brutalist data band: what a buyer verifies before listing a supplier, in machine
+// type. Verifiable facts only (46 SKU, certs by name, NL origin, EU reach). No fabricated metrics.
+const facts = [
+  { value: "46", caption: "SKU across three ranges", size: "lg" },
+  { value: "Halal · BRC · IFS", caption: "Independently certified", size: "str" },
+  { value: "EU", caption: "Shipped pallet-ready, cold chain intact", size: "md" },
+  { value: "NL", caption: "Produced in the Netherlands", size: "md" },
+];
+---
+
+<section class="scene proof" data-scene="char" id="proof" aria-label="Operational proof">
+  <div class="grain" aria-hidden="true"></div>
+  <div class="container-x">
+    <div class="proof__rule" aria-hidden="true"></div>
+    <div class="proof__inner grid-ed grid-ed--4-8">
+      <div class="proof__head">
+        <p class="op-label ink-dim">Operational proof</p>
+        <p class="proof__lead">What a buyer checks before listing a supplier.</p>
+      </div>
+
+      <dl class="proof__facts">
+        {facts.map((f) => (
+          <div class={`proof__cell proof__cell--${f.size}`} data-reveal>
+            <dt class={`proof__val ${f.size === "str" ? "" : "font-x"}`}>{f.value}</dt>
+            <dd class="op-label ink-dim proof__cap">{f.caption}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { revealOnScroll } from "../../lib/motion";
+  revealOnScroll(document.querySelectorAll(".proof [data-reveal]"), { y: 26, stagger: 0.08 });
+</script>
+
+<style>
+  .proof { --scene-pad: clamp(2.5rem, 6vw, 5rem); }
+  .proof__rule {
+    block-size: 1px;
+    background: var(--scene-line);
+    margin-block-end: clamp(2rem, 5vw, 3.5rem);
+  }
+  .proof__inner { align-items: start; }
+
+  .proof__head { display: flex; flex-direction: column; gap: 0.6rem; }
+  .proof__idx {
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    color: var(--scene-accent);
+    line-height: 0.8;
+  }
+  .proof__lead {
+    font-family: var(--font-display);
+    font-size: clamp(1.25rem, 2.2vw, 1.9rem);
+    line-height: 1.18;
+    font-weight: 600;
+    color: var(--scene-ink);
+    max-inline-size: 22ch;
+    margin-block-start: 0.4rem;
+  }
+
+  /* Two-up on mobile so the facts fill the width (no empty right side); four across on desktop. */
+  .proof__facts {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(1.5rem, 5vw, 2.25rem) clamp(1.5rem, 5vw, 2.5rem);
+  }
+  @media (min-width: 1080px) {
+    .proof__facts { grid-template-columns: 1.2fr 1.3fr 1fr 0.8fr; }
+  }
+
+  .proof__cell { display: flex; flex-direction: column; gap: 0.55rem; }
+  /* Leading hairline rules only in the 4-col desktop layout. */
+  @media (min-width: 1080px) {
+    .proof__cell { padding-inline-start: clamp(1rem, 2vw, 1.75rem); border-inline-start: 1px solid var(--scene-line); }
+    .proof__cell:first-child { padding-inline-start: 0; border-inline-start: 0; }
+  }
+
+  .proof__val {
+    color: var(--scene-ink);
+    font-weight: 700;
+    line-height: 0.92;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    letter-spacing: -0.01em;
+  }
+  .proof__cell--lg .proof__val { font-size: clamp(3.5rem, 8vw, 6.5rem); }
+  .proof__cell--str .proof__val {
+    font-family: var(--font-display);
+    font-size: clamp(1.35rem, 2vw, 1.85rem);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+  .proof__cap { max-inline-size: 20ch; }
+</style>

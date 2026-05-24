@@ -1,181 +1,252 @@
 ---
 import Base from "../../layouts/Base.astro";
-import HalalPromise from "../../components/sections/HalalPromise.astro";
-import Process from "../../components/sections/Process.astro";
-import Certifications from "../../components/sections/Certifications.astro";
-import DistributorCTA from "../../components/sections/DistributorCTA.astro";
+import HalalConfidence from "../../components/sections/HalalConfidence.astro";
+import TrustArtifacts from "../../components/sections/TrustArtifacts.astro";
+import ExportCTA from "../../components/sections/ExportCTA.astro";
 
 // Google Street View virtual tour. Location reused with permission from the reference site.
 const VIRTUAL_TOUR_SRC =
   "https://www.google.com/maps/embed?pb=!1m0!4v1508762781415!6m8!1m7!1sCAoSLEFGMVFpcE12RXNjeXl3SG0wS3hNdFFtdjVYRlBwelZ4TWYtMmJVR2lfMEZi!2m2!1d51.64973803355711!2d17.35716885252691!3f28!4f-6!5f0.7820865974627469";
 
-const values = [
-  {
-    title: "Our mission",
-    body: "Make halal frozen food that buyers can stock with total confidence. Consistent every shift, every container, every market.",
-  },
-  {
-    title: "Our vision",
-    body: "Become the halal range European distributors reach for first, recognised for quality, traceability and reliability rather than price alone.",
-  },
-  {
-    title: "Our standard",
-    body: "Quality is not a department. It is recipe-led production, lot-level traceability and continuous auditing built into every line we run.",
-  },
+const facts = [
+  { k: "Three ranges", v: "Chicken, beef, snacks" },
+  { k: "Amsterdam, NL", v: "Produced and frozen on site" },
+  { k: "EU-wide", v: "Cold chain, pallet-ready" },
+  { k: "Halal · BRC · IFS", v: "Independently certified" },
+];
+
+const principles = [
+  { term: "Consistency over catalogue.", body: "We do not chase a thousand lines. We run a tight range and hold every product to retail-grade tolerances, every shift, every container, every market." },
+  { term: "Reached for first.", body: "The aim is to be the halal range European distributors reach for first, recognised for quality and traceability, not price alone." },
+  { term: "Quality is not a department.", body: "Recipe-led production, lot-level traceability and continuous auditing are built into every line we run, not bolted on at the end." },
 ];
 
 const gallery = [
-  { src: "/images/facility/exterior-1.jpg", alt: "Production facility interior" },
-  { src: "/images/facility/exterior-2.jpg", alt: "Facility reception" },
-  { src: "/images/facility/line-1.jpg", alt: "Cold-chain logistics fleet" },
-  { src: "/images/facility/line-2.jpg", alt: "Production line" },
-  { src: "/images/facility/line-3.jpg", alt: "Production line" },
+  { src: "/images/facility/line-2.jpg", alt: "Production floor in operation", cap: "Production floor" },
+  { src: "/images/facility/exterior-1.jpg", alt: "Facility interior", cap: "Reception" },
+  { src: "/images/facility/exterior-2.jpg", alt: "Facility exterior", cap: "Site" },
+  { src: "/images/facility/line-1.jpg", alt: "Cold-chain fleet", cap: "Dispatch" },
+  { src: "/images/facility/line-3.jpg", alt: "Facility exterior", cap: "Grounds" },
 ];
 ---
 
 <Base
   title="About Melek"
-  description="A halal food brand from the Netherlands, shipping certified frozen ranges across Europe. Take a virtual tour of the facility."
+  description="A halal frozen-food house in the Netherlands, shipping certified ranges across Europe. Take a virtual tour of the facility."
+  bodyClass="has-dark-hero"
 >
-  <!-- Hero -->
-  <section class="ab-hero">
+  <!-- Hero statement -->
+  <section class="scene ab-hero" data-scene="black" aria-labelledby="ab-hero-title">
+    <div class="cine-hero__media" aria-hidden="true">
+      <video class="cine-hero__video" autoplay muted loop playsinline preload="auto" poster="/images/hero/field.webp">
+        <source src="/videos/hero.mp4" type="video/mp4" />
+      </video>
+      <div class="cine-hero__veil"></div>
+      <div class="cine-hero__vignette"></div>
+      <div class="grain grain--strong"></div>
+    </div>
     <div class="container-x">
-      <div class="ab-hero__grid">
-        <div class="ab-hero__main">
-          <p class="eyebrow">About Melek</p>
-          <h1 class="text-display ab-hero__title">Built in the Netherlands. Trusted across Europe.</h1>
-          <p class="ab-hero__lede">
-            Melek is a halal food brand for distributors and operators who cannot afford
-            inconsistency. We focus on three things: a tight product range, an auditable halal
-            protocol, and a cold-chain that lands when it is supposed to.
-          </p>
-          <div class="ab-hero__actions">
-            <a href="#virtual-tour" class="btn btn-primary">
-              Take the virtual tour
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </a>
-            <a href="/products/" class="btn btn-secondary">Browse the range</a>
-          </div>
-        </div>
-        <ul class="ab-hero__facts" aria-label="At a glance">
-          <li><strong>3</strong><span>product ranges</span></li>
-          <li><strong>40+</strong><span>SKUs</span></li>
-          <li><strong>EU-wide</strong><span>distribution</span></li>
-          <li><strong>Halal</strong><span>certified</span></li>
-        </ul>
+      <p class="op-label ink-dim">About Melek</p>
+      <h1 id="ab-hero-title" class="ab-hero__title text-mega">Built in the Netherlands. Trusted across Europe.</h1>
+      <div class="ab-hero__base grid-ed grid-ed--7-5">
+        <p class="ab-hero__lede ink-dim">
+          Melek is a halal frozen-food house for distributors and operators who cannot afford
+          inconsistency. A tight product range, an auditable halal protocol, and a cold chain that
+          lands when it is supposed to.
+        </p>
+        <dl class="ab-hero__facts">
+          {facts.map((f) => (
+            <div class="ab-fact">
+              <dt class="op-label text-accent">{f.k}</dt>
+              <dd class="op-label ink-dim ab-fact__v">{f.v}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </div>
   </section>
 
-  <!-- Values: mission / vision / standard -->
-  <section class="ab-values" aria-labelledby="values-title">
-    <div class="container-x">
-      <header class="ab-values__head reveal">
-        <p class="eyebrow">The Melek way</p>
-        <h2 id="values-title" class="text-h2 ab-values__title">How we think about the work.</h2>
-      </header>
-      <ul class="ab-values__grid">
-        {values.map((v, i) => (
-          <li class="ab-values__card reveal" style={`--i:${i};`}>
-            <span class="ab-values__num font-display">{String(i + 1).padStart(2, "0")}</span>
-            <h3 class="ab-values__name font-display">{v.title}</h3>
-            <p class="ab-values__body">{v.body}</p>
-          </li>
-        ))}
-      </ul>
+  <!-- Manifesto -->
+  <section class="scene ab-manifesto" data-scene="char" aria-labelledby="ab-man-title">
+    <div class="grain" aria-hidden="true"></div>
+    <div class="container-x ab-manifesto__inner">
+      <p class="op-label text-accent">Why Melek</p>
+      <h2 id="ab-man-title" class="ab-manifesto__title text-display">
+        Halal kept getting treated as a box to tick. We build it <span class="text-accent">like a standard.</span>
+      </h2>
+      <div class="ab-manifesto__cols">
+        <p class="ink-dim">
+          European retail has never been short of halal labels. It has been short of halal a buyer
+          could defend, lot by lot, in front of a procurement team. That gap is the whole reason
+          Melek exists.
+        </p>
+        <p class="ink-dim">
+          So the work is deliberately industrial. We run a focused range out of the Netherlands,
+          hold it to retail-grade specification, and put a current certificate behind every claim.
+          The output should feel obvious on a shelf and unremarkable in an audit. That is the point.
+        </p>
+      </div>
     </div>
   </section>
 
-  <!-- Divider: values (bone) -> tour (cream) -->
-  <div class="ab-divider" style="--ab-above: var(--color-bone);" aria-hidden="true">
-    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,40 C240,8 480,8 720,38 C960,68 1200,68 1440,30 L1440,80 L0,80 Z" fill="var(--color-cream)"/>
-    </svg>
-  </div>
+  <!-- Principles -->
+  <section class="scene ab-principles" data-scene="black" aria-labelledby="ab-pr-title">
+    <div class="grain" aria-hidden="true"></div>
+    <div class="container-x">
+      <h2 id="ab-pr-title" class="ab-principles__head text-display">How we hold the line.</h2>
+      <div class="ab-principles__cols">
+        {principles.map((p) => (
+          <article class="ab-col" data-reveal>
+            <h3 class="ab-col__term">{p.term}</h3>
+            <p class="ab-col__body ink-dim">{p.body}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
 
   <!-- Virtual tour -->
-  <section id="virtual-tour" class="ab-tour" aria-labelledby="tour-title">
+  <section id="virtual-tour" class="scene ab-tour" data-scene="char" aria-labelledby="ab-tour-title">
     <div class="container-x">
-      <header class="ab-tour__head reveal">
+      <header class="ab-tour__head grid-ed grid-ed--7-5">
         <div>
-          <p class="eyebrow">Virtual tour</p>
-          <h2 id="tour-title" class="text-display ab-tour__title">Walk the facility from where you are.</h2>
+          <p class="op-label ink-dim">Virtual tour</p>
+          <h2 id="ab-tour-title" class="ab-tour__title text-display">Walk the facility from where you are.</h2>
         </div>
-        <p class="ab-tour__lede">
+        <p class="ab-tour__lede ink-dim">
           Drag to look around and step through the site in Google Street View. Drop a pin for a
           guided visit and our team will host you in person.
         </p>
       </header>
-      <div class="ab-tour__frame reveal">
-        <iframe
-          src={VIRTUAL_TOUR_SRC}
-          title="Melek facility virtual tour"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          allowfullscreen
-        ></iframe>
+      <div class="ab-tour__frame" data-reveal>
+        <iframe src={VIRTUAL_TOUR_SRC} title="Melek facility virtual tour" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
       </div>
     </div>
   </section>
 
-  <!-- Divider: tour (cream) -> video (emerald) -->
-  <div class="ab-divider" style="--ab-above: var(--color-cream);" aria-hidden="true">
-    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,40 C240,8 480,8 720,38 C960,68 1200,68 1440,30 L1440,80 L0,80 Z" fill="var(--color-emerald-deep)"/>
-    </svg>
-  </div>
+  <!-- Facility film-strip -->
+  <section class="scene ab-gallery" data-scene="black" aria-labelledby="ab-gal-title">
+    <div class="grain" aria-hidden="true"></div>
+    <div class="container-x ab-gallery__head">
+      <p class="op-label ink-dim">The facility</p>
+      <h2 id="ab-gal-title" class="ab-gallery__title text-display">Where it comes together.</h2>
+    </div>
+    <ul class="ab-gallery__strip" aria-label="Facility photographs">
+      {gallery.map((g) => (
+        <li class="ab-frame" data-reveal>
+          <img src={g.src} alt={g.alt} loading="lazy" decoding="async" />
+          <span class="op-label ab-frame__cap">{g.cap}</span>
+        </li>
+      ))}
+    </ul>
+  </section>
 
   <!-- Video -->
-  <section class="ab-video" aria-labelledby="video-title">
+  <section class="scene ab-video" data-scene="char" aria-labelledby="ab-vid-title">
     <div class="container-x">
-      <header class="ab-video__head reveal">
-        <p class="eyebrow eyebrow--bone">Inside Melek</p>
-        <h2 id="video-title" class="text-display ab-video__title">From the line to the loading bay.</h2>
+      <header class="ab-video__head">
+        <p class="op-label ink-dim">Inside Melek</p>
+        <h2 id="ab-vid-title" class="ab-video__title text-display">From the line to the loading bay.</h2>
       </header>
-      <div class="ab-video__frame reveal">
-        <video
-          autoplay
-          muted
-          loop
-          playsinline
-          preload="metadata"
-          poster="/images/hero/field.webp"
-          controls
-        >
+      <div class="ab-video__frame" data-reveal>
+        <video autoplay muted loop playsinline preload="metadata" poster="/images/hero/field.webp" controls>
           <source src="/videos/hero.mp4" type="video/mp4" />
         </video>
       </div>
     </div>
   </section>
 
-  <!-- Divider: video (emerald) -> gallery (cream) -->
-  <div class="ab-divider" style="--ab-above: var(--color-emerald-deep);" aria-hidden="true">
-    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,40 C240,8 480,8 720,38 C960,68 1200,68 1440,30 L1440,80 L0,80 Z" fill="var(--color-cream)"/>
-    </svg>
-  </div>
-
-  <!-- Facility gallery -->
-  <section class="ab-gallery" aria-labelledby="gallery-title">
-    <div class="container-x">
-      <header class="ab-gallery__head reveal">
-        <div>
-          <p class="eyebrow">The facility</p>
-          <h2 id="gallery-title" class="text-h2 ab-gallery__title">Where it all comes together.</h2>
-        </div>
-      </header>
-      <ul class="ab-gallery__grid">
-        {gallery.map((g, i) => (
-          <li class={`ab-gallery__item reveal ${i === 0 ? "is-wide" : ""}`} style={`--i:${i};`}>
-            <img src={g.src} alt={g.alt} loading="lazy" />
-          </li>
-        ))}
-      </ul>
-    </div>
-  </section>
-
-  <HalalPromise />
-  <Process />
-  <DistributorCTA />
-  <Certifications />
+  <HalalConfidence />
+  <TrustArtifacts />
+  <ExportCTA />
 </Base>
+
+<script>
+  import { revealOnScroll, initSmoothScroll } from "../../lib/motion";
+  initSmoothScroll();
+  revealOnScroll(document.querySelectorAll("[data-reveal]"), { y: 26, stagger: 0.06 });
+</script>
+
+<style>
+  /* Hero (cinematic video background, like the homepage) */
+  .ab-hero { --scene-pad: 0; overflow: clip; padding-block: calc(var(--header-h) + clamp(3rem, 7vw, 5.5rem)) clamp(3.5rem, 7vw, 5.5rem); }
+  .ab-hero__title { color: var(--scene-ink); margin-block: 0.6rem clamp(2rem, 5vw, 3.5rem); max-inline-size: 16ch; font-size: clamp(2.6rem, 7vw, 6rem); }
+  .ab-hero__base { align-items: end; }
+  .ab-hero__lede { max-inline-size: 48ch; font-size: var(--text-body-lg); line-height: 1.6; }
+  .ab-hero__facts { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; }
+  .ab-fact { display: flex; flex-direction: column; gap: 0.25rem; padding-block-start: 0.85rem; border-block-start: 1px solid var(--scene-line); }
+  .ab-fact__v { letter-spacing: 0.04em; }
+
+  /* Manifesto: kicker, full-width statement, two-column editorial deck. */
+  .ab-manifesto { --scene-pad: clamp(4rem, 9vw, 7rem); }
+  .ab-manifesto__title {
+    color: var(--scene-ink);
+    margin-block: 0.75rem clamp(2rem, 4vw, 3rem);
+    max-inline-size: 26ch;
+    font-size: clamp(2rem, 4.6vw, 3.6rem);
+    line-height: 1.08;
+  }
+  .ab-manifesto__cols { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+  @media (min-width: 760px) { .ab-manifesto__cols { grid-template-columns: 1fr 1fr; gap: clamp(2rem, 4vw, 3.5rem); } }
+  .ab-manifesto__cols p { margin: 0; font-size: var(--text-body-lg); line-height: 1.65; max-inline-size: 46ch; }
+
+  /* Principles: editorial triptych, hairline-divided columns. No ticks, no bullets. */
+  .ab-principles { --scene-pad: clamp(3.5rem, 8vw, 6rem); }
+  .ab-principles__head { color: var(--scene-ink); margin-block-end: clamp(2rem, 4vw, 3rem); max-inline-size: 16ch; }
+  .ab-principles__cols { display: grid; grid-template-columns: 1fr; }
+  .ab-col { padding-block: clamp(1.5rem, 3vw, 2rem); border-block-start: 1px solid var(--scene-line); }
+  .ab-col:first-child { padding-block-start: 0; border-block-start: 0; }
+  @media (min-width: 820px) {
+    .ab-principles__cols { grid-template-columns: repeat(3, 1fr); }
+    .ab-col { padding-block: 0; border-block-start: 0; padding-inline-start: clamp(1.5rem, 3vw, 2.5rem); border-inline-start: 1px solid var(--scene-line); }
+    .ab-col:first-child { padding-inline-start: 0; border-inline-start: 0; }
+  }
+  .ab-col__term { font-family: var(--font-display); font-size: clamp(1.5rem, 2.6vw, 2.3rem); font-weight: 600; line-height: 1.1; color: var(--scene-ink); margin: 0; }
+  .ab-col__body { margin: 0.9rem 0 0; line-height: 1.6; }
+
+  /* Tour + video shared frame */
+  .ab-tour, .ab-video { --scene-pad: clamp(3.5rem, 8vw, 6rem); }
+  .ab-tour__head, .ab-video__head { align-items: end; margin-block-end: clamp(1.5rem, 3vw, 2.25rem); }
+  .ab-tour__title, .ab-video__title { color: var(--scene-ink); margin-block-start: 0.5rem; }
+  .ab-tour__lede { max-inline-size: 42ch; font-size: var(--text-body-lg); line-height: 1.6; }
+  .ab-video__head { display: block; }
+
+  .ab-tour__frame, .ab-video__frame {
+    position: relative; overflow: hidden; border-radius: var(--radius-lg);
+    border: 1px solid var(--scene-line); background: var(--color-char-900);
+  }
+  .ab-tour__frame { aspect-ratio: 16 / 9; }
+  .ab-tour__frame iframe { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; border: 0; }
+  .ab-video__frame video { display: block; inline-size: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+
+  /* Facility film-strip (horizontal on all viewports, like a contact sheet) */
+  .ab-gallery { --scene-pad: clamp(3.5rem, 8vw, 6rem); overflow: clip; }
+  .ab-gallery__head { margin-block-end: clamp(1.5rem, 3vw, 2.25rem); }
+  .ab-gallery__title { color: var(--scene-ink); margin-block-start: 0.5rem; }
+  .ab-gallery__strip {
+    list-style: none; margin: 0; padding: 0 var(--gutter) 1rem;
+    display: flex; gap: clamp(0.9rem, 2vw, 1.5rem);
+    overflow-x: auto; scroll-snap-type: x proximity;
+    scrollbar-width: thin; scrollbar-color: var(--scene-accent) transparent;
+  }
+  .ab-gallery__strip::-webkit-scrollbar { height: 4px; }
+  .ab-gallery__strip::-webkit-scrollbar-thumb { background: var(--scene-line); border-radius: 99px; }
+  .ab-frame {
+    position: relative; flex: 0 0 auto;
+    inline-size: clamp(260px, 60vw, 460px); aspect-ratio: 4 / 3;
+    border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--scene-line);
+    scroll-snap-align: start;
+  }
+  .ab-frame img {
+    inline-size: 100%; block-size: 100%; object-fit: cover;
+    /* Duotone: pull the dünya placeholders onto the Melek palette until brand photos exist. */
+    filter: saturate(0.5) contrast(1.05) brightness(0.72);
+    transition: filter 0.5s var(--ease-out-expo), transform 0.6s var(--ease-out-expo);
+  }
+  .ab-frame:hover img { filter: saturate(0.9) contrast(1.02) brightness(0.92); transform: scale(1.03); }
+  .ab-frame__cap {
+    position: absolute; inset-block-end: 0; inset-inline: 0;
+    padding: 0.9rem 1rem; color: var(--color-paper);
+    background: linear-gradient(0deg, rgba(5, 26, 16, 0.85), transparent);
+  }
+</style>

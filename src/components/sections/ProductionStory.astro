@@ -1,0 +1,172 @@
+---
+// Scene 03 — The Production Story. Replaces the old Categories card grid.
+// A pinned, documentary sequence: a sticky facility visual cross-dissolves through four beats
+// while the narrative scrolls beside it. Facility stills are dunya placeholders (cleared for use),
+// pulled onto the Melek palette with a dark duotone treatment until brand footage exists.
+const beats = [
+  {
+    no: "01",
+    title: "Sourcing",
+    img: "/images/facility/line-3.jpg",
+    alt: "Production facility, the Netherlands",
+    body: "Halal-certified raw material arrives under specification. Every intake is logged against the lot it will become.",
+  },
+  {
+    no: "02",
+    title: "Production",
+    img: "/images/facility/line-2.jpg",
+    alt: "Production floor in operation",
+    body: "Portioning, forming and coating run to fixed tolerances. The line is built for repeatability, shift after shift.",
+  },
+  {
+    no: "03",
+    title: "Quality release",
+    img: "/images/facility/exterior-1.jpg",
+    alt: "Quality control area",
+    body: "Weight, coating and core temperature are checked, not assumed. No pallet leaves the floor without a signed release.",
+  },
+  {
+    no: "04",
+    title: "Logistics",
+    img: "/images/facility/line-1.jpg",
+    alt: "Cold-chain dispatch",
+    body: "Frozen, palletised and loaded with the cold chain intact, then shipped to distributors across Europe.",
+  },
+];
+---
+
+<section class="scene story" data-scene="black" id="story" aria-label="The production story">
+  <div class="grain" aria-hidden="true"></div>
+  <div class="container-x">
+    <header class="story__head">
+      <p class="op-label ink-dim">The production story</p>
+      <h2 class="story__title text-display">From intake to pallet, held to one standard.</h2>
+    </header>
+
+    <div class="story__cols grid-ed grid-ed--5-7">
+      <div class="story__media" aria-hidden="true">
+        <div class="story__frame">
+          {beats.map((b, i) => (
+            <img src={b.img} alt="" class={`story__img${i === 0 ? " is-active" : ""}`} loading="lazy" decoding="async" />
+          ))}
+          <span class="op-label story__media-cap">Production floor · Amsterdam</span>
+        </div>
+      </div>
+
+      <ol class="story__beats">
+        {beats.map((b) => (
+          <li class="story__beat">
+            <img src={b.img} alt={b.alt} class="story__beat-img" loading="lazy" decoding="async" />
+            <div class="story__beat-text" data-reveal>
+              <span class="op-label story__beat-no text-accent">{b.no}</span>
+              <h3 class="story__beat-title">{b.title}</h3>
+              <p class="story__beat-body ink-dim">{b.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { initGsap, prefersReducedMotion, revealOnScroll } from "../../lib/motion";
+
+  const story = document.querySelector<HTMLElement>(".story");
+  if (story) {
+    revealOnScroll(story.querySelectorAll("[data-reveal]"), { y: 24, stagger: 0.06 });
+
+    const imgs = Array.from(story.querySelectorAll<HTMLElement>(".story__img"));
+    const beats = Array.from(story.querySelectorAll<HTMLElement>(".story__beat"));
+    if (!prefersReducedMotion() && imgs.length && window.matchMedia("(min-width: 880px)").matches) {
+      const { ScrollTrigger } = initGsap();
+      const setActive = (i: number) =>
+        imgs.forEach((im, k) => im.classList.toggle("is-active", k === i));
+      beats.forEach((beat, i) => {
+        ScrollTrigger.create({
+          trigger: beat,
+          start: "top 60%",
+          end: "bottom 60%",
+          onToggle: (self) => self.isActive && setActive(i),
+        });
+      });
+    }
+  }
+</script>
+
+<style>
+  .story { --scene-pad: clamp(4rem, 9vw, 8rem); overflow: clip; }
+
+  .story__head { display: flex; flex-direction: column; gap: 0.5rem; margin-block-end: clamp(2.5rem, 6vw, 4.5rem); }
+  .story__idx { font-size: clamp(2.25rem, 6vw, 4rem); color: var(--scene-accent); line-height: 0.8; }
+  .story__title {
+    color: var(--scene-ink);
+    max-inline-size: 18ch;
+    margin-block-start: 0.5rem;
+  }
+
+  .story__cols { align-items: start; }
+
+  /* Sticky media column (desktop) */
+  .story__media { display: none; }
+  @media (min-width: 880px) {
+    .story__media { display: block; position: sticky; inset-block-start: calc(var(--header-h) + 2.5rem); }
+    .story__frame {
+      position: relative;
+      aspect-ratio: 4 / 5;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--scene-line);
+    }
+  }
+  .story__img {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.7s var(--ease-out-expo);
+    /* Pull the placeholder footage onto the dark Melek palette. */
+    filter: saturate(0.55) contrast(1.06) brightness(0.74);
+  }
+  .story__img.is-active { opacity: 1; }
+  .story__media-cap {
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline: 0;
+    padding: 1rem 1.1rem;
+    color: var(--color-paper);
+    background: linear-gradient(0deg, rgba(5, 26, 16, 0.85), transparent);
+    z-index: 1;
+  }
+
+  /* Beats */
+  .story__beats { list-style: none; margin: 0; padding: 0; }
+  .story__beat { padding-block: clamp(1.5rem, 4vw, 2.5rem); }
+  @media (min-width: 880px) {
+    .story__beat { min-block-size: 48vh; display: flex; align-items: center; }
+  }
+  .story__beat:not(:last-child) { border-block-end: 1px solid var(--scene-line); }
+
+  .story__beat-img {
+    inline-size: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin-block-end: 1.25rem;
+    filter: saturate(0.55) contrast(1.06) brightness(0.78);
+  }
+  @media (min-width: 880px) { .story__beat-img { display: none; } }
+
+  .story__beat-no { display: block; margin-block-end: 0.75rem; }
+  .story__beat-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--scene-ink);
+    margin-block-end: 0.75rem;
+  }
+  .story__beat-body { font-size: var(--text-body-lg); line-height: 1.6; max-inline-size: 46ch; }
+</style>

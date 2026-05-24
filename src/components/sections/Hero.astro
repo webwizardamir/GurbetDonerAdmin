@@ -1,65 +1,121 @@
 ---
-// Hero with a self-hosted MP4 background. No YouTube, no IFrame API, no controls.
-// Drop a replacement at /public/videos/hero.mp4 and the page picks it up automatically.
+// Cinematic film-title hero (v6 redesign).
+// Self-hosted MP4 background (drop a replacement at /public/videos/hero.mp4).
+// Two type voices: Bodoni Moda headline, Archivo for lede + operational labels.
+const ledger = [
+  { k: "Origin", v: "Netherlands" },
+  { k: "Distribution", v: "EU-wide" },
+  { k: "Certified", v: "Halal · BRC · IFS" },
+  { k: "Range", v: "3 ranges · 46 SKU" },
+];
 ---
 
-<section class="hero" aria-labelledby="hero-title">
-  <div class="hero__media" aria-hidden="true">
+<section class="cine-hero" aria-labelledby="hero-title" data-hero>
+  <div class="cine-hero__media" aria-hidden="true">
     <video
-      class="hero__video"
+      class="cine-hero__video"
       autoplay
       muted
       loop
       playsinline
       preload="auto"
       poster="/images/hero/field.webp"
+      data-hero-video
     >
       <source src="/videos/hero.mp4" type="video/mp4" />
     </video>
-    <div class="hero__veil"></div>
-    <div class="hero__grain"></div>
+    <div class="cine-hero__veil"></div>
+    <div class="cine-hero__vignette"></div>
+    <div class="grain grain--strong"></div>
   </div>
 
-  <div class="container-x hero__inner">
-    <p class="eyebrow eyebrow--bone hero__eyebrow">
-      Halal foods, made in the Netherlands. Shipped across Europe.
-    </p>
+  <span class="cine-hero__edge op-label op-label--sm" aria-hidden="true">
+    Melek · Halal Frozen Food
+  </span>
 
-    <h1 id="hero-title" class="hero__title">
-      Halal, perfected.<br />
-      Built for the buyers <br class="hero__br-hide" />who can&rsquo;t miss.
-    </h1>
+  <div class="container-x cine-hero__inner">
+    <header class="cine-hero__coords" data-hero-line>
+      <span class="op-label cine-hero__coords-end">Shipped across Europe</span>
+    </header>
 
-    <p class="hero__lede">
-      Premium halal frozen foods. Chicken, beef and snack ranges produced to retail-grade specifications,
-      certified for halal, and shipped pallet-ready to distributors, retailers and HoReCa partners across Europe.
-    </p>
+    <div class="cine-hero__headline">
+      <p class="op-label cine-hero__kicker" data-hero-line>
+        <span class="cine-hero__beacon" aria-hidden="true"></span>
+        Halal frozen food, made in the Netherlands
+      </p>
 
-    <div class="hero__cta">
-      <a href="/distributors/" class="btn btn-primary hero__btn-primary">
-        Become a distributor
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-      </a>
-      <a href="/products/" class="btn btn-secondary-light hero__btn-secondary">Browse the range</a>
+      <h1 id="hero-title" class="text-mega cine-hero__title">
+        <span class="cine-hero__line"><span data-hero-word>Built for buyers</span></span>
+        <span class="cine-hero__line"><span data-hero-word>who can&rsquo;t afford</span></span>
+        <span class="cine-hero__line"><span data-hero-word>inconsistency.</span></span>
+      </h1>
+
+      <p class="cine-hero__lede" data-hero-line>
+        Chicken, beef and snack ranges, produced in the Netherlands to retail-grade
+        specifications, halal-certified, and shipped pallet-ready to distributors across Europe.
+      </p>
+
+      <div class="cine-hero__cta" data-hero-line>
+        <a href="/distributors/" class="btn btn-primary cine-hero__btn" data-magnetic>
+          Become a distributor
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a href="/products/" class="btn btn-secondary-light cine-hero__btn" data-magnetic>
+          Browse the range
+        </a>
+      </div>
     </div>
 
-    <div class="hero__meta">
-      <a href="#categories" class="hero__scroll" aria-label="Scroll to next section">
-        <span class="hero__scroll-dot"></span>
-        <span>Scroll</span>
+    <footer class="cine-hero__base">
+      <a href="#proof" class="cine-hero__scroll" aria-label="Scroll to next section">
+        <span class="cine-hero__scroll-rail" aria-hidden="true"><span class="cine-hero__scroll-bead"></span></span>
+        <span class="op-label">Scroll</span>
       </a>
-      <ul class="hero__chips" aria-label="Quick facts">
-        <li><strong>3</strong> ranges</li>
-        <li><strong>40+</strong> SKUs</li>
-        <li><strong>Halal</strong> certified</li>
-        <li><strong>EU-wide</strong> distribution</li>
-      </ul>
-    </div>
-  </div>
 
-  <div class="hero__divider" aria-hidden="true">
-    <svg viewBox="0 0 1440 90" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,90 L0,60 C240,12 480,12 720,40 C960,68 1200,68 1440,30 L1440,90 Z" fill="var(--color-bone)" />
-    </svg>
+      <dl class="cine-hero__ledger" aria-label="At a glance">
+        {ledger.map((row) => (
+          <div class="cine-hero__ledger-item" data-hero-line>
+            <dt class="op-label">{row.k}</dt>
+            <dd class="cine-hero__ledger-val">{row.v}</dd>
+          </div>
+        ))}
+      </dl>
+    </footer>
   </div>
 </section>
+
+<script>
+  import { initGsap, prefersReducedMotion, magnetize } from "../../lib/motion";
+
+  const hero = document.querySelector<HTMLElement>("[data-hero]");
+  if (hero) {
+    const { gsap, ScrollTrigger } = initGsap();
+
+    // Magnetic CTAs (no-op on touch / reduced-motion, handled inside magnetize).
+    hero.querySelectorAll<HTMLElement>("[data-magnetic]").forEach((el) => magnetize(el, 0.3));
+
+    if (!prefersReducedMotion()) {
+      const words = hero.querySelectorAll("[data-hero-word]");
+      const lines = hero.querySelectorAll("[data-hero-line]");
+
+      const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
+      tl.from(words, { yPercent: 118, duration: 1.1, stagger: 0.09 }, 0.15)
+        .from(lines, { y: 22, opacity: 0, duration: 0.8, stagger: 0.08 }, 0.5);
+
+      // Subtle parallax: the footage drifts slower than the page as you scroll away.
+      gsap.to("[data-hero-video]", {
+        yPercent: 14,
+        ease: "none",
+        scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true },
+      });
+
+      // Headline lifts gently and fades as the hero leaves.
+      gsap.to(".cine-hero__headline", {
+        yPercent: -8,
+        opacity: 0.55,
+        ease: "none",
+        scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true },
+      });
+    }
+  }
+</script>

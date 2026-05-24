@@ -3,15 +3,25 @@ import { site } from "../lib/site";
 const year = new Date().getFullYear();
 ---
 
-<!-- Wave divider bridges Certifications (bone) into Footer (emerald-deep) -->
+<!-- Wave bridges the section above into the footer. On the dark homepage both sides are dark
+     so it reads as a clean cut; on the bone About/products pages it curves bone into the footer. -->
 <div class="footer-divider-top" aria-hidden="true">
   <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M0,80 L0,30 C240,72 480,72 720,42 C960,12 1200,12 1440,50 L1440,80 Z" fill="var(--color-emerald-deep)"/>
+    <path d="M0,80 L0,30 C240,72 480,72 720,42 C960,12 1200,12 1440,50 L1440,80 Z" fill="var(--color-emerald-black)"/>
   </svg>
 </div>
 
 <footer class="site-footer">
   <div class="container-x section-sm">
+    <div class="footer__masthead">
+      <p class="footer__statement">Halal frozen food, made in the Netherlands. Shipped across Europe.</p>
+      <ul class="footer__ops" aria-label="At a glance">
+        <li class="op-label">Made in the Netherlands</li>
+        <li class="op-label">Shipped EU-wide</li>
+        <li class="op-label">Halal · BRC · IFS</li>
+      </ul>
+    </div>
+
     <div class="footer__grid">
       <div class="footer__brand">
         <img src="/logo.png" alt={site.fullName} width="324" height="150" class="footer__logo" />
@@ -80,9 +90,13 @@ const year = new Date().getFullYear();
 
 <style>
   .footer-divider-top {
-    background: var(--color-bone); /* Certifications bone above the wave */
+    background: var(--color-bone); /* bone section above on About / products */
     line-height: 0;
   }
+  /* Dark homepage: the section above is already emerald-black, so the wave is invisible and only
+     adds dead space. Drop it and tighten the footer's top so it reads as one continuous block. */
+  body.has-dark-hero .footer-divider-top { display: none; }
+  body.has-dark-hero .site-footer .section-sm { padding-block-start: clamp(2.25rem, 4vw, 3.25rem); }
   .footer-divider-top svg {
     display: block;
     inline-size: 100%;
@@ -90,9 +104,49 @@ const year = new Date().getFullYear();
     margin-block-end: -1px;
   }
   .site-footer {
-    background: var(--color-emerald-deep);
+    background: var(--color-emerald-black);
     color: var(--color-bone);
   }
+  .footer__masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1.5rem 2rem;
+    padding-block-end: clamp(2rem, 4vw, 3rem);
+    margin-block-end: clamp(2rem, 4vw, 3rem);
+    border-block-end: 1px solid rgba(251, 248, 240, 0.14);
+  }
+  .footer__statement {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 3.2vw, 2.6rem);
+    line-height: 1.1;
+    color: var(--color-bone);
+    max-inline-size: 20ch;
+  }
+  .footer__ops {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.25rem;
+    align-items: center;
+  }
+  .footer__ops li { color: var(--color-gold-soft); position: relative; padding-inline-start: 1.25rem; }
+  .footer__ops li::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 50%;
+    inline-size: 5px; block-size: 5px;
+    transform: translateY(-50%);
+    border-radius: 99px;
+    background: var(--color-brass);
+  }
+
   .footer__grid {
     display: grid;
     gap: 2.5rem;

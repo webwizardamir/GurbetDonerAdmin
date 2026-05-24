@@ -1,8 +1,10 @@
 ---
 import { site } from "../lib/site";
+const links = [{ label: "Home", href: "/" }, ...site.nav];
 ---
 
 <div id="mobile-nav" class="mobile-menu" data-mobile-panel data-state="closed" aria-hidden="true">
+  <div class="grain grain--strong" aria-hidden="true"></div>
   <div class="mobile-menu__inner">
     <div class="mobile-menu__head">
       <a href="/" class="mobile-menu__brand" data-mm-close>
@@ -13,15 +15,14 @@ import { site } from "../lib/site";
       </button>
     </div>
 
-    <p class="eyebrow eyebrow--bone mobile-menu__eyebrow">Menu</p>
+    <p class="op-label mobile-menu__eyebrow">Menu</p>
     <nav aria-label="Mobile primary">
       <ul class="mobile-menu__list">
-        <li><a href="/" data-mm-close><span class="mobile-menu__num">01</span><span class="mobile-menu__label font-display">Home</span></a></li>
-        {site.nav.map((item, i) => (
+        {links.map((item) => (
           <li>
             <a href={item.href} data-mm-close>
-              <span class="mobile-menu__num">{String(i + 2).padStart(2, "0")}</span>
-              <span class="mobile-menu__label font-display">{item.label}</span>
+              <span class="mobile-menu__label">{item.label}</span>
+              <svg class="mobile-menu__arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </a>
           </li>
         ))}
@@ -34,7 +35,7 @@ import { site } from "../lib/site";
     </div>
 
     <div class="mobile-menu__contact">
-      <p class="eyebrow eyebrow--bone">Get in touch</p>
+      <p class="op-label mobile-menu__eyebrow">Get in touch</p>
       <a href={`mailto:${site.email}`}>{site.email}</a>
       <a href={`tel:${site.phone.replace(/\s+/g, "")}`}>{site.phone}</a>
     </div>
@@ -55,11 +56,10 @@ import { site } from "../lib/site";
     height: 100vh;
     height: 100dvh;
     z-index: 70;
-    color: var(--color-bone);
-    background: var(--color-emerald-deep);
-    background-image:
-      radial-gradient(900px 600px at 100% 0%, rgba(201, 162, 75, 0.18), transparent 60%),
-      radial-gradient(700px 500px at 0% 100%, rgba(31, 106, 71, 0.5), transparent 55%);
+    color: var(--color-paper);
+    /* Flat dark to match the cinematic system; texture comes from grain, not gradients. */
+    background: var(--color-emerald-black);
+    isolation: isolate;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.35s var(--ease-out-expo);
@@ -70,6 +70,8 @@ import { site } from "../lib/site";
     pointer-events: auto;
   }
   .mobile-menu__inner {
+    position: relative;
+    z-index: 1;
     min-height: 100%;
     padding: 1.25rem var(--gutter) 2.5rem;
     display: flex;
@@ -85,16 +87,16 @@ import { site } from "../lib/site";
   .mobile-menu__close {
     background: transparent;
     border: 0;
-    color: var(--color-bone);
+    color: var(--color-paper);
     padding: 8px;
     margin-inline-end: -8px;
     cursor: pointer;
     border-radius: var(--radius);
     transition: background 0.2s var(--ease-out-expo);
   }
-  .mobile-menu__close:hover { background: rgba(251, 248, 240, 0.08); }
+  .mobile-menu__close:hover { background: rgba(199, 207, 202, 0.1); }
 
-  .mobile-menu__eyebrow { margin-block-start: 1.5rem; }
+  .mobile-menu__eyebrow { margin-block-start: 1.5rem; color: var(--color-silver-dim); }
 
   .mobile-menu__list {
     list-style: none;
@@ -105,29 +107,25 @@ import { site } from "../lib/site";
   }
   .mobile-menu__list a {
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    justify-content: space-between;
     gap: 1.25rem;
-    padding: 1.1rem 0;
-    border-bottom: 1px solid rgba(251, 248, 240, 0.12);
-    color: var(--color-bone);
+    padding: 1.05rem 0;
+    border-bottom: 1px solid rgba(199, 207, 202, 0.14);
+    color: var(--color-paper);
     text-decoration: none;
     transition: color 0.2s var(--ease-out-expo), padding-inline-start 0.25s var(--ease-out-expo);
   }
-  .mobile-menu__list a:hover { color: var(--color-gold-soft); padding-inline-start: 6px; }
-  .mobile-menu__num {
-    font-family: var(--font-display);
-    font-size: 0.75rem;
-    color: var(--color-gold-soft);
-    letter-spacing: 0.06em;
-    flex-shrink: 0;
-    inline-size: 28px;
-  }
+  .mobile-menu__list a:hover,
+  .mobile-menu__list a:focus-visible { color: var(--color-brass); padding-inline-start: 6px; }
   .mobile-menu__label {
-    font-size: clamp(1.5rem, 5.5vw, 2rem);
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 6vw, 2.25rem);
     line-height: 1.05;
-    letter-spacing: -0.015em;
-    font-weight: 500;
+    letter-spacing: -0.01em;
+    font-weight: 600;
   }
+  .mobile-menu__arrow { color: var(--color-brass); opacity: 0.7; flex-shrink: 0; }
 
   .mobile-menu__cta {
     margin-block-start: 2rem;
@@ -149,13 +147,13 @@ import { site } from "../lib/site";
     gap: 0.25rem;
   }
   .mobile-menu__contact a {
-    color: rgba(251, 248, 240, 0.85);
+    color: rgba(241, 239, 232, 0.85);
     text-decoration: none;
     font-size: 0.9375rem;
     margin-block-start: 0.5rem;
     transition: color 0.2s var(--ease-out-expo);
   }
-  .mobile-menu__contact a:hover { color: var(--color-gold-soft); }
+  .mobile-menu__contact a:hover { color: var(--color-brass); }
 
   .mobile-menu__social {
     margin-block-start: auto;
@@ -164,10 +162,10 @@ import { site } from "../lib/site";
     align-items: center;
     gap: 0.5rem;
     font-size: 0.8125rem;
-    color: rgba(251, 248, 240, 0.6);
+    color: rgba(199, 207, 202, 0.6);
   }
   .mobile-menu__social a {
-    color: rgba(251, 248, 240, 0.85);
+    color: rgba(241, 239, 232, 0.85);
     text-decoration: none;
     border-block-end: 1px solid transparent;
     transition: border-color 0.2s var(--ease-out-expo);

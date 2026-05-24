@@ -2,7 +2,9 @@
 
 Snapshot of where the project is, what is locked in, and what is left. Update this file at the end of any working session so the next pickup is fast.
 
-Last updated: 2026-05-20 (end of v6).
+Last updated: 2026-05-25 (v8 cinematic homepage complete + docs made canonical; migrating internal pages next).
+
+**Current direction: the v8 cinematic dark system in `STYLEGUIDE.md` is canonical for the whole site.** The homepage is fully migrated. Next, in order: (1) `/products/` catalog, (2) `/products/[slug]/` detail, (3) `/about/`, then the form pages. Each must use the dark scene system, the two new faces, the editorial primitives, and the anti-AI rules (no scene numbering, no SKU counts, uniform tiles, watch empty space, dark cuts not wave dividers).
 
 ---
 
@@ -32,19 +34,20 @@ Last updated: 2026-05-20 (end of v6).
 
 ## 2. Section order (homepage)
 
+v8 rebuilt the homepage into a fully dark-cinematic flow. The whole page is dark now (no beige seam). Scenes 01-04 + TrustArtifacts are bespoke; HalalPromise + DistributorCTA are legacy components running dark with wave dividers off (`dividers={false}`) until their bespoke rebuilds.
+
 ```
-Hero                  (emerald-deep, MP4 background)
-Marquee               (bone, animated keyword strip)
-Categories            (bone, 3 cards with product image accents)
-FeaturedProducts      (cream, 6 product cards)
-HalalPromise          (emerald-deep, 3 pillars + crescent SVG)
-Process               (bone, 4 numbered stages + quick-stats)
-DistributorCTA        (emerald-deep, 3-step list)
-Certifications        (bone, 5 badges)
-Footer                (emerald-deep)
+01 Hero               (cine-hero, emerald-black, MP4, Bodoni masked headline)        NEW v8
+02 OperationalStrip   (char-900, brutalist proof band)                               NEW v8
+03 ProductionStory    (emerald-black, sticky facility cross-dissolve)                NEW v8
+04 ProductWorlds      (emerald-black, per-range horizontal packshot rails, boxed)    NEW v8
+   HalalConfidence    (emerald-deep, editorial statement + serif definition list)    NEW v8
+   ExportCTA          (char-900, bold CTA + inline process flow)                     NEW v8
+   TrustArtifacts     (emerald-black, certs as pale inspection-record cards)          NEW v8
+   Footer             (emerald-deep)                                                  legacy, rebuild as brutalist
 ```
 
-If you add or remove a section, keep the bone / cream / emerald-deep alternation so no two dark sections meet. The wave dividers depend on it.
+The whole homepage is now bespoke dark scenes except the Footer. Legacy `Process` was dropped (redundant with ProductionStory). `HalalPromise` → `HalalConfidence`, `DistributorCTA` → `ExportCTA`, `Certifications` → `TrustArtifacts` are homepage-only swaps; the shared legacy `HalalPromise`/`DistributorCTA`/`Certifications` components are untouched and still serve the About + products pages with their bone/wave behaviour.
 
 ---
 
@@ -79,13 +82,18 @@ These exist and return 200, but they were built before the v2+ design polish and
 | `/contact/` | ✅ | em-dashes in body |
 | `/legal/{privacy,cookies,terms}/` | ✅ (placeholder) | needs real legal copy from counsel |
 
-**When picking up internal pages, apply the same v2+ rules**: drop em-dashes, drop the gold rule before eyebrows, drop italic-serif accents inside headings, use real product images on detail pages.
+**These pages are still the legacy bone/cream + Fraunces system and now need full v8 migration**, not just copy polish. Rebuild them into the dark cinematic system per `STYLEGUIDE.md §9`: dark scenes, Bodoni + Archivo, editorial primitives, brass accents, dark cuts (no wave dividers), uniform packshot tiles with spotlight, documentary copy, no scene numbers, no SKU counts. Order: products catalog → product detail → about → forms.
 
 ---
 
 ## 5. Open TODOs (priority order)
 
-1. **Remaining internal pages polish** — apply v2+ typography and copy rules to `/distributors/`, `/samples/`, `/contact/`. Drop em-dashes, drop italic accents, remove eyebrow rules. (`/products/`, `/products/[slug]/` shipped in v6; `/about/` shipped in v7.)
+1. **Rebuild the Footer as a brutalist export terminal** (coordinates, shipping regions, batch/warehouse metadata, system feel) — the last non-bespoke piece of the homepage. It is global in `Base.astro`, so either make it homepage-aware or build a homepage-specific footer.
+2. **Optional extra scenes** from the brief, if the owner wants more depth: appetite/texture intermission (needs macro food photography), retail-readiness, packaging + logistics system. The homepage already reads as a complete cinematic flow without them.
+3. **Confirm remaining copy claims with the owner**: city is **Amsterdam** (owner confirmed, OK to name). Still open: is HACCP certified/auditable enough to state beyond a text seal? Any real traceability metric? Until confirmed, keep those generic.
+4. ~~Replace `site.tagline`~~ — owner confirmed the current tagline is good; keep it.
+5. **Source cinematic photography** the redesign wants but does not have: macro/appetite food close-ups, steam/sizzle b-roll, production-line video, a photographic film-grain overlay, real (non-dunya) facility imagery.
+6. **Remaining internal pages polish** — apply v2+ typography and copy rules to `/distributors/`, `/samples/`, `/contact/`. Drop em-dashes, drop italic accents, remove eyebrow rules. (`/products/`, `/products/[slug]/` shipped in v6; `/about/` shipped in v7.)
 2. **Real cert authority names** — user needs to confirm halal authority (HFCE? HQC? Halal Correct NL?) and any HACCP / IFS / BRC / ISO certificate dates so we can show them as named, dated trust marks.
 4. **Real production-facility video** — user is replacing `/public/videos/hero.mp4` (currently dünya's aerial footage) with brand-owned footage. Just drop a same-name file in place.
 5. **Dutch (NL) locale** — scaffold the `/nl/*` route tree. Copy is empty until user provides translations.
@@ -120,6 +128,7 @@ See `CHANGELOG.md` for the full log. Short version:
 | v5 | YouTube swapped for MP4, header switched from sticky to fixed with `has-dark-hero` body gate |
 | v6 | `/products/` catalog and `/products/[slug]/` detail rebuilt to match v2+ rules (real packshots, no italic accents, no em-dashes, alternating bands, related-products strip, distributor CTA) |
 | v7 | `/about/` rebuilt with Google Street View virtual tour, video block, facility gallery (emerald-duotone placeholders), Melek-way value cards, reused homepage sections |
+| v8 | Anti-AI cinematic homepage, vertical slice. New faces (Bodoni Moda + Archivo), dark scene-theming system, scenes 01-04 rebuilt (hero, OperationalStrip, ProductionStory, ProductWorlds). Three old hard rules overridden; lower sections still legacy. |
 
 ---
 

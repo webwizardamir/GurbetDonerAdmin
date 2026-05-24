@@ -1,0 +1,133 @@
+---
+// Scene — Certifications, reimagined as trust artifacts. Replaces the old bone certs card grid
+// on the homepage (the shared Certifications.astro stays for About / products pages).
+// Each cert is a pale "record" card on the dark archive: a stamped inspection document, not a badge.
+// Verifiable only: authority is named on request; HACCP + ISO 22000 stay text seals (no badge image).
+const records = [
+  { ref: "HAL", code: "Halal", image: "/images/certifications/halal.png", scope: "Accredited halal authority", body: "Current certificate on every range. Authority, audit cadence and standard named on request." , size: "lg" },
+  { ref: "BRC", code: "BRC Food", image: "/images/certifications/brc.png", scope: "BRCGS Food Safety", body: "Global retailer standard. Recognised across European retail." , size: "md" },
+  { ref: "IFS", code: "IFS Food", image: "/images/certifications/ifs.png", scope: "International Featured Standards", body: "The food-safety standard most European retailers ask for first." , size: "md" },
+  { ref: "HCP", code: "HACCP", scope: "Food-safety baseline", body: "Hazard analysis and critical control points across the floor." , size: "sm" },
+  { ref: "ISO", code: "ISO 22000", scope: "Management framework", body: "Quality and food-safety management system." , size: "sm" },
+];
+---
+
+<section id="certifications" class="scene certs2" data-scene="black" aria-labelledby="certs2-title">
+  <div class="grain" aria-hidden="true"></div>
+  <div class="container-x">
+    <div class="certs2__head grid-ed grid-ed--7-5">
+      <div>
+        <p class="op-label ink-dim">Verification</p>
+        <h2 id="certs2-title" class="certs2__title text-display">Every claim has a document behind it.</h2>
+      </div>
+      <p class="certs2__aside ink-dim">
+        Procurement teams ask for proof. We hand it over without negotiating. Certificates,
+        authority names and issue dates are available on request, including for tenders.
+      </p>
+    </div>
+
+    <ul class="certs2__records">
+      {records.map((r) => (
+        <li class={`rec rec--${r.size}`} data-reveal>
+          <div class="rec__top">
+            <span class="op-label rec__ref">REF · {r.ref}</span>
+            <span class="op-label rec__status">On file</span>
+          </div>
+          <div class="rec__seal">
+            {r.image ? <img src={r.image} alt={`${r.code} certification`} loading="lazy" decoding="async" /> : <span class="rec__sealtext font-x">{r.ref}</span>}
+          </div>
+          <p class="rec__code">{r.code}</p>
+          <p class="op-label ink-dim rec__scope">{r.scope}</p>
+          <p class="rec__body">{r.body}</p>
+          <span class="rec__stamp op-label" aria-hidden="true">Verified</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<script>
+  import { revealOnScroll } from "../../lib/motion";
+  revealOnScroll(document.querySelectorAll(".certs2 [data-reveal]"), { y: 24, stagger: 0.07 });
+</script>
+
+<style>
+  .certs2 { --scene-pad: clamp(3.5rem, 8vw, 6.5rem); padding-block-end: clamp(2.5rem, 5vw, 3.5rem); }
+  .certs2__head { align-items: end; margin-block-end: clamp(2rem, 5vw, 3.5rem); }
+  .certs2__title { color: var(--scene-ink); max-inline-size: 16ch; margin-block-start: 0.5rem; }
+  .certs2__aside { font-size: 1rem; line-height: 1.6; max-inline-size: 46ch; }
+
+  .certs2__records {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(0.9rem, 2vw, 1.4rem);
+  }
+  /* Two up, with the lone 5th card spanning the row so nothing is left empty. */
+  @media (min-width: 620px) and (max-width: 1023px) {
+    .certs2__records { grid-template-columns: repeat(2, 1fr); }
+    .rec:last-child { grid-column: 1 / -1; }
+  }
+  /* Six-col: three across (span 2), then two wide (span 3). Balanced, no empty half-row. */
+  @media (min-width: 1024px) {
+    .certs2__records { grid-template-columns: repeat(6, 1fr); }
+    .rec:nth-child(-n + 3) { grid-column: span 2; }
+    .rec:nth-child(n + 4) { grid-column: span 3; }
+  }
+
+  /* Pale inspection-record card on the dark archive. */
+  .rec {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-paper);
+    color: var(--color-charcoal);
+    border-radius: var(--radius);
+    padding: clamp(1.1rem, 2vw, 1.5rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    border: 1px solid rgba(22, 19, 17, 0.08);
+  }
+  .rec__top { display: flex; justify-content: space-between; align-items: center; }
+  .rec__ref { color: var(--color-slate-500); }
+  .rec__status {
+    display: inline-flex; align-items: center; gap: 0.4rem; color: var(--color-emerald);
+  }
+  .rec__status::before {
+    content: ""; inline-size: 6px; block-size: 6px; border-radius: 99px; background: var(--color-emerald);
+  }
+
+  .rec__seal {
+    margin-block: 0.4rem;
+    block-size: clamp(56px, 7vw, 88px);
+    display: flex; align-items: center; justify-content: flex-start;
+  }
+  .rec__seal img { block-size: 100%; inline-size: auto; object-fit: contain; }
+  .rec__sealtext {
+    font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; color: var(--color-emerald);
+    letter-spacing: -0.01em; line-height: 1;
+  }
+
+  .rec__code {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(1.15rem, 1.8vw, 1.5rem); line-height: 1.1; color: var(--color-charcoal);
+  }
+  .rec__scope { color: var(--color-slate-500); }
+  .rec__body { font-size: 0.875rem; line-height: 1.5; color: var(--color-slate-700); margin-block-start: 0.15rem; border-block-start: 1px dashed rgba(22, 19, 17, 0.16); padding-block-start: 0.7rem; }
+
+  /* Passport-style stamp, ghosted in the corner. */
+  .rec__stamp {
+    position: absolute;
+    inset-block-start: 1rem;
+    inset-inline-end: -0.4rem;
+    transform: rotate(9deg);
+    color: var(--color-spice);
+    border: 1.5px solid var(--color-spice);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    opacity: 0.32;
+    font-weight: 600;
+  }
+</style>

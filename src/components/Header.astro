@@ -96,6 +96,23 @@ const path = Astro.url.pathname;
     color: var(--color-bone);
   }
 
+  /* Dark homepage: when scrolled the header stays dark (not bone) with light contents. */
+  body.has-dark-hero .site-header[data-scrolled="true"] {
+    background: color-mix(in srgb, var(--color-emerald-black) 86%, transparent);
+    border-bottom-color: var(--color-line-dark);
+  }
+  body.has-dark-hero .site-header[data-scrolled="true"] .site-header__link { color: var(--color-bone); }
+  body.has-dark-hero .site-header[data-scrolled="true"] .site-header__toggle { color: var(--color-bone); }
+  body.has-dark-hero .site-header[data-scrolled="true"] .site-header__cta-secondary {
+    color: var(--color-bone);
+    border-color: rgba(251, 248, 240, 0.4);
+  }
+  body.has-dark-hero .site-header[data-scrolled="true"] .site-header__cta-secondary:hover {
+    background: var(--color-bone);
+    color: var(--color-emerald-deep);
+    border-color: var(--color-bone);
+  }
+
   /* Smooth colour transitions so the change feels considered, not flicked. */
   .site-header__logo,
   .site-header__link,

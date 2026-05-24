@@ -1,447 +1,119 @@
 ---
 import Base from "../../layouts/Base.astro";
-import DistributorCTA from "../../components/sections/DistributorCTA.astro";
+import ExportCTA from "../../components/sections/ExportCTA.astro";
 import { site } from "../../lib/site";
 import { getCollection } from "astro:content";
 
-type Item = {
-  id: string;
-  name: string;
-  category: string;
-  weight?: string;
-  tagline?: string;
-  image?: string;
-};
+type Item = { id: string; name: string; category: string; weight?: string; image?: string; order: number };
 
 let products: Item[] = [];
 try {
   const all = await getCollection("products");
   products = all
-    .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
     .map((p) => ({
       id: p.id,
       name: p.data.name,
       category: p.data.category,
       weight: p.data.weight,
-      tagline: p.data.tagline,
       image: p.data.image,
-    }));
+      order: p.data.order ?? 100,
+    }))
+    .filter((p) => p.image)
+    .sort((a, b) => a.order - b.order);
 } catch {}
 
 const grouped = site.productCategories.map((c) => ({
   ...c,
   items: products.filter((p) => p.category === c.slug),
 }));
-
-const total = products.length;
 ---
 
 <Base
   title="Products"
   description="Halal frozen chicken, beef and snacks. Built for foodservice and retail buyers across Europe."
+  bodyClass="has-dark-hero"
 >
-  <section class="prod-hero">
-    <div class="container-x">
-      <div class="prod-hero__grid">
-        <div class="prod-hero__main">
-          <p class="eyebrow">The range</p>
-          <h1 class="text-display prod-hero__title">Built to specification.</h1>
-          <p class="prod-hero__lede">
-            Three ranges, chicken, beef and snacks. Every product is portion-controlled,
-            halal-certified and shipped pallet-ready across Europe.
-          </p>
-          <div class="prod-hero__chips" role="tablist" aria-label="Filter by range">
-            <a href="#all" class="prod-chip is-active" data-filter="all">All <span>{total}</span></a>
-            {site.productCategories.map((c) => {
-              const count = products.filter((p) => p.category === c.slug).length;
-              return (
-                <a href={`#${c.slug}`} class="prod-chip" data-filter={c.slug}>
-                  {c.name} <span>{count}</span>
-                </a>
-              );
-            })}
-          </div>
-        </div>
+  <!-- Catalog hero -->
+  <section class="scene cat-hero" data-scene="black" aria-labelledby="cat-hero-title">
+    <div class="grain grain--strong" aria-hidden="true"></div>
+    <div class="container-x cat-hero__grid grid-ed grid-ed--7-5">
+      <div>
+        <p class="op-label ink-dim">The range</p>
+        <h1 id="cat-hero-title" class="cat-hero__title text-hero">Built to specification.</h1>
+        <p class="cat-hero__lede ink-dim">
+          Chicken, beef and snacks, produced in the Netherlands to retail specification,
+          halal-certified and shipped pallet-ready across Europe.
+        </p>
+        <nav class="cat-hero__filter" aria-label="Jump to range">
+          <a href="#all" class="cat-filter is-active" data-filter="all">All</a>
+          {site.productCategories.map((c) => (
+            <a href={`#${c.slug}`} class="cat-filter" data-filter={c.slug}>{c.name}</a>
+          ))}
+        </nav>
+      </div>
 
-        <aside class="prod-hero__aside" aria-label="Range at a glance">
-          <ul class="prod-hero__stats">
-            <li>
-              <strong>{total}</strong>
-              <span>SKUs across three ranges</span>
-            </li>
-            <li>
-              <strong>Halal</strong>
-              <span>Certified by an accredited authority</span>
-            </li>
-            <li>
-              <strong>EU-wide</strong>
-              <span>Cold-chain distribution from the Netherlands</span>
-            </li>
-            <li>
-              <strong>HACCP · IFS · BRC</strong>
-              <span>Food safety standards we operate to</span>
-            </li>
-          </ul>
-          <a href="/distributors/" class="btn btn-primary prod-hero__cta">
-            Request the full catalogue
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </a>
-        </aside>
+      <div class="cat-hero__aside">
+        <ul class="cat-hero__facts">
+          <li><span class="op-label text-accent">Halal · BRC · IFS</span><span class="ink-dim">Independently certified</span></li>
+          <li><span class="op-label text-accent">Netherlands</span><span class="ink-dim">Produced and frozen on site</span></li>
+          <li><span class="op-label text-accent">EU-wide</span><span class="ink-dim">Cold chain, pallet-ready</span></li>
+        </ul>
+        <a href="/distributors/" class="btn btn-primary cat-hero__cta">
+          Request the full catalogue
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
       </div>
     </div>
   </section>
 
-  {
-    grouped.map((g, gi) => {
-      const isCream = gi % 2 === 1;
-      return (
-        <>
-          {/* Wave divider when transitioning between bone and cream */}
-          {gi > 0 && (
-            <div class={`prod-divider ${isCream ? "is-to-cream" : "is-to-bone"}`} aria-hidden="true">
-              <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M0,40 C240,8 480,8 720,38 C960,68 1200,68 1440,30 L1440,80 L0,80 Z"
-                  fill={isCream ? "var(--color-cream)" : "var(--color-bone)"}
-                />
-              </svg>
-            </div>
-          )}
+  <div id="all" class="cat-anchor" aria-hidden="true"></div>
 
-          <section
-            id={g.slug}
-            class={`prod-section ${isCream ? "is-cream" : "is-bone"}`}
-            aria-labelledby={`cat-${g.slug}`}
-          >
-            <div class="container-x">
-              <header class="prod-section__head">
-                <div>
-                  <p class="eyebrow">{g.name}</p>
-                  <h2 id={`cat-${g.slug}`} class="text-h2 prod-section__title">{g.tagline}</h2>
-                </div>
-                <p class="prod-section__count">
-                  <span>{g.items.length}</span> {g.items.length === 1 ? "product" : "products"}
-                </p>
-              </header>
+  {grouped.map((g, gi) => (
+    <section
+      id={g.slug}
+      class="scene cat-range"
+      data-scene={gi % 2 === 0 ? "black" : "char"}
+      aria-labelledby={`cat-${g.slug}`}
+    >
+      <div class="grain" aria-hidden="true"></div>
+      <div class="container-x">
+        <header class="cat-range__head">
+          <h2 id={`cat-${g.slug}`} class="cat-range__name font-x">{g.name}</h2>
+          <p class="cat-range__desc ink-dim">{g.description}</p>
+        </header>
 
-              {g.items.length === 0 ? (
-                <p class="prod-empty">Coming soon. Add a markdown file in <code>src/content/products/</code> to populate this range.</p>
-              ) : (
-                <ul class="prod-grid">
-                  {g.items.map((p) => (
-                    <li>
-                      <a class="prod-card" href={`/products/${p.id}/`}>
-                        <figure class="prod-card__media" aria-hidden="true">
-                          {p.image ? (
-                            <img src={p.image} alt={p.name} loading="lazy" />
-                          ) : (
-                            <span class="prod-card__mono">
-                              {p.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
-                            </span>
-                          )}
-                        </figure>
-                        <div class="prod-card__body">
-                          <h3 class="prod-card__name">{p.name}</h3>
-                          {p.tagline && <p class="prod-card__tag">{p.tagline}</p>}
-                          <div class="prod-card__meta">
-                            <span>{p.weight ?? "—"}</span>
-                            <span class="prod-card__arrow" aria-hidden="true">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                            </span>
-                          </div>
-                        </div>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
-        </>
-      );
-    })
-  }
+        {g.items.length === 0 ? (
+          <p class="cat-empty ink-dim">Coming soon.</p>
+        ) : (
+          <ul class="cat-grid">
+            {g.items.map((p) => (
+              <li class="cat-card" data-reveal>
+                <a class="cat-card__link" href={`/products/${p.id}/`}>
+                  <div class="cat-card__media">
+                    <img src={p.image} alt={p.name} loading="lazy" decoding="async" />
+                  </div>
+                  <div class="cat-card__meta">
+                    <span class="op-label ink-dim">{g.name}{p.weight ? ` · ${p.weight}` : ""}</span>
+                    <span class="cat-card__name" title={p.name}>{p.name}</span>
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  ))}
 
-  <DistributorCTA />
+  <ExportCTA />
 </Base>
 
-<style>
-  /* Hero (tight, two-column) */
-  .prod-hero {
-    padding-block: clamp(40px, 6vw, 72px) clamp(32px, 5vw, 56px);
-    background: var(--color-bone);
-  }
-  .prod-hero__grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: clamp(2rem, 4vw, 3.5rem);
-    align-items: center;
-  }
-  @media (min-width: 960px) {
-    .prod-hero__grid { grid-template-columns: 6fr 5fr; }
-  }
-  .prod-hero__title {
-    color: var(--color-charcoal);
-    margin-block-start: 0.75rem;
-    max-inline-size: 14ch;
-  }
-  .prod-hero__lede {
-    margin-block-start: 1rem;
-    color: var(--color-slate-700);
-    max-inline-size: 50ch;
-    font-size: 1.0625rem;
-    line-height: 1.55;
-  }
-  .prod-hero__chips {
-    margin-block-start: 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  .prod-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 1rem 0.5rem 1.05rem;
-    border-radius: 9999px;
-    border: 1px solid var(--color-line);
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-slate-700);
-    text-decoration: none;
-    transition: background 0.2s var(--ease-out-expo),
-                color 0.2s var(--ease-out-expo),
-                border-color 0.2s var(--ease-out-expo);
-  }
-  .prod-chip span {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-inline-size: 1.5rem;
-    padding: 0 0.4rem;
-    height: 1.25rem;
-    border-radius: 9999px;
-    background: rgba(15, 81, 50, 0.08);
-    color: var(--color-emerald);
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-  .prod-chip:hover,
-  .prod-chip.is-active {
-    background: var(--color-emerald);
-    color: var(--color-bone);
-    border-color: var(--color-emerald);
-  }
-  .prod-chip.is-active span,
-  .prod-chip:hover span {
-    background: rgba(251, 248, 240, 0.18);
-    color: var(--color-bone);
-  }
-
-  /* Hero aside */
-  .prod-hero__aside {
-    background: var(--color-cream);
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-xl);
-    padding: clamp(1.5rem, 3vw, 2rem);
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-  .prod-hero__stats {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem 1.25rem;
-  }
-  .prod-hero__stats li {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-  .prod-hero__stats strong {
-    font-family: var(--font-display);
-    font-size: 1.375rem;
-    font-weight: 500;
-    color: var(--color-emerald);
-    letter-spacing: -0.015em;
-    line-height: 1.05;
-    font-variation-settings: "opsz" 36;
-  }
-  .prod-hero__stats span {
-    font-size: 0.8125rem;
-    color: var(--color-slate-700);
-    line-height: 1.4;
-  }
-  .prod-hero__cta {
-    align-self: flex-start;
-    margin-block-start: 0.25rem;
-  }
-
-  /* Section banding */
-  .prod-section { padding-block: clamp(28px, 4vw, 56px) clamp(48px, 7vw, 80px); }
-  .prod-section.is-bone { background: var(--color-bone); }
-  .prod-section.is-cream { background: var(--color-cream); }
-  /* The very first section sits right under the hero — no extra top padding needed */
-  .prod-section:first-of-type { padding-block-start: 0; }
-
-  /* Wave divider between bands */
-  .prod-divider { line-height: 0; }
-  .prod-divider.is-to-cream { background: var(--color-bone); }
-  .prod-divider.is-to-bone { background: var(--color-cream); }
-  .prod-divider svg {
-    display: block;
-    inline-size: 100%;
-    block-size: clamp(40px, 5vw, 80px);
-    margin-block-start: -1px;
-  }
-
-  /* Section header */
-  .prod-section__head {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 2rem;
-    flex-wrap: wrap;
-    margin-block-end: clamp(1.5rem, 3vw, 2.5rem);
-  }
-  .prod-section__title {
-    margin: 0.5rem 0 0;
-    color: var(--color-charcoal);
-    max-inline-size: 22ch;
-  }
-  .prod-section__count {
-    margin: 0;
-    font-size: 0.75rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--color-slate-500);
-    font-weight: 600;
-  }
-  .prod-section__count span {
-    font-family: var(--font-display);
-    font-size: 1.125rem;
-    color: var(--color-emerald);
-    margin-inline-end: 0.4rem;
-    font-weight: 500;
-    font-variation-settings: "opsz" 24;
-    letter-spacing: -0.01em;
-  }
-
-  .prod-empty {
-    color: var(--color-slate-500);
-    font-size: 0.9375rem;
-    padding: 2rem 0;
-  }
-  .prod-empty code {
-    font-family: var(--font-mono);
-    font-size: 0.8125rem;
-    color: var(--color-charcoal);
-    background: rgba(15, 81, 50, 0.08);
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-  }
-
-  /* Product grid */
-  .prod-grid {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-    gap: 1rem;
-  }
-  .prod-card {
-    display: flex;
-    flex-direction: column;
-    text-decoration: none;
-    color: inherit;
-    overflow: hidden;
-    background: var(--color-bone);
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-lg);
-    transition: transform 0.3s var(--ease-out-expo),
-                box-shadow 0.3s var(--ease-out-expo),
-                border-color 0.3s var(--ease-out-expo);
-  }
-  .prod-card:hover {
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--color-emerald) 22%, var(--color-line));
-    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.04),
-                0 18px 32px -22px rgba(22, 19, 17, 0.22);
-  }
-  .prod-card__media {
-    aspect-ratio: 5 / 4;
-    margin: 0;
-    background:
-      radial-gradient(360px 240px at 70% 30%, rgba(201, 162, 75, 0.18), transparent 65%),
-      linear-gradient(135deg, var(--color-cream), color-mix(in srgb, var(--color-cream) 70%, white));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-  .prod-card__media img {
-    inline-size: 86%;
-    block-size: 86%;
-    object-fit: contain;
-    transition: transform 0.5s var(--ease-out-expo);
-  }
-  .prod-card:hover .prod-card__media img { transform: scale(1.04); }
-  .prod-card__mono {
-    font-family: var(--font-display);
-    font-size: 3rem;
-    font-weight: 600;
-    color: rgba(15, 81, 50, 0.22);
-    letter-spacing: -0.04em;
-  }
-  .prod-card__body {
-    padding: 1.125rem 1.125rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    flex: 1 1 auto;
-  }
-  .prod-card__name {
-    font-family: var(--font-display);
-    font-size: 1.125rem;
-    line-height: 1.2;
-    letter-spacing: -0.015em;
-    color: var(--color-charcoal);
-    margin: 0;
-    font-weight: 500;
-    font-variation-settings: "opsz" 24;
-  }
-  .prod-card__tag {
-    color: var(--color-slate-700);
-    font-size: 0.9375rem;
-    line-height: 1.45;
-    margin: 0;
-  }
-  .prod-card__meta {
-    margin-block-start: auto;
-    padding-block-start: 0.75rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-block-start: 1px dashed var(--color-line);
-    font-size: 0.8125rem;
-    color: var(--color-slate-500);
-  }
-  .prod-card__arrow {
-    color: var(--color-emerald);
-    transition: transform 0.2s var(--ease-out-expo);
-    display: inline-flex;
-  }
-  .prod-card:hover .prod-card__arrow { transform: translateX(3px); }
-</style>
-
 <script>
-  // Update the active chip when an in-page anchor link is clicked.
-  const chips = document.querySelectorAll<HTMLAnchorElement>(".prod-chip");
+  import { revealOnScroll, initSmoothScroll } from "../../lib/motion";
+  initSmoothScroll();
+  revealOnScroll(document.querySelectorAll(".cat-range [data-reveal]"), { y: 26, stagger: 0.03 });
+
+  const chips = document.querySelectorAll<HTMLAnchorElement>(".cat-filter");
   chips.forEach((chip) => {
     chip.addEventListener("click", () => {
       chips.forEach((c) => c.classList.remove("is-active"));
@@ -449,3 +121,124 @@ const total = products.length;
     });
   });
 </script>
+
+<style>
+  /* Catalog hero. has-dark-hero removes the main offset, so clear the fixed header here. */
+  .cat-hero { --scene-pad: 0; padding-block: calc(var(--header-h) + clamp(2.5rem, 6vw, 4.5rem)) clamp(3rem, 6vw, 5rem); }
+  .cat-hero__grid { align-items: end; }
+  .cat-hero__title { color: var(--scene-ink); margin-block-start: 0.6rem; max-inline-size: 12ch; }
+  .cat-hero__lede { margin-block-start: 1.1rem; max-inline-size: 46ch; font-size: var(--text-body-lg); line-height: 1.6; }
+
+  .cat-hero__filter {
+    margin-block-start: 1.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+  }
+  .cat-filter {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 600;
+    color: var(--scene-ink-dim);
+    text-decoration: none;
+    padding-block-end: 0.3rem;
+    border-block-end: 1px solid transparent;
+    transition: color 0.2s var(--ease-out-expo), border-color 0.2s var(--ease-out-expo);
+  }
+  .cat-filter:hover { color: var(--scene-ink); }
+  .cat-filter.is-active { color: var(--scene-accent); border-block-end-color: var(--scene-accent); }
+
+  .cat-hero__aside { display: flex; flex-direction: column; gap: 1.5rem; }
+  .cat-hero__facts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.9rem; }
+  .cat-hero__facts li {
+    display: flex; flex-direction: column; gap: 0.2rem;
+    padding-block-start: 0.9rem; border-block-start: 1px solid var(--scene-line);
+  }
+  .cat-hero__facts li:first-child { padding-block-start: 0; border-block-start: 0; }
+  .cat-hero__facts li span:last-child { font-size: 0.9rem; line-height: 1.4; }
+  .cat-hero__cta { align-self: flex-start; }
+
+  /* Offset anchor jumps so the fixed header does not cover the range heading. */
+  .cat-anchor { position: relative; }
+  .cat-range { scroll-margin-block-start: var(--header-h); }
+  .cat-range { --scene-pad: clamp(3rem, 6vw, 5rem); }
+
+  .cat-range__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.75rem 2rem;
+    margin-block-end: clamp(1.5rem, 3vw, 2.25rem);
+  }
+  .cat-range__name {
+    font-size: clamp(2.25rem, 6vw, 4.5rem);
+    font-weight: 800;
+    line-height: 0.85;
+    color: var(--scene-ink);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+  }
+  .cat-range__desc { font-size: 0.95rem; line-height: 1.55; max-inline-size: 46ch; }
+  .cat-empty { padding-block: 1.5rem; }
+
+  /* Mobile: horizontal carousel (a 46-tile vertical grid is too long to scroll on a phone).
+     Desktop (>=760px): the uniform grid. */
+  .cat-grid {
+    list-style: none; margin: 0; padding: 0 0 1rem;
+    display: flex;
+    gap: clamp(0.9rem, 3vw, 1.25rem);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scene-accent) transparent;
+  }
+  .cat-grid::-webkit-scrollbar { height: 4px; }
+  .cat-grid::-webkit-scrollbar-thumb { background: var(--scene-line); border-radius: 99px; }
+  .cat-card { flex: 0 0 auto; inline-size: clamp(150px, 52vw, 210px); scroll-snap-align: start; }
+
+  @media (min-width: 760px) {
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+      gap: clamp(0.9rem, 2vw, 1.5rem);
+      overflow: visible;
+      padding-block-end: 0;
+    }
+    .cat-card { inline-size: auto; scroll-snap-align: none; }
+  }
+
+  .cat-card__link { text-decoration: none; color: inherit; display: block; }
+  .cat-card__media {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--scene-line);
+    background:
+      radial-gradient(80% 60% at 50% 38%, rgba(169, 134, 63, 0.22), transparent 70%),
+      var(--color-char-900);
+  }
+  .cat-card__media img {
+    position: absolute; inset: 0;
+    inline-size: 100%; block-size: 100%;
+    object-fit: contain;
+    padding: clamp(1rem, 2vw, 1.5rem);
+    transition: transform 0.6s var(--ease-out-expo);
+  }
+  .cat-card__link:hover .cat-card__media img,
+  .cat-card__link:focus-visible .cat-card__media img { transform: scale(1.07); }
+  .cat-card__link:focus-visible .cat-card__media { outline: 2px solid var(--scene-accent); outline-offset: 3px; }
+
+  .cat-card__meta { padding-block-start: 0.8rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .cat-card__name {
+    font-family: var(--font-display);
+    font-size: 1.1rem; font-weight: 600; line-height: 1.2;
+    color: var(--scene-ink);
+    display: block; max-inline-size: 100%;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+</style>

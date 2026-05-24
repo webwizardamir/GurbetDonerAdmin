@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "./tokens.css";
 @import "./hero.css";
-@import "./about.css";
 
 /* ----------------------------------------------------------------
    Base
@@ -15,13 +14,27 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Lenis smooth scroll (initialised in JS, reduced-motion gated). */
+html.lenis,
+html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+
 body {
   font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv02", "cv11";
+  font-feature-settings: normal;
   background-color: var(--color-bone);
   color: var(--color-charcoal);
   line-height: 1.6;
   min-height: 100vh;
+}
+
+/* Homepage runs a dark-cinematic flow: its body sits on emerald-black so any gap between
+   full-bleed scenes reads as intentional darkness, not page-bone. Other pages keep bone. */
+body.has-dark-hero {
+  background-color: var(--color-emerald-black);
 }
 
 /* Header is position: fixed; main reserves space for it by default.
@@ -47,40 +60,41 @@ video {
 
 .font-display {
   font-family: var(--font-display);
-  font-feature-settings: "ss01", "ss02";
 }
 
+/* Bodoni Moda: high-contrast didone. Exposes opsz (6..96) + wght only. Tracking stays near 0
+   (tight tracking collides the hairline serifs); contrast carries the drama, not negative space. */
 .text-hero {
   font-family: var(--font-display);
   font-size: var(--text-hero);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-  font-weight: 500;
-  font-variation-settings: "opsz" 144, "SOFT" 50;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  font-variation-settings: "opsz" 96;
 }
 .text-display {
   font-family: var(--font-display);
   font-size: var(--text-display);
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  font-weight: 500;
-  font-variation-settings: "opsz" 96, "SOFT" 50;
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+  font-weight: 600;
+  font-variation-settings: "opsz" 72;
 }
 .text-h2 {
   font-family: var(--font-display);
   font-size: var(--text-h2);
-  line-height: 1.12;
-  letter-spacing: -0.015em;
-  font-weight: 500;
-  font-variation-settings: "opsz" 72;
+  line-height: 1.14;
+  letter-spacing: 0;
+  font-weight: 600;
+  font-variation-settings: "opsz" 40;
 }
 .text-h3 {
   font-family: var(--font-display);
   font-size: var(--text-h3);
   line-height: 1.2;
-  letter-spacing: -0.01em;
-  font-weight: 500;
-  font-variation-settings: "opsz" 48;
+  letter-spacing: 0;
+  font-weight: 600;
+  font-variation-settings: "opsz" 24;
 }
 .text-body-lg {
   font-size: var(--text-body-lg);
@@ -98,6 +112,56 @@ video {
 }
 .eyebrow--gold { color: var(--color-gold); }
 .eyebrow--bone { color: var(--color-gold-soft); }
+
+/* Mega: film-title editorial scale, Bodoni Moda. Heavy, art-directed, the page's loudest voice. */
+.text-mega {
+  font-family: var(--font-display);
+  font-size: var(--text-mega);
+  line-height: 0.94;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+  font-variation-settings: "opsz" 96;
+}
+
+/* Operational metadata label: the "spec sheet / coordinates" voice.
+   Archivo, uppercase, wide-tracked with tabular figures, so coordinates and spec labels
+   read as machine data. (Formerly .mono-label; renamed, it was never a mono webfont.) */
+.op-label {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "cpsp";
+}
+.op-label--sm { font-size: 0.625rem; letter-spacing: 0.22em; }
+
+/* Oversized scene index numbers (01, 02 ...). Archivo Expanded, tabular, tight. */
+.scene-index {
+  font-family: var(--font-grotesk-x);
+  font-stretch: 125%;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Reusable film grain / noise overlay. Drop inside any position:relative scene. */
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.05' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+.grain--strong { opacity: 0.13; }
+/* On light (bone/cream) scenes overlay-blend disappears; multiply keeps the tooth. */
+.grain--dark { mix-blend-mode: multiply; opacity: 0.05; }
 
 /* ----------------------------------------------------------------
    Layout primitives
@@ -122,6 +186,86 @@ video {
 .section-sm {
   padding-block: var(--section-y-sm);
 }
+
+/* ----------------------------------------------------------------
+   Scene theming (dark-cinematic flow)
+   Each section sets data-scene; the .scene base paints bg + ink from the resulting vars.
+   Scenes are full-bleed; transitions between them are deliberate (hairline + scene index),
+   not wave dividers. Per-scene --scene-pad lets rhythm compress/expand between scenes.
+----------------------------------------------------------------- */
+.scene {
+  position: relative;
+  isolation: isolate;
+  background: var(--scene-bg, var(--color-emerald-black));
+  color: var(--scene-ink, var(--color-bone));
+  padding-block: var(--scene-pad, var(--section-y));
+}
+.scene > .container-x,
+.scene > .container-narrow,
+.scene > .scene__body { position: relative; z-index: 1; }
+
+[data-scene="black"] {
+  --scene-bg: var(--color-emerald-black);
+  --scene-ink: var(--color-paper);
+  --scene-ink-dim: var(--color-silver-dim);
+  --scene-line: rgba(199, 207, 202, 0.14);
+  --scene-accent: var(--color-brass);
+}
+[data-scene="char"] {
+  --scene-bg: var(--color-char-900);
+  --scene-ink: var(--color-paper);
+  --scene-ink-dim: var(--color-silver-dim);
+  --scene-line: rgba(199, 207, 202, 0.12);
+  --scene-accent: var(--color-brass);
+}
+[data-scene="deep"] {
+  --scene-bg: var(--color-emerald-deep);
+  --scene-ink: var(--color-bone);
+  --scene-ink-dim: var(--color-gold-soft);
+  --scene-line: var(--color-line-dark);
+  --scene-accent: var(--color-gold);
+}
+[data-scene="paper"] {
+  --scene-bg: var(--color-paper);
+  --scene-ink: var(--color-charcoal);
+  --scene-ink-dim: var(--color-slate-500);
+  --scene-line: var(--color-line);
+  --scene-accent: var(--color-emerald);
+}
+
+/* ----------------------------------------------------------------
+   Editorial primitives — the anti-molecule kit.
+   No two scenes share a skeleton; these are the shared parts, composed differently each time.
+----------------------------------------------------------------- */
+
+/* Expanded industrial grotesk caps (brutalist headers, big metadata). */
+.font-x {
+  font-family: var(--font-grotesk-x);
+  font-stretch: 125%;
+}
+
+/* Hairline rules that read the active scene's line/accent colour. */
+.scene-rule {
+  border: 0;
+  block-size: 1px;
+  inline-size: 100%;
+  background: var(--scene-line, var(--color-line));
+}
+.scene-rule--accent { background: var(--scene-accent, var(--color-brass)); }
+
+/* Asymmetric editorial grids. Collapse to a single column on narrow viewports.
+   Compression/expansion comes from choosing different splits per scene, never the same twice. */
+.grid-ed { display: grid; gap: clamp(1.5rem, 4vw, 3.5rem); }
+@media (min-width: 880px) {
+  .grid-ed--7-5 { grid-template-columns: 7fr 5fr; }
+  .grid-ed--5-7 { grid-template-columns: 5fr 7fr; }
+  .grid-ed--4-8 { grid-template-columns: 4fr 8fr; }
+  .grid-ed--8-4 { grid-template-columns: 8fr 4fr; }
+}
+
+/* Accent text in the active scene's accent colour (brass on dark, emerald on paper). */
+.text-accent { color: var(--scene-accent, var(--color-brass)); }
+.ink-dim { color: var(--scene-ink-dim, var(--color-slate-500)); }
 
 /* ----------------------------------------------------------------
    Buttons
