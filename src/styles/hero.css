@@ -116,8 +116,19 @@
   100% { box-shadow: 0 0 0 0 rgba(169, 134, 63, 0); }
 }
 
-.cine-hero__title { margin: 0; color: var(--color-bone); }
-.cine-hero__line { display: block; overflow: hidden; padding-block-end: 0.04em; }
+/* Two fixed lines ("Everybody loves" / "Melek Halal Food."). Sized so the longer line fits on
+   one line at every width (nowrap) without the headline growing unnecessarily tall. */
+.cine-hero__title {
+  margin: 0;
+  color: var(--color-bone);
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 8vw, 6.25rem);
+  line-height: 1.0;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+  font-variation-settings: "opsz" 96;
+}
+.cine-hero__line { display: block; overflow: hidden; padding-block-end: 0.06em; white-space: nowrap; }
 .cine-hero__line > span { display: block; will-change: transform; }
 
 .cine-hero__lede {
