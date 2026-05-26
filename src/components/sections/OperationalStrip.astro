@@ -2,6 +2,8 @@
 // Scene 02 — Operational Proof Strip. Replaces the old keyword Marquee.
 // A flat, brutalist data band: what a buyer verifies before listing a supplier, in machine
 // type. Verifiable facts only (46 SKU, certs by name, NL origin, EU reach). No fabricated metrics.
+interface Props { scene?: string }
+const { scene = "char" } = Astro.props;
 const facts = [
   { value: "46", caption: "SKU across three ranges", size: "lg" },
   { value: "Halal · BRC · IFS", caption: "Independently certified", size: "str" },
@@ -10,8 +12,8 @@ const facts = [
 ];
 ---
 
-<section class="scene proof" data-scene="char" id="proof" aria-label="Operational proof">
-  <div class="grain" aria-hidden="true"></div>
+<section class="scene proof" data-scene={scene} id="proof" aria-label="Operational proof">
+  <div class={`grain${scene === "light" ? " grain--dark" : ""}`} aria-hidden="true"></div>
   <div class="container-x">
     <div class="proof__rule" aria-hidden="true"></div>
     <div class="proof__inner grid-ed grid-ed--4-8">
@@ -38,7 +40,7 @@ const facts = [
 </script>
 
 <style>
-  .proof { --scene-pad: clamp(2.5rem, 6vw, 5rem); }
+  .proof { --scene-pad: clamp(2.5rem, 5vw, 4rem); }
   .proof__rule {
     block-size: 1px;
     background: var(--scene-line);
@@ -57,7 +59,7 @@ const facts = [
     font-size: clamp(1.25rem, 2.2vw, 1.9rem);
     line-height: 1.18;
     font-weight: 600;
-    color: var(--scene-ink);
+    color: var(--scene-title, var(--scene-ink));
     max-inline-size: 22ch;
     margin-block-start: 0.4rem;
   }

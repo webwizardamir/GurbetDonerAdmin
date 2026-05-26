@@ -62,39 +62,34 @@ video {
   font-family: var(--font-display);
 }
 
-/* Bodoni Moda: high-contrast didone. Exposes opsz (6..96) + wght only. Tracking stays near 0
-   (tight tracking collides the hairline serifs); contrast carries the drama, not negative space. */
+/* Clash Display: modern display grotesk. Confident at heavy weights with tight negative tracking. */
 .text-hero {
   font-family: var(--font-display);
   font-size: var(--text-hero);
   line-height: 1.04;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.025em;
   font-weight: 600;
-  font-variation-settings: "opsz" 96;
 }
 .text-display {
   font-family: var(--font-display);
   font-size: var(--text-display);
-  line-height: 1.1;
-  letter-spacing: -0.005em;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
   font-weight: 600;
-  font-variation-settings: "opsz" 72;
 }
 .text-h2 {
   font-family: var(--font-display);
   font-size: var(--text-h2);
   line-height: 1.14;
-  letter-spacing: 0;
+  letter-spacing: -0.015em;
   font-weight: 600;
-  font-variation-settings: "opsz" 40;
 }
 .text-h3 {
   font-family: var(--font-display);
   font-size: var(--text-h3);
   line-height: 1.2;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   font-weight: 600;
-  font-variation-settings: "opsz" 24;
 }
 .text-body-lg {
   font-size: var(--text-body-lg);
@@ -113,14 +108,13 @@ video {
 .eyebrow--gold { color: var(--color-gold); }
 .eyebrow--bone { color: var(--color-gold-soft); }
 
-/* Mega: film-title editorial scale, Bodoni Moda. Heavy, art-directed, the page's loudest voice. */
+/* Mega: film-title scale, Clash Display. Heavy, tight, the page's loudest voice. */
 .text-mega {
   font-family: var(--font-display);
   font-size: var(--text-mega);
-  line-height: 0.94;
-  letter-spacing: -0.015em;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
   font-weight: 700;
-  font-variation-settings: "opsz" 96;
 }
 
 /* Operational metadata label: the "spec sheet / coordinates" voice.
@@ -231,6 +225,31 @@ video {
   --scene-ink-dim: var(--color-slate-500);
   --scene-line: var(--color-line);
   --scene-accent: var(--color-emerald);
+}
+/* Light-dominant scene: clean modern near-white (not beige), warmed with a soft emerald/brass
+   wash so it reads crafted, not clinical. Headings go emerald for life; accent is emerald. */
+[data-scene="light"] {
+  --scene-bg: var(--color-snow);
+  --scene-ink: var(--color-charcoal);
+  --scene-ink-dim: var(--color-slate-500);
+  --scene-line: var(--color-line-soft);
+  --scene-accent: var(--color-emerald);
+  --scene-title: var(--color-emerald);
+}
+.scene[data-scene="light"] {
+  background:
+    radial-gradient(1100px 520px at 88% -8%, rgba(15, 81, 50, 0.07), transparent 62%),
+    radial-gradient(900px 460px at 4% 108%, rgba(169, 134, 63, 0.06), transparent 58%),
+    var(--color-snow);
+}
+/* Faint diagonal weave behind light scenes (dunya-style watermark), kept very subtle. */
+.scene[data-scene="light"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'><path d='M0 44 L44 0 M-11 11 L11 -11 M33 55 L55 33' stroke='rgba(15,81,50,0.045)' stroke-width='1'/></svg>");
 }
 
 /* ----------------------------------------------------------------

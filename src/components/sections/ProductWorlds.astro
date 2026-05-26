@@ -5,6 +5,9 @@
 import { getCollection } from "astro:content";
 import { site } from "../../lib/site";
 
+interface Props { scene?: string }
+const { scene = "black" } = Astro.props;
+
 type Item = { id: string; name: string; category: string; weight?: string; image?: string; order: number };
 
 let products: Item[] = [];
@@ -30,8 +33,8 @@ const ranges = site.productCategories.map((cat) => ({
 }));
 ---
 
-<section id="worlds" class="scene worlds" data-scene="black" aria-label="Product worlds">
-  <div class="grain" aria-hidden="true"></div>
+<section id="worlds" class="scene worlds" data-scene={scene} aria-label="Product worlds">
+  <div class={`grain${scene === "light" ? " grain--dark" : ""}`} aria-hidden="true"></div>
   <div class="container-x">
     <div class="worlds__head grid-ed grid-ed--7-5">
       <div>
@@ -73,7 +76,7 @@ const ranges = site.productCategories.map((cat) => ({
   ))}
 
   <div class="container-x worlds__foot">
-    <a href="/products/" class="btn btn-secondary-light">View the full catalogue</a>
+    <a href="/products/" class={`btn ${scene === "light" ? "btn-secondary" : "btn-secondary-light"}`}>View the full catalogue</a>
   </div>
 </section>
 
@@ -83,10 +86,10 @@ const ranges = site.productCategories.map((cat) => ({
 </script>
 
 <style>
-  .worlds { --scene-pad: clamp(4rem, 9vw, 7.5rem); overflow: clip; }
+  .worlds { --scene-pad: clamp(2.75rem, 6vw, 4.5rem); overflow: clip; }
 
-  .worlds__head { align-items: end; margin-block-end: clamp(2.5rem, 6vw, 4rem); }
-  .worlds__title { color: var(--scene-ink); margin-block-start: 0.5rem; }
+  .worlds__head { align-items: end; margin-block-end: clamp(1.5rem, 3vw, 2.5rem); }
+  .worlds__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.5rem; }
   .worlds__lede { font-size: var(--text-body-lg); line-height: 1.6; max-inline-size: 44ch; }
 
   .worlds__range { position: relative; z-index: 1; margin-block-end: clamp(2.5rem, 6vw, 4.5rem); }
@@ -102,7 +105,7 @@ const ranges = site.productCategories.map((cat) => ({
     font-size: clamp(2.25rem, 6vw, 4.5rem);
     font-weight: 800;
     line-height: 0.85;
-    color: var(--scene-ink);
+    color: var(--scene-title, var(--scene-ink));
     text-transform: uppercase;
     letter-spacing: -0.01em;
   }
@@ -137,6 +140,13 @@ const ranges = site.productCategories.map((cat) => ({
     background:
       radial-gradient(80% 60% at 50% 38%, rgba(169, 134, 63, 0.22), transparent 70%),
       var(--color-char-900);
+  }
+  /* Light scene: white tile with a soft shadow + faint emerald wash, instead of the dark tile. */
+  .worlds[data-scene="light"] .worlds__media {
+    background:
+      radial-gradient(75% 60% at 50% 32%, rgba(15, 81, 50, 0.06), transparent 70%),
+      #ffffff;
+    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 16px 30px -22px rgba(22, 19, 17, 0.22);
   }
   .worlds__media img {
     position: absolute;

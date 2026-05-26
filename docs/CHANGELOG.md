@@ -4,6 +4,17 @@ One-line entries per ship. Most recent at the top. "v" is an iteration label, no
 
 ---
 
+## v9 — Lighter, friendlier homepage + Clash Display (2026-05-26, IN PROGRESS)
+
+Owner feedback after v8: the Bodoni headings read too formal/AI, and the all-dark site felt too heavy for a food brand. Two changes, homepage first so the owner can confirm before rollout.
+
+- **9.1 Headings → Clash Display.** Replaced Bodoni Moda with **Clash Display** (Fontshare CDN in `Base.astro`); Archivo kept for body. `--font-display` updated; type helpers retuned for a grotesk (tighter tracking, weights 600/700, dropped the Bodoni `opsz` settings). Applied site-wide.
+- **9.2 Light-dominant homepage.** Added `--color-snow #f7f6f3` (clean near-white, not beige) + `--color-line-soft`, and a `data-scene="light"` theme (emerald `--scene-title`, soft emerald/brass radial glow + faint diagonal weave `::before`). Gave the scene components a `scene` prop so the page controls theme per instance. Homepage `index.astro` passes `scene="light"` to OperationalStrip / ProductionStory / ProductWorlds / HalalConfidence; Hero + ExportCTA + TrustArtifacts + Footer stay dark as punctuation. Emerald headings on light, white product tiles (`.worlds[data-scene="light"]`), tightened scene padding so the light sections no longer feel marooned. Reference: dunyaholding's warm off-white + coloured headings + faint watermark.
+- **Hero headline** changed earlier this pass to "Everybody loves / Melek Halal Food." (two fixed lines).
+- **STILL OPEN (next session):** owner dislikes the lower dark containers (ExportCTA / TrustArtifacts / Footer) against the lightened page — needs another rework. Then roll the light theme + Clash to products / detail / about, then the form pages. See `PLANNER.md`.
+
+---
+
 ## v8 — Cinematic anti-AI homepage, vertical slice (2026-05-24)
 
 The owner asked for a complete anti-AI overhaul: the bone/cream + Fraunces/Inter + repeating "eyebrow → headline → card grid" homepage read as AI-generated. This pass rebuilds the top of the homepage (scenes 01-04) into an editorial, dark-cinematic flow and leaves the lower sections for later passes. Three old CLAUDE.md rules were deliberately overridden (two-fonts=Fraunces+Inter, bone/cream palette, flat-dark + wave-divider alternation); docs updated to match.

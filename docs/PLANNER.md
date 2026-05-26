@@ -2,9 +2,20 @@
 
 Snapshot of where the project is, what is locked in, and what is left. Update this file at the end of any working session so the next pickup is fast.
 
-Last updated: 2026-05-25 (v8 cinematic homepage complete + docs made canonical; migrating internal pages next).
+Last updated: 2026-05-26 (homepage moving to light-dominant + Clash Display headings; WORK IN PROGRESS).
 
-**Current direction: the v8 cinematic dark system in `STYLEGUIDE.md` is canonical for the whole site.** The homepage is fully migrated. Next, in order: (1) `/products/` catalog, (2) `/products/[slug]/` detail, (3) `/about/`, then the form pages. Each must use the dark scene system, the two new faces, the editorial primitives, and the anti-AI rules (no scene numbering, no SKU counts, uniform tiles, watch empty space, dark cuts not wave dividers).
+**Current direction (v9, in progress): lighter homepage + new heading font.**
+- All four core pages (home, products, product detail, about) were migrated to the dark cinematic system in v8.
+- The owner then asked for two changes: (a) replace the Bodoni Moda headings with **Clash Display** (Fontshare; Archivo kept for body) — done site-wide via `--font-display`; (b) the site felt **too dark** — so the **homepage** now runs **light-dominant**.
+- Homepage layout now: **dark** Hero + **dark** ExportCTA / TrustArtifacts / Footer as punctuation; the four middle scenes (OperationalStrip, ProductionStory, ProductWorlds, HalalConfidence) flipped to **light** via a `scene` prop (`scene="light"` passed from `index.astro`). Light scenes use `--color-snow #f7f6f3` (NOT beige) with a soft emerald/brass radial glow + a faint diagonal weave (`.scene[data-scene="light"]` + `::before` in `global.css`), **emerald headings** (`--scene-title`), and **white product tiles** (`.worlds[data-scene="light"] .worlds__media`).
+
+### NOT DONE — pick up here next session
+1. **The lower dark containers still need rework** — the owner does not like ExportCTA / TrustArtifacts / Footer as they are now (too dark against the lightened page). Rework them (likely lighten/restyle, or a different treatment) so the bottom of the homepage matches the new lighter feel.
+2. **Roll the light-dominant theme + Clash to the other pages** (products, product detail, about) — they are still fully dark. Each scene component already takes a `scene` prop; pass `scene="light"` where appropriate and adjust.
+3. Then the **form/legal pages** (distributors, samples, contact, legal) — still legacy bone.
+
+### Locked decisions
+Clash Display (headings) + Archivo (body). Light-dominant homepage (near-white `--color-snow`, not beige). Emerald headings on light. Tagline kept ("Halal, perfected. Crafted in Europe."). City = Amsterdam. Product tiles: dark on dark scenes, white on light scenes.
 
 ---
 

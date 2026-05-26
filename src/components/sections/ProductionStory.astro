@@ -3,6 +3,8 @@
 // A pinned, documentary sequence: a sticky facility visual cross-dissolves through four beats
 // while the narrative scrolls beside it. Facility stills are dunya placeholders (cleared for use),
 // pulled onto the Melek palette with a dark duotone treatment until brand footage exists.
+interface Props { scene?: string }
+const { scene = "black" } = Astro.props;
 const beats = [
   {
     no: "01",
@@ -35,8 +37,8 @@ const beats = [
 ];
 ---
 
-<section class="scene story" data-scene="black" id="story" aria-label="The production story">
-  <div class="grain" aria-hidden="true"></div>
+<section class="scene story" data-scene={scene} id="story" aria-label="The production story">
+  <div class={`grain${scene === "light" ? " grain--dark" : ""}`} aria-hidden="true"></div>
   <div class="container-x">
     <header class="story__head">
       <p class="op-label ink-dim">The production story</p>
@@ -95,12 +97,11 @@ const beats = [
 </script>
 
 <style>
-  .story { --scene-pad: clamp(4rem, 9vw, 8rem); overflow: clip; }
+  .story { --scene-pad: clamp(2.75rem, 6vw, 4.5rem); overflow: clip; }
 
-  .story__head { display: flex; flex-direction: column; gap: 0.5rem; margin-block-end: clamp(2.5rem, 6vw, 4.5rem); }
-  .story__idx { font-size: clamp(2.25rem, 6vw, 4rem); color: var(--scene-accent); line-height: 0.8; }
+  .story__head { display: flex; flex-direction: column; gap: 0.5rem; margin-block-end: clamp(1.75rem, 3vw, 2.75rem); }
   .story__title {
-    color: var(--scene-ink);
+    color: var(--scene-title, var(--scene-ink));
     max-inline-size: 18ch;
     margin-block-start: 0.5rem;
   }
@@ -165,7 +166,7 @@ const beats = [
     font-size: clamp(1.6rem, 3vw, 2.4rem);
     font-weight: 600;
     line-height: 1.1;
-    color: var(--scene-ink);
+    color: var(--scene-title, var(--scene-ink));
     margin-block-end: 0.75rem;
   }
   .story__beat-body { font-size: var(--text-body-lg); line-height: 1.6; max-inline-size: 46ch; }
