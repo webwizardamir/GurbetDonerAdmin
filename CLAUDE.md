@@ -399,10 +399,10 @@ verlegdLabel: { fontFamily: 'Helvetica-Bold' },
 ## Key Business Rules
 
 ### Stock Management
-1. Stock deducted when order is **created** (not on delivery)
-2. Cancelled orders restore stock (if before delivery)
-3. Refunds restore stock (full or partial based on refunded quantities)
-4. FIFO or FEFO (soonest expiry first) for batch consumption
+1. Stock deducted when order is **created** (not on delivery) — via the `order_items` insert trigger
+2. Cancelled orders restore stock — the `handle_order_status_change` trigger restores the **not-yet-refunded** units (see **Refunds**)
+3. Refunds restore stock per refunded unit (handled by `create_order_refund`, not the status trigger — see **Refunds**)
+4. Implemented stock model is a simple `products.stock_quantity` counter (batch/FIFO/FEFO tables exist but are not wired into the live deduct/restore path)
 
 ### Pricing
 1. Products support multiple unit types (kg, piece, zak, doos) with independent pricing
@@ -425,6 +425,19 @@ verlegdLabel: { fontFamily: 'Helvetica-Bold' },
 2. Separate sequences: Invoice, Proforma, Credit Note
 3. Required fields for Dutch/EU compliance
 4. No order locking after invoice - but all changes logged
+5. The **Credit Nota** reflects what was actually refunded: when refund rows exist, `buildInvoiceData` rebuilds the credit note's lines/totals from the cumulative `order_refund_items` (not the whole order); a plain cancellation with no refund rows falls back to the full order
+
+### Refunds (in-app, full + partial)
+Issued from the order detail panel (Orders page → open an order → **Terugbetalen** → `RefundModal`). Deliberately separate from the status buttons.
+
+1. **`create_order_refund` RPC** (added in migration `00050`, superseded by `00051`) does everything atomically: guards with `is_admin_user()` (Owner **and** Shop Manager may refund), recomputes each line amount **server-side** from the immutable `order_items` snapshot (`total` / `tax_amount`, which already include any line discount), inserts `order_refunds` (gross incl. VAT) + `order_refund_items` (ex-VAT subtotal + tax), increments `orders.refund_amount`, and restores stock per refunded unit (`track_stock` products only). The client only sends `{ order_item_id, quantity }[]` — it can never set the amount.
+2. **Status:** a **full** refund (cumulative `refund_amount >= total`) flips order status to `refunded`; a **partial** refund keeps the order's status and is surfaced via a "Gedeeltelijk terugbetaald" badge (Orders list + OrderDetail). There is no "partially refunded" status in the enum by design.
+3. **Stock-trigger interaction (do not break):** `handle_order_status_change` (migration `00051`) does **NOT** touch stock on the `refunded` transition — the RPC already restored per unit, so reacting to the flip would double-restore. The `cancelled` path restores only the **not-yet-refunded** units. Never re-add a `refunded` stock branch to that trigger.
+4. **Guards:** per line (≤ original qty − already refunded) and per order (cumulative ≤ `total`); cancelled orders can't be refunded.
+5. **Analytics:** a fully-refunded order (status `refunded`) is excluded from the `sold` set and its refund items are not subtracted again — matching the WooCommerce-import convention. Partial refunds stay in `sold` with the refunded portion subtracted. This is why full refunds flip status rather than staying `completed`.
+
+### Profit Visibility
+- Owner-only. The customer detail page shows an all-time **profit** card (with gross margin), sourced from the **server-gated** `get_customer_items_summary` RPC, which returns `NULL` profit for non-owners. Never fetch cost/profit client-side for a Shop Manager — gate it in the RPC, not just the UI (see `BUGS_AND_FIXES.md`).
 
 ### Roles
 | Permission | Owner | Shop Manager |

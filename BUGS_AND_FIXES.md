@@ -433,3 +433,26 @@ Any `useState` toggle that also triggers a conditional side-effect must compute 
 ### LOW reference: branded `ConfirmDialog` component
 
 The price-list pages used to call `window.confirm()` and `window.alert()` for destructive actions — those break dark mode and look unbranded. New component `src/components/ui/ConfirmDialog.tsx` (open boolean + title/message/onConfirm/onCancel + `'default'`/`'danger'` variant) is the replacement. Going forward, prefer it everywhere over native `confirm()`/`alert()`.
+
+---
+
+## In-app refunds
+
+### Gotcha: refund stock restore vs. the order status trigger (double-restore)
+
+**Context:**
+`handle_order_status_change` (originally migration `00017`) restored the **full** stock of an order whenever its status entered `('cancelled','refunded')`. When the in-app refund feature (`create_order_refund`, migration `00050`) was added, it restored stock **per refunded unit**. If a full refund then also set the status to `refunded`, both mechanisms fired → stock restored twice.
+
+**Wrong first cut (00050):**
+Avoided the conflict by *not* changing status on refund and deriving "fully refunded" from `refund_amount`. Correct for stock/analytics, but the Orders list/filters never showed the order as refunded — confusing for the user.
+
+**Fix (migration `00051`):**
+- The refund RPC flips status to `refunded` only on a **full** refund (partial keeps status + a UI badge).
+- `handle_order_status_change` was rewritten to **ignore the `refunded` transition entirely** (refunds own their stock), and to restore only the **not-yet-refunded** units on `cancelled` (so a partially-refunded order that is later cancelled doesn't over-restore). A one-time backfill marked already-fully-refunded orders as `refunded`.
+
+**Prevention:**
+There must be exactly **one** owner of stock for any state change. Refunds own per-unit restoration; the status trigger owns whole-order cancel. Never re-add a `refunded` branch to the status trigger, and if you add another refund/return path, route its stock through `create_order_refund` rather than a second trigger.
+
+### Reference: profit must be gated in the RPC, not the UI
+
+The customer detail **profit card** (owner-only) sums `get_customer_items_summary`, which returns `NULL` profit for non-owners server-side (see the Phase 3-4 hardening above). The card is also hidden in the UI for non-owners, but the server gate is what actually protects the data — a Shop Manager calling the RPC directly still gets no profit. Apply this to any new surface that shows cost/profit.

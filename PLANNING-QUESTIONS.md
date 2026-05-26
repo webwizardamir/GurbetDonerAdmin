@@ -1,6 +1,8 @@
 # MelekHalalFood — Major Feature Round Planning
 
-> **Status (2026-05-23):** Phases 0–6 done. Only blocker is Phase 5's **Resend API key + verified sender domain** (UI complete, mail can't actually send until secrets are set). Polish sweep done. Two post-Phase-6 refinements shipped (Sold Products redesign + price-list scoped order picker). No active workstream — see **Recent refinements** + **Current state** for what's live and what's deferred.
+> **Status (2026-05-26):** Phases 0–6 done. Only blocker is Phase 5's **Resend API key + verified sender domain** (UI complete, mail can't actually send until secrets are set). Polish sweep done. Post-Phase-6 refinements shipped (Sold Products redesign, price-list scoped order picker, customer profit card, and an **in-app refund feature** — full + partial — see **Recent refinements (2026-05-26)**). No active workstream — see **Recent refinements** + **Current state** for what's live and what's deferred.
+>
+> **Unapplied migrations:** `00049` (RPC indexes), `00050` + `00051` (in-app refunds). The user applies migrations manually in Supabase Studio; confirm these are applied before relying on the refund feature.
 
 ---
 
@@ -22,6 +24,14 @@ Two post-Phase-6 improvements requested after testing:
 1. **Sold Products grouped-sections redesign** (`0574e1b`) — the Group-by-City/Customer view was a per-card `<table>`; columns didn't line up across expanded cards and the Categorie column was redundant. Replaced with a CSS-grid `<ul>` using an identical fixed column template on every card (so qty/revenue align by construction), header totals as metric chips, no table chrome, revenue tucks under product name on mobile. Driver-routing PDF (`SoldProductsTemplate.tsx`) intentionally left unchanged. Done from a UI/UX-agent spec.
 
 2. **Price-list scoped order product picker** (`17b2ff4`) — when the selected customer is on an **active** price list, the OrderForm product search now only shows products that are on that list (the list = that customer's catalog). No list / inactive list → all products, as before. Purple scope note under the search box explains it. Reuses the already-preloaded `listItems` map. `ProductSearch` gained `allowedProductIds` + `scopeNote` props.
+
+---
+
+## 🆕 Recent refinements (2026-05-26)
+
+1. **Customer profit card** (`d4cf5ab`) — owner-only all-time profit + gross margin on the customer detail page, next to Total Revenue. Sourced from the server-gated `get_customer_items_summary` RPC (NULL profit for non-owners), so cost data never reaches a Shop Manager. Grid switches to 5 columns for owners.
+
+2. **In-app refunds — full + partial** (`d4cf5ab`, `4b16679`) — before this, refunds only existed as WooCommerce-imported data; there was no way to refund a live order. Now: Orders page → open an order → **Terugbetalen** opens `RefundModal` (pick items/quantities or full, reason, date, restore-stock toggle). The `create_order_refund` RPC (**migration 00050**) recomputes amounts server-side from the immutable `order_items` snapshot, records `order_refunds` + `order_refund_items`, bumps `orders.refund_amount`, and restores stock per refunded unit. **Migration 00051** then made a full refund flip status to `refunded` (partial keeps status + a "Gedeeltelijk terugbetaald" badge), rewrote `handle_order_status_change` so the `refunded` transition no longer touches stock (refunds own their stock; cancel restores only not-yet-refunded units), and backfilled already-fully-refunded orders. The Credit Nota now appears whenever `refund_amount > 0` and `buildInvoiceData` makes it reflect the refunded lines. See **Key Business Rules → Refunds** in `CLAUDE.md` and the refund gotcha in `BUGS_AND_FIXES.md`.
 
 ---
 
