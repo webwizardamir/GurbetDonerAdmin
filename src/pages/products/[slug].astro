@@ -34,14 +34,13 @@ const related: RelatedItem[] = (allProducts as Array<{ id: string } & ProductDat
 const facts = [
   { k: "Unit weight", v: data.weight ?? "On request" },
   { k: "Certification", v: "Halal · BRC · IFS" },
-  { k: "Origin", v: "Amsterdam, Netherlands" },
   { k: "Packaging", v: "Retail and HoReCa cases on request" },
 ];
 ---
 
 <Base
   title={data.name}
-  description={data.tagline ?? `Halal ${data.name}, made in the Netherlands.`}
+  description={data.tagline ?? `Halal ${data.name}.`}
   bodyClass="page-light"
 >
   <article class="scene pd" data-scene="light">
@@ -140,16 +139,16 @@ const facts = [
     border: 1px solid var(--scene-line);
     /* White presentation tile with a faint emerald wash + soft lift (light system). */
     background:
-      radial-gradient(70% 60% at 50% 38%, rgba(15, 81, 50, 0.06), transparent 70%),
+      radial-gradient(70% 60% at 50% 38%, rgba(0, 48, 12, 0.06), transparent 70%),
       #ffffff;
-    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 26px 50px -34px rgba(15, 81, 50, 0.3);
+    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 26px 50px -34px rgba(0, 48, 12, 0.3);
     display: flex; align-items: center; justify-content: center;
   }
   .pd__media img {
     inline-size: 82%; block-size: 82%; object-fit: contain;
     filter: drop-shadow(0 22px 30px rgba(22, 19, 17, 0.18));
   }
-  .pd__placeholder { font-size: clamp(4rem, 10vw, 7rem); font-weight: 800; color: rgba(15, 81, 50, 0.14); }
+  .pd__placeholder { font-size: clamp(4rem, 10vw, 7rem); font-weight: 800; color: rgba(0, 48, 12, 0.14); }
 
   .pd__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.6rem; }
   .pd__tag { margin-block-start: 1rem; max-inline-size: 46ch; font-size: var(--text-body-lg); line-height: 1.6; }
@@ -198,7 +197,7 @@ const facts = [
   .cat-card__media {
     position: relative; aspect-ratio: 4 / 5; border-radius: var(--radius-lg); overflow: hidden;
     border: 1px solid var(--scene-line);
-    background: radial-gradient(75% 60% at 50% 32%, rgba(15, 81, 50, 0.06), transparent 70%), #ffffff;
+    background: radial-gradient(75% 60% at 50% 32%, rgba(0, 48, 12, 0.06), transparent 70%), #ffffff;
     box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 16px 30px -22px rgba(22, 19, 17, 0.22);
   }
   .cat-card__media img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; padding: clamp(1rem, 2vw, 1.5rem); transition: transform 0.6s var(--ease-out-expo); }

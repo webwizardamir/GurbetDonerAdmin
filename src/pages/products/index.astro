@@ -38,10 +38,9 @@ const grouped = site.productCategories.map((c) => ({
     <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x cat-hero__grid grid-ed grid-ed--7-5">
       <div>
-        <h1 id="cat-hero-title" class="cat-hero__title text-hero">Built to specification.</h1>
+        <h1 id="cat-hero-title" class="cat-hero__title text-hero">Our products.</h1>
         <p class="cat-hero__lede ink-dim">
-          Chicken, beef and snacks, produced in the Netherlands to retail specification,
-          halal-certified and shipped pallet-ready across Europe.
+          Halal chicken, beef and snacks, shipped across Europe.
         </p>
         <nav class="cat-hero__filter" aria-label="Jump to range">
           <a href="#all" class="cat-filter is-active" data-filter="all">All</a>
@@ -53,9 +52,8 @@ const grouped = site.productCategories.map((c) => ({
 
       <div class="cat-hero__aside">
         <ul class="cat-hero__facts">
-          <li><span class="op-label text-accent">Halal · BRC · IFS</span><span class="ink-dim">Independently certified</span></li>
-          <li><span class="op-label text-accent">Netherlands</span><span class="ink-dim">Produced and frozen on site</span></li>
-          <li><span class="op-label text-accent">EU-wide</span><span class="ink-dim">Cold chain, pallet-ready</span></li>
+          <li><span class="op-label text-accent">Halal · BRC · IFS</span><span class="ink-dim">Certified</span></li>
+          <li><span class="op-label text-accent">Across Europe</span><span class="ink-dim">Shipped to distributors and shops</span></li>
         </ul>
         <a href="/distributors/" class="btn btn-primary cat-hero__cta">
           Request the full catalogue
@@ -123,7 +121,7 @@ const grouped = site.productCategories.map((c) => ({
 
 <style>
   /* Catalog hero. main reserves the fixed-header height on light pages, so just add breathing room. */
-  .cat-hero { --scene-pad: 0; padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3rem, 6vw, 5rem); }
+  .cat-hero { --scene-pad: 0; padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(2rem, 4vw, 3.25rem); }
   .cat-hero__grid { align-items: end; }
   .cat-hero__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.6rem; max-inline-size: 12ch; }
   .cat-hero__lede { margin-block-start: 1.1rem; max-inline-size: 46ch; font-size: var(--text-body-lg); line-height: 1.6; }
@@ -163,7 +161,7 @@ const grouped = site.productCategories.map((c) => ({
   /* Offset anchor jumps so the fixed header does not cover the range heading. */
   .cat-anchor { position: relative; }
   .cat-range { scroll-margin-block-start: var(--header-h); }
-  .cat-range { --scene-pad: clamp(3rem, 6vw, 5rem); }
+  .cat-range { --scene-pad: clamp(2rem, 4vw, 3.25rem); }
 
   .cat-range__head {
     display: flex;
@@ -227,7 +225,7 @@ const grouped = site.productCategories.map((c) => ({
     border: 1px solid var(--scene-line);
     /* White tile with a faint emerald wash + soft lift, matching the homepage light tiles. */
     background:
-      radial-gradient(75% 60% at 50% 32%, rgba(15, 81, 50, 0.06), transparent 70%),
+      radial-gradient(75% 60% at 50% 32%, rgba(0, 48, 12, 0.06), transparent 70%),
       #ffffff;
     box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 16px 30px -22px rgba(22, 19, 17, 0.22);
   }

@@ -1,22 +1,18 @@
 ---
 import Base from "../layouts/Base.astro";
 import Hero from "../components/sections/Hero.astro";
-import OperationalStrip from "../components/sections/OperationalStrip.astro";
+import CertMarquee from "../components/sections/CertMarquee.astro";
 import ProductionStory from "../components/sections/ProductionStory.astro";
 import ProductWorlds from "../components/sections/ProductWorlds.astro";
-import HalalConfidence from "../components/sections/HalalConfidence.astro";
 import ExportCTA from "../components/sections/ExportCTA.astro";
-import TrustArtifacts from "../components/sections/TrustArtifacts.astro";
 ---
 
 <Base bodyClass="has-dark-hero">
   <Hero />
-  <OperationalStrip scene="light" />
+  <CertMarquee />
   <ProductionStory scene="light" />
   <ProductWorlds scene="light" />
-  <HalalConfidence scene="light" />
   <ExportCTA />
-  <TrustArtifacts />
 </Base>
 
 <script>

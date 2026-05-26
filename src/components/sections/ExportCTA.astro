@@ -4,9 +4,9 @@
 import { site } from "../../lib/site";
 
 const flow = [
-  { phase: "Tell us your market", note: "Country, channels, approximate volume" },
-  { phase: "We propose a range", note: "Range, indicative pricing, lead times" },
-  { phase: "Sample & certify", note: "Sample box, certificates, technical sheets" },
+  { phase: "Tell us your market" },
+  { phase: "We send a range and pricing" },
+  { phase: "Samples and certificates" },
 ];
 ---
 
@@ -16,12 +16,11 @@ const flow = [
     <div class="scene-panel scene-panel--deep xcta__panel">
       <div class="xcta__top grid-ed grid-ed--7-5">
         <div class="xcta__lead">
-          <h2 id="xcta-title" class="xcta__title">Already exporting? Add a halal range that moves.</h2>
+          <h2 id="xcta-title" class="xcta__title">Want to stock Melek?</h2>
         </div>
         <div class="xcta__side">
           <p class="xcta__sub ink-dim">
-            Tell us about your market, your channels and your volume. We come back with a range
-            proposal, indicative pricing and the certificates your buyers will ask for.
+            Tell us your market and we'll put together a range, pricing and samples.
           </p>
           <div class="xcta__actions">
             <a href="/distributors/" class="btn btn-primary">
@@ -38,7 +37,6 @@ const flow = [
           <div class="xcta__step" role="listitem" data-reveal>
             {i > 0 && <span class="xcta__arrow" aria-hidden="true">&rarr;</span>}
             <span class="xcta__phase">{f.phase}</span>
-            <span class="op-label ink-dim xcta__note">{f.note}</span>
           </div>
         ))}
       </div>
@@ -56,7 +54,7 @@ const flow = [
 </script>
 
 <style>
-  .xcta { --scene-pad: clamp(4rem, 9vw, 7rem); }
+  .xcta { --scene-pad: clamp(2.5rem, 5vw, 4rem); }
   .xcta__top { align-items: end; }
 
   .xcta__title {

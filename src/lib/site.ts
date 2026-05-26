@@ -8,8 +8,8 @@ export const site = {
   url: "https://melekhalalfood.nl",
   tagline: "Halal, perfected. Crafted in Europe.",
   description:
-    "Premium halal frozen foods produced in the Netherlands and shipped across Europe. Chicken, beef and snack ranges for distributors, retailers and HoReCa partners.",
-  origin: "Netherlands",
+    "Halal frozen chicken, beef and snacks for distributors, retailers and HoReCa partners across Europe.",
+  origin: "Europe",
   reach: "Across Europe",
   email: "info@melekhalalfood.nl",
   emailGeneral: "info@melekhalalfood.nl",
@@ -26,6 +26,7 @@ export const site = {
     linkedin: "https://www.linkedin.com/company/melekhalalfood",
   },
   nav: [
+    { label: "Home", href: "/" },
     { label: "Products", href: "/products/" },
     { label: "About", href: "/about/" },
     { label: "Distributors", href: "/distributors/" },
@@ -35,23 +36,20 @@ export const site = {
     {
       slug: "chicken",
       name: "Chicken",
-      tagline: "Halal-certified poultry, prepared with precision.",
-      description:
-        "Marinated kebab, hand-crafted nuggets, succulent tenders, wings and schnitzel. Produced under strict halal protocols and built for foodservice.",
+      tagline: "Halal chicken.",
+      description: "Kebab, nuggets, tenders, wings and schnitzel.",
     },
     {
       slug: "beef",
       name: "Beef",
-      tagline: "Robust, deeply flavoured cuts and formed beef.",
-      description:
-        "Sahara-style beef kebab, cevapcici, köfte and char-ready burgers. Sourced and processed for consistency at scale.",
+      tagline: "Halal beef.",
+      description: "Beef kebab, cevapcici, köfte and burgers.",
     },
     {
       slug: "snacks",
       name: "Snacks",
-      tagline: "Crispy frozen favourites that keep moving.",
-      description:
-        "Mozzarella sticks, kipcorn, frikandel, falafel. The high-rotation snack range every cabinet needs.",
+      tagline: "Crispy frozen snacks.",
+      description: "Mozzarella sticks, kipcorn, frikandel, falafel and more.",
     },
   ],
 } as const;

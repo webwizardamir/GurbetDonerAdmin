@@ -22,7 +22,7 @@ Last updated: 2026-05-26 (whole site migrated to the light system: homepage, pro
 3. **Optional revisit:** the homepage header, when scrolled, is still a dark emerald-black bar over the now-light page (owner checking with his team).
 
 ### Locked decisions
-Manrope (headings) + Archivo (body). Light-dominant site, **pure-white** `--color-snow #fff`. Greeny (emerald-black) header on every page. No eyebrow pre-headings, no hero fact ledgers, no SKU counts. Emerald headings on light. Inset boxed panels (`.scene-panel`, soft emerald tint + decorative top shape), one per page. Tagline kept ("Halal, perfected. Crafted in Europe."). City = Amsterdam. Product tiles: white on light scenes.
+**Simplicity Pro (Semplicita Pro), self-hosted — one face for everything.** Reference-site palette: **cream** `--color-snow #FDFCF4`, **forest green** `#00300C` (headings/header/hero), **medium green** `#4f7f47` (CTA/links), **lime** `#A9DD72` accent. Greeny (forest-green) header on every page (+ **Home** in nav). Cert **marquee** under the hero on the homepage (Halal·BRC·IFS·HACCP·ISO 22000) replaces the cert section; homepage flow Hero → CertMarquee → ProductionStory → ProductWorlds → ExportCTA. **Plain, friendly, short copy — do not insist on being good/certified.** **Food is NOT made in the Netherlands** (NL = company base only; never claim a production location). No eyebrow pre-headings, no hero fact ledgers, no SKU counts. Emerald headings on light. Inset boxed panels (`.scene-panel`), one per page. Leaner homepage (Hero → ProductionStory → ProductWorlds → TrustArtifacts → ExportCTA). Tagline kept ("Halal, perfected. Crafted in Europe."). Product tiles: white on light scenes.
 
 ---
 

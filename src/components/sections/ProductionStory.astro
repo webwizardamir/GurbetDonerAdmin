@@ -7,30 +7,10 @@
 interface Props { scene?: string }
 const { scene = "black" } = Astro.props;
 const beats = [
-  {
-    title: "Sourcing",
-    img: "/images/facility/line-3.jpg",
-    alt: "Production facility, the Netherlands",
-    body: "Halal-certified raw material arrives under specification. Every intake is logged against the lot it will become.",
-  },
-  {
-    title: "Production",
-    img: "/images/facility/line-2.jpg",
-    alt: "Production floor in operation",
-    body: "Portioning, forming and coating run to fixed tolerances. The line is built for repeatability, shift after shift.",
-  },
-  {
-    title: "Quality release",
-    img: "/images/facility/exterior-1.jpg",
-    alt: "Quality control area",
-    body: "Weight, coating and core temperature are checked, not assumed. No pallet leaves the floor without a signed release.",
-  },
-  {
-    title: "Logistics",
-    img: "/images/facility/line-1.jpg",
-    alt: "Cold-chain dispatch",
-    body: "Frozen, palletised and loaded with the cold chain intact, then shipped to distributors across Europe.",
-  },
+  { title: "Sourced", img: "/images/facility/line-3.jpg", alt: "Sourcing", body: "We work with trusted halal suppliers." },
+  { title: "Selected", img: "/images/facility/line-2.jpg", alt: "Selection", body: "We pick the products that meet our standard." },
+  { title: "Checked", img: "/images/facility/exterior-1.jpg", alt: "Quality checks", body: "Quality-checked before it ships." },
+  { title: "Delivered", img: "/images/facility/line-1.jpg", alt: "Dispatch", body: "Frozen and shipped across Europe." },
 ];
 ---
 
@@ -38,9 +18,9 @@ const beats = [
   <div class={`grain${scene === "light" ? " grain--dark" : ""}`} aria-hidden="true"></div>
   <div class="container-x">
     <header class="story__head grid-ed grid-ed--7-5">
-      <h2 class="story__title text-display">From intake to pallet, held to one standard.</h2>
+      <h2 class="story__title text-display">From source to freezer.</h2>
       <p class="story__lede ink-dim">
-        One specification, from raw intake to the loading bay. Four stages, the same discipline at each.
+        From our suppliers to your freezer, in four steps.
       </p>
     </header>
 
@@ -50,7 +30,6 @@ const beats = [
           {beats.map((b, i) => (
             <img src={b.img} alt="" class={`story__img${i === 0 ? " is-active" : ""}`} loading="lazy" decoding="async" />
           ))}
-          <span class="story__media-tag op-label">Amsterdam, NL</span>
           <div class="story__media-overlay">
             <span class="story__media-step" data-story-step>{beats[0].title}</span>
             <span class="story__progress" data-story-progress>
@@ -111,7 +90,7 @@ const beats = [
 </script>
 
 <style>
-  .story { --scene-pad: clamp(2.75rem, 6vw, 4.5rem); overflow: clip; }
+  .story { --scene-pad: clamp(2rem, 4vw, 3.25rem); overflow: clip; }
 
   .story__head { align-items: end; margin-block-end: clamp(2rem, 4vw, 3.25rem); }
   .story__title {
@@ -132,7 +111,7 @@ const beats = [
       border-radius: var(--radius-lg);
       overflow: hidden;
       border: 1px solid var(--scene-line);
-      box-shadow: 0 30px 60px -50px rgba(15, 81, 50, 0.4);
+      box-shadow: 0 30px 60px -50px rgba(0, 48, 12, 0.4);
     }
   }
   .story__img {

@@ -13,16 +13,11 @@ const year = new Date().getFullYear();
 
 <footer class="site-footer">
   <div class="container-x section-sm">
-    <div class="footer__masthead">
-      <p class="footer__statement">Halal frozen food, made in the Netherlands. Shipped across Europe.</p>
-    </div>
-
     <div class="footer__grid">
       <div class="footer__brand">
         <img src="/logo.png" alt={site.fullName} width="324" height="150" class="footer__logo" />
         <p class="footer__intro">
-          Halal, perfected. Built in the Netherlands. Premium halal frozen ranges for distributors,
-          retailers and HoReCa partners across Europe.
+          Halal frozen chicken, beef and snacks for distributors, retailers and HoReCa partners across Europe.
         </p>
         <div class="footer__cta">
           <a href="/distributors/" class="btn btn-primary footer__btn">Become a distributor</a>
@@ -73,7 +68,7 @@ const year = new Date().getFullYear();
     </div>
 
     <div class="footer__bar">
-      <p>© {year} {site.fullName}. All rights reserved. Made in the Netherlands.</p>
+      <p>© {year} {site.fullName}. All rights reserved.</p>
       <ul class="footer__legal">
         <li><a href="/legal/privacy/">Privacy</a></li>
         <li><a href="/legal/cookies/">Cookies</a></li>
@@ -235,20 +230,20 @@ const year = new Date().getFullYear();
   body:is(.has-dark-hero, .page-light) .site-footer {
     background: var(--color-panel);
     color: var(--color-slate-700);
-    border-block-start: 1px solid rgba(15, 81, 50, 0.12);
+    border-block-start: 1px solid rgba(0, 48, 12, 0.12);
   }
   body:is(.has-dark-hero, .page-light) .footer__statement { color: var(--color-emerald); }
-  body:is(.has-dark-hero, .page-light) .footer__masthead { border-block-end-color: rgba(15, 81, 50, 0.16); }
+  body:is(.has-dark-hero, .page-light) .footer__masthead { border-block-end-color: rgba(0, 48, 12, 0.16); }
   body:is(.has-dark-hero, .page-light) .footer__ops li { color: var(--color-slate-700); }
   body:is(.has-dark-hero, .page-light) .footer__intro { color: var(--color-slate-700); }
-  body:is(.has-dark-hero, .page-light) .footer__heading { color: var(--color-brass-deep); }
+  body:is(.has-dark-hero, .page-light) .footer__heading { color: var(--color-emerald-deep); }
   body:is(.has-dark-hero, .page-light) .footer__list a,
   body:is(.has-dark-hero, .page-light) .footer__lines a,
   body:is(.has-dark-hero, .page-light) .footer__addr { color: var(--color-slate-700); }
   body:is(.has-dark-hero, .page-light) .footer__list a:hover,
   body:is(.has-dark-hero, .page-light) .footer__lines a:hover { color: var(--color-emerald); }
   body:is(.has-dark-hero, .page-light) .footer__social a {
-    border-color: rgba(15, 81, 50, 0.22);
+    border-color: rgba(0, 48, 12, 0.22);
     color: var(--color-slate-700);
   }
   body:is(.has-dark-hero, .page-light) .footer__social a:hover {
@@ -257,7 +252,7 @@ const year = new Date().getFullYear();
     border-color: var(--color-emerald);
   }
   body:is(.has-dark-hero, .page-light) .footer__bar {
-    border-block-start-color: rgba(15, 81, 50, 0.14);
+    border-block-start-color: rgba(0, 48, 12, 0.14);
     color: var(--color-slate-500);
   }
   body:is(.has-dark-hero, .page-light) .footer__legal a { color: var(--color-slate-500); }

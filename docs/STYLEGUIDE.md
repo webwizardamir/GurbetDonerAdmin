@@ -10,21 +10,21 @@ Source of truth for tokens: `src/styles/tokens.css`. CSS primitives live in `src
 
 ## 1. Brand position
 
-- **Brand**: Melek, a standalone halal frozen-food manufacturer. NL-based, ships across Europe, B2B-led.
-- **Feeling**: editorial, crafted, warm, European, premium. Light and confident, not clinical and not heavy. A premium food house and an export operation, not a SaaS startup. The dark hero opens it like a film, then the page breathes in near-white.
-- **Voice**: documentary and operational. Specific, grounded, sensory, sharp. Procurement-team confidence, not lifestyle copy.
+- **Brand**: Melek, a halal frozen-food brand. NL-based company, ships across Europe, B2B-led. **The food is NOT made in the Netherlands — never claim a production location.**
+- **Feeling**: editorial, crafted, warm, European. Light and confident, not clinical and not heavy. The dark hero opens it like a film, then the page breathes in white.
+- **Voice**: plain and friendly. Short, simple, everyday words. The brand is known locally, so it does not over-sell or insist on being good / certified — say what people need, then stop.
 - **Reference for level**: dunyaholding.com family, executed far higher (Awwwards-grade). The site must not read AI-generated. The scroll should feel **varied and enjoyable**, never a stack of identical bands.
 
 ---
 
 ## 2. Colour
 
-All colours are CSS variables in `tokens.css` (`@theme` block). Use the variable, never a hex inline. The system is **light-dominant**: a white canvas, charcoal ink, emerald as the brand/heading colour, with dark and metal accents used as punctuation.
+All colours are CSS variables in `tokens.css` (`@theme` block). Use the variable, never a hex inline. The system is **light-dominant** on the reference site's palette: a **warm cream** canvas (`--color-snow #FDFCF4`), **forest green** (`--color-emerald-deep / --color-emerald-black #00300C`) for headings + dark / header / hero, **medium green** (`--color-emerald #4f7f47`) for CTAs + links, and a **lime** accent (`--color-lime / --color-gold / --color-brass #A9DD72`) for the marquee, header underline and small pops. Sage panels. **`tokens.css` is the source of truth — some hex in the tables below may lag a rebrand, so trust the tokens.**
 
 ### Light canvas + ink (the default surface)
 | Token | Hex | Use |
 |---|---|---|
-| `--color-snow` | `#ffffff` | **Primary light canvas.** The body of every light scene. Pure white (owner moved off the warm off-white, which still read beige). White tiles/cards lift off it via border + soft shadow; the emerald-tinted panels/footer pop against it. |
+| `--color-snow` | `#FDFCF4` | **Primary light canvas.** Warm cream from the reference site. White/sage tiles, sage panels/footer, and the forest-green + lime accents sit on it. |
 | `--color-panel` | `#e9efe9` | Soft emerald-tinted inset-panel fill (`.scene-panel`) and the homepage footer base. Reads as a crafted block on snow. |
 | `--color-panel-deep` | `#e0e8e1` | Slightly deeper panel tint for an emphasis block (the climactic CTA), `.scene-panel--deep`. |
 | `--color-line-soft` | `#e7e4dd` | Neutral hairline on snow (`--scene-line` on light scenes). |
@@ -67,19 +67,19 @@ Charcoal on snow ≈ 15:1. Emerald `#0f5132` on snow ≈ 7:1 (AA for all text) �
 
 ## 3. Typography
 
-> **Two faces. Manrope + Archivo.** (Heading face history: Fraunces → Bodoni Moda → Clash Display → **Manrope**, the owner's pick.) Never add a third face. Both load via a single Google Fonts `<link>` in `Base.astro`. *(TODO: self-host both to drop the CDN dependency and FOUT.)*
+> **One face. Simplicity Pro (Semplicita Pro)**, self-hosted in `/public/fonts` (`@font-face` in `global.css`), for headings **and** body — the owner's pick, matching the reference site. (History: Fraunces+Inter → Bodoni → Clash → Manrope → Simplicity Pro.) Never add a second/third face.
 
 | Role | Family | Notes |
 |---|---|---|
-| Headlines, scene titles, nav labels, editorial moments | **Manrope** (`--font-display`) | Modern geometric sans, softer than the old Clash. Weights 400–800. Drama from scale + weight, **not** negative tracking; keep `letter-spacing` near 0 (slightly negative on the largest sizes is fine). On light scenes headlines are **emerald** (`--scene-title`). |
-| Body, UI, buttons, operational labels | **Archivo** (`--font-sans`) | Industrial grotesk. Has a `wdth` axis (`100..125`). |
-| Brutalist display caps (range names, big metadata) | **Archivo Expanded** (`--font-grotesk-x` + `.font-x`, `font-stretch: 125%`) | Same family, widened. For loud uppercase moments and text seals. |
+| Headlines, scene titles, nav labels | **Simplicity Pro** (`--font-display`), weight 600–700 | Drama from scale + weight, **not** negative tracking; keep `letter-spacing` near 0. On light scenes headlines are **forest green** (`--scene-title` → `--color-emerald-deep #00300C`). |
+| Body, UI, buttons, labels | **Simplicity Pro** (`--font-sans`), weight 400/500 | Same face. Weights available: 400 (woff/ttf), 400 italic, 500, bold 600–800. |
+| Loud uppercase caps (range names, seals) | **Simplicity Pro** (`--font-grotesk-x` + `.font-x`) | No real width axis now; `.font-x` is just bold uppercase + tracking. |
 | Mono | system stack (`--font-mono`) | Rare code strings only; no webfont. |
 
 ### Type scale (fluid, in `tokens.css`; helpers in `global.css`)
 | Class | Var | Use |
 |---|---|---|
-| `.text-mega` | `--text-mega` `clamp(2.85rem, 9vw, 8.5rem)` | Film-title moments (hero, climactic CTA). Manrope 700/800. |
+| `.text-mega` | `--text-mega` `clamp(2.85rem, 9vw, 8.5rem)` | Film-title moments (hero, climactic CTA). Simplicity Pro 700/800. |
 | `.text-hero` | `--text-hero` `clamp(2.5rem, 7vw, 5rem)` | Large page headlines. |
 | `.text-display` | `--text-display` `clamp(1.875rem, 4.5vw, 3rem)` | Scene headlines. |
 | `.text-h2` / `.text-h3` | — | Sub-headings. |
@@ -141,7 +141,7 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 - **`.scene-panel` / `.scene-panel--deep`**: the boxed inset panel (see §4). Soft emerald tint, `--radius-xl`, decorative top shape, lift shadow. Use once per page.
 - **Header** (`Header.astro`): `position: fixed`, `z-index: 50`, **greeny on every page**. On `body.has-dark-hero` (homepage) it is transparent over the hero, then on scroll becomes a **dark emerald-black translucent bar**. On `body.page-light` inner pages (no dark hero) it shows that same greeny emerald-black bar **at all scroll positions**. Both carry light (bone) contents; `logo.png` reads on the dark bar.
 - **Footer** (`Footer.astro`): light on the new-system pages, gated `body:is(.has-dark-hero, .page-light)` — the `--color-panel` emerald tint with charcoal/slate ink, emerald hovers, brass-deep headings, so it reads as the page's distinct grounded base. The wave divider is hidden there. Legacy bone pages keep the default dark footer until migrated. `logo.png` is full-colour on transparency, legible on light and dark, no swap.
-- **Mobile menu** (`MobileMenu.astro`): full-screen **light** overlay (`z-index: 70`, fully covers the header so it uses its own close button). Snow bg with the same emerald/brass radial glow as light scenes, `.grain--dark` tooth, **Manrope** nav labels in charcoal with emerald hover + emerald arrows, light hairlines, `.btn-secondary` for the secondary CTA. **No numbered list.** Lives in `Base.astro` outside the header's backdrop-filter.
+- **Mobile menu** (`MobileMenu.astro`): full-screen **light** overlay (`z-index: 70`, fully covers the header so it uses its own close button). Snow bg with the same emerald/brass radial glow as light scenes, `.grain--dark` tooth, **Simplicity Pro** nav labels in charcoal with emerald hover + emerald arrows, light hairlines, `.btn-secondary` for the secondary CTA. **No numbered list.** Lives in `Base.astro` outside the header's backdrop-filter.
 - **Product tiles**: on **light** scenes, white tiles (`.worlds[data-scene="light"] .worlds__media`) with the packshot `object-fit: contain` and a soft lift; on dark scenes a `--color-char-900` tile with a brass radial "studio spotlight". Uniform size; one-line names. The upcoming products pages are light, so default to white tiles.
 - **Certification marks** (homepage `TrustArtifacts`): **minimalist** — an editorial head (Verification eyebrow + headline + aside) over a **single hairline-separated row** of marks: the real badges (`halal`, `brc`, `ifs`) as colour logos, HACCP + ISO 22000 as emerald `.font-x` text seals, each with a short caption. One line on desktop, wraps two-per-row on mobile. The old dark "record card with REF / Verified stamp" pattern is **retired** (the legacy dark `Certifications.astro` still serves not-yet-migrated pages).
 - **Surfaces**: avoid heavy drop shadows. Hairline borders (`--scene-line`) at rest; restrained hover lifts. On light, cards/panels use soft **emerald-tinted** shadows (`rgba(15,81,50,…)`), not neutral grey. White cards lift off the panel tint. Texture from grain + the weave.
@@ -155,10 +155,11 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 ## 7. Writing
 
 - **No em-dashes (—).** Commas, full stops, or restructure.
-- **No fabricated trust signals.** Only verifiable: 46+ SKU (don't surface the count), three ranges, Halal / BRC / IFS by name, "made in the Netherlands", "Amsterdam" (owner-confirmed). HACCP + ISO 22000 stay text seals (no badge, no "verified" claim) until confirmed. No "100% traceability".
-- **No machine metadata** surfaced to buyers (SKU counts, batch refs).
-- **Banned AI copy**: "premium quality", "trusted partner", "tailored", "industry-leading", "curated assortment", "we believe / we strive", scare-quotes.
-- Write like documentary narration / an industrial manifesto: short, specific, sensory, operational.
+- **Plain and short.** Everyday words, few of them. The owner found the old copy too harsh / hard / AI-ish. If a line sounds like a brochure or a procurement deck, rewrite it the way you'd say it out loud.
+- **Do not insist.** The brand is known locally; stop repeating that we're good, certified, trusted, or "defensible in a tender". State a fact once. Keep detail on the About page, keep the homepage light.
+- **No production claim at all.** Melek **sells / supplies** the food, it doesn't make it. Don't write "made / produced / frozen in the Netherlands", name a production city, or imply manufacturing — use "sell / supply / offer". NL is the company base; "shipped across Europe" is fine.
+- **No fabricated trust signals**, no SKU counts, no "100% traceability". Halal / BRC / IFS by name is fine; HACCP + ISO 22000 stay text seals.
+- **Banned phrasing** — AI clichés ("premium quality", "trusted partner", "tailored", "curated", "we believe") plus the jargon the owner flagged: "tender", "auditable", "documentary", "retail-grade specification", "cold chain intact", "lot-level traceability", "the cabinet your buyer opens", "every shift".
 - Tagline (kept, owner-approved): "Halal, perfected. Crafted in Europe."
 
 ---
@@ -167,7 +168,7 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 
 | Asset | Path | Notes |
 |---|---|---|
-| Fonts | Manrope + Archivo, one Google Fonts `<link>` in `Base.astro` | TODO: self-host. |
+| Fonts | **Simplicity Pro** (Semplicita Pro), self-hosted woff2/woff/ttf in `/public/fonts`; `@font-face` in `global.css`, preloads in `Base.astro` | one face, headings + body |
 | Logo | `/public/logo.png` (734×340, 2.16:1); `/public/logo-light.png` | Both are the full-colour emblem on transparency; legible on light and dark. Declare `<img>` dims ratio-preserving. |
 | Product packshots | `/public/images/products/{slug}.{png,jpg}` | 46 SKUs; white-bg, sit on white (light) or spotlight (dark) tiles. |
 | Hero video | `/public/videos/hero.mp4` | dünya aerial placeholder, owner-replaceable. |
@@ -181,7 +182,7 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 1. Theme the page **light**: build blocks as `.scene data-scene="light"` on the snow canvas (with the glow + continuous weave). Stop using bone `.section` and stop defaulting to dark — dark is the hero/punctuation only.
 2. Rebuild each block as a distinct skeleton — no repeated molecule, no numbered headers. Keep the scroll varied in **layout**.
 3. Use **one** `.scene-panel` boxed block per page for punctuation; keep the rest full-bleed on snow.
-4. Headlines: `.text-*` helpers (resolve to Manrope) in **emerald** on light (`--scene-title`); loud range/seal headers `.font-x`. No eyebrow kickers above headings (see §3).
+4. Headlines: `.text-*` helpers (resolve to Simplicity Pro) in **emerald** on light (`--scene-title`); loud range/seal headers `.font-x`. No eyebrow kickers above headings (see §3).
 5. Tiles/cards: white on light with soft emerald-tinted shadows, packshot `object-fit: contain`, uniform size, one-line ellipsis titles. Cert marks follow the minimalist one-line row, not record cards.
 6. Buttons: `.btn-primary` + `.btn-secondary` (not `-light`) on light surfaces.
 7. Forms: build a **light** variant (inputs on snow/white with `--color-line-soft` borders, emerald focus ring, slate placeholder). Add tokens/classes here when building the first one.

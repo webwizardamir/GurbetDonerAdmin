@@ -17,7 +17,7 @@ Read these before touching code. Then read `docs/STYLEGUIDE.md`, `docs/PLANNER.m
 ## Hard rules (do not violate)
 
 ### Typography
-- **Two faces only**: **Manrope** (modern geometric sans) for headlines / scene titles, **Archivo** (industrial grotesk; its `wdth` axis drives expanded brutalist caps via `font-stretch: 125%`, helper `.font-x`) for body / UI / operational labels. Both load via one Google Fonts `<link>` in `Base.astro`. Never add a third face. (Heading-face history: Fraunces → Bodoni Moda → Clash Display → Manrope, the owner's pick. On light scenes headlines are emerald via `--scene-title`.)
+- **One face: Simplicity Pro** (Semplicita Pro), **self-hosted** in `/public/fonts` (`@font-face` in `global.css`), used for headings AND body / UI / everything — owner's choice, matching the reference site. Drives `--font-display`, `--font-sans`, `--font-grotesk-x`. Weights: 400 (woff/ttf), 400 italic, 500, 600–800→Bold. No second/third face. (History: Fraunces+Inter → Bodoni → Clash → Manrope → Simplicity Pro.) On light scenes headlines are dark-green via `--scene-title`.
 - Operational metadata uses `.op-label` (was `.mono-label`); oversized section numbers use `.scene-index` (was `.mono-num`). Neither is a real mono webfont; both are Archivo.
 - **No eyebrow pre-headings, no hero fact ledgers (owner).** Do not place a small kicker label above a heading, and do not add "at a glance" fact strips to heroes (and never surface SKU counts). `.op-label` is for functional micro-labels only (breadcrumbs, tile meta, captions, scroll cue). See `docs/STYLEGUIDE.md §3`.
 - **No italic-serif accents inside heading sans.** Headings are one face, one style. Editorial drama comes from scale and weight contrast, not decoration.
@@ -26,6 +26,8 @@ Read these before touching code. Then read `docs/STYLEGUIDE.md`, `docs/PLANNER.m
 - **No em-dashes (—)** anywhere in copy. Replace with commas, full stops, or restructure. (Burned twice.)
 - **No fabricated trust signals** — no invented tonnage, employee counts, years in business. Only show what is real and verifiable.
 - **No double-quote scare-quoting** of brand words. No corporate filler ("we believe", "we strive").
+- **Plain, friendly, short copy. Do not insist.** Everyday words. The owner found the old copy too harsh / AI-ish. The brand is known locally, so don't keep selling that we're good / certified / "defensible in a tender" — say what people need, once, then stop. Detail lives on About; the homepage stays light. (See `docs/STYLEGUIDE.md §1, §7`.)
+- **Food is NOT made in the Netherlands, and Melek does not make it at all** — it **sells / supplies / distributes** halal frozen food. Never claim a production location or manufacturing; use "sell / supply / offer", never "make / produce / our production". NL is the company base; "shipped across Europe" is fine.
 
 ### Design (v9 light-dominant direction)
 - **The homepage is light-dominant.** A dark `--color-emerald-black` Hero opens it (`body.has-dark-hero`), then the page runs light end to end. Sections are "scenes" themed via `data-scene="light|black|char|deep|paper"`, which set `--scene-bg / --scene-ink / --scene-ink-dim / --scene-line / --scene-accent` (+ emerald `--scene-title` on light) in `global.css`. **`light` (snow `--color-snow`, emerald headings, soft glow + a diagonal weave that stays continuous across seams) is the default; dark is punctuation.** Build new sections as `.scene` with a `data-scene`, not the old bone `.section`. Full detail: `docs/STYLEGUIDE.md`.
@@ -35,7 +37,7 @@ Read these before touching code. Then read `docs/STYLEGUIDE.md`, `docs/PLANNER.m
 - **Watch empty space.** A narrow text column against a blank half is an AI tell. Fill the width (two-column splits, ledes, balanced grids); the cards/tiles in a set should be uniform in size. Certs are a minimalist one-line row of marks, not a record-card grid.
 - **Scene transitions are deliberate cuts**, not wave dividers — the hero→light boundary is a clean cut, and light scenes flow on the shared snow + weave. Wave dividers survive only on not-yet-rebuilt legacy sections; tone-match their wrapper bg to the neighbour.
 - **Legacy sections** (internal pages, the shared `Certifications`/`HalalPromise`/`DistributorCTA`, and the still-dark v8 inner pages) are queued for rebuild into this light system. Do not break them; expect a visible seam until migrated.
-- **Palette**: light canvas (`--color-snow`, panels `--color-panel`/`--color-panel-deep`) + charcoal/slate ink + **emerald** as the brand/heading/accent colour. Dark (`--color-emerald-black`, `--color-char-900`) + `--color-paper`/`--color-bone` ink + `--color-brass`/`--color-silver` are punctuation/accents only.
+- **Palette (reference site, v9.13)**: warm **cream** canvas `--color-snow #FDFCF4`; **forest green** `--color-emerald-deep #00300C` (headings on light, dark sections, header/hero); **medium green** `--color-emerald #4f7f47` (CTA, links, accents); **lime** `--color-lime / --color-gold / --color-brass #A9DD72` (bright accent — marquee, header underline, hero bead). Sage panels (`--color-panel`). `tokens.css` is the source of truth.
 
 ### Header
 - `position: fixed` (not sticky). The hero extends up under the header.

@@ -38,11 +38,10 @@ const ranges = site.productCategories.map((cat) => ({
   <div class="container-x">
     <div class="worlds__head grid-ed grid-ed--7-5">
       <div>
-        <h2 class="worlds__title text-display">Three ranges, made to move.</h2>
+        <h2 class="worlds__title text-display">What we sell.</h2>
       </div>
       <p class="worlds__lede ink-dim">
-        Chicken, beef and snacks, produced in the Netherlands to retail specification and built to
-        survive freezers, logistics and scrutiny. Halal-certified across the board.
+        Three halal ranges: chicken, beef and snacks.
       </p>
     </div>
   </div>
@@ -85,7 +84,7 @@ const ranges = site.productCategories.map((cat) => ({
 </script>
 
 <style>
-  .worlds { --scene-pad: clamp(2.75rem, 6vw, 4.5rem); overflow: clip; }
+  .worlds { --scene-pad: clamp(2rem, 4vw, 3.25rem); overflow: clip; }
 
   .worlds__head { align-items: end; margin-block-end: clamp(1.5rem, 3vw, 2.5rem); }
   .worlds__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.5rem; }
@@ -156,13 +155,13 @@ const ranges = site.productCategories.map((cat) => ({
     border: 1px solid var(--scene-line);
     /* Studio spotlight behind the packshot, like product lighting. */
     background:
-      radial-gradient(80% 60% at 50% 38%, rgba(169, 134, 63, 0.22), transparent 70%),
+      radial-gradient(80% 60% at 50% 38%, rgba(169, 221, 114, 0.22), transparent 70%),
       var(--color-char-900);
   }
   /* Light scene: white tile with a soft shadow + faint emerald wash, instead of the dark tile. */
   .worlds[data-scene="light"] .worlds__media {
     background:
-      radial-gradient(75% 60% at 50% 32%, rgba(15, 81, 50, 0.06), transparent 70%),
+      radial-gradient(75% 60% at 50% 32%, rgba(0, 48, 12, 0.06), transparent 70%),
       #ffffff;
     box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 16px 30px -22px rgba(22, 19, 17, 0.22);
   }

@@ -1,6 +1,5 @@
 ---
 import Base from "../../layouts/Base.astro";
-import HalalConfidence from "../../components/sections/HalalConfidence.astro";
 import TrustArtifacts from "../../components/sections/TrustArtifacts.astro";
 import ExportCTA from "../../components/sections/ExportCTA.astro";
 
@@ -9,9 +8,9 @@ const VIRTUAL_TOUR_SRC =
   "https://www.google.com/maps/embed?pb=!1m0!4v1508762781415!6m8!1m7!1sCAoSLEFGMVFpcE12RXNjeXl3SG0wS3hNdFFtdjVYRlBwelZ4TWYtMmJVR2lfMEZi!2m2!1d51.64973803355711!2d17.35716885252691!3f28!4f-6!5f0.7820865974627469";
 
 const principles = [
-  { term: "Consistency over catalogue.", body: "We do not chase a thousand lines. We run a tight range and hold every product to retail-grade tolerances, every shift, every container, every market." },
-  { term: "Reached for first.", body: "The aim is to be the halal range European distributors reach for first, recognised for quality and traceability, not price alone." },
-  { term: "Quality is not a department.", body: "Recipe-led production, lot-level traceability and continuous auditing are built into every line we run, not bolted on at the end." },
+  { term: "A focused range.", body: "We make a tight range and make it well." },
+  { term: "Halal certified.", body: "Every product is halal certified." },
+  { term: "Across Europe.", body: "We deliver to distributors and shops across Europe." },
 ];
 
 const gallery = [
@@ -25,7 +24,7 @@ const gallery = [
 
 <Base
   title="About Melek"
-  description="A halal frozen-food house in the Netherlands, shipping certified ranges across Europe. Take a virtual tour of the facility."
+  description="Halal frozen chicken, beef and snacks, shipped across Europe."
   bodyClass="page-light"
 >
   <!-- Hero: light editorial statement with the film in a wide feature window (a lighter take than
@@ -33,11 +32,9 @@ const gallery = [
   <section class="scene ab-hero" data-scene="light" aria-labelledby="ab-hero-title">
     <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x">
-      <h1 id="ab-hero-title" class="ab-hero__title text-mega">Built in the Netherlands. Trusted across Europe.</h1>
+      <h1 id="ab-hero-title" class="ab-hero__title text-mega">About Melek.</h1>
       <p class="ab-hero__lede ink-dim">
-        Melek is a halal frozen-food house for distributors and operators who cannot afford
-        inconsistency. A tight product range, an auditable halal protocol, and a cold chain that
-        lands when it is supposed to.
+        We sell halal frozen chicken, beef and snacks for shops, distributors and kitchens across Europe.
       </p>
 
       <figure class="ab-hero__media" data-reveal>
@@ -53,18 +50,14 @@ const gallery = [
     <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x ab-manifesto__inner">
       <h2 id="ab-man-title" class="ab-manifesto__title text-display">
-        Halal kept getting treated as a box to tick. We build it <span class="text-accent">like a standard.</span>
+        We keep it <span class="text-accent">simple.</span>
       </h2>
       <div class="ab-manifesto__cols">
         <p class="ink-dim">
-          European retail has never been short of halal labels. It has been short of halal a buyer
-          could defend, lot by lot, in front of a procurement team. That gap is the whole reason
-          Melek exists.
+          Melek sells halal frozen chicken, beef and snacks. A focused range, not a thousand lines.
         </p>
         <p class="ink-dim">
-          So the work is deliberately industrial. We run a focused range out of the Netherlands,
-          hold it to retail-grade specification, and put a current certificate behind every claim.
-          The output should feel obvious on a shelf and unremarkable in an audit. That is the point.
+          We know our products well and supply them to shops, distributors and kitchens across Europe.
         </p>
       </div>
     </div>
@@ -74,7 +67,7 @@ const gallery = [
   <section class="scene ab-principles" data-scene="light" aria-labelledby="ab-pr-title">
     <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x">
-      <h2 id="ab-pr-title" class="ab-principles__head text-display">How we hold the line.</h2>
+      <h2 id="ab-pr-title" class="ab-principles__head text-display">Good to know.</h2>
       <div class="ab-principles__cols">
         {principles.map((p) => (
           <article class="ab-col" data-reveal>
@@ -136,7 +129,6 @@ const gallery = [
     </div>
   </section>
 
-  <HalalConfidence scene="light" />
   <TrustArtifacts />
   <ExportCTA />
 </Base>
@@ -149,7 +141,7 @@ const gallery = [
 
 <style>
   /* Hero: light scene. main reserves the fixed-header height, so just add breathing room. */
-  .ab-hero { --scene-pad: 0; overflow: clip; padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3rem, 6vw, 5rem); }
+  .ab-hero { --scene-pad: 0; overflow: clip; padding-block: clamp(1.5rem, 3vw, 2.5rem) clamp(2rem, 4vw, 3rem); }
   .ab-hero__title { color: var(--scene-title, var(--scene-ink)); margin-block: 0.6rem clamp(1.75rem, 4vw, 2.75rem); max-inline-size: 16ch; font-size: clamp(2.6rem, 7vw, 6rem); line-height: 0.98; }
   .ab-hero__base { align-items: end; }
   .ab-hero__lede { max-inline-size: 48ch; font-size: var(--text-body-lg); line-height: 1.6; }
@@ -166,13 +158,13 @@ const gallery = [
     overflow: hidden;
     border: 1px solid var(--scene-line);
     background: var(--color-panel);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5), 0 36px 70px -50px rgba(15, 81, 50, 0.45);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5), 0 36px 70px -50px rgba(0, 48, 12, 0.45);
   }
   .ab-hero__video { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; }
   @media (max-width: 640px) { .ab-hero__media { aspect-ratio: 4 / 3; } }
 
   /* Manifesto: kicker, full-width statement, two-column editorial deck. */
-  .ab-manifesto { --scene-pad: clamp(4rem, 9vw, 7rem); }
+  .ab-manifesto { --scene-pad: clamp(2.25rem, 4vw, 3.25rem); }
   .ab-manifesto__title {
     color: var(--scene-ink);
     margin-block: 0.75rem clamp(2rem, 4vw, 3rem);
@@ -185,7 +177,7 @@ const gallery = [
   .ab-manifesto__cols p { margin: 0; font-size: var(--text-body-lg); line-height: 1.65; max-inline-size: 46ch; }
 
   /* Principles: editorial triptych, hairline-divided columns. No ticks, no bullets. */
-  .ab-principles { --scene-pad: clamp(3.5rem, 8vw, 6rem); }
+  .ab-principles { --scene-pad: clamp(2.25rem, 4vw, 3.25rem); }
   .ab-principles__head { color: var(--scene-title, var(--scene-ink)); margin-block-end: clamp(2rem, 4vw, 3rem); max-inline-size: 16ch; }
   .ab-principles__cols { display: grid; grid-template-columns: 1fr; }
   .ab-col { padding-block: clamp(1.5rem, 3vw, 2rem); border-block-start: 1px solid var(--scene-line); }
@@ -199,7 +191,7 @@ const gallery = [
   .ab-col__body { margin: 0.9rem 0 0; line-height: 1.6; }
 
   /* Tour + video shared frame */
-  .ab-tour, .ab-video { --scene-pad: clamp(3.5rem, 8vw, 6rem); }
+  .ab-tour, .ab-video { --scene-pad: clamp(2.25rem, 4vw, 3.25rem); }
   .ab-tour__head, .ab-video__head { align-items: end; margin-block-end: clamp(1.5rem, 3vw, 2.25rem); }
   .ab-tour__title, .ab-video__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.5rem; }
   .ab-tour__lede { max-inline-size: 42ch; font-size: var(--text-body-lg); line-height: 1.6; }
@@ -208,14 +200,14 @@ const gallery = [
   .ab-tour__frame, .ab-video__frame {
     position: relative; overflow: hidden; border-radius: var(--radius-lg);
     border: 1px solid var(--scene-line); background: var(--color-panel);
-    box-shadow: 0 30px 60px -50px rgba(15, 81, 50, 0.4);
+    box-shadow: 0 30px 60px -50px rgba(0, 48, 12, 0.4);
   }
   .ab-tour__frame { aspect-ratio: 16 / 9; }
   .ab-tour__frame iframe { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; border: 0; }
   .ab-video__frame video { display: block; inline-size: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
 
   /* Facility film-strip (horizontal on all viewports, like a contact sheet) */
-  .ab-gallery { --scene-pad: clamp(3.5rem, 8vw, 6rem); overflow: clip; }
+  .ab-gallery { --scene-pad: clamp(2.25rem, 4vw, 3.25rem); overflow: clip; }
   .ab-gallery__head { margin-block-end: clamp(1.5rem, 3vw, 2.25rem); }
   .ab-gallery__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.5rem; }
   .ab-gallery__strip {
