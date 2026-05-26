@@ -19,12 +19,12 @@ Source of truth for tokens: `src/styles/tokens.css`. CSS primitives live in `src
 
 ## 2. Colour
 
-All colours are CSS variables in `tokens.css` (`@theme` block). Use the variable, never a hex inline. The system is **light-dominant**: a warm near-white canvas, charcoal ink, emerald as the brand/heading colour, with dark and metal accents used as punctuation.
+All colours are CSS variables in `tokens.css` (`@theme` block). Use the variable, never a hex inline. The system is **light-dominant**: a white canvas, charcoal ink, emerald as the brand/heading colour, with dark and metal accents used as punctuation.
 
 ### Light canvas + ink (the default surface)
 | Token | Hex | Use |
 |---|---|---|
-| `--color-snow` | `#f7f6f3` | **Primary light canvas.** The body of every light scene. Clean modern near-white, **not beige**. |
+| `--color-snow` | `#ffffff` | **Primary light canvas.** The body of every light scene. Pure white (owner moved off the warm off-white, which still read beige). White tiles/cards lift off it via border + soft shadow; the emerald-tinted panels/footer pop against it. |
 | `--color-panel` | `#e9efe9` | Soft emerald-tinted inset-panel fill (`.scene-panel`) and the homepage footer base. Reads as a crafted block on snow. |
 | `--color-panel-deep` | `#e0e8e1` | Slightly deeper panel tint for an emphasis block (the climactic CTA), `.scene-panel--deep`. |
 | `--color-line-soft` | `#e7e4dd` | Neutral hairline on snow (`--scene-line` on light scenes). |
@@ -67,11 +67,11 @@ Charcoal on snow ≈ 15:1. Emerald `#0f5132` on snow ≈ 7:1 (AA for all text) �
 
 ## 3. Typography
 
-> **Two faces. Clash Display + Archivo.** (v9 replaced Bodoni Moda, which read too formal; v8 had replaced Fraunces + Inter, an AI-template tell.) Never add a third face. Clash Display via Fontshare, Archivo via Google Fonts, two `<link>`s in `Base.astro`. *(TODO: self-host both to drop the CDN dependency and FOUT.)*
+> **Two faces. Manrope + Archivo.** (Heading face history: Fraunces → Bodoni Moda → Clash Display → **Manrope**, the owner's pick.) Never add a third face. Both load via a single Google Fonts `<link>` in `Base.astro`. *(TODO: self-host both to drop the CDN dependency and FOUT.)*
 
 | Role | Family | Notes |
 |---|---|---|
-| Headlines, scene titles, nav labels, editorial moments | **Clash Display** (`--font-display`) | Modern display grotesk. Weights 400/500/600/700. Drama from scale + weight, **not** negative tracking; keep `letter-spacing` near 0 (slightly negative on the largest sizes is fine). On light scenes headlines are **emerald** (`--scene-title`). |
+| Headlines, scene titles, nav labels, editorial moments | **Manrope** (`--font-display`) | Modern geometric sans, softer than the old Clash. Weights 400–800. Drama from scale + weight, **not** negative tracking; keep `letter-spacing` near 0 (slightly negative on the largest sizes is fine). On light scenes headlines are **emerald** (`--scene-title`). |
 | Body, UI, buttons, operational labels | **Archivo** (`--font-sans`) | Industrial grotesk. Has a `wdth` axis (`100..125`). |
 | Brutalist display caps (range names, big metadata) | **Archivo Expanded** (`--font-grotesk-x` + `.font-x`, `font-stretch: 125%`) | Same family, widened. For loud uppercase moments and text seals. |
 | Mono | system stack (`--font-mono`) | Rare code strings only; no webfont. |
@@ -79,7 +79,7 @@ Charcoal on snow ≈ 15:1. Emerald `#0f5132` on snow ≈ 7:1 (AA for all text) �
 ### Type scale (fluid, in `tokens.css`; helpers in `global.css`)
 | Class | Var | Use |
 |---|---|---|
-| `.text-mega` | `--text-mega` `clamp(2.85rem, 9vw, 8.5rem)` | Film-title moments (hero, climactic CTA). Clash 700. |
+| `.text-mega` | `--text-mega` `clamp(2.85rem, 9vw, 8.5rem)` | Film-title moments (hero, climactic CTA). Manrope 700/800. |
 | `.text-hero` | `--text-hero` `clamp(2.5rem, 7vw, 5rem)` | Large page headlines. |
 | `.text-display` | `--text-display` `clamp(1.875rem, 4.5vw, 3rem)` | Scene headlines. |
 | `.text-h2` / `.text-h3` | — | Sub-headings. |
@@ -139,9 +139,9 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 
 - **Buttons** (`global.css`): `.btn-primary` (emerald fill, bone text — works on light and dark), `.btn-secondary` (charcoal outline — **light** surfaces), `.btn-secondary-light` (bone outline 40% — **dark** scenes), `.btn-ghost`. Focus-visible: 2px gold outline, 3px offset. On light scenes and panels use `.btn-secondary`, not `-light`.
 - **`.scene-panel` / `.scene-panel--deep`**: the boxed inset panel (see §4). Soft emerald tint, `--radius-xl`, decorative top shape, lift shadow. Use once per page.
-- **Header** (`Header.astro`): `position: fixed`, `z-index: 50`. On `body.has-dark-hero` (homepage) it is transparent with light contents over the hero, then on scroll becomes a **dark emerald-black translucent bar** with light contents (a deliberate top anchor over the light page). Legacy light pages keep a bone scrolled state. *(Revisit candidate: whether the scrolled bar should go light now that the page is light.)*
-- **Footer** (`Footer.astro`): default dark (emerald-black) for the still-dark inner pages. **On `body.has-dark-hero` it is light** — the `--color-panel` emerald tint with charcoal/slate ink, emerald hovers, brass-deep headings — so it reads as the page's distinct grounded base. `logo.png` is full-colour on transparency, legible on light and dark, no swap. The wave divider is hidden on `body.has-dark-hero`.
-- **Mobile menu** (`MobileMenu.astro`): full-screen **light** overlay (`z-index: 70`, fully covers the header so it uses its own close button). Snow bg with the same emerald/brass radial glow as light scenes, `.grain--dark` tooth, **Clash Display** nav labels in charcoal with emerald hover + emerald arrows, light hairlines, `.btn-secondary` for the secondary CTA. **No numbered list.** Lives in `Base.astro` outside the header's backdrop-filter.
+- **Header** (`Header.astro`): `position: fixed`, `z-index: 50`, **greeny on every page**. On `body.has-dark-hero` (homepage) it is transparent over the hero, then on scroll becomes a **dark emerald-black translucent bar**. On `body.page-light` inner pages (no dark hero) it shows that same greeny emerald-black bar **at all scroll positions**. Both carry light (bone) contents; `logo.png` reads on the dark bar.
+- **Footer** (`Footer.astro`): light on the new-system pages, gated `body:is(.has-dark-hero, .page-light)` — the `--color-panel` emerald tint with charcoal/slate ink, emerald hovers, brass-deep headings, so it reads as the page's distinct grounded base. The wave divider is hidden there. Legacy bone pages keep the default dark footer until migrated. `logo.png` is full-colour on transparency, legible on light and dark, no swap.
+- **Mobile menu** (`MobileMenu.astro`): full-screen **light** overlay (`z-index: 70`, fully covers the header so it uses its own close button). Snow bg with the same emerald/brass radial glow as light scenes, `.grain--dark` tooth, **Manrope** nav labels in charcoal with emerald hover + emerald arrows, light hairlines, `.btn-secondary` for the secondary CTA. **No numbered list.** Lives in `Base.astro` outside the header's backdrop-filter.
 - **Product tiles**: on **light** scenes, white tiles (`.worlds[data-scene="light"] .worlds__media`) with the packshot `object-fit: contain` and a soft lift; on dark scenes a `--color-char-900` tile with a brass radial "studio spotlight". Uniform size; one-line names. The upcoming products pages are light, so default to white tiles.
 - **Certification marks** (homepage `TrustArtifacts`): **minimalist** — an editorial head (Verification eyebrow + headline + aside) over a **single hairline-separated row** of marks: the real badges (`halal`, `brc`, `ifs`) as colour logos, HACCP + ISO 22000 as emerald `.font-x` text seals, each with a short caption. One line on desktop, wraps two-per-row on mobile. The old dark "record card with REF / Verified stamp" pattern is **retired** (the legacy dark `Certifications.astro` still serves not-yet-migrated pages).
 - **Surfaces**: avoid heavy drop shadows. Hairline borders (`--scene-line`) at rest; restrained hover lifts. On light, cards/panels use soft **emerald-tinted** shadows (`rgba(15,81,50,…)`), not neutral grey. White cards lift off the panel tint. Texture from grain + the weave.
@@ -167,7 +167,7 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 
 | Asset | Path | Notes |
 |---|---|---|
-| Fonts | Clash Display (Fontshare) + Archivo (Google Fonts), two `<link>`s in `Base.astro` | TODO: self-host. |
+| Fonts | Manrope + Archivo, one Google Fonts `<link>` in `Base.astro` | TODO: self-host. |
 | Logo | `/public/logo.png` (734×340, 2.16:1); `/public/logo-light.png` | Both are the full-colour emblem on transparency; legible on light and dark. Declare `<img>` dims ratio-preserving. |
 | Product packshots | `/public/images/products/{slug}.{png,jpg}` | 46 SKUs; white-bg, sit on white (light) or spotlight (dark) tiles. |
 | Hero video | `/public/videos/hero.mp4` | dünya aerial placeholder, owner-replaceable. |
@@ -181,7 +181,7 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 1. Theme the page **light**: build blocks as `.scene data-scene="light"` on the snow canvas (with the glow + continuous weave). Stop using bone `.section` and stop defaulting to dark — dark is the hero/punctuation only.
 2. Rebuild each block as a distinct skeleton — no repeated molecule, no numbered headers. Keep the scroll varied in **layout**.
 3. Use **one** `.scene-panel` boxed block per page for punctuation; keep the rest full-bleed on snow.
-4. Headlines: `.text-*` helpers (resolve to Clash Display) in **emerald** on light (`--scene-title`); eyebrows `.op-label`; loud range/seal headers `.font-x`.
+4. Headlines: `.text-*` helpers (resolve to Manrope) in **emerald** on light (`--scene-title`); loud range/seal headers `.font-x`. No eyebrow kickers above headings (see §3).
 5. Tiles/cards: white on light with soft emerald-tinted shadows, packshot `object-fit: contain`, uniform size, one-line ellipsis titles. Cert marks follow the minimalist one-line row, not record cards.
 6. Buttons: `.btn-primary` + `.btn-secondary` (not `-light`) on light surfaces.
 7. Forms: build a **light** variant (inputs on snow/white with `--color-line-soft` borders, emerald focus ring, slate placeholder). Add tokens/classes here when building the first one.

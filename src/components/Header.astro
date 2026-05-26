@@ -113,6 +113,28 @@ const path = Astro.url.pathname;
     border-color: var(--color-bone);
   }
 
+  /* Light inner pages (page-light) have no dark hero, so the header is the greeny emerald-black
+     bar (like the homepage's scrolled state) at all scroll positions, with light contents. */
+  body.page-light .site-header {
+    background: color-mix(in srgb, var(--color-emerald-black) 86%, transparent);
+    border-bottom-color: var(--color-line-dark);
+  }
+  body.page-light .site-header[data-scrolled="true"] {
+    background: color-mix(in srgb, var(--color-emerald-black) 94%, transparent);
+  }
+  body.page-light .site-header__link,
+  body.page-light .site-header__toggle { color: var(--color-bone); }
+  body.page-light .site-header__link::after { background: var(--color-gold); }
+  body.page-light .site-header__cta-secondary {
+    color: var(--color-bone);
+    border-color: rgba(251, 248, 240, 0.4);
+  }
+  body.page-light .site-header__cta-secondary:hover {
+    background: var(--color-bone);
+    color: var(--color-emerald-deep);
+    border-color: var(--color-bone);
+  }
+
   /* Smooth colour transitions so the change feels considered, not flicked. */
   .site-header__logo,
   .site-header__link,

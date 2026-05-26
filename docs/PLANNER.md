@@ -22,7 +22,7 @@ Last updated: 2026-05-26 (whole site migrated to the light system: homepage, pro
 3. **Optional revisit:** the homepage header, when scrolled, is still a dark emerald-black bar over the now-light page (owner checking with his team).
 
 ### Locked decisions
-Clash Display (headings) + Archivo (body). Light-dominant homepage (near-white `--color-snow`, not beige). Emerald headings on light. Inset boxed panels (`.scene-panel`, soft emerald tint + decorative top shape) for crafted scroll rhythm. Tagline kept ("Halal, perfected. Crafted in Europe."). City = Amsterdam. Product tiles: dark on dark scenes, white on light scenes.
+Manrope (headings) + Archivo (body). Light-dominant site, **pure-white** `--color-snow #fff`. Greeny (emerald-black) header on every page. No eyebrow pre-headings, no hero fact ledgers, no SKU counts. Emerald headings on light. Inset boxed panels (`.scene-panel`, soft emerald tint + decorative top shape), one per page. Tagline kept ("Halal, perfected. Crafted in Europe."). City = Amsterdam. Product tiles: white on light scenes.
 
 ---
 

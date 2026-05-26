@@ -25,7 +25,9 @@ html.lenis body { height: auto; }
 body {
   font-family: var(--font-sans);
   font-feature-settings: normal;
-  background-color: var(--color-bone);
+  /* Light-system default so unclassed pages (and the pre-paint flash) read snow, not beige.
+     has-dark-hero + page-light override per page. */
+  background-color: var(--color-snow);
   color: var(--color-charcoal);
   line-height: 1.6;
   min-height: 100vh;
