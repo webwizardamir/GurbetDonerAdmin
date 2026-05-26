@@ -18,6 +18,7 @@ import {
   FileText,
   Mail,
   Check,
+  RotateCcw,
 } from 'lucide-react'
 import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
@@ -336,7 +337,15 @@ export default function Orders() {
                         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400"><Calendar className="w-4 h-4" />{formatDate(order.order_date)}</div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-2"><StatusBadge status={order.status} /><PaymentBadge method={order.payment_method} /></div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <StatusBadge status={order.status} />
+                          <PaymentBadge method={order.payment_method} />
+                          {(order.refund_amount ?? 0) > 0 && (order.refund_amount ?? 0) < order.total && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 whitespace-nowrap" title={t('orders.refund.partiallyRefunded')}>
+                              <RotateCcw className="w-3 h-3" />{t('orders.refund.partiallyRefunded')}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         {(() => {
@@ -438,6 +447,11 @@ export default function Orders() {
                   <div className="text-right shrink-0">
                     <p className="font-semibold text-green-600 dark:text-green-400">{formatPrice(order.total)}</p>
                     <StatusBadge status={order.status} />
+                    {(order.refund_amount ?? 0) > 0 && (order.refund_amount ?? 0) < order.total && (
+                      <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 whitespace-nowrap">
+                        <RotateCcw className="w-3 h-3" />{t('orders.refund.partiallyRefunded')}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center justify-between mb-3 pl-7">

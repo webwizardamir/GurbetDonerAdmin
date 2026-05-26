@@ -187,10 +187,10 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                 )}
               </span>
             )}
-            {isRefunded && (
+            {isRefunded && refundAmount < order.total && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
                 <RotateCcw className="w-3 h-3" />
-                {refundAmount >= order.total ? t('orders.refund.fullyRefunded') : t('orders.refund.partiallyRefunded')}
+                {t('orders.refund.partiallyRefunded')}
               </span>
             )}
             {order.status !== 'cancelled' && order.status !== 'refunded' && (
