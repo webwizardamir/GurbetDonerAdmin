@@ -212,6 +212,8 @@
     "totalRevenue": "Total Revenue",
     "totalOrders": "Total Orders",
     "avgOrderValue": "Avg. Order Value",
+    "totalProfit": "Total Profit",
+    "profitMargin": "Margin",
     "details": "Details",
     "contactInfo": "Contact Info",
     "form": {
@@ -461,6 +463,26 @@
       "refund": "Refund",
       "delete": "Delete",
       "markComplete": "Mark as Complete"
+    },
+    "refund": {
+      "title": "Refund",
+      "fullRefund": "Full refund",
+      "ordered": "Ordered",
+      "alreadyRefunded": "Already refunded",
+      "lineFullyRefunded": "Fully refunded",
+      "max": "Max",
+      "date": "Refund date",
+      "reason": "Reason",
+      "reasonPlaceholder": "Optional — e.g. return, damaged",
+      "restoreStock": "Restore stock",
+      "restoreStockHint": "Add the refunded quantities back to stock (tracked products only).",
+      "total": "Total to refund",
+      "submit": "Process refund",
+      "submitting": "Processing...",
+      "noneSelected": "Select at least one item to refund.",
+      "nothingToRefund": "There is nothing left to refund on this order.",
+      "fullyRefunded": "Fully refunded",
+      "partiallyRefunded": "Partially refunded"
     },
     "payment": {
       "method": "Payment Method",

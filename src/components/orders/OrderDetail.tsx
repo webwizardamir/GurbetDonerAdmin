@@ -11,6 +11,7 @@ import {
   XCircle,
   Clock,
   RefreshCw,
+  RotateCcw,
   Printer,
   Banknote,
   Info,
@@ -19,6 +20,7 @@ import { updateOrderStatus } from '../../services/orders'
 import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import DocumentGenerator from '../documents/DocumentGenerator'
+import RefundModal from './RefundModal'
 import PaymentMethodModal from './PaymentMethodModal'
 import StatusBadge from '../ui/StatusBadge'
 import { formatQuantity, formatPrice, formatDateTime } from '../../utils/format'
@@ -74,6 +76,14 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
   const [error, setError] = useState<string | null>(null)
   const [generatingDoc, setGeneratingDoc] = useState<DocumentType | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showRefundModal, setShowRefundModal] = useState(false)
+
+  const refundAmount = order.refund_amount ?? 0
+  // A refund is possible while the order isn't cancelled and something is still
+  // refundable. Refunds never flip status to 'refunded' (see migration 00050),
+  // so "fully refunded" is detected via refund_amount, not the status column.
+  const canRefund = order.status !== 'cancelled' && refundAmount < order.total
+  const isRefunded = refundAmount > 0
 
   const handleStatusChange = async (newStatus: OrderStatus, paymentMethod?: PaymentMethod) => {
     if (order.status === newStatus) return
@@ -177,6 +187,12 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                 )}
               </span>
             )}
+            {isRefunded && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                <RotateCcw className="w-3 h-3" />
+                {refundAmount >= order.total ? t('orders.refund.fullyRefunded') : t('orders.refund.partiallyRefunded')}
+              </span>
+            )}
             {order.status !== 'cancelled' && order.status !== 'refunded' && (
               <div className="flex flex-wrap gap-2">
                 {statusActions
@@ -199,6 +215,16 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                     </button>
                   ))}
               </div>
+            )}
+            {canRefund && (
+              <button
+                onClick={() => setShowRefundModal(true)}
+                disabled={updatingStatus}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors disabled:opacity-50"
+              >
+                <RotateCcw className="w-4 h-4" />
+                {t('orders.actions.refund')}
+              </button>
             )}
           </div>
 
@@ -402,7 +428,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                 <FileText className="w-4 h-4" />
                 Herinnering
               </button>
-              {(order.status === 'refunded' || order.status === 'cancelled') && (
+              {(order.status === 'refunded' || order.status === 'cancelled' || isRefunded) && (
                 <button
                   onClick={() => setGeneratingDoc('credit_note')}
                   className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors text-sm"
@@ -443,6 +469,18 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
           onConfirm={handlePaymentConfirm}
           onCancel={() => setShowPaymentModal(false)}
           loading={updatingStatus}
+        />
+      )}
+
+      {/* Refund Modal */}
+      {showRefundModal && (
+        <RefundModal
+          order={order}
+          onClose={() => setShowRefundModal(false)}
+          onRefunded={() => {
+            setShowRefundModal(false)
+            onStatusChange()
+          }}
         />
       )}
     </Modal>

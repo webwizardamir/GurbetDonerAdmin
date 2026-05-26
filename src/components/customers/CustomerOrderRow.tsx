@@ -141,9 +141,12 @@ export default function CustomerOrderRow({
 
   const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.draft
 
-  // Filter document types based on order status
+  // Filter document types based on order status. The Credit Nota is also
+  // available whenever the order has a refund — partial refunds keep the
+  // order's status as-is (e.g. 'completed'), so a status check alone misses them.
   const availableDocTypes = DOCUMENT_TYPES.filter(dt => {
     if (!dt.onlyFor) return true
+    if (dt.type === 'credit_note' && (order.refund_amount ?? 0) > 0) return true
     return dt.onlyFor.includes(order.status)
   })
 

@@ -355,6 +355,67 @@ export interface InvoiceData {
   footerText?: string
 }
 
+// One credit-note line, aggregated across every refund on the order.
+interface RefundCreditLine {
+  description: string
+  unitType: string
+  quantity: number
+  unitPrice: number  // cents, ex-VAT
+  vatRate: number
+  amount: number     // cents, ex-VAT subtotal
+  taxAmount: number  // cents
+}
+
+/**
+ * Cumulative refunded lines for an order, used to make the Credit Nota show
+ * exactly what was refunded (full or partial) rather than the whole order.
+ * Returns [] when the order has no refund rows (e.g. a plain cancellation),
+ * in which case the credit note falls back to the full order.
+ */
+async function fetchRefundCreditLines(orderId: string): Promise<RefundCreditLine[]> {
+  const { data, error } = await supabase
+    .from('order_refund_items')
+    .select('order_item_id, product_name, quantity, amount, tax_amount, refund:order_refunds!inner(order_id), order_item:order_items(unit_type, unit_price, tax_rate)')
+    .eq('refund.order_id', orderId)
+  if (error) throw error
+
+  const rows = (data as unknown as Array<{
+    order_item_id: string | null
+    product_name: string
+    quantity: number
+    amount: number
+    tax_amount: number
+    order_item: { unit_type?: string; unit_price?: number; tax_rate?: number } | null
+  }>) ?? []
+
+  const map = new Map<string, RefundCreditLine>()
+  for (const r of rows) {
+    const key = r.order_item_id ?? `name:${r.product_name}`
+    const qty = Number(r.quantity) || 0
+    const amount = Number(r.amount) || 0
+    const tax = Number(r.tax_amount) || 0
+    const existing = map.get(key)
+    if (existing) {
+      existing.quantity += qty
+      existing.amount += amount
+      existing.taxAmount += tax
+    } else {
+      const oi = r.order_item
+      map.set(key, {
+        description: r.product_name,
+        unitType: oi?.unit_type || 'piece',
+        quantity: qty,
+        // Prefer the order item's recorded values; derive when the line was deleted.
+        unitPrice: oi?.unit_price != null ? Number(oi.unit_price) : (qty > 0 ? Math.round(amount / qty) : 0),
+        vatRate: oi?.tax_rate != null ? Number(oi.tax_rate) : (amount > 0 ? Math.round((tax / amount) * 100) : 0),
+        amount,
+        taxAmount: tax,
+      })
+    }
+  }
+  return Array.from(map.values())
+}
+
 // Build invoice data from order and settings
 export async function buildInvoiceData(
   orderId: string,
@@ -412,7 +473,7 @@ export async function buildInvoiceData(
   }
 
   // Process items and calculate VAT breakdown
-  const items = (order.items || []).map((item: Record<string, unknown>, idx: number) => {
+  let items = (order.items || []).map((item: Record<string, unknown>, idx: number) => {
     const quantity = Number(item.quantity) || 0
     const unitType = (item.unit_type as string) || 'piece'
     return {
@@ -440,13 +501,48 @@ export async function buildInvoiceData(
     })
   }
 
-  const vatBreakdown = Array.from(vatMap.entries())
+  let vatBreakdown = Array.from(vatMap.entries())
     .map(([rate, { base, amount }]) => ({ rate, base, amount }))
     .sort((a, b) => a.rate - b.rate)
 
-  const totalVat = vatBreakdown.reduce((sum, v) => sum + v.amount, 0)
-  const subtotal = Number(order.subtotal) || items.reduce((sum: number, i: { unitPrice: number; quantity: number }) => sum + (i.unitPrice * i.quantity), 0)
-  const grandTotal = Number(order.total) || (subtotal + totalVat)
+  let totalVat = vatBreakdown.reduce((sum, v) => sum + v.amount, 0)
+  let subtotal = Number(order.subtotal) || items.reduce((sum: number, i: { unitPrice: number; quantity: number }) => sum + (i.unitPrice * i.quantity), 0)
+  let grandTotal = Number(order.total) || (subtotal + totalVat)
+
+  // A credit note must reflect what was actually refunded, not the full order.
+  // When refund rows exist we rebuild the lines and totals from them; a plain
+  // cancellation (no refund rows) keeps the full-order fallback above.
+  if (documentType === 'credit_note') {
+    const refundLines = await fetchRefundCreditLines(orderId)
+    if (refundLines.length > 0) {
+      items = refundLines.map((l, idx) => ({
+        index: idx + 1,
+        description: l.description,
+        note: undefined,
+        quantity: l.quantity,
+        unit: formatUnitDutch(l.unitType, l.quantity),
+        unitPrice: l.unitPrice,
+        vatRate: l.vatRate,
+        total: l.amount + l.taxAmount,
+      }))
+
+      const refundVatMap = new Map<number, { base: number; amount: number }>()
+      let refundSub = 0
+      let refundVat = 0
+      for (const l of refundLines) {
+        refundSub += l.amount
+        refundVat += l.taxAmount
+        const existing = refundVatMap.get(l.vatRate) || { base: 0, amount: 0 }
+        refundVatMap.set(l.vatRate, { base: existing.base + l.amount, amount: existing.amount + l.taxAmount })
+      }
+      vatBreakdown = Array.from(refundVatMap.entries())
+        .map(([rate, { base, amount }]) => ({ rate, base, amount }))
+        .sort((a, b) => a.rate - b.rate)
+      subtotal = refundSub
+      totalVat = refundVat
+      grandTotal = refundSub + refundVat
+    }
+  }
 
   // Build customer address
   const customer = order.customer || {}

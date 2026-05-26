@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   TrendingUp,
   Package,
+  Coins,
   Banknote,
   Phone,
   Mail,
@@ -23,6 +24,7 @@ import {
   Tags,
 } from 'lucide-react'
 import { useCustomerDetail } from '../hooks/useCustomerDetail'
+import { useAuth } from '../context/AuthContext'
 import CustomerOrderRow from '../components/customers/CustomerOrderRow'
 import CustomerForm from '../components/customers/CustomerForm'
 import CustomerProductsTab from '../components/customers/CustomerProductsTab'
@@ -232,6 +234,7 @@ export default function CustomerDetail() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { isOwner } = useAuth()
   const { loading, error, customer, orders, stats, refresh, hasDocument } = useCustomerDetail(id)
 
   const DATE_RANGES: Record<DateRangeKey, { labelKey: string; days: number | null }> = {
@@ -373,7 +376,7 @@ export default function CustomerDetail() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
@@ -387,6 +390,27 @@ export default function CustomerDetail() {
             </div>
           </div>
         </div>
+
+        {/* Profit — owner only. Cost/profit is never shown to Shop Managers
+            (and the source RPC returns NULL profit for them anyway). */}
+        {isOwner && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                <Coins className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.totalProfit')}</p>
+                <p className={`text-lg font-bold ${stats.totalProfit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {formatPrice(stats.totalProfit)}
+                </p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  {t('customers.profitMargin')} {stats.profitMargin.toLocaleString('nl-NL', { maximumFractionDigits: 1 })}%
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-3">

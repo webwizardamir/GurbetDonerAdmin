@@ -376,6 +376,67 @@ export async function updateOrderStatus(
   return data
 }
 
+// =====================================================
+// Refunds (full + partial)
+// =====================================================
+
+export interface RefundLineInput {
+  order_item_id: string
+  quantity: number
+}
+
+export interface CreateRefundParams {
+  orderId: string
+  reason?: string
+  refundDate: string // 'YYYY-MM-DD'
+  restoreStock: boolean
+  items: RefundLineInput[]
+}
+
+export interface CreateRefundResult {
+  refund_id: string
+  total_refund: number       // cents, gross (incl. VAT)
+  new_refund_amount: number  // cents, cumulative on the order
+  fully_refunded: boolean
+}
+
+/**
+ * Issue a refund (full or partial) on an order via the create_order_refund
+ * RPC. The server recomputes each line amount from the immutable order_items
+ * snapshot, restores stock for the refunded units, and bumps
+ * orders.refund_amount. The order's status is intentionally left unchanged
+ * (see migration 00050) — "fully refunded" is derived from refund_amount.
+ */
+export async function createOrderRefund(params: CreateRefundParams): Promise<CreateRefundResult> {
+  const { data, error } = await supabase.rpc('create_order_refund', {
+    p_order_id: params.orderId,
+    p_reason: params.reason ?? null,
+    p_refund_date: params.refundDate,
+    p_restore_stock: params.restoreStock,
+    p_items: params.items.map(i => ({ order_item_id: i.order_item_id, quantity: i.quantity })),
+  })
+  if (error) throw error
+  return data as CreateRefundResult
+}
+
+/**
+ * Units already refunded per order_item for an order, so the refund modal can
+ * show "remaining refundable" and cap each input.
+ */
+export async function fetchRefundedQuantities(orderId: string): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from('order_refund_items')
+    .select('order_item_id, quantity, refund:order_refunds!inner(order_id)')
+    .eq('refund.order_id', orderId)
+  if (error) throw error
+  const out: Record<string, number> = {}
+  for (const row of (data as unknown as Array<{ order_item_id: string | null; quantity: number }>) ?? []) {
+    if (!row.order_item_id) continue
+    out[row.order_item_id] = (out[row.order_item_id] ?? 0) + (Number(row.quantity) || 0)
+  }
+  return out
+}
+
 // Update order details
 export async function updateOrder(
   id: string,

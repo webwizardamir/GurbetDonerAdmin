@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../services/supabase'
+import { fetchCustomerItemsSummary, type CustomerItemSummary } from '../services/customers'
+import { useAuth } from '../context/AuthContext'
 import type { Customer, Document, DocumentType, PaymentMethod } from '../types'
 
 export interface CustomerOrder {
@@ -12,6 +14,7 @@ export interface CustomerOrder {
   tax: number
   discount: number
   total: number
+  refund_amount: number
   created_at: string
   items: Array<{
     id: string
@@ -30,6 +33,12 @@ export interface CustomerStats {
   completedOrders: number
   avgOrderValue: number
   totalItems: number
+  // Owner-only: all-time profit (cents) and gross margin (%) over this
+  // customer's non-cancelled/refunded line items. Sourced from the
+  // server-gated get_customer_items_summary RPC (NULL profit for non-owners),
+  // so cost data never reaches a Shop Manager's browser. 0 for non-owners.
+  totalProfit: number
+  profitMargin: number
   paymentBreakdown: {
     cash: number
     bank: number
@@ -50,10 +59,13 @@ const emptyStats: CustomerStats = {
   completedOrders: 0,
   avgOrderValue: 0,
   totalItems: 0,
+  totalProfit: 0,
+  profitMargin: 0,
   paymentBreakdown: { cash: 0, bank: 0 },
 }
 
 export function useCustomerDetail(customerId: string | undefined) {
+  const { isOwner } = useAuth()
   const [state, setState] = useState<CustomerDetailState>({
     loading: true,
     error: null,
@@ -71,8 +83,12 @@ export function useCustomerDetail(customerId: string | undefined) {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      // Fetch customer, orders, and documents in parallel
-      const [customerResult, ordersResult] = await Promise.all([
+      // Fetch customer, orders, and (owner-only) the all-time profit summary
+      // in parallel. The items-summary RPC is server-gated: it returns NULL
+      // profit for non-owners, so we only bother calling it for owners.
+      const allTimeStart = '2000-01-01'
+      const allTimeEnd = new Date().toISOString().split('T')[0]
+      const [customerResult, ordersResult, itemsSummary] = await Promise.all([
         supabase
           .from('customers')
           .select('*, price_list:price_lists(id, name, is_active)')
@@ -90,11 +106,17 @@ export function useCustomerDetail(customerId: string | undefined) {
             tax,
             discount,
             total,
+            refund_amount,
             created_at,
             items:order_items(id, product_name, quantity, unit_type, unit_price, total)
           `)
           .eq('customer_id', customerId)
           .order('created_at', { ascending: false }),
+        isOwner
+          // Don't let a profit-summary failure break the whole page — fall
+          // back to an empty set (profit shows as €0,00).
+          ? fetchCustomerItemsSummary(customerId, allTimeStart, allTimeEnd).catch(() => [] as CustomerItemSummary[])
+          : Promise.resolve([] as CustomerItemSummary[]),
       ])
 
       if (customerResult.error) throw customerResult.error
@@ -137,6 +159,7 @@ export function useCustomerDetail(customerId: string | undefined) {
         tax: Number(order.tax) || 0,
         discount: Number(order.discount) || 0,
         total: Number(order.total) || 0,
+        refund_amount: Number(order.refund_amount) || 0,
         created_at: order.created_at,
         items: (order.items || []).map((item: Record<string, unknown>) => ({
           id: item.id as string,
@@ -163,6 +186,20 @@ export function useCustomerDetail(customerId: string | undefined) {
       const cashOrders = completedOrders.filter(o => o.payment_method === 'cash')
       const bankOrders = completedOrders.filter(o => o.payment_method === 'bank')
 
+      // All-time profit + gross margin (owner only). Both the profit and its
+      // revenue base come from the same RPC rows, so the margin is internally
+      // consistent (computed on net-of-VAT line revenue, not the gross order
+      // totals shown in the Revenue card).
+      let totalProfit = 0
+      let profitRevenue = 0
+      for (const r of itemsSummary) {
+        totalProfit += Number(r.total_profit) || 0
+        profitRevenue += Number(r.total_revenue) || 0
+      }
+      const profitMargin = profitRevenue > 0
+        ? Math.round((totalProfit / profitRevenue) * 1000) / 10
+        : 0
+
       const stats: CustomerStats = {
         totalRevenue,
         totalOrders: orders.length,
@@ -171,6 +208,8 @@ export function useCustomerDetail(customerId: string | undefined) {
           ? Math.round(totalRevenue / completedOrders.length)
           : 0,
         totalItems: Math.round(totalItems),
+        totalProfit,
+        profitMargin,
         paymentBreakdown: {
           cash: cashOrders.reduce((sum, o) => sum + o.total, 0),
           bank: bankOrders.reduce((sum, o) => sum + o.total, 0),
@@ -191,7 +230,7 @@ export function useCustomerDetail(customerId: string | undefined) {
         error: err instanceof Error ? err.message : 'Failed to load customer data',
       }))
     }
-  }, [customerId])
+  }, [customerId, isOwner])
 
   useEffect(() => {
     fetchData()

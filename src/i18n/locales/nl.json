@@ -212,6 +212,8 @@
     "totalRevenue": "Totale omzet",
     "totalOrders": "Totaal bestellingen",
     "avgOrderValue": "Gem. bestelwaarde",
+    "totalProfit": "Totale winst",
+    "profitMargin": "Marge",
     "details": "Details",
     "contactInfo": "Contactgegevens",
     "form": {
@@ -461,6 +463,26 @@
       "refund": "Terugbetalen",
       "delete": "Verwijderen",
       "markComplete": "Markeer als voltooid"
+    },
+    "refund": {
+      "title": "Terugbetaling",
+      "fullRefund": "Volledige terugbetaling",
+      "ordered": "Besteld",
+      "alreadyRefunded": "Al terugbetaald",
+      "lineFullyRefunded": "Volledig terugbetaald",
+      "max": "Max",
+      "date": "Datum terugbetaling",
+      "reason": "Reden",
+      "reasonPlaceholder": "Optioneel — bijv. retour, beschadigd",
+      "restoreStock": "Voorraad terugzetten",
+      "restoreStockHint": "Zet de teruggegeven aantallen terug in de voorraad (alleen voor bijgehouden producten).",
+      "total": "Totaal terug te betalen",
+      "submit": "Terugbetaling verwerken",
+      "submitting": "Verwerken...",
+      "noneSelected": "Selecteer minimaal één artikel om terug te betalen.",
+      "nothingToRefund": "Er is niets meer om terug te betalen voor deze bestelling.",
+      "fullyRefunded": "Volledig terugbetaald",
+      "partiallyRefunded": "Gedeeltelijk terugbetaald"
     },
     "payment": {
       "method": "Betaalmethode",
