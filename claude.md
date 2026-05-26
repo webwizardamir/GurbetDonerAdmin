@@ -19,6 +19,7 @@ Read these before touching code. Then read `docs/STYLEGUIDE.md`, `docs/PLANNER.m
 ### Typography
 - **Two faces only**: **Clash Display** (modern display grotesk, Fontshare) for headlines / scene titles, **Archivo** (industrial grotesk; its `wdth` axis drives expanded brutalist caps via `font-stretch: 125%`, helper `.font-x`) for body / UI / operational labels. Loaded via two `<link>`s in `Base.astro` (Clash via Fontshare, Archivo via Google Fonts). Never add a third face. (v9 replaced Bodoni Moda, which read too formal; v8 had replaced the original Fraunces + Inter, an AI-template tell. On light scenes headlines are emerald via `--scene-title`.)
 - Operational metadata uses `.op-label` (was `.mono-label`); oversized section numbers use `.scene-index` (was `.mono-num`). Neither is a real mono webfont; both are Archivo.
+- **No eyebrow pre-headings, no hero fact ledgers (owner).** Do not place a small kicker label above a heading, and do not add "at a glance" fact strips to heroes (and never surface SKU counts). `.op-label` is for functional micro-labels only (breadcrumbs, tile meta, captions, scroll cue). See `docs/STYLEGUIDE.md §3`.
 - **No italic-serif accents inside heading sans.** Headings are one face, one style. Editorial drama comes from scale and weight contrast, not decoration.
 
 ### Writing

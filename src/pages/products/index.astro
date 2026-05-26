@@ -38,7 +38,6 @@ const grouped = site.productCategories.map((c) => ({
     <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x cat-hero__grid grid-ed grid-ed--7-5">
       <div>
-        <p class="op-label ink-dim">The range</p>
         <h1 id="cat-hero-title" class="cat-hero__title text-hero">Built to specification.</h1>
         <p class="cat-hero__lede ink-dim">
           Chicken, beef and snacks, produced in the Netherlands to retail specification,
@@ -199,6 +198,14 @@ const grouped = site.productCategories.map((c) => ({
   .cat-grid::-webkit-scrollbar { height: 4px; }
   .cat-grid::-webkit-scrollbar-thumb { background: var(--scene-line); border-radius: 99px; }
   .cat-card { flex: 0 0 auto; inline-size: clamp(150px, 52vw, 210px); scroll-snap-align: start; }
+
+  /* Mobile carousel: fade the right edge so the peeking card signals "more to swipe". */
+  @media (max-width: 759px) {
+    .cat-grid {
+      -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+      mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+    }
+  }
 
   @media (min-width: 760px) {
     .cat-grid {

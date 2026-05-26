@@ -8,13 +8,6 @@ import ExportCTA from "../../components/sections/ExportCTA.astro";
 const VIRTUAL_TOUR_SRC =
   "https://www.google.com/maps/embed?pb=!1m0!4v1508762781415!6m8!1m7!1sCAoSLEFGMVFpcE12RXNjeXl3SG0wS3hNdFFtdjVYRlBwelZ4TWYtMmJVR2lfMEZi!2m2!1d51.64973803355711!2d17.35716885252691!3f28!4f-6!5f0.7820865974627469";
 
-const facts = [
-  { k: "Three ranges", v: "Chicken, beef, snacks" },
-  { k: "Amsterdam, NL", v: "Produced and frozen on site" },
-  { k: "EU-wide", v: "Cold chain, pallet-ready" },
-  { k: "Halal · BRC · IFS", v: "Independently certified" },
-];
-
 const principles = [
   { term: "Consistency over catalogue.", body: "We do not chase a thousand lines. We run a tight range and hold every product to retail-grade tolerances, every shift, every container, every market." },
   { term: "Reached for first.", body: "The aim is to be the halal range European distributors reach for first, recognised for quality and traceability, not price alone." },
@@ -40,23 +33,12 @@ const gallery = [
   <section class="scene ab-hero" data-scene="light" aria-labelledby="ab-hero-title">
     <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x">
-      <p class="op-label ink-dim">About Melek</p>
       <h1 id="ab-hero-title" class="ab-hero__title text-mega">Built in the Netherlands. Trusted across Europe.</h1>
-      <div class="ab-hero__base grid-ed grid-ed--7-5">
-        <p class="ab-hero__lede ink-dim">
-          Melek is a halal frozen-food house for distributors and operators who cannot afford
-          inconsistency. A tight product range, an auditable halal protocol, and a cold chain that
-          lands when it is supposed to.
-        </p>
-        <dl class="ab-hero__facts">
-          {facts.map((f) => (
-            <div class="ab-fact">
-              <dt class="op-label text-accent">{f.k}</dt>
-              <dd class="op-label ink-dim ab-fact__v">{f.v}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
+      <p class="ab-hero__lede ink-dim">
+        Melek is a halal frozen-food house for distributors and operators who cannot afford
+        inconsistency. A tight product range, an auditable halal protocol, and a cold chain that
+        lands when it is supposed to.
+      </p>
 
       <figure class="ab-hero__media" data-reveal>
         <video class="ab-hero__video" autoplay muted loop playsinline preload="auto" poster="/images/hero/field.webp">
@@ -70,7 +52,6 @@ const gallery = [
   <section class="scene ab-manifesto" data-scene="light" aria-labelledby="ab-man-title">
     <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x ab-manifesto__inner">
-      <p class="op-label text-accent">Why Melek</p>
       <h2 id="ab-man-title" class="ab-manifesto__title text-display">
         Halal kept getting treated as a box to tick. We build it <span class="text-accent">like a standard.</span>
       </h2>
@@ -110,7 +91,6 @@ const gallery = [
     <div class="container-x">
       <header class="ab-tour__head grid-ed grid-ed--7-5">
         <div>
-          <p class="op-label ink-dim">Virtual tour</p>
           <h2 id="ab-tour-title" class="ab-tour__title text-display">Walk the facility from where you are.</h2>
         </div>
         <p class="ab-tour__lede ink-dim">
@@ -128,7 +108,6 @@ const gallery = [
   <section class="scene ab-gallery" data-scene="light" aria-labelledby="ab-gal-title">
     <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x ab-gallery__head">
-      <p class="op-label ink-dim">The facility</p>
       <h2 id="ab-gal-title" class="ab-gallery__title text-display">Where it comes together.</h2>
     </div>
     <div class="container-x">
@@ -147,7 +126,6 @@ const gallery = [
   <section class="scene ab-video" data-scene="light" aria-labelledby="ab-vid-title">
     <div class="container-x">
       <header class="ab-video__head">
-        <p class="op-label ink-dim">Inside Melek</p>
         <h2 id="ab-vid-title" class="ab-video__title text-display">From the line to the loading bay.</h2>
       </header>
       <div class="ab-video__frame" data-reveal>
@@ -248,6 +226,13 @@ const gallery = [
   }
   .ab-gallery__strip::-webkit-scrollbar { height: 4px; }
   .ab-gallery__strip::-webkit-scrollbar-thumb { background: var(--scene-line); border-radius: 99px; }
+  /* Mobile: fade the right edge so the peeking frame signals "more to swipe". */
+  @media (max-width: 760px) {
+    .ab-gallery__strip {
+      -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+      mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+    }
+  }
   .ab-frame {
     position: relative; flex: 0 0 auto;
     inline-size: clamp(260px, 60vw, 460px); aspect-ratio: 4 / 3;

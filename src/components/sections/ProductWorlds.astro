@@ -38,7 +38,6 @@ const ranges = site.productCategories.map((cat) => ({
   <div class="container-x">
     <div class="worlds__head grid-ed grid-ed--7-5">
       <div>
-        <p class="op-label ink-dim">Product worlds</p>
         <h2 class="worlds__title text-display">Three ranges, made to move.</h2>
       </div>
       <p class="worlds__lede ink-dim">
@@ -132,6 +131,20 @@ const ranges = site.productCategories.map((cat) => ({
      peeks. The fixed 186px floor let ~2 whole cards fit on larger phones, hiding the scroll cue. */
   @media (max-width: 760px) {
     .worlds__card { inline-size: clamp(150px, 52vw, 240px); }
+    /* Fade the right edge so the peeking card visibly trails off = "there is more to swipe". */
+    .worlds__rail {
+      -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 56px), transparent);
+      mask-image: linear-gradient(90deg, #000 calc(100% - 56px), transparent);
+    }
+  }
+  /* One gentle nudge on load so the rail visibly moves = it is swipeable (motion-safe only). */
+  @media (max-width: 760px) and (prefers-reduced-motion: no-preference) {
+    @keyframes worlds-swipe-hint {
+      0%, 14% { transform: translateX(0); }
+      42% { transform: translateX(-28px); }
+      72%, 100% { transform: translateX(0); }
+    }
+    .worlds__rail { animation: worlds-swipe-hint 2.1s var(--ease-out-expo) 0.8s 1 both; }
   }
   .worlds__link { text-decoration: none; color: inherit; display: block; }
 

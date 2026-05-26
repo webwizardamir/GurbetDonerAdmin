@@ -63,7 +63,6 @@ const facts = [
         </figure>
 
         <div class="pd__body">
-          {cat && <p class="op-label text-accent">{cat.name}</p>}
           <h1 class="pd__title text-hero">{data.name}</h1>
           {data.tagline && <p class="pd__tag ink-dim">{data.tagline}</p>}
 
@@ -185,6 +184,12 @@ const facts = [
   .cat-grid::-webkit-scrollbar { height: 4px; }
   .cat-grid::-webkit-scrollbar-thumb { background: var(--scene-line); border-radius: 99px; }
   .cat-card { flex: 0 0 auto; inline-size: clamp(150px, 52vw, 210px); scroll-snap-align: start; }
+  @media (max-width: 759px) {
+    .cat-grid {
+      -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+      mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+    }
+  }
   @media (min-width: 760px) {
     .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: clamp(0.9rem, 2vw, 1.5rem); overflow: visible; padding-block-end: 0; }
     .cat-card { inline-size: auto; scroll-snap-align: none; }

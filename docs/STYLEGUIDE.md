@@ -88,7 +88,9 @@ Charcoal on snow ≈ 15:1. Emerald `#0f5132` on snow ≈ 7:1 (AA for all text) �
 Vary headline scale **between** scenes (the old failure was six identical `.text-display` H2s). A scene head can be `.text-mega`, `.text-display`, or `.font-x` expanded caps, but not the same recipe every time.
 
 ### Operational labels
-- `.op-label` / `.op-label--sm`: tiny uppercase Archivo with wide tracking and tabular figures. The "spec sheet" voice (eyebrows, metadata, captions). Colour with `.ink-dim` (slate-500 on light / silver on dark) or `.text-accent` (emerald on light / brass on dark).
+- `.op-label` / `.op-label--sm`: tiny uppercase Archivo with wide tracking and tabular figures. The "spec sheet" voice. Colour with `.ink-dim` (slate-500 on light / silver on dark) or `.text-accent` (emerald on light / brass on dark).
+- **No eyebrow pre-headings (owner).** Do **not** put a small kicker label above a section/page heading (the "Operational proof", "Verification", "About Melek" pattern is retired site-wide). Headings stand on their own. `.op-label` is now only for genuinely functional micro-labels: breadcrumbs, product-tile meta, image/cert captions, contact-method labels, the hero scroll cue. When in doubt, leave it out.
+- **No hero fact ledgers.** The Origin/Distribution/Certified/Range-style fact strips were removed from the heroes. Don't reintroduce labelled "at a glance" ledgers, and never surface SKU counts.
 - `.scene-index`: exists in CSS but is **unused and must stay unused. Do NOT number scenes** (`01/02/03` over titles read AI-ish — owner feedback).
 
 ### Grain

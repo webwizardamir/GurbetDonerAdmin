@@ -2,12 +2,6 @@
 // Cinematic film-title hero (v6 redesign).
 // Self-hosted MP4 background (drop a replacement at /public/videos/hero.mp4).
 // Two type voices: Bodoni Moda headline, Archivo for lede + operational labels.
-const ledger = [
-  { k: "Origin", v: "Netherlands" },
-  { k: "Distribution", v: "EU-wide" },
-  { k: "Certified", v: "Halal · BRC · IFS" },
-  { k: "Range", v: "3 ranges · 46 SKU" },
-];
 ---
 
 <section class="cine-hero" aria-labelledby="hero-title" data-hero>
@@ -29,21 +23,8 @@ const ledger = [
     <div class="grain grain--strong"></div>
   </div>
 
-  <span class="cine-hero__edge op-label op-label--sm" aria-hidden="true">
-    Melek · Halal Frozen Food
-  </span>
-
   <div class="container-x cine-hero__inner">
-    <header class="cine-hero__coords" data-hero-line>
-      <span class="op-label cine-hero__coords-end">Shipped across Europe</span>
-    </header>
-
     <div class="cine-hero__headline">
-      <p class="op-label cine-hero__kicker" data-hero-line>
-        <span class="cine-hero__beacon" aria-hidden="true"></span>
-        Halal frozen food, made in the Netherlands
-      </p>
-
       <h1 id="hero-title" class="cine-hero__title">
         <span class="cine-hero__line"><span data-hero-word>Everybody loves</span></span>
         <span class="cine-hero__line"><span data-hero-word>Melek Halal Food.</span></span>
@@ -70,15 +51,6 @@ const ledger = [
         <span class="cine-hero__scroll-rail" aria-hidden="true"><span class="cine-hero__scroll-bead"></span></span>
         <span class="op-label">Scroll</span>
       </a>
-
-      <dl class="cine-hero__ledger" aria-label="At a glance">
-        {ledger.map((row) => (
-          <div class="cine-hero__ledger-item" data-hero-line>
-            <dt class="op-label">{row.k}</dt>
-            <dd class="cine-hero__ledger-val">{row.v}</dd>
-          </div>
-        ))}
-      </dl>
     </footer>
   </div>
 </section>
