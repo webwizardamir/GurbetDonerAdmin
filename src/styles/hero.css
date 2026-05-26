@@ -33,13 +33,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(5, 26, 16, 0.58) 0%,
-    rgba(5, 26, 16, 0.3) 30%,
-    rgba(5, 26, 16, 0.6) 70%,
-    rgba(5, 26, 16, 0.93) 100%
-  );
+  /* Veil background removed (owner): the dark gradient made the lighter site's hero read heavy.
+     The vignette below still carries enough edge darkening to keep the headline legible. */
 }
 /* Cinematic edge-darkening. (Hero is exempt from the flat-dark-section rule.) */
 .cine-hero__vignette {

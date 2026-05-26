@@ -4,7 +4,7 @@ const links = [{ label: "Home", href: "/" }, ...site.nav];
 ---
 
 <div id="mobile-nav" class="mobile-menu" data-mobile-panel data-state="closed" aria-hidden="true">
-  <div class="grain grain--strong" aria-hidden="true"></div>
+  <div class="grain grain--dark" aria-hidden="true"></div>
   <div class="mobile-menu__inner">
     <div class="mobile-menu__head">
       <a href="/" class="mobile-menu__brand" data-mm-close>
@@ -31,7 +31,7 @@ const links = [{ label: "Home", href: "/" }, ...site.nav];
 
     <div class="mobile-menu__cta">
       <a href="/distributors/" class="btn btn-primary mobile-menu__btn-primary" data-mm-close>Become a distributor</a>
-      <a href="/samples/" class="btn btn-secondary-light mobile-menu__btn-secondary" data-mm-close>Request samples</a>
+      <a href="/samples/" class="btn btn-secondary mobile-menu__btn-secondary" data-mm-close>Request samples</a>
     </div>
 
     <div class="mobile-menu__contact">
@@ -56,9 +56,13 @@ const links = [{ label: "Home", href: "/" }, ...site.nav];
     height: 100vh;
     height: 100dvh;
     z-index: 70;
-    color: var(--color-paper);
-    /* Flat dark to match the cinematic system; texture comes from grain, not gradients. */
-    background: var(--color-emerald-black);
+    color: var(--color-charcoal);
+    /* Light-dominant overlay, matching the homepage: near-white snow warmed with the same soft
+       emerald/brass radial glow used on light scenes. */
+    background:
+      radial-gradient(1000px 460px at 92% -6%, rgba(15, 81, 50, 0.08), transparent 60%),
+      radial-gradient(760px 420px at 0% 106%, rgba(169, 134, 63, 0.07), transparent 58%),
+      var(--color-snow);
     isolation: isolate;
     opacity: 0;
     pointer-events: none;
@@ -87,16 +91,16 @@ const links = [{ label: "Home", href: "/" }, ...site.nav];
   .mobile-menu__close {
     background: transparent;
     border: 0;
-    color: var(--color-paper);
+    color: var(--color-charcoal);
     padding: 8px;
     margin-inline-end: -8px;
     cursor: pointer;
     border-radius: var(--radius);
     transition: background 0.2s var(--ease-out-expo);
   }
-  .mobile-menu__close:hover { background: rgba(199, 207, 202, 0.1); }
+  .mobile-menu__close:hover { background: rgba(15, 81, 50, 0.08); }
 
-  .mobile-menu__eyebrow { margin-block-start: 1.5rem; color: var(--color-silver-dim); }
+  .mobile-menu__eyebrow { margin-block-start: 1.5rem; color: var(--color-slate-500); }
 
   .mobile-menu__list {
     list-style: none;
@@ -111,13 +115,13 @@ const links = [{ label: "Home", href: "/" }, ...site.nav];
     justify-content: space-between;
     gap: 1.25rem;
     padding: 1.05rem 0;
-    border-bottom: 1px solid rgba(199, 207, 202, 0.14);
-    color: var(--color-paper);
+    border-bottom: 1px solid rgba(15, 81, 50, 0.12);
+    color: var(--color-charcoal);
     text-decoration: none;
     transition: color 0.2s var(--ease-out-expo), padding-inline-start 0.25s var(--ease-out-expo);
   }
   .mobile-menu__list a:hover,
-  .mobile-menu__list a:focus-visible { color: var(--color-brass); padding-inline-start: 6px; }
+  .mobile-menu__list a:focus-visible { color: var(--color-emerald); padding-inline-start: 6px; }
   .mobile-menu__label {
     font-family: var(--font-display);
     font-size: clamp(1.6rem, 6vw, 2.25rem);
@@ -125,7 +129,7 @@ const links = [{ label: "Home", href: "/" }, ...site.nav];
     letter-spacing: -0.01em;
     font-weight: 600;
   }
-  .mobile-menu__arrow { color: var(--color-brass); opacity: 0.7; flex-shrink: 0; }
+  .mobile-menu__arrow { color: var(--color-emerald); opacity: 0.7; flex-shrink: 0; }
 
   .mobile-menu__cta {
     margin-block-start: 2rem;
@@ -147,13 +151,13 @@ const links = [{ label: "Home", href: "/" }, ...site.nav];
     gap: 0.25rem;
   }
   .mobile-menu__contact a {
-    color: rgba(241, 239, 232, 0.85);
+    color: var(--color-slate-700);
     text-decoration: none;
     font-size: 0.9375rem;
     margin-block-start: 0.5rem;
     transition: color 0.2s var(--ease-out-expo);
   }
-  .mobile-menu__contact a:hover { color: var(--color-brass); }
+  .mobile-menu__contact a:hover { color: var(--color-emerald); }
 
   .mobile-menu__social {
     margin-block-start: auto;
@@ -162,10 +166,10 @@ const links = [{ label: "Home", href: "/" }, ...site.nav];
     align-items: center;
     gap: 0.5rem;
     font-size: 0.8125rem;
-    color: rgba(199, 207, 202, 0.6);
+    color: var(--color-slate-500);
   }
   .mobile-menu__social a {
-    color: rgba(241, 239, 232, 0.85);
+    color: var(--color-slate-700);
     text-decoration: none;
     border-block-end: 1px solid transparent;
     transition: border-color 0.2s var(--ease-out-expo);

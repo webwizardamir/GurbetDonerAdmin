@@ -10,42 +10,44 @@ const flow = [
 ];
 ---
 
-<section id="distributors" class="scene xcta" data-scene="char" aria-labelledby="xcta-title">
-  <div class="grain" aria-hidden="true"></div>
+<section id="distributors" class="scene xcta" data-scene="light" aria-labelledby="xcta-title">
+  <div class="grain grain--dark" aria-hidden="true"></div>
   <div class="container-x">
-    <div class="xcta__top grid-ed grid-ed--7-5">
-      <div class="xcta__lead">
-        <p class="op-label text-accent">Partner with Melek</p>
-        <h2 id="xcta-title" class="xcta__title">Already exporting? Add a halal range that moves.</h2>
-      </div>
-      <div class="xcta__side">
-        <p class="xcta__sub ink-dim">
-          Tell us about your market, your channels and your volume. We come back with a range
-          proposal, indicative pricing and the certificates your buyers will ask for.
-        </p>
-        <div class="xcta__actions">
-          <a href="/distributors/" class="btn btn-primary">
-            Open the distributor brief
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </a>
-          <a href="/samples/" class="btn btn-secondary-light">Request a sample box</a>
+    <div class="scene-panel scene-panel--deep xcta__panel">
+      <div class="xcta__top grid-ed grid-ed--7-5">
+        <div class="xcta__lead">
+          <p class="op-label text-accent">Partner with Melek</p>
+          <h2 id="xcta-title" class="xcta__title">Already exporting? Add a halal range that moves.</h2>
+        </div>
+        <div class="xcta__side">
+          <p class="xcta__sub ink-dim">
+            Tell us about your market, your channels and your volume. We come back with a range
+            proposal, indicative pricing and the certificates your buyers will ask for.
+          </p>
+          <div class="xcta__actions">
+            <a href="/distributors/" class="btn btn-primary">
+              Open the distributor brief
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+            <a href="/samples/" class="btn btn-secondary">Request a sample box</a>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="xcta__flow" role="list">
-      {flow.map((f, i) => (
-        <div class="xcta__step" role="listitem" data-reveal>
-          {i > 0 && <span class="xcta__arrow" aria-hidden="true">&rarr;</span>}
-          <span class="xcta__phase">{f.phase}</span>
-          <span class="op-label ink-dim xcta__note">{f.note}</span>
-        </div>
-      ))}
-    </div>
+      <div class="xcta__flow" role="list">
+        {flow.map((f, i) => (
+          <div class="xcta__step" role="listitem" data-reveal>
+            {i > 0 && <span class="xcta__arrow" aria-hidden="true">&rarr;</span>}
+            <span class="xcta__phase">{f.phase}</span>
+            <span class="op-label ink-dim xcta__note">{f.note}</span>
+          </div>
+        ))}
+      </div>
 
-    <p class="op-label ink-dim xcta__contact">
-      Direct: <a href={`mailto:${site.email}`}>{site.email}</a> · {site.phone}
-    </p>
+      <p class="op-label ink-dim xcta__contact">
+        Direct: <a href={`mailto:${site.email}`}>{site.email}</a> · {site.phone}
+      </p>
+    </div>
   </div>
 </section>
 
@@ -60,7 +62,7 @@ const flow = [
 
   .xcta__title {
     font-family: var(--font-display);
-    color: var(--scene-ink);
+    color: var(--scene-title, var(--scene-ink));
     margin-block-start: 0.75rem;
     font-size: clamp(2.4rem, 5vw, 4.4rem);
     line-height: 1.0;

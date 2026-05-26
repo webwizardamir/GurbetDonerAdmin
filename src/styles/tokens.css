@@ -24,6 +24,8 @@
 
   /* Neutrals (warm) */
   --color-snow: #f7f6f3; /* clean modern near-white: light-dominant scene base (not beige) */
+  --color-panel: #e9efe9; /* light emerald-tinted inset panel, sits boxed on the snow body */
+  --color-panel-deep: #e0e8e1; /* slightly deeper panel tint for emphasis blocks */
   --color-line-soft: #e7e4dd; /* neutral hairline on snow */
   --color-paper: #f1efe8; /* de-beiged off-white: pale record cards on dark */
   --color-bone: #fbf8f0;

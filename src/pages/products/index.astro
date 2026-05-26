@@ -31,11 +31,11 @@ const grouped = site.productCategories.map((c) => ({
 <Base
   title="Products"
   description="Halal frozen chicken, beef and snacks. Built for foodservice and retail buyers across Europe."
-  bodyClass="has-dark-hero"
+  bodyClass="page-light"
 >
   <!-- Catalog hero -->
-  <section class="scene cat-hero" data-scene="black" aria-labelledby="cat-hero-title">
-    <div class="grain grain--strong" aria-hidden="true"></div>
+  <section class="scene cat-hero" data-scene="light" aria-labelledby="cat-hero-title">
+    <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x cat-hero__grid grid-ed grid-ed--7-5">
       <div>
         <p class="op-label ink-dim">The range</p>
@@ -68,14 +68,14 @@ const grouped = site.productCategories.map((c) => ({
 
   <div id="all" class="cat-anchor" aria-hidden="true"></div>
 
-  {grouped.map((g, gi) => (
+  {grouped.map((g) => (
     <section
       id={g.slug}
       class="scene cat-range"
-      data-scene={gi % 2 === 0 ? "black" : "char"}
+      data-scene="light"
       aria-labelledby={`cat-${g.slug}`}
     >
-      <div class="grain" aria-hidden="true"></div>
+      <div class="grain grain--dark" aria-hidden="true"></div>
       <div class="container-x">
         <header class="cat-range__head">
           <h2 id={`cat-${g.slug}`} class="cat-range__name font-x">{g.name}</h2>
@@ -123,10 +123,10 @@ const grouped = site.productCategories.map((c) => ({
 </script>
 
 <style>
-  /* Catalog hero. has-dark-hero removes the main offset, so clear the fixed header here. */
-  .cat-hero { --scene-pad: 0; padding-block: calc(var(--header-h) + clamp(2.5rem, 6vw, 4.5rem)) clamp(3rem, 6vw, 5rem); }
+  /* Catalog hero. main reserves the fixed-header height on light pages, so just add breathing room. */
+  .cat-hero { --scene-pad: 0; padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3rem, 6vw, 5rem); }
   .cat-hero__grid { align-items: end; }
-  .cat-hero__title { color: var(--scene-ink); margin-block-start: 0.6rem; max-inline-size: 12ch; }
+  .cat-hero__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.6rem; max-inline-size: 12ch; }
   .cat-hero__lede { margin-block-start: 1.1rem; max-inline-size: 46ch; font-size: var(--text-body-lg); line-height: 1.6; }
 
   .cat-hero__filter {
@@ -178,7 +178,7 @@ const grouped = site.productCategories.map((c) => ({
     font-size: clamp(2.25rem, 6vw, 4.5rem);
     font-weight: 800;
     line-height: 0.85;
-    color: var(--scene-ink);
+    color: var(--scene-title, var(--scene-ink));
     text-transform: uppercase;
     letter-spacing: -0.01em;
   }
@@ -218,9 +218,11 @@ const grouped = site.productCategories.map((c) => ({
     border-radius: var(--radius-lg);
     overflow: hidden;
     border: 1px solid var(--scene-line);
+    /* White tile with a faint emerald wash + soft lift, matching the homepage light tiles. */
     background:
-      radial-gradient(80% 60% at 50% 38%, rgba(169, 134, 63, 0.22), transparent 70%),
-      var(--color-char-900);
+      radial-gradient(75% 60% at 50% 32%, rgba(15, 81, 50, 0.06), transparent 70%),
+      #ffffff;
+    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 16px 30px -22px rgba(22, 19, 17, 0.22);
   }
   .cat-card__media img {
     position: absolute; inset: 0;

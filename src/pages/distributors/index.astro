@@ -4,19 +4,19 @@ import Base from "../../layouts/Base.astro";
 
 <Base
   title="Become a distributor"
-  description="Distribute Melek halal frozen ranges in your market. Tell us your channels and volume — we'll come back with an assortment, pricing and certifications."
+  description="Distribute Melek halal frozen ranges in your market. Tell us your channels and volume, we'll come back with an assortment, pricing and certifications."
+  bodyClass="page-light"
 >
-  <section class="dist">
-    <div class="container-x section">
+  <section class="scene dist" data-scene="light">
+    <div class="grain grain--dark" aria-hidden="true"></div>
+    <div class="container-x">
       <div class="dist__grid">
         <div class="dist__intro">
-          <p class="eyebrow">Distributor programme</p>
-          <h1 class="text-display font-display dist__title">
-            Stock the halal range your <em>buyers will defend in a tender.</em>
-          </h1>
+          <p class="op-label text-accent">Distributor programme</p>
+          <h1 class="text-display dist__title">Stock the halal range your buyers will defend in a tender.</h1>
           <p class="text-body-lg dist__lede">
             Tell us about your market, your channels and the volume you're confident with.
-            We'll come back with a curated assortment, indicative pricing and every certificate
+            We'll come back with a range proposal, indicative pricing and every certificate
             your buyers will ask for.
           </p>
 
@@ -27,7 +27,7 @@ import Base from "../../layouts/Base.astro";
             </li>
             <li>
               <strong>Audit-ready paperwork.</strong>
-              Halal, HACCP, IFS, BRC, ISO — issued by named authorities, dated, and available before you ask.
+              Halal, HACCP, IFS, BRC, ISO, issued by named authorities, dated, and available before you ask.
             </li>
             <li>
               <strong>Private-label welcome.</strong>
@@ -36,8 +36,8 @@ import Base from "../../layouts/Base.astro";
           </ul>
         </div>
 
-        <form class="dist__form card" method="post" action="?_form=distributor" novalidate>
-          <h2 class="font-display dist__form-title">Open the distributor brief</h2>
+        <form class="dist__form" method="post" action="?_form=distributor" novalidate>
+          <h2 class="dist__form-title">Open the distributor brief</h2>
           <p class="dist__form-sub">We reply within two business days.</p>
 
           <div class="dist__row">
@@ -116,7 +116,6 @@ import Base from "../../layouts/Base.astro";
 </Base>
 
 <style>
-  .dist { background: var(--color-bone); padding-block-start: clamp(60px, 8vw, 100px); }
   .dist__grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -125,9 +124,8 @@ import Base from "../../layouts/Base.astro";
   @media (min-width: 1000px) {
     .dist__grid { grid-template-columns: 5fr 6fr; align-items: start; }
   }
-  .dist__title { margin: 1rem 0 0; color: var(--color-charcoal); }
-  .dist__title em { font-style: italic; font-family: var(--font-serif); font-weight: 400; color: var(--color-emerald); }
-  .dist__lede { margin-block-start: 1.25rem; color: var(--color-slate-700); max-inline-size: 50ch; }
+  .dist__title { margin: 0.6rem 0 0; color: var(--scene-title, var(--scene-ink)); max-inline-size: 18ch; }
+  .dist__lede { margin-block-start: 1.25rem; color: var(--scene-ink-dim); max-inline-size: 50ch; }
 
   .dist__pillars {
     list-style: none;
@@ -138,7 +136,7 @@ import Base from "../../layouts/Base.astro";
   }
   .dist__pillars li {
     padding-inline-start: 1.25rem;
-    border-inline-start: 2px solid var(--color-gold);
+    border-inline-start: 2px solid var(--color-emerald);
     font-size: 0.9375rem;
     line-height: 1.55;
     color: var(--color-slate-700);
@@ -152,8 +150,16 @@ import Base from "../../layouts/Base.astro";
     font-weight: 600;
   }
 
-  .dist__form { padding: clamp(1.5rem, 3vw, 2.25rem); display: flex; flex-direction: column; gap: 1rem; }
-  .dist__form-title { font-size: 1.5rem; margin: 0; color: var(--color-charcoal); letter-spacing: -0.015em; }
+  /* White form card, lifted off the snow with a soft emerald shadow. */
+  .dist__form {
+    background: #fff;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6), 0 30px 60px -48px rgba(15, 81, 50, 0.4);
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .dist__form-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--color-charcoal); letter-spacing: -0.015em; }
   .dist__form-sub { margin: 0 0 0.5rem; font-size: 0.875rem; color: var(--color-slate-500); }
   .dist__row { display: grid; gap: 1rem; grid-template-columns: 1fr; }
   @media (min-width: 600px) { .dist__row { grid-template-columns: 1fr 1fr; } }
@@ -183,10 +189,10 @@ import Base from "../../layouts/Base.astro";
     panel.style.padding = "1rem 1.25rem";
     panel.style.border = "1px solid var(--color-emerald)";
     panel.style.borderRadius = "var(--radius)";
-    panel.style.background = "color-mix(in srgb, var(--color-emerald) 8%, var(--color-bone))";
+    panel.style.background = "color-mix(in srgb, var(--color-emerald) 8%, #fff)";
     panel.style.color = "var(--color-emerald)";
     panel.style.fontSize = "0.9375rem";
-    panel.innerHTML = "Thanks — we've got your brief. A member of our sales team will be in touch within two business days.";
+    panel.innerHTML = "Thanks, we've got your brief. A member of our sales team will be in touch within two business days.";
     form.replaceWith(panel);
   });
 </script>

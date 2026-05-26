@@ -17,23 +17,24 @@ Read these before touching code. Then read `docs/STYLEGUIDE.md`, `docs/PLANNER.m
 ## Hard rules (do not violate)
 
 ### Typography
-- **Two faces only**: **Bodoni Moda** (high-contrast editorial serif) for headlines / scene titles, **Archivo** (industrial grotesk; its `wdth` axis drives expanded brutalist caps via `font-stretch: 125%`, helper `.font-x`) for body / UI / operational labels. Loaded via one Google Fonts request in `Base.astro`. Never add a third face. (v8 replaced the old Fraunces + Inter pairing, which the owner flagged as a recognizable AI-template tell.)
+- **Two faces only**: **Clash Display** (modern display grotesk, Fontshare) for headlines / scene titles, **Archivo** (industrial grotesk; its `wdth` axis drives expanded brutalist caps via `font-stretch: 125%`, helper `.font-x`) for body / UI / operational labels. Loaded via two `<link>`s in `Base.astro` (Clash via Fontshare, Archivo via Google Fonts). Never add a third face. (v9 replaced Bodoni Moda, which read too formal; v8 had replaced the original Fraunces + Inter, an AI-template tell. On light scenes headlines are emerald via `--scene-title`.)
 - Operational metadata uses `.op-label` (was `.mono-label`); oversized section numbers use `.scene-index` (was `.mono-num`). Neither is a real mono webfont; both are Archivo.
-- **No italic-serif accents inside heading sans.** Headings are one face, one style. Editorial drama comes from scale contrast and Bodoni's stroke contrast, not decoration.
+- **No italic-serif accents inside heading sans.** Headings are one face, one style. Editorial drama comes from scale and weight contrast, not decoration.
 
 ### Writing
 - **No em-dashes (—)** anywhere in copy. Replace with commas, full stops, or restructure. (Burned twice.)
 - **No fabricated trust signals** — no invented tonnage, employee counts, years in business. Only show what is real and verifiable.
 - **No double-quote scare-quoting** of brand words. No corporate filler ("we believe", "we strive").
 
-### Design (v8 cinematic direction)
-- **The homepage is a dark-cinematic flow.** `body.has-dark-hero` sits on `--color-emerald-black`. Sections are "scenes" themed via `data-scene="black|char|deep|paper"`, which set `--scene-bg / --scene-ink / --scene-ink-dim / --scene-line / --scene-accent` (defined in `global.css`). Build new sections as `.scene` with a `data-scene`, not the old bone `.section`.
-- **No two scenes share a skeleton.** The old `eyebrow → display headline → 6fr/5fr split → numbered equal-card grid` molecule is retired (it was the main AI tell). Vary layout, scale, and rhythm per scene. Primitives: `.op-label`, `.font-x`, `.grid-ed--*`, `.scene-rule`.
+### Design (v9 light-dominant direction)
+- **The homepage is light-dominant.** A dark `--color-emerald-black` Hero opens it (`body.has-dark-hero`), then the page runs light end to end. Sections are "scenes" themed via `data-scene="light|black|char|deep|paper"`, which set `--scene-bg / --scene-ink / --scene-ink-dim / --scene-line / --scene-accent` (+ emerald `--scene-title` on light) in `global.css`. **`light` (snow `--color-snow`, emerald headings, soft glow + a diagonal weave that stays continuous across seams) is the default; dark is punctuation.** Build new sections as `.scene` with a `data-scene`, not the old bone `.section`. Full detail: `docs/STYLEGUIDE.md`.
+- **No two scenes share a skeleton.** The old `eyebrow → display headline → 6fr/5fr split → numbered equal-card grid` molecule is retired (it was the main AI tell). Vary layout, scale, and rhythm per scene. Primitives: `.op-label`, `.font-x`, `.grid-ed--*`, `.scene-rule`, `.scene-panel`.
+- **Boxed-panel motif, one per page.** To keep the light scroll crafted, one scene's content sits in an inset `.scene-panel` (soft emerald tint `--color-panel`/`--color-panel-deep`, padding, `--radius-xl`, a decorative top-right shape, the body showing around it). Owner rule: **only one box per page** for variety; the rest stay full-bleed on snow. On the homepage that box is the ExportCTA.
 - **Do NOT number scenes** with oversized `01/02/03` indices, and **do not surface machine-y metadata** like "13 SKU" — the owner flagged both as AI-ish. The `.scene-index` class exists but is unused; leave it out. SKU counts are meaningless to buyers and the catalogue keeps growing.
-- **Watch empty space.** Dark scenes must not leave large dead black areas — a narrow text column against a blank half is an AI tell. Fill the width (two-column splits, ledes, balanced grids); the cards/tiles in a set should be uniform in size.
-- **Scene transitions are deliberate cuts**, not wave dividers — dark scenes may touch (the old "two darks must never touch" rule is retired for this flow). Wave dividers survive only on not-yet-rebuilt legacy sections; tone-match their wrapper bg to the neighbour (e.g. `HalalPromise` now takes a `topBg` prop, set to `--color-emerald-black` on the homepage).
-- **Legacy light sections** (Process, Certifications, Footer, internal pages) still use the old bone/cream + flat-`--color-emerald-deep` system and wave dividers until rebuilt. Do not break them; expect a visible seam where new dark scenes meet old beige ones mid-redesign.
-- **Palette**: dark canvas (`--color-emerald-black`, `--color-char-900`) + warm ink (`--color-paper`, `--color-bone`) + accents `--color-brass` / `--color-silver` / sparing `--color-spice`. Move off the bone/cream beige + emerald + gold combination on rebuilt scenes.
+- **Watch empty space.** A narrow text column against a blank half is an AI tell. Fill the width (two-column splits, ledes, balanced grids); the cards/tiles in a set should be uniform in size. Certs are a minimalist one-line row of marks, not a record-card grid.
+- **Scene transitions are deliberate cuts**, not wave dividers — the hero→light boundary is a clean cut, and light scenes flow on the shared snow + weave. Wave dividers survive only on not-yet-rebuilt legacy sections; tone-match their wrapper bg to the neighbour.
+- **Legacy sections** (internal pages, the shared `Certifications`/`HalalPromise`/`DistributorCTA`, and the still-dark v8 inner pages) are queued for rebuild into this light system. Do not break them; expect a visible seam until migrated.
+- **Palette**: light canvas (`--color-snow`, panels `--color-panel`/`--color-panel-deep`) + charcoal/slate ink + **emerald** as the brand/heading/accent colour. Dark (`--color-emerald-black`, `--color-char-900`) + `--color-paper`/`--color-bone` ink + `--color-brass`/`--color-silver` are punctuation/accents only.
 
 ### Header
 - `position: fixed` (not sticky). The hero extends up under the header.

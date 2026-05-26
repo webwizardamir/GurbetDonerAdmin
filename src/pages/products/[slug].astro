@@ -42,10 +42,10 @@ const facts = [
 <Base
   title={data.name}
   description={data.tagline ?? `Halal ${data.name}, made in the Netherlands.`}
-  bodyClass="has-dark-hero"
+  bodyClass="page-light"
 >
-  <article class="scene pd" data-scene="black">
-    <div class="grain grain--strong" aria-hidden="true"></div>
+  <article class="scene pd" data-scene="light">
+    <div class="grain grain--dark" aria-hidden="true"></div>
     <div class="container-x">
       <nav class="pd__crumbs op-label" aria-label="Breadcrumb">
         <a href="/">Home</a><span aria-hidden="true">/</span>
@@ -81,7 +81,7 @@ const facts = [
               Request a sample
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </a>
-            <a href="/contact/" class="btn btn-secondary-light">Request a quote</a>
+            <a href="/contact/" class="btn btn-secondary">Request a quote</a>
           </div>
 
           <p class="op-label ink-dim pd__note">Full spec sheet, nutrition table and case-pack details on request.</p>
@@ -122,7 +122,7 @@ const facts = [
 </script>
 
 <style>
-  .pd { --scene-pad: 0; padding-block: calc(var(--header-h) + clamp(1.5rem, 4vw, 2.5rem)) clamp(3rem, 6vw, 5rem); }
+  .pd { --scene-pad: 0; padding-block: clamp(1.5rem, 4vw, 2.5rem) clamp(3rem, 6vw, 5rem); }
 
   .pd__crumbs { display: flex; flex-wrap: wrap; gap: 0.5rem; color: var(--scene-ink-dim); margin-block-end: clamp(1.5rem, 4vw, 2.5rem); }
   .pd__crumbs a { color: var(--scene-ink-dim); text-decoration: none; transition: color 0.2s var(--ease-out-expo); }
@@ -139,18 +139,20 @@ const facts = [
     border-radius: var(--radius-xl);
     overflow: hidden;
     border: 1px solid var(--scene-line);
+    /* White presentation tile with a faint emerald wash + soft lift (light system). */
     background:
-      radial-gradient(70% 60% at 50% 40%, rgba(169, 134, 63, 0.28), transparent 70%),
-      var(--color-char-900);
+      radial-gradient(70% 60% at 50% 38%, rgba(15, 81, 50, 0.06), transparent 70%),
+      #ffffff;
+    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 26px 50px -34px rgba(15, 81, 50, 0.3);
     display: flex; align-items: center; justify-content: center;
   }
   .pd__media img {
     inline-size: 82%; block-size: 82%; object-fit: contain;
-    filter: drop-shadow(0 26px 42px rgba(0, 0, 0, 0.55));
+    filter: drop-shadow(0 22px 30px rgba(22, 19, 17, 0.18));
   }
-  .pd__placeholder { font-size: clamp(4rem, 10vw, 7rem); font-weight: 800; color: rgba(199, 207, 202, 0.18); }
+  .pd__placeholder { font-size: clamp(4rem, 10vw, 7rem); font-weight: 800; color: rgba(15, 81, 50, 0.14); }
 
-  .pd__title { color: var(--scene-ink); margin-block-start: 0.6rem; }
+  .pd__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.6rem; }
   .pd__tag { margin-block-start: 1rem; max-inline-size: 46ch; font-size: var(--text-body-lg); line-height: 1.6; }
 
   .pd__facts { margin: clamp(1.75rem, 3vw, 2.25rem) 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
@@ -169,7 +171,7 @@ const facts = [
   /* Related */
   .pd__related { margin-block-start: clamp(3.5rem, 7vw, 6rem); padding-block-start: clamp(2rem, 4vw, 3rem); border-block-start: 1px solid var(--scene-line); }
   .pd__related-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem 2rem; margin-block-end: clamp(1.5rem, 3vw, 2rem); }
-  .pd__related-title { color: var(--scene-ink); }
+  .pd__related-title { color: var(--scene-title, var(--scene-ink)); }
   .pd__related-all { text-decoration: none; }
   .pd__related-all:hover { text-decoration: underline; }
 
@@ -191,7 +193,8 @@ const facts = [
   .cat-card__media {
     position: relative; aspect-ratio: 4 / 5; border-radius: var(--radius-lg); overflow: hidden;
     border: 1px solid var(--scene-line);
-    background: radial-gradient(80% 60% at 50% 38%, rgba(169, 134, 63, 0.22), transparent 70%), var(--color-char-900);
+    background: radial-gradient(75% 60% at 50% 32%, rgba(15, 81, 50, 0.06), transparent 70%), #ffffff;
+    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 16px 30px -22px rgba(22, 19, 17, 0.22);
   }
   .cat-card__media img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; padding: clamp(1rem, 2vw, 1.5rem); transition: transform 0.6s var(--ease-out-expo); }
   .cat-card__link:hover .cat-card__media img, .cat-card__link:focus-visible .cat-card__media img { transform: scale(1.07); }

@@ -2,20 +2,27 @@
 
 Snapshot of where the project is, what is locked in, and what is left. Update this file at the end of any working session so the next pickup is fast.
 
-Last updated: 2026-05-26 (homepage moving to light-dominant + Clash Display headings; WORK IN PROGRESS).
+Last updated: 2026-05-26 (whole site migrated to the light system: homepage, products, product detail, about, and the three form pages. Only placeholder /legal/* pages remain on legacy bone).
 
 **Current direction (v9, in progress): lighter homepage + new heading font.**
 - All four core pages (home, products, product detail, about) were migrated to the dark cinematic system in v8.
 - The owner then asked for two changes: (a) replace the Bodoni Moda headings with **Clash Display** (Fontshare; Archivo kept for body) — done site-wide via `--font-display`; (b) the site felt **too dark** — so the **homepage** now runs **light-dominant**.
-- Homepage layout now: **dark** Hero + **dark** ExportCTA / TrustArtifacts / Footer as punctuation; the four middle scenes (OperationalStrip, ProductionStory, ProductWorlds, HalalConfidence) flipped to **light** via a `scene` prop (`scene="light"` passed from `index.astro`). Light scenes use `--color-snow #f7f6f3` (NOT beige) with a soft emerald/brass radial glow + a faint diagonal weave (`.scene[data-scene="light"]` + `::before` in `global.css`), **emerald headings** (`--scene-title`), and **white product tiles** (`.worlds[data-scene="light"] .worlds__media`).
+- Homepage is now light **end to end** except the dark Hero. The four middle scenes (OperationalStrip, ProductionStory, ProductWorlds, HalalConfidence) use `scene="light"`. The lower three (ExportCTA, TrustArtifacts, Footer), which the owner found too dark, were reworked light (see below). Light scenes use `--color-snow #f7f6f3` (NOT beige) with a soft emerald/brass radial glow + a faint diagonal weave (`.scene[data-scene="light"]` + `::before` in `global.css`), **emerald headings** (`--scene-title`), and **white product tiles** (`.worlds[data-scene="light"] .worlds__media`).
+- **Boxed-panel motif (new):** the owner wants a less boring, more crafted scroll (dunya products-block reference). Body stays light; one section's content sits in an inset `.scene-panel` (global.css) — soft emerald tint (`--color-panel` / `--color-panel-deep`), padding, `--radius-xl` corners, a layered decorative shape (two emerald blobs + thin brass arc) anchored top-right, soft lift shadow; the light body shows in the gutters around it. **Owner: one box is enough** for variety, so only **ExportCTA** is boxed (`--deep`). **TrustArtifacts** is un-boxed and minimalist: head (Verification eyebrow + headline + aside) over a single hairline-separated **row of cert marks** (logo or emerald text seal + short caption), one line on desktop; no record cards. The tinted **footer** is the distinct "special" ending (`--color-panel`, gated on `body.has-dark-hero` so inner pages keep the dark footer). Weave now uses `background-attachment: fixed` so the diagonal lines stay continuous across section seams.
+
+### DONE
+- Homepage light-dominant rework (boxed ExportCTA, minimalist certs, light footer, continuous weave, light mobile menu) — owner-approved.
+- **Products catalog + single-product pages migrated to the light system** (`body.page-light`, `data-scene="light"`, emerald Clash headings, white packshot tiles, `btn-secondary`, shared light boxed `ExportCTA`). Verified 200.
+- **About page migrated to light** (all scenes `data-scene="light"`, emerald headings, light frames, softened gallery duotone, gallery film-strip now contained to `.container-x`) + a **new lighter hero**: emerald headline on snow with the brand film in a wide rounded feature window (`/videos/about-hero.mp4`). Owner likes it; homepage hero left dark for now (his call).
+- **Form pages migrated to light** (distributors, samples, contact): `page-light`, light scenes, emerald headings, italic-serif accents removed, white form cards; shared `.input/.textarea/.select` now white + line-soft + slate placeholder. Verified 200. **The whole site is now on the light system except the placeholder `/legal/*` pages.**
 
 ### NOT DONE — pick up here next session
-1. **The lower dark containers still need rework** — the owner does not like ExportCTA / TrustArtifacts / Footer as they are now (too dark against the lightened page). Rework them (likely lighten/restyle, or a different treatment) so the bottom of the homepage matches the new lighter feel.
-2. **Roll the light-dominant theme + Clash to the other pages** (products, product detail, about) — they are still fully dark. Each scene component already takes a `scene` prop; pass `scene="light"` where appropriate and adjust.
-3. Then the **form/legal pages** (distributors, samples, contact, legal) — still legacy bone.
+1. **`/legal/{privacy,cookies,terms}/`** — still legacy bone + placeholder copy. Migrate to light when convenient; real copy awaits counsel (low priority).
+2. **Optional:** roll the lighter feature-window hero to the **homepage hero** (currently still dark full-bleed video) — owner deferred this.
+3. **Optional revisit:** the homepage header, when scrolled, is still a dark emerald-black bar over the now-light page (owner checking with his team).
 
 ### Locked decisions
-Clash Display (headings) + Archivo (body). Light-dominant homepage (near-white `--color-snow`, not beige). Emerald headings on light. Tagline kept ("Halal, perfected. Crafted in Europe."). City = Amsterdam. Product tiles: dark on dark scenes, white on light scenes.
+Clash Display (headings) + Archivo (body). Light-dominant homepage (near-white `--color-snow`, not beige). Emerald headings on light. Inset boxed panels (`.scene-panel`, soft emerald tint + decorative top shape) for crafted scroll rhythm. Tagline kept ("Halal, perfected. Crafted in Europe."). City = Amsterdam. Product tiles: dark on dark scenes, white on light scenes.
 
 ---
 
@@ -93,7 +100,11 @@ These exist and return 200, but they were built before the v2+ design polish and
 | `/contact/` | ✅ | em-dashes in body |
 | `/legal/{privacy,cookies,terms}/` | ✅ (placeholder) | needs real legal copy from counsel |
 
-**These pages are still the legacy bone/cream + Fraunces system and now need full v8 migration**, not just copy polish. Rebuild them into the dark cinematic system per `STYLEGUIDE.md §9`: dark scenes, Bodoni + Archivo, editorial primitives, brass accents, dark cuts (no wave dividers), uniform packshot tiles with spotlight, documentary copy, no scene numbers, no SKU counts. Order: products catalog → product detail → about → forms.
+**Migration status into the v9 light system** (per `STYLEGUIDE.md §9`: `data-scene="light"` snow scenes, Clash + Archivo, emerald headings, white packshot tiles, one `.scene-panel` box, documentary copy, no scene numbers / SKU counts):
+- `/products/` and `/products/[slug]/` — ✅ **migrated to light** (v9.6).
+- `/about/` — ✅ **migrated to light** (v9.7), with a new lighter video hero (feature-window), owner-liked.
+- `/distributors/`, `/samples/`, `/contact/` — ✅ **migrated to light** (v9.8): light scenes, emerald headings, white form cards, light input primitives.
+- `/legal/{privacy,cookies,terms}/` — still **legacy bone**, placeholder copy (low priority).
 
 ---
 

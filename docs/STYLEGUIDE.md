@@ -2,7 +2,7 @@
 
 The single design reference for this codebase. Anything visual that ships should trace to a token or primitive here. If a screen needs a value that is not in this guide, add it here first, then implement.
 
-**This is the v8 cinematic dark system, and it is canonical for the whole site.** The homepage was rebuilt into it; the products, product-detail, about and form pages are being migrated into it next. Apply every rule below to new work. Where a legacy (bone/cream + Fraunces + wave-divider) section still exists, it is queued for rebuild, not a pattern to copy.
+**This is the v9 light-dominant system, and it is canonical for the whole site.** The site began (v8) as a fully dark "cinematic" build; the owner then found it too dark for a food brand, so the homepage was rebuilt **light-dominant** (v9) with **Clash Display** headings. Dark is now **punctuation** (the hero) and accent, not the canvas. The homepage is the canonical realization. The products, product-detail, about and form pages are still the older dark (or legacy bone) build and are being migrated into this light system next. Apply every rule below to new work. Where a legacy section still exists (dark v8 scenes, or bone/cream + Fraunces + wave dividers), it is queued for rebuild, not a pattern to copy.
 
 Source of truth for tokens: `src/styles/tokens.css`. CSS primitives live in `src/styles/global.css` (+ per-component scoped styles). Hero styles in `src/styles/hero.css`.
 
@@ -11,94 +11,108 @@ Source of truth for tokens: `src/styles/tokens.css`. CSS primitives live in `src
 ## 1. Brand position
 
 - **Brand**: Melek, a standalone halal frozen-food manufacturer. NL-based, ships across Europe, B2B-led.
-- **Feeling**: editorial, cinematic, crafted, European, industrial confidence. A premium food house and an export operation, not a SaaS startup.
+- **Feeling**: editorial, crafted, warm, European, premium. Light and confident, not clinical and not heavy. A premium food house and an export operation, not a SaaS startup. The dark hero opens it like a film, then the page breathes in near-white.
 - **Voice**: documentary and operational. Specific, grounded, sensory, sharp. Procurement-team confidence, not lifestyle copy.
-- **Reference for level**: dunyaholding.com family, executed far higher (Awwwards-grade). The site must not read AI-generated.
+- **Reference for level**: dunyaholding.com family, executed far higher (Awwwards-grade). The site must not read AI-generated. The scroll should feel **varied and enjoyable**, never a stack of identical bands.
 
 ---
 
 ## 2. Colour
 
-All colours are CSS variables in `tokens.css` (`@theme` block). Use the variable, never a hex inline. The system is **dark-dominant**: dark canvas, warm ink, metal accents.
+All colours are CSS variables in `tokens.css` (`@theme` block). Use the variable, never a hex inline. The system is **light-dominant**: a warm near-white canvas, charcoal ink, emerald as the brand/heading colour, with dark and metal accents used as punctuation.
 
-### Dark canvas + ink
+### Light canvas + ink (the default surface)
 | Token | Hex | Use |
 |---|---|---|
-| `--color-emerald-black` | `#051a10` | Primary page canvas (`body.has-dark-hero`), most scenes, footer. |
-| `--color-char-900` | `#0c0a09` | Darkest scenes (proof strip, export CTA) for tonal variation. |
-| `--color-emerald-deep` | `#082e1c` | Mid-dark scenes (halal). |
-| `--color-paper` | `#f1efe8` | De-beiged warm off-white. Pale relief: document/record cards on dark, the rare light scene. Use sparingly. |
-| `--color-bone` | `#fbf8f0` | Legacy light pages only. Avoid on new dark scenes. |
-| `--color-charcoal` | `#161311` | Ink on paper/bone surfaces. |
-| `--color-slate-700 / -500` | `#3a3733` / `#75716b` | Body / meta ink on light surfaces. |
+| `--color-snow` | `#f7f6f3` | **Primary light canvas.** The body of every light scene. Clean modern near-white, **not beige**. |
+| `--color-panel` | `#e9efe9` | Soft emerald-tinted inset-panel fill (`.scene-panel`) and the homepage footer base. Reads as a crafted block on snow. |
+| `--color-panel-deep` | `#e0e8e1` | Slightly deeper panel tint for an emphasis block (the climactic CTA), `.scene-panel--deep`. |
+| `--color-line-soft` | `#e7e4dd` | Neutral hairline on snow (`--scene-line` on light scenes). |
+| `--color-paper` | `#f1efe8` | De-beiged warm off-white. Ink colour on dark scenes (`--scene-ink`), pale relief on dark. |
+| `--color-bone` | `#fbf8f0` | Button/ink-on-dark text, legacy light pages. |
+| `--color-charcoal` | `#161311` | Primary ink on light surfaces (`--scene-ink` on light). |
+| `--color-slate-700 / -500` | `#3a3733` / `#75716b` | Body / meta ink on light surfaces. `-500` for captions and `.op-label` dim. |
 
-### Accents (metal, used with restraint)
+### Dark canvas (punctuation only)
 | Token | Hex | Use |
 |---|---|---|
-| `--color-brass` | `#a9863f` | The primary accent on dark: eyebrows, ticks, arrows, hover, scroll bead, spotlight. Oxidised, not shiny gold. |
-| `--color-brass-deep` | `#7c5f28` | Darker brass. |
-| `--color-silver` / `--color-silver-dim` | `#c7cfca` / `#8c958f` | Cool metadata/label ink on dark (freezer silver). |
-| `--color-spice` | `#b1492a` | Warm red. Rare appetite/stamp accent only (e.g. the "Verified" passport stamp). |
+| `--color-emerald-black` | `#051a10` | The dark **Hero** canvas and `body.has-dark-hero`. Reserved for the cinematic opener; no longer the page default. |
+| `--color-char-900` | `#0c0a09` | Darkest tone, legacy dark scenes / dark tiles. |
+| `--color-emerald-deep` | `#082e1c` | Mid-dark tone (legacy dark scenes, button hover ink). |
+
+### Accents
+| Token | Hex | Use |
+|---|---|---|
+| `--color-emerald` / `--color-emerald-soft` | `#0f5132` / `#1f6a47` | **The brand colour. Primary CTA fill + hover, and headings on light scenes (`--scene-title`), accents on light (`--scene-accent`), the decorative panel shapes.** This is the dominant accent now. |
+| `--color-brass` | `#a9863f` | Accent on **dark** surfaces (hero ledger, scroll bead, spotlight) and the thin arc in the panel decoration. Oxidised, not shiny gold. |
+| `--color-brass-deep` | `#7c5f28` | Darker brass; footer headings on light. |
+| `--color-gold` / `--color-gold-soft` | `#c9a24b` / `#e3c781` | Header underline / focus ring; legacy dark accents. On light prefer emerald. |
+| `--color-silver` / `--color-silver-dim` | `#c7cfca` / `#8c958f` | Cool metadata/label ink on **dark** only (freezer silver). |
+| `--color-spice` | `#b1492a` | Warm red. Rare appetite accent only. |
 | `--color-olive` | `#6f6c3c` | Tertiary, reserved. |
-| `--color-emerald` / `--color-emerald-soft` | `#0f5132` / `#1f6a47` | Primary CTA fill + hover. Accent on paper scenes. |
-| `--color-gold` / `--color-gold-soft` | `#c9a24b` / `#e3c781` | Legacy accents; on rebuilt scenes prefer brass. |
 
 ### Scene theming
 Every section is a **scene** that paints itself from `data-scene`. Do not rely on the bone `.section` default.
-- Markup: `<section class="scene xyz" data-scene="black|char|deep|paper">`.
-- `data-scene` sets `--scene-bg`, `--scene-ink`, `--scene-ink-dim`, `--scene-line`, `--scene-accent`; `.scene` paints `background`/`color` from them and hosts a `.grain` overlay.
-- In scene CSS, use `var(--scene-ink)`, `var(--scene-line)`, `var(--scene-accent)`, plus helpers `.ink-dim` and `.text-accent`, so a scene re-themes by changing one attribute.
-- Tonal rhythm across the homepage: `black → char → black → deep → char → black → emerald-black footer`. Vary it; never run the same tone for three scenes straight without intent.
+- Markup: `<section class="scene xyz" data-scene="light|black|char|deep|paper">`.
+- `data-scene` sets `--scene-bg`, `--scene-ink`, `--scene-ink-dim`, `--scene-line`, `--scene-accent`, and on `light` also `--scene-title` (emerald). `.scene` paints `background`/`color` from them and hosts a `.grain` overlay.
+- **`data-scene="light"`** is the default scene now: snow bg with a soft emerald/brass **radial glow** plus a faint **diagonal weave** (`::before`), charcoal ink, emerald headings + accent, `--color-line-soft` hairlines. The weave uses `background-attachment: fixed` so its lines stay **continuous across section seams** (mobile browsers that drop `fixed` fall back to per-section, which is acceptable).
+- Components that can appear on either tone take a `scene` prop (e.g. `scene="light"`); `index.astro` passes it. Default still resolves to a dark tone for not-yet-migrated usage.
+- In scene CSS use `var(--scene-ink)`, `var(--scene-line)`, `var(--scene-accent)`, `var(--scene-title, var(--scene-ink))` for headings, plus helpers `.ink-dim` and `.text-accent`, so a scene re-themes by changing one attribute.
+- **Homepage tonal rhythm (canonical):** `emerald-black Hero (dark) → light → light → light → light → light boxed CTA → light certs → panel-tinted footer`. Dark opens, light carries, the footer's tint closes. Keep the light stretch varied in **layout**, not tone.
 
 ### Contrast
-Paper on emerald-black ≈ 14:1. Brass on emerald-black ≈ 5.3:1 (AA text / AAA large) — keep brass for accents and large/short text, not long body. Silver-dim is for short metadata labels only.
+Charcoal on snow ≈ 15:1. Emerald `#0f5132` on snow ≈ 7:1 (AA for all text) — safe for headings and links. Slate-500 is for short captions / dim labels, not long body. On dark scenes: paper on emerald-black ≈ 14:1; brass on emerald-black ≈ 5.3:1 (accents / large text only).
 
 ---
 
 ## 3. Typography
 
-> **Two faces. Bodoni Moda + Archivo.** (v8 replaced Fraunces + Inter, which the owner flagged as a recognisable AI-template tell.) Never add a third face. Loaded via one Google Fonts request in `Base.astro`. *(TODO: self-host both to drop the CDN dependency and FOUT.)*
+> **Two faces. Clash Display + Archivo.** (v9 replaced Bodoni Moda, which read too formal; v8 had replaced Fraunces + Inter, an AI-template tell.) Never add a third face. Clash Display via Fontshare, Archivo via Google Fonts, two `<link>`s in `Base.astro`. *(TODO: self-host both to drop the CDN dependency and FOUT.)*
 
 | Role | Family | Notes |
 |---|---|---|
-| Headlines, scene titles, editorial moments | **Bodoni Moda** (`--font-display`) | High-contrast didone. Axes `opsz 6..96`, `wght 500..900`. Drama comes from stroke contrast + scale, not negative tracking. Keep `letter-spacing` near 0. |
-| Body, UI, nav, buttons, operational labels | **Archivo** (`--font-sans`) | Industrial grotesk. Has a `wdth` axis. |
-| Brutalist display caps (range names, big metadata) | **Archivo Expanded** (`--font-grotesk-x` + `.font-x`, `font-stretch: 125%`) | Same family, widened. For loud uppercase moments. |
-| Mono | system stack (`--font-mono`) | Rare SKU/code strings only; no webfont. |
+| Headlines, scene titles, nav labels, editorial moments | **Clash Display** (`--font-display`) | Modern display grotesk. Weights 400/500/600/700. Drama from scale + weight, **not** negative tracking; keep `letter-spacing` near 0 (slightly negative on the largest sizes is fine). On light scenes headlines are **emerald** (`--scene-title`). |
+| Body, UI, buttons, operational labels | **Archivo** (`--font-sans`) | Industrial grotesk. Has a `wdth` axis (`100..125`). |
+| Brutalist display caps (range names, big metadata) | **Archivo Expanded** (`--font-grotesk-x` + `.font-x`, `font-stretch: 125%`) | Same family, widened. For loud uppercase moments and text seals. |
+| Mono | system stack (`--font-mono`) | Rare code strings only; no webfont. |
 
 ### Type scale (fluid, in `tokens.css`; helpers in `global.css`)
 | Class | Var | Use |
 |---|---|---|
-| `.text-mega` | `--text-mega` `clamp(2.85rem, 9vw, 8.5rem)` | Film-title moments (hero, climactic CTA). Bodoni 700. |
-| `.text-hero` | `--text-hero` | Large page headlines. |
-| `.text-display` | `--text-display` | Scene headlines. |
+| `.text-mega` | `--text-mega` `clamp(2.85rem, 9vw, 8.5rem)` | Film-title moments (hero, climactic CTA). Clash 700. |
+| `.text-hero` | `--text-hero` `clamp(2.5rem, 7vw, 5rem)` | Large page headlines. |
+| `.text-display` | `--text-display` `clamp(1.875rem, 4.5vw, 3rem)` | Scene headlines. |
 | `.text-h2` / `.text-h3` | — | Sub-headings. |
 | `.text-body-lg` | `--text-body-lg` | Ledes. |
 
-Vary headline scale **between** scenes (the old failure was six identical `.text-display` H2s). A scene head can be `.text-mega`, a serif `.text-display`, or `.font-x` expanded caps, but not the same recipe every time.
+Vary headline scale **between** scenes (the old failure was six identical `.text-display` H2s). A scene head can be `.text-mega`, `.text-display`, or `.font-x` expanded caps, but not the same recipe every time.
 
-### Operational labels + numbers
-- `.op-label` / `.op-label--sm`: tiny uppercase Archivo with wide tracking and tabular figures. The "spec sheet" voice (eyebrows, metadata, captions). On dark, colour with `.ink-dim` (silver) or `.text-accent` (brass).
+### Operational labels
+- `.op-label` / `.op-label--sm`: tiny uppercase Archivo with wide tracking and tabular figures. The "spec sheet" voice (eyebrows, metadata, captions). Colour with `.ink-dim` (slate-500 on light / silver on dark) or `.text-accent` (emerald on light / brass on dark).
 - `.scene-index`: exists in CSS but is **unused and must stay unused. Do NOT number scenes** (`01/02/03` over titles read AI-ish — owner feedback).
 
 ### Grain
-`.grain` / `.grain--strong` / `.grain--dark`: reusable SVG-noise overlay (absolute, `pointer-events:none`). Drop one inside any `position:relative` dark scene for tactile texture. This (not gradients) is how dark scenes get visual interest.
+`.grain` / `.grain--strong` / `.grain--dark`: reusable SVG-noise overlay (absolute, `pointer-events:none`). On **light** scenes use `.grain--dark` (multiply blend, ~0.05) for a faint tooth; on dark scenes use `.grain` / `--strong` (overlay blend).
 
 ---
 
 ## 4. Layout, scenes & the anti-AI rules
 
-8-point spacing. `--gutter`, `--section-y`, `--section-y-sm`, `--container-width` 1280px, `--container-narrow` 960px, `--header-h` 76/64px. Containers: `.container-x`, `.container-narrow`.
+8-point spacing. `--gutter` `clamp(20px,5vw,72px)`, `--section-y`, `--section-y-sm`, `--container-width` 1280px, `--container-narrow` 960px, `--header-h` 76/64px. Containers: `.container-x`, `.container-narrow`. Per-scene `--scene-pad` lets rhythm compress/expand.
 
 Hard composition rules (these are what keep it from reading AI-generated):
-- **No two scenes share a skeleton.** The retired molecule was `eyebrow → display headline → 6fr/5fr split → numbered equal-card grid`. Each scene gets a distinct structure: full-bleed data band, sticky scroll-story, horizontal lookbook rail, statement + definition list, etc.
-- **Watch empty space.** Dark scenes must not leave large dead black areas. A narrow text column against a blank half is a tell. Fill the width with two-column splits (`.grid-ed--7-5` etc.), ledes, or balanced grids. Compression and expansion are deliberate, not accidental gaps.
-- **Uniform within a set.** Cards/tiles in one rail or grid are the **same size**. Titles sit on **one line** and truncate with an ellipsis if longer (`white-space:nowrap; overflow:hidden; text-overflow:ellipsis`). Do not vary tile sizes "for scatter".
-- **No machine metadata.** No "13 SKU", batch numbers, or coordinate stamps surfaced to buyers. The catalogue grows; counts are meaningless and read AI-ish.
+- **No two scenes share a skeleton.** The retired molecule was `eyebrow → display headline → 6fr/5fr split → numbered equal-card grid`. Each scene gets a distinct structure: full-bleed data band, sticky scroll-story, horizontal lookbook rail, statement + definition list, one-line cert-mark row, etc.
+- **Watch empty space.** A narrow text column against a blank half is a tell. Fill the width with two-column splits (`.grid-ed--7-5` etc.), ledes, or balanced grids. Compression and expansion are deliberate, not accidental gaps.
+- **Uniform within a set.** Cards/tiles in one rail or grid are the **same size**. Titles sit on **one line** and truncate with an ellipsis if longer. Do not vary tile sizes "for scatter".
+- **No machine metadata.** No "13 SKU", batch numbers, or coordinate stamps surfaced to buyers.
 - Asymmetry helpers: `.grid-ed` + `.grid-ed--7-5 / --5-7 / --4-8 / --8-4` (collapse to one column under 880px). Hairlines: `.scene-rule` / `.scene-rule--accent`.
 
+### The boxed-panel motif (`.scene-panel`)
+To keep the light scroll crafted rather than a stack of flat bands, a scene's content can sit in an **inset boxed panel**: the light body (snow + weave + glow) shows in the gutters around it, while the panel carries a soft emerald tint (`--color-panel`, or `--color-panel-deep` via `.scene-panel--deep`), padding, `--radius-xl` corners, a soft emerald-tinted lift shadow, and a **layered decorative shape** anchored top-right (two emerald blobs + a thin brass arc, drawn in `::before` behind the content). Drop content straight inside `.scene-panel`; children sit above the shape automatically. Reference: the dunya products block.
+- **One box per page for variety.** The owner's rule: a single boxed scene punctuates the scroll; the rest stay full-bleed on snow. On the homepage that one box is the **ExportCTA**. Do not box every section.
+
 ### Scene transitions
-Deliberate **dark cuts**, not wave dividers. Adjacent dark scenes simply abut (a hairline + breathing space if a seam is wanted). Wave dividers are **retired** for new scenes and survive only on not-yet-rebuilt legacy sections.
+The hero→first-light boundary is a deliberate **dark cut** (no wave divider). Between light scenes the snow body and continuous weave carry through; vary the section with layout and `--scene-pad`, not dividers. Wave dividers are **retired** for new scenes and survive only on not-yet-rebuilt legacy sections.
 
 ---
 
@@ -121,17 +135,18 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 
 ## 6. Components & surfaces
 
-- **Buttons** (`global.css`): `.btn-primary` (emerald fill, bone text), `.btn-secondary` (charcoal outline — light pages), `.btn-secondary-light` (bone outline 40% — dark scenes), `.btn-ghost`. Focus-visible: 2px gold outline, 3px offset.
-- **Header** (`Header.astro`): `position: fixed`. On `body.has-dark-hero` pages it is transparent over the hero and **dark (emerald-black, translucent) when scrolled** with light contents — never bone. Legacy light pages keep the bone scrolled state.
-- **Footer** (`Footer.astro`): emerald-black, brutalist masthead (closing statement + operational strip of verifiable facts) over the link grid. Its wave divider is hidden on `body.has-dark-hero` (clean dark continuation) and only shows on bone pages.
-- **Mobile menu** (`MobileMenu.astro`): full-screen flat emerald-black + grain, Bodoni nav labels with brass arrows, **no numbered list**, brass/silver accents. Lives in `Base.astro` outside the header's backdrop-filter.
-- **Product tiles**: dark tile (`--color-char-900`) with a brass radial "studio spotlight" behind the packshot, `object-fit: contain`, cinematic hover zoom (`scale(1.07)`). Uniform size; one-line names.
-- **Document/record cards** (certs): pale `--color-paper` cards on the dark archive, `REF · / ON FILE` header, a ghosted spice "Verified" stamp. Trust as artifact, not badge grid.
-- **Surfaces**: avoid heavy drop shadows. Hairline borders (`--scene-line`) at rest; restrained hover lifts. Texture from grain.
+- **Buttons** (`global.css`): `.btn-primary` (emerald fill, bone text — works on light and dark), `.btn-secondary` (charcoal outline — **light** surfaces), `.btn-secondary-light` (bone outline 40% — **dark** scenes), `.btn-ghost`. Focus-visible: 2px gold outline, 3px offset. On light scenes and panels use `.btn-secondary`, not `-light`.
+- **`.scene-panel` / `.scene-panel--deep`**: the boxed inset panel (see §4). Soft emerald tint, `--radius-xl`, decorative top shape, lift shadow. Use once per page.
+- **Header** (`Header.astro`): `position: fixed`, `z-index: 50`. On `body.has-dark-hero` (homepage) it is transparent with light contents over the hero, then on scroll becomes a **dark emerald-black translucent bar** with light contents (a deliberate top anchor over the light page). Legacy light pages keep a bone scrolled state. *(Revisit candidate: whether the scrolled bar should go light now that the page is light.)*
+- **Footer** (`Footer.astro`): default dark (emerald-black) for the still-dark inner pages. **On `body.has-dark-hero` it is light** — the `--color-panel` emerald tint with charcoal/slate ink, emerald hovers, brass-deep headings — so it reads as the page's distinct grounded base. `logo.png` is full-colour on transparency, legible on light and dark, no swap. The wave divider is hidden on `body.has-dark-hero`.
+- **Mobile menu** (`MobileMenu.astro`): full-screen **light** overlay (`z-index: 70`, fully covers the header so it uses its own close button). Snow bg with the same emerald/brass radial glow as light scenes, `.grain--dark` tooth, **Clash Display** nav labels in charcoal with emerald hover + emerald arrows, light hairlines, `.btn-secondary` for the secondary CTA. **No numbered list.** Lives in `Base.astro` outside the header's backdrop-filter.
+- **Product tiles**: on **light** scenes, white tiles (`.worlds[data-scene="light"] .worlds__media`) with the packshot `object-fit: contain` and a soft lift; on dark scenes a `--color-char-900` tile with a brass radial "studio spotlight". Uniform size; one-line names. The upcoming products pages are light, so default to white tiles.
+- **Certification marks** (homepage `TrustArtifacts`): **minimalist** — an editorial head (Verification eyebrow + headline + aside) over a **single hairline-separated row** of marks: the real badges (`halal`, `brc`, `ifs`) as colour logos, HACCP + ISO 22000 as emerald `.font-x` text seals, each with a short caption. One line on desktop, wraps two-per-row on mobile. The old dark "record card with REF / Verified stamp" pattern is **retired** (the legacy dark `Certifications.astro` still serves not-yet-migrated pages).
+- **Surfaces**: avoid heavy drop shadows. Hairline borders (`--scene-line`) at rest; restrained hover lifts. On light, cards/panels use soft **emerald-tinted** shadows (`rgba(15,81,50,…)`), not neutral grey. White cards lift off the panel tint. Texture from grain + the weave.
 - Radius: `--radius-sm 4 / --radius 8 / --radius-lg 16 / --radius-xl 24`.
 
 ### Legacy component props (until rebuilt)
-`HalalPromise.astro` takes `topBg` and `dividers`; `DistributorCTA.astro` takes `dividers`. The homepage swaps these for bespoke scenes (`HalalConfidence`, `ExportCTA`, `TrustArtifacts`); the shared originals still serve About/products with their bone/wave defaults until those pages are migrated.
+`HalalPromise.astro` takes `topBg` and `dividers`; `DistributorCTA.astro` takes `dividers`. The homepage uses bespoke scenes instead (`HalalConfidence`, `ExportCTA`, `TrustArtifacts`); the shared originals still serve About/products with their bone/wave defaults until those pages are migrated.
 
 ---
 
@@ -141,7 +156,7 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 - **No fabricated trust signals.** Only verifiable: 46+ SKU (don't surface the count), three ranges, Halal / BRC / IFS by name, "made in the Netherlands", "Amsterdam" (owner-confirmed). HACCP + ISO 22000 stay text seals (no badge, no "verified" claim) until confirmed. No "100% traceability".
 - **No machine metadata** surfaced to buyers (SKU counts, batch refs).
 - **Banned AI copy**: "premium quality", "trusted partner", "tailored", "industry-leading", "curated assortment", "we believe / we strive", scare-quotes.
-- Write like documentary narration / an industrial manifesto: short, specific, sensory, operational. Example tone: "Every batch leaves the floor with a signed release, freezer-stable coating, and full traceability attached."
+- Write like documentary narration / an industrial manifesto: short, specific, sensory, operational.
 - Tagline (kept, owner-approved): "Halal, perfected. Crafted in Europe."
 
 ---
@@ -150,21 +165,23 @@ Easing: `--ease-out-expo` for entries, `--ease-in-out` for state. Durations 200m
 
 | Asset | Path | Notes |
 |---|---|---|
-| Fonts | Google Fonts CDN (Bodoni Moda + Archivo) in `Base.astro` | One `<link>`. TODO: self-host. |
-| Logo | `/public/logo.png` (734×340, 2.16:1); `/public/logo-light.png` | Declare `<img>` dims ratio-preserving. |
-| Product packshots | `/public/images/products/{slug}.{png,jpg}` | 46 SKUs; white-bg, sit on dark spotlight tiles. |
+| Fonts | Clash Display (Fontshare) + Archivo (Google Fonts), two `<link>`s in `Base.astro` | TODO: self-host. |
+| Logo | `/public/logo.png` (734×340, 2.16:1); `/public/logo-light.png` | Both are the full-colour emblem on transparency; legible on light and dark. Declare `<img>` dims ratio-preserving. |
+| Product packshots | `/public/images/products/{slug}.{png,jpg}` | 46 SKUs; white-bg, sit on white (light) or spotlight (dark) tiles. |
 | Hero video | `/public/videos/hero.mp4` | dünya aerial placeholder, owner-replaceable. |
-| Facility stills | `/public/images/facility/*` | dünya placeholders; pull onto palette with a dark duotone filter. |
+| Facility stills | `/public/images/facility/*` | dünya placeholders; pull onto palette with a duotone filter. |
 | Cert badges | `/public/images/certifications/{halal,brc,ifs}.png` | HACCP / ISO are text seals. |
 
 ---
 
 ## 9. Migrating a page into this system (products / detail / about / forms)
 
-1. Theme the page dark: give it `body` dark context (or wrap content in dark `.scene`s); stop using bone `.section`.
-2. Rebuild each block as a distinct `.scene data-scene=...` with its own skeleton — no repeated molecule, no numbered headers.
-3. Swap Fraunces/Inter usage to the helpers (they already resolve to Bodoni/Archivo via tokens), set eyebrows as `.op-label`, range/loud headers as `.font-x`.
-4. Replace card grids with editorial compositions; uniform tiles, one-line ellipsis titles, brass spotlight on packshots.
-5. Forms need a **dark variant** (inputs on dark with `--scene-line` borders, paper-on-dark or emerald focus ring) — add tokens/classes here when building the first dark form.
-6. Drop wave dividers; use dark cuts. Reuse `revealOnScroll` for entrances. Keep the reduced-motion path.
-7. Copy: documentary voice, verifiable only, no SKU counts, no banned phrases.
+1. Theme the page **light**: build blocks as `.scene data-scene="light"` on the snow canvas (with the glow + continuous weave). Stop using bone `.section` and stop defaulting to dark — dark is the hero/punctuation only.
+2. Rebuild each block as a distinct skeleton — no repeated molecule, no numbered headers. Keep the scroll varied in **layout**.
+3. Use **one** `.scene-panel` boxed block per page for punctuation; keep the rest full-bleed on snow.
+4. Headlines: `.text-*` helpers (resolve to Clash Display) in **emerald** on light (`--scene-title`); eyebrows `.op-label`; loud range/seal headers `.font-x`.
+5. Tiles/cards: white on light with soft emerald-tinted shadows, packshot `object-fit: contain`, uniform size, one-line ellipsis titles. Cert marks follow the minimalist one-line row, not record cards.
+6. Buttons: `.btn-primary` + `.btn-secondary` (not `-light`) on light surfaces.
+7. Forms: build a **light** variant (inputs on snow/white with `--color-line-soft` borders, emerald focus ring, slate placeholder). Add tokens/classes here when building the first one.
+8. Drop wave dividers; light scenes flow on the shared snow + weave. Reuse `revealOnScroll` for entrances. Keep the reduced-motion path.
+9. Copy: documentary voice, verifiable only, no SKU counts, no banned phrases.

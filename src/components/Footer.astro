@@ -93,10 +93,11 @@ const year = new Date().getFullYear();
     background: var(--color-bone); /* bone section above on About / products */
     line-height: 0;
   }
-  /* Dark homepage: the section above is already emerald-black, so the wave is invisible and only
-     adds dead space. Drop it and tighten the footer's top so it reads as one continuous block. */
-  body.has-dark-hero .footer-divider-top { display: none; }
-  body.has-dark-hero .site-footer .section-sm { padding-block-start: clamp(2.25rem, 4vw, 3.25rem); }
+  /* New-system pages (dark homepage + light inner pages): the bone wave curve does not belong, so
+     drop it and tighten the footer's top so it reads as one continuous block. It survives only on
+     the not-yet-migrated legacy bone pages. */
+  body:is(.has-dark-hero, .page-light) .footer-divider-top { display: none; }
+  body:is(.has-dark-hero, .page-light) .site-footer .section-sm { padding-block-start: clamp(2.25rem, 4vw, 3.25rem); }
   .footer-divider-top svg {
     display: block;
     inline-size: 100%;
@@ -229,4 +230,51 @@ const year = new Date().getFullYear();
     transition: color 0.2s var(--ease-out-expo);
   }
   .footer__legal a:hover { color: var(--color-bone); }
+
+  /* ----------------------------------------------------------------
+     Light-dominant footer for the new-system pages (homepage `has-dark-hero` + light inner pages
+     `page-light`). Reads as the page's grounded base: the same soft emerald tint as the inset
+     panels above, with dark ink. Legacy bone pages keep the default dark footer above until they
+     are migrated. logo.png is full-colour on transparency, so it stays legible on light, no swap.
+  ----------------------------------------------------------------- */
+  body:is(.has-dark-hero, .page-light) .site-footer {
+    background: var(--color-panel);
+    color: var(--color-slate-700);
+    border-block-start: 1px solid rgba(15, 81, 50, 0.12);
+  }
+  body:is(.has-dark-hero, .page-light) .footer__statement { color: var(--color-emerald); }
+  body:is(.has-dark-hero, .page-light) .footer__masthead { border-block-end-color: rgba(15, 81, 50, 0.16); }
+  body:is(.has-dark-hero, .page-light) .footer__ops li { color: var(--color-slate-700); }
+  body:is(.has-dark-hero, .page-light) .footer__intro { color: var(--color-slate-700); }
+  body:is(.has-dark-hero, .page-light) .footer__heading { color: var(--color-brass-deep); }
+  body:is(.has-dark-hero, .page-light) .footer__list a,
+  body:is(.has-dark-hero, .page-light) .footer__lines a,
+  body:is(.has-dark-hero, .page-light) .footer__addr { color: var(--color-slate-700); }
+  body:is(.has-dark-hero, .page-light) .footer__list a:hover,
+  body:is(.has-dark-hero, .page-light) .footer__lines a:hover { color: var(--color-emerald); }
+  body:is(.has-dark-hero, .page-light) .footer__social a {
+    border-color: rgba(15, 81, 50, 0.22);
+    color: var(--color-slate-700);
+  }
+  body:is(.has-dark-hero, .page-light) .footer__social a:hover {
+    background: var(--color-emerald);
+    color: var(--color-bone);
+    border-color: var(--color-emerald);
+  }
+  body:is(.has-dark-hero, .page-light) .footer__bar {
+    border-block-start-color: rgba(15, 81, 50, 0.14);
+    color: var(--color-slate-500);
+  }
+  body:is(.has-dark-hero, .page-light) .footer__legal a { color: var(--color-slate-500); }
+  body:is(.has-dark-hero, .page-light) .footer__legal a:hover { color: var(--color-emerald); }
+  /* Shared markup uses btn-secondary-light (for dark pages); restyle it to a dark outline here. */
+  body:is(.has-dark-hero, .page-light) .site-footer .btn-secondary-light {
+    color: var(--color-charcoal);
+    border-color: rgba(22, 19, 17, 0.45);
+  }
+  body:is(.has-dark-hero, .page-light) .site-footer .btn-secondary-light:hover {
+    background: var(--color-charcoal);
+    color: var(--color-bone);
+    border-color: var(--color-charcoal);
+  }
 </style>
