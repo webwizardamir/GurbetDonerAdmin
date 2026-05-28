@@ -15,12 +15,14 @@ import {
   Printer,
   Banknote,
   Info,
+  StickyNote,
 } from 'lucide-react'
 import { updateOrderStatus } from '../../services/orders'
 import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import DocumentGenerator from '../documents/DocumentGenerator'
 import RefundModal from './RefundModal'
+import OrderNotesModal from './OrderNotesModal'
 import PaymentMethodModal from './PaymentMethodModal'
 import StatusBadge from '../ui/StatusBadge'
 import { formatQuantity, formatPrice, formatDateTime } from '../../utils/format'
@@ -77,6 +79,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
   const [generatingDoc, setGeneratingDoc] = useState<DocumentType | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showRefundModal, setShowRefundModal] = useState(false)
+  const [showNotesModal, setShowNotesModal] = useState(false)
 
   const refundAmount = order.refund_amount ?? 0
   // A refund is possible while the order isn't cancelled and something is still
@@ -269,13 +272,19 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                   key={item.id}
                   className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl"
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-slate-900 dark:text-white">
                       {item.product_name}
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       {formatPrice(item.unit_price)} × {formatQuantity(item.quantity)} {formatUnitDutch(item.unit_type, item.quantity, t)}
                     </p>
+                    {item.notes?.trim() && (
+                      <p className="mt-1 flex items-start gap-1 text-xs text-slate-500 dark:text-slate-400">
+                        <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-slate-400" />
+                        <span className="italic">{item.notes}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-slate-900 dark:text-white">
@@ -290,29 +299,43 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
             </div>
           </div>
 
-          {/* Notes */}
-          {(order.delivery_notes || order.internal_notes) && (
-            <div className="space-y-3">
-              {order.delivery_notes && (
-                <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
-                    <FileText className="w-4 h-4" />
-                    <span className="text-xs uppercase font-medium">{t('orders.form.deliveryNotes')}</span>
-                  </div>
-                  <p className="text-slate-700 dark:text-slate-300">{order.delivery_notes}</p>
-                </div>
-              )}
-              {order.internal_notes && (
-                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
-                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1">
-                    <FileText className="w-4 h-4" />
-                    <span className="text-xs uppercase font-medium">{t('orders.form.internalNotes')}</span>
-                  </div>
-                  <p className="text-amber-700 dark:text-amber-300">{order.internal_notes}</p>
-                </div>
-              )}
+          {/* Notes — editable in any status (notes-only, no stock impact) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-slate-400" />
+                <h3 className="font-medium text-slate-900 dark:text-white">{t('orders.notes.title')}</h3>
+              </div>
+              <button
+                onClick={() => setShowNotesModal(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm font-medium rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                <StickyNote className="w-3.5 h-3.5" />
+                {t('orders.notes.editNotes')}
+              </button>
             </div>
-          )}
+            {order.delivery_notes && (
+              <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                  <FileText className="w-4 h-4" />
+                  <span className="text-xs uppercase font-medium">{t('orders.form.deliveryNotes')}</span>
+                </div>
+                <p className="text-slate-700 dark:text-slate-300">{order.delivery_notes}</p>
+              </div>
+            )}
+            {order.internal_notes && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1">
+                  <FileText className="w-4 h-4" />
+                  <span className="text-xs uppercase font-medium">{t('orders.form.internalNotes')}</span>
+                </div>
+                <p className="text-amber-700 dark:text-amber-300">{order.internal_notes}</p>
+              </div>
+            )}
+            {!order.delivery_notes && !order.internal_notes && !order.items?.some(i => i.notes?.trim()) && (
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('orders.notes.empty')}</p>
+            )}
+          </div>
 
           {/* Order Summary */}
           <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl space-y-2">
@@ -479,6 +502,18 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
           onClose={() => setShowRefundModal(false)}
           onRefunded={() => {
             setShowRefundModal(false)
+            onStatusChange()
+          }}
+        />
+      )}
+
+      {/* Notes Modal — safe notes-only editor, works in any status */}
+      {showNotesModal && (
+        <OrderNotesModal
+          order={order}
+          onClose={() => setShowNotesModal(false)}
+          onSaved={() => {
+            setShowNotesModal(false)
             onStatusChange()
           }}
         />

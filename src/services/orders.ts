@@ -458,6 +458,39 @@ export async function updateOrder(
   return data
 }
 
+/**
+ * Notes-only update — edits order-level delivery/internal notes and per-line
+ * product notes (the "notitie" that prints on documents) WITHOUT touching
+ * quantities, prices or the item set. This is the only safe way to edit a
+ * cancelled/refunded order: it issues plain UPDATEs, so the stock
+ * deduct/restore triggers (which fire on order_items INSERT/DELETE) never run.
+ * Works in every order status.
+ */
+export async function updateOrderNotes(
+  orderId: string,
+  orderNotes: { delivery_notes?: string; internal_notes?: string },
+  itemNotes: { id: string; notes: string }[] = []
+): Promise<void> {
+  const orderUpdate: { delivery_notes?: string | null; internal_notes?: string | null } = {}
+  if (orderNotes.delivery_notes !== undefined) orderUpdate.delivery_notes = orderNotes.delivery_notes.trim() || null
+  if (orderNotes.internal_notes !== undefined) orderUpdate.internal_notes = orderNotes.internal_notes.trim() || null
+
+  if (Object.keys(orderUpdate).length > 0) {
+    const { error } = await supabase.from('orders').update(orderUpdate).eq('id', orderId)
+    if (error) throw error
+  }
+
+  // Per-item notes: plain UPDATE on order_items (no INSERT/DELETE → no stock change)
+  for (const item of itemNotes) {
+    const { error } = await supabase
+      .from('order_items')
+      .update({ notes: item.notes.trim() || null })
+      .eq('id', item.id)
+      .eq('order_id', orderId)
+    if (error) throw error
+  }
+}
+
 // Delete order (and its items - cascade)
 export async function deleteOrder(id: string): Promise<void> {
   const { error } = await supabase

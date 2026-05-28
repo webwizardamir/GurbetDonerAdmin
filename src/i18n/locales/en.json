@@ -484,6 +484,16 @@
       "fullyRefunded": "Fully refunded",
       "partiallyRefunded": "Partially refunded"
     },
+    "notes": {
+      "title": "Notes",
+      "editNotes": "Edit notes",
+      "productNotes": "Product notes",
+      "productNotesHint": "These notes appear in the 'Note' column on the documents (invoice, packing slip, etc.).",
+      "noItems": "No products in this order.",
+      "empty": "No notes added yet.",
+      "saving": "Saving...",
+      "saveError": "Could not save notes"
+    },
     "payment": {
       "method": "Payment Method",
       "cash": "Cash",

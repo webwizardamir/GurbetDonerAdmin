@@ -484,6 +484,16 @@
       "fullyRefunded": "Volledig terugbetaald",
       "partiallyRefunded": "Gedeeltelijk terugbetaald"
     },
+    "notes": {
+      "title": "Notities",
+      "editNotes": "Notities bewerken",
+      "productNotes": "Productnotities",
+      "productNotesHint": "Deze notities verschijnen in de kolom 'Notitie' op de documenten (factuur, pakbon, enz.).",
+      "noItems": "Geen producten in deze bestelling.",
+      "empty": "Nog geen notities toegevoegd.",
+      "saving": "Opslaan...",
+      "saveError": "Kan notities niet opslaan"
+    },
     "payment": {
       "method": "Betaalmethode",
       "cash": "Contant",

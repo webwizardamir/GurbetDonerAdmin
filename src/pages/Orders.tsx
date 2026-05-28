@@ -19,6 +19,7 @@ import {
   Mail,
   Check,
   RotateCcw,
+  StickyNote,
 } from 'lucide-react'
 import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
@@ -30,6 +31,7 @@ import { fetchSendCountsByOrder } from '../services/documentEmail'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
 import OrderDetail from '../components/orders/OrderDetail'
+import OrderNotesModal from '../components/orders/OrderNotesModal'
 import StatusBadge from '../components/ui/StatusBadge'
 import PaymentBadge from '../components/ui/PaymentBadge'
 import BulkActionsBar from '../components/orders/BulkActionsBar'
@@ -46,6 +48,7 @@ export default function Orders() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchParams] = useSearchParams()
   const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
+  const [notesOrder, setNotesOrder] = useState<OrderWithItems | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkProcessing, setBulkProcessing] = useState(false)
@@ -310,6 +313,10 @@ export default function Orders() {
                 {filteredOrders.map(order => {
                   const docInfo = documentInfo.get(order.id) || { count: 0 }
                   const canComplete = ['draft', 'pending_payment', 'on_hold'].includes(order.status)
+                  // Cancelled/refunded orders can't be item-edited (stock was already
+                  // restored — re-running the editor would corrupt it). Their Edit
+                  // icon opens the safe notes-only editor instead.
+                  const notesOnly = ['cancelled', 'refunded'].includes(order.status)
                   return (
                     <tr key={order.id} onClick={() => setViewingOrder(order)} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${selectedIds.has(order.id) ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}>
                       <td className="pl-4 pr-2 py-4" onClick={e => e.stopPropagation()}>
@@ -391,10 +398,16 @@ export default function Orders() {
                               <Check className="w-4 h-4 text-green-600" />
                             </button>
                           )}
-                          {canEdit && !['completed', 'cancelled', 'refunded'].includes(order.status) && (
-                            <button onClick={() => navigate(`/orders/${order.id}/edit`)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer" title={t('common.edit')}>
-                              <Pencil className="w-4 h-4 text-blue-500" />
-                            </button>
+                          {canEdit && (
+                            notesOnly ? (
+                              <button onClick={() => setNotesOrder(order)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.notes.editNotes')}>
+                                <StickyNote className="w-4 h-4 text-blue-500" />
+                              </button>
+                            ) : (
+                              <button onClick={() => navigate(`/orders/${order.id}/edit`)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer" title={t('common.edit')}>
+                                <Pencil className="w-4 h-4 text-blue-500" />
+                              </button>
+                            )
                           )}
                           <button onClick={() => setViewingOrder(order)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.view')}>
                             <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
@@ -428,6 +441,7 @@ export default function Orders() {
           filteredOrders.map(order => {
             const docInfo = documentInfo.get(order.id) || { count: 0 }
             const canComplete = ['draft', 'pending_payment', 'on_hold'].includes(order.status)
+            const notesOnly = ['cancelled', 'refunded'].includes(order.status)
             return (
               <div key={order.id} onClick={() => setViewingOrder(order)} className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50 ${selectedIds.has(order.id) ? 'ring-2 ring-green-500' : ''}`}>
                 <div className="flex items-center gap-3 mb-3">
@@ -467,10 +481,16 @@ export default function Orders() {
                       <Check className="w-4 h-4 flex-shrink-0" />{t('orders.actions.complete')}
                     </button>
                   )}
-                  {canEdit && !['completed', 'cancelled', 'refunded'].includes(order.status) && (
-                    <button onClick={() => navigate(`/orders/${order.id}/edit`)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium whitespace-nowrap">
-                      <Pencil className="w-4 h-4 flex-shrink-0" />{t('common.edit')}
-                    </button>
+                  {canEdit && (
+                    notesOnly ? (
+                      <button onClick={() => setNotesOrder(order)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium whitespace-nowrap">
+                        <StickyNote className="w-4 h-4 flex-shrink-0" />{t('orders.notes.editNotes')}
+                      </button>
+                    ) : (
+                      <button onClick={() => navigate(`/orders/${order.id}/edit`)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium whitespace-nowrap">
+                        <Pencil className="w-4 h-4 flex-shrink-0" />{t('common.edit')}
+                      </button>
+                    )
                   )}
                   <button onClick={() => setViewingOrder(order)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium whitespace-nowrap">
                     <Eye className="w-4 h-4 flex-shrink-0" />{t('orders.actions.view')}
@@ -542,6 +562,14 @@ export default function Orders() {
       )}
 
       {viewingOrder && <OrderDetail order={viewingOrder} onClose={() => setViewingOrder(null)} onStatusChange={() => { setViewingOrder(null); refresh() }} />}
+
+      {notesOrder && (
+        <OrderNotesModal
+          order={notesOrder}
+          onClose={() => setNotesOrder(null)}
+          onSaved={() => { setNotesOrder(null); refresh() }}
+        />
+      )}
 
       {/* Payment Method Selection Modal */}
       {showPaymentModal && (
