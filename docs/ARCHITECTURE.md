@@ -11,7 +11,8 @@ Tech-stack rationale, folder layout, and the patterns that matter (and the ones 
 | Framework | **Astro 5** | Content-led, static-first, ships zero JS by default → Lighthouse 95+. Built-in Content Collections fit our `.md` product model. Native i18n. Vercel adapter ships in one line. |
 | Styling | **Tailwind 4** (via `@tailwindcss/vite`) | Utility-first; CSS variables for tokens; no `tailwind.config.js` needed in v4 (CSS-first config). |
 | Interactive islands | **React 19** | Only used where needed (form panels). Astro keeps the rest as zero-JS HTML. |
-| Motion | CSS + IntersectionObserver | GSAP is installed but not currently used. Plain CSS transitions handle everything we ship today. |
+| Motion | **GSAP + ScrollTrigger + Lenis** | Helpers in `src/lib/motion.ts` (hero timeline, `revealOnScroll`, sticky cross-dissolve, smooth scroll), run from per-component inline `<script type="module">`. All reduced-motion gated; content is fully visible without JS. |
+| Type system / palette | **Simplicity Pro** (self-hosted, `/public/fonts`) + reference green palette | One font for everything; cream + forest green + lime. Source of truth: `src/styles/tokens.css`; design rules in `docs/STYLEGUIDE.md`. |
 | Forms | Plain `<form>` + inline JS | Submissions are logged + show a thank-you panel. Resend wiring intentionally deferred. |
 | Images | Astro Image (sharp at build) + plain `<img>` for public/ paths | Product / cert badge images live in `/public/` so they have stable absolute URLs. |
 | Icons | Inline SVG | Lucide installed but rarely used; small SVGs are written inline next to the markup that needs them. |

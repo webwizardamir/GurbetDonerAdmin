@@ -1,118 +1,238 @@
 ---
-// Scene 03 — The Production Story. A pinned, documentary sequence: a sticky facility visual
-// cross-dissolves through four beats while the narrative scrolls beside it. The active beat
-// lights up and drives a label + progress on the image, so the column reads as a live walk-through
-// rather than a static list. Facility stills are dunya placeholders (cleared for use) until brand
-// footage exists. No step numbers.
+// Scene — The Production Story. An interactive walk-through: pick a step on the left and the
+// facility still on the right cross-dissolves to match. The active step auto-fills a progress bar
+// and hands over to the next step, so the column reads as a live sequence rather than a static
+// list; clicking, arrow keys or autoplay all drive it. Pauses while hovered or off-screen.
+// Facility stills are dunya placeholders (cleared for use) until brand footage exists. No step numbers.
 interface Props { scene?: string }
 const { scene = "black" } = Astro.props;
 const beats = [
-  { title: "Sourced", img: "/images/facility/line-3.jpg", alt: "Sourcing", body: "We work with trusted halal suppliers." },
-  { title: "Selected", img: "/images/facility/line-2.jpg", alt: "Selection", body: "We pick the products that meet our standard." },
-  { title: "Checked", img: "/images/facility/exterior-1.jpg", alt: "Quality checks", body: "Quality-checked before it ships." },
-  { title: "Delivered", img: "/images/facility/line-1.jpg", alt: "Dispatch", body: "Frozen and shipped across Europe." },
+  { title: "Sourced", img: "/images/facility/line-3.jpg", body: "We work with trusted halal suppliers." },
+  { title: "Selected", img: "/images/facility/line-2.jpg", body: "We pick the products that meet our standard." },
+  { title: "Checked", img: "/images/facility/exterior-1.jpg", body: "Quality-checked before it ships." },
+  { title: "Delivered", img: "/images/facility/line-1.jpg", body: "Frozen and shipped across Europe." },
 ];
 ---
 
 <section class="scene story" data-scene={scene} id="story" aria-label="The production story">
   <div class={`grain${scene === "light" ? " grain--dark" : ""}`} aria-hidden="true"></div>
   <div class="container-x">
-    <header class="story__head grid-ed grid-ed--7-5">
+    <header class="story__head grid-ed grid-ed--7-5" data-reveal>
       <h2 class="story__title text-display">From source to freezer.</h2>
       <p class="story__lede ink-dim">
         From our suppliers to your freezer, in four steps.
       </p>
     </header>
 
-    <div class="story__cols grid-ed grid-ed--5-7">
-      <div class="story__media" aria-hidden="true">
+    <div class="story__cols">
+      <ol class="story__steps" role="tablist" aria-label="From source to freezer" data-story-steps data-reveal>
+        {beats.map((b, i) => (
+          <li class="story__step-item" role="presentation">
+            <button
+              type="button"
+              role="tab"
+              id={`story-tab-${i}`}
+              class={`story__step${i === 0 ? " is-active" : ""}`}
+              aria-selected={i === 0 ? "true" : "false"}
+              aria-controls="story-panel"
+              tabindex={i === 0 ? "0" : "-1"}
+              data-story-step
+            >
+              <span class="story__step-text">
+                <span class="story__step-title">{b.title}</span>
+                <span class="story__step-body ink-dim">{b.body}</span>
+              </span>
+              <span class="story__step-bar" aria-hidden="true"><span class="story__step-fill"></span></span>
+            </button>
+          </li>
+        ))}
+      </ol>
+
+      <div class="story__media" id="story-panel" role="tabpanel" aria-labelledby="story-tab-0" tabindex="0" data-reveal>
         <div class="story__frame">
           {beats.map((b, i) => (
             <img src={b.img} alt="" class={`story__img${i === 0 ? " is-active" : ""}`} loading="lazy" decoding="async" />
           ))}
-          <div class="story__media-overlay">
-            <span class="story__media-step" data-story-step>{beats[0].title}</span>
-            <span class="story__progress" data-story-progress>
-              {beats.map((_, i) => (
-                <span class={`story__progress-seg${i === 0 ? " is-active" : ""}`}></span>
-              ))}
-            </span>
-          </div>
+          <span class="story__media-label" data-story-label aria-live="polite">{beats[0].title}</span>
         </div>
       </div>
-
-      <ol class="story__beats">
-        {beats.map((b) => (
-          <li class="story__beat" data-story-beat>
-            <img src={b.img} alt={b.alt} class="story__beat-img" loading="lazy" decoding="async" />
-            <div class="story__beat-text" data-reveal>
-              <h3 class="story__beat-title">{b.title}</h3>
-              <p class="story__beat-body ink-dim">{b.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
     </div>
   </div>
 </section>
 
 <script>
-  import { initGsap, prefersReducedMotion, revealOnScroll } from "../../lib/motion";
+  import { revealOnScroll, prefersReducedMotion } from "../../lib/motion";
 
   const story = document.querySelector<HTMLElement>(".story");
   if (story) {
-    revealOnScroll(story.querySelectorAll("[data-reveal]"), { y: 24, stagger: 0.06 });
+    revealOnScroll(story.querySelectorAll("[data-reveal]"), { y: 24, stagger: 0.08 });
 
+    const stepsWrap = story.querySelector<HTMLElement>("[data-story-steps]");
+    const steps = Array.from(story.querySelectorAll<HTMLButtonElement>("[data-story-step]"));
     const imgs = Array.from(story.querySelectorAll<HTMLElement>(".story__img"));
-    const beats = Array.from(story.querySelectorAll<HTMLElement>("[data-story-beat]"));
-    const segs = Array.from(story.querySelectorAll<HTMLElement>(".story__progress-seg"));
-    const stepLabel = story.querySelector<HTMLElement>("[data-story-step]");
-    const titles = beats.map((b) => b.querySelector(".story__beat-title")?.textContent ?? "");
+    const label = story.querySelector<HTMLElement>("[data-story-label]");
+    const panel = story.querySelector<HTMLElement>("#story-panel");
+    const titles = steps.map((s) => s.querySelector(".story__step-title")?.textContent ?? "");
+    const reduce = prefersReducedMotion();
+    let current = 0;
 
-    if (!prefersReducedMotion() && imgs.length && window.matchMedia("(min-width: 880px)").matches) {
-      const { ScrollTrigger } = initGsap();
-      const setActive = (i: number) => {
-        imgs.forEach((im, k) => im.classList.toggle("is-active", k === i));
-        beats.forEach((bt, k) => bt.classList.toggle("is-active", k === i));
-        segs.forEach((s, k) => s.classList.toggle("is-active", k <= i));
-        if (stepLabel) stepLabel.textContent = titles[i];
-      };
-      beats.forEach((beat, i) => {
-        ScrollTrigger.create({
-          trigger: beat,
-          start: "top 60%",
-          end: "bottom 60%",
-          onToggle: (self) => self.isActive && setActive(i),
-        });
+    const setActive = (raw: number, focus = false) => {
+      const i = ((raw % steps.length) + steps.length) % steps.length;
+      current = i;
+      steps.forEach((s, k) => {
+        const on = k === i;
+        s.classList.toggle("is-active", on);
+        s.setAttribute("aria-selected", on ? "true" : "false");
+        s.tabIndex = on ? 0 : -1;
+        if (on && focus) s.focus();
       });
+      imgs.forEach((im, k) => im.classList.toggle("is-active", k === i));
+      if (label) label.textContent = titles[i];
+      panel?.setAttribute("aria-labelledby", steps[i].id);
+    };
+
+    // Re-trigger the fill keyframe when the already-active step is clicked again.
+    const restartFill = () => {
+      const fill = steps[current].querySelector<HTMLElement>(".story__step-fill");
+      if (!fill) return;
+      fill.style.animation = "none";
+      void fill.offsetWidth;
+      fill.style.animation = "";
+    };
+
+    steps.forEach((s, i) => {
+      s.addEventListener("click", () => (i === current ? restartFill() : setActive(i)));
+    });
+
+    // Arrow / Home / End move focus and activate, per the tablist pattern.
+    stepsWrap?.addEventListener("keydown", (e) => {
+      const k = (e as KeyboardEvent).key;
+      if (k === "ArrowRight" || k === "ArrowDown") { e.preventDefault(); setActive(current + 1, true); }
+      else if (k === "ArrowLeft" || k === "ArrowUp") { e.preventDefault(); setActive(current - 1, true); }
+      else if (k === "Home") { e.preventDefault(); setActive(0, true); }
+      else if (k === "End") { e.preventDefault(); setActive(steps.length - 1, true); }
+    });
+
+    if (!reduce) {
+      // Hand over to the next step when the active progress bar fills.
+      story.classList.add("is-paused");
+      stepsWrap?.addEventListener("animationend", (e) => {
+        if ((e as AnimationEvent).animationName === "storyFill") setActive(current + 1);
+      });
+
+      // Only autoplay while the scene is on screen.
+      new IntersectionObserver(
+        (entries) => entries.forEach((en) => story.classList.toggle("is-paused", !en.isIntersecting)),
+        { threshold: 0.25 },
+      ).observe(story);
+
+      // Let pointer users dwell on a step without it sliding away.
+      if (window.matchMedia("(hover: hover)").matches) {
+        const cols = story.querySelector<HTMLElement>(".story__cols");
+        cols?.addEventListener("pointerenter", () => story.classList.add("is-hover-paused"));
+        cols?.addEventListener("pointerleave", () => story.classList.remove("is-hover-paused"));
+      }
     }
   }
 </script>
 
 <style>
-  .story { --scene-pad: clamp(2rem, 4vw, 3.25rem); overflow: clip; }
+  .story { --scene-pad: clamp(2rem, 4vw, 3.25rem); --dwell: 5.5s; overflow: clip; }
 
   .story__head { align-items: end; margin-block-end: clamp(2rem, 4vw, 3.25rem); }
-  .story__title {
-    color: var(--scene-title, var(--scene-ink));
-    max-inline-size: 18ch;
-  }
+  .story__title { color: var(--scene-title, var(--scene-ink)); max-inline-size: 18ch; }
   .story__lede { font-size: var(--text-body-lg); line-height: 1.6; max-inline-size: 40ch; }
 
-  .story__cols { align-items: start; }
-
-  /* Sticky media column (desktop) */
-  .story__media { display: none; }
+  .story__cols { display: grid; gap: clamp(1.5rem, 4vw, 2.5rem); }
+  /* Mobile: the image leads, the steps sit below it as a tappable list. */
+  @media (max-width: 879px) { .story__media { order: -1; } }
   @media (min-width: 880px) {
-    .story__media { display: block; position: sticky; inset-block-start: calc(var(--header-h) + 2.5rem); }
-    .story__frame {
-      position: relative;
-      aspect-ratio: 4 / 5;
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      border: 1px solid var(--scene-line);
-      box-shadow: 0 30px 60px -50px rgba(0, 48, 12, 0.4);
-    }
+    .story__cols { grid-template-columns: 5fr 7fr; align-items: center; column-gap: clamp(2rem, 4vw, 4rem); }
+  }
+
+  /* Steps — a clickable list with a left accent rail tracking the active beat. */
+  .story__steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+
+  .story__step {
+    appearance: none;
+    -webkit-appearance: none;
+    inline-size: 100%;
+    text-align: start;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    background: none;
+    border: 0;
+    border-inline-start: 2px solid var(--scene-line);
+    padding-block: clamp(0.9rem, 2.4vw, 1.3rem);
+    padding-inline: clamp(1rem, 3vw, 1.5rem) 0;
+    opacity: 0.55;
+    transition: opacity 0.4s var(--ease-out-expo), border-color 0.4s var(--ease-out-expo);
+  }
+  .story__step:hover { opacity: 0.82; }
+  .story__step.is-active { opacity: 1; border-inline-start-color: var(--scene-accent); }
+  .story__step.is-active:hover { opacity: 1; }
+  .story__step:focus-visible { outline: 2px solid var(--scene-accent); outline-offset: 3px; opacity: 1; }
+
+  .story__step-text { flex: 1 1 auto; }
+  .story__step-title {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3.4vw, 2rem);
+    font-weight: 600;
+    line-height: 1.12;
+    color: var(--scene-ink);
+    transition: color 0.4s var(--ease-out-expo);
+  }
+  .story__step.is-active .story__step-title { color: var(--scene-title, var(--scene-ink)); }
+  .story__step-body {
+    display: block;
+    margin-block-start: 0.4rem;
+    font-size: 0.98rem;
+    line-height: 1.55;
+    max-inline-size: 44ch;
+  }
+
+  /* Progress bar — shown only on the active step; auto-fills, then hands over. */
+  .story__step-bar {
+    display: none;
+    margin-block-start: 0.9rem;
+    block-size: 3px;
+    border-radius: 99px;
+    background: var(--scene-line);
+    overflow: hidden;
+  }
+  .story__step.is-active .story__step-bar { display: block; }
+  .story__step-fill {
+    display: block;
+    block-size: 100%;
+    inline-size: 100%;
+    border-radius: inherit;
+    background: var(--scene-accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+  @keyframes storyFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @media (prefers-reduced-motion: no-preference) {
+    .story__step.is-active .story__step-fill { animation: storyFill var(--dwell) linear forwards; }
+    .story.is-paused .story__step.is-active .story__step-fill,
+    .story.is-hover-paused .story__step.is-active .story__step-fill { animation-play-state: paused; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .story__step.is-active .story__step-fill { transform: scaleX(1); }
+  }
+
+  /* Media — cross-dissolving still that settles out of a slight zoom on activation. */
+  .story__frame {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--scene-line);
+    background: color-mix(in srgb, var(--scene-ink) 6%, var(--scene-bg));
+    box-shadow: 0 30px 60px -50px rgba(0, 48, 12, 0.4);
   }
   .story__img {
     position: absolute;
@@ -122,85 +242,23 @@ const beats = [
     object-fit: cover;
     opacity: 0;
     transform: scale(1.04);
-    transition: opacity 0.8s var(--ease-out-expo), transform 1.2s var(--ease-out-expo);
-    /* Lighter duotone than the dark build so the footage reads crisp on the light scene. */
-    filter: saturate(0.72) contrast(1.03) brightness(0.92);
+    transition: opacity 0.7s var(--ease-out-expo), transform 1.2s var(--ease-out-expo);
+    /* Lighter duotone so the footage reads crisp on the light scene. */
+    filter: saturate(0.76) contrast(1.03) brightness(0.94);
   }
   .story__img.is-active { opacity: 1; transform: scale(1); }
 
-  .story__media-tag {
-    position: absolute;
-    inset-block-start: 1rem;
-    inset-inline-start: 1rem;
-    z-index: 1;
-    color: var(--color-paper);
-    background: rgba(5, 26, 16, 0.55);
-    backdrop-filter: blur(4px);
-    padding: 0.3rem 0.6rem;
-    border-radius: 99px;
-  }
-  .story__media-overlay {
+  .story__media-label {
     position: absolute;
     inset-block-end: 0;
     inset-inline: 0;
     z-index: 1;
-    padding: clamp(1.1rem, 2vw, 1.6rem);
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    background: linear-gradient(0deg, rgba(5, 26, 16, 0.9), rgba(5, 26, 16, 0.3) 60%, transparent);
-  }
-  .story__media-step {
+    padding: clamp(1rem, 2vw, 1.5rem);
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: clamp(1.4rem, 2.2vw, 2rem);
+    font-size: clamp(1.3rem, 2.2vw, 2rem);
     line-height: 1.05;
     color: var(--color-bone);
-  }
-  .story__progress { display: flex; gap: 6px; }
-  .story__progress-seg {
-    block-size: 3px;
-    flex: 1;
-    border-radius: 99px;
-    background: rgba(251, 248, 240, 0.22);
-    transition: background 0.5s var(--ease-out-expo);
-  }
-  .story__progress-seg.is-active { background: var(--color-gold-soft); }
-
-  /* Beats */
-  .story__beats { list-style: none; margin: 0; padding: 0; }
-  .story__beat { padding-block: clamp(1.5rem, 3vw, 2.25rem); }
-  .story__beat:not(:last-child) { border-block-end: 1px solid var(--scene-line); }
-
-  .story__beat-img {
-    inline-size: 100%;
-    aspect-ratio: 16 / 10;
-    object-fit: cover;
-    border-radius: var(--radius);
-    margin-block-end: 1.25rem;
-    filter: saturate(0.72) contrast(1.03) brightness(0.92);
-  }
-  @media (min-width: 880px) { .story__beat-img { display: none; } }
-
-  .story__beat-title {
-    font-family: var(--font-display);
-    font-size: clamp(1.6rem, 3vw, 2.4rem);
-    font-weight: 600;
-    line-height: 1.1;
-    color: var(--scene-title, var(--scene-ink));
-    margin: 0 0 0.6rem;
-  }
-  .story__beat-body { font-size: var(--text-body-lg); line-height: 1.6; max-inline-size: 46ch; margin: 0; }
-
-  /* Desktop: the active beat lights up; the rest sit back. A left accent rail tracks the walk. */
-  @media (min-width: 880px) {
-    .story__beat { min-block-size: 40vh; display: flex; align-items: center; }
-    .story__beat-text {
-      border-inline-start: 2px solid var(--scene-line);
-      padding-inline-start: clamp(1.25rem, 2vw, 2rem);
-      opacity: 0.4;
-      transition: opacity 0.5s var(--ease-out-expo), border-color 0.5s var(--ease-out-expo);
-    }
-    .story__beat.is-active .story__beat-text { opacity: 1; border-inline-start-color: var(--scene-accent); }
+    background: linear-gradient(0deg, rgba(5, 26, 16, 0.8), rgba(5, 26, 16, 0.25) 55%, transparent);
   }
 </style>

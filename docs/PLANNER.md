@@ -1,174 +1,101 @@
 # Melek — Planner
 
-Snapshot of where the project is, what is locked in, and what is left. Update this file at the end of any working session so the next pickup is fast.
+Snapshot of where the project is, what's locked, and what's left. Update at the end of any session so the next pickup is fast. `CHANGELOG.md` has the detailed blow-by-blow; this is the current state.
 
-Last updated: 2026-05-26 (whole site migrated to the light system: homepage, products, product detail, about, and the three form pages. Only placeholder /legal/* pages remain on legacy bone).
-
-**Current direction (v9, in progress): lighter homepage + new heading font.**
-- All four core pages (home, products, product detail, about) were migrated to the dark cinematic system in v8.
-- The owner then asked for two changes: (a) replace the Bodoni Moda headings with **Clash Display** (Fontshare; Archivo kept for body) — done site-wide via `--font-display`; (b) the site felt **too dark** — so the **homepage** now runs **light-dominant**.
-- Homepage is now light **end to end** except the dark Hero. The four middle scenes (OperationalStrip, ProductionStory, ProductWorlds, HalalConfidence) use `scene="light"`. The lower three (ExportCTA, TrustArtifacts, Footer), which the owner found too dark, were reworked light (see below). Light scenes use `--color-snow #f7f6f3` (NOT beige) with a soft emerald/brass radial glow + a faint diagonal weave (`.scene[data-scene="light"]` + `::before` in `global.css`), **emerald headings** (`--scene-title`), and **white product tiles** (`.worlds[data-scene="light"] .worlds__media`).
-- **Boxed-panel motif (new):** the owner wants a less boring, more crafted scroll (dunya products-block reference). Body stays light; one section's content sits in an inset `.scene-panel` (global.css) — soft emerald tint (`--color-panel` / `--color-panel-deep`), padding, `--radius-xl` corners, a layered decorative shape (two emerald blobs + thin brass arc) anchored top-right, soft lift shadow; the light body shows in the gutters around it. **Owner: one box is enough** for variety, so only **ExportCTA** is boxed (`--deep`). **TrustArtifacts** is un-boxed and minimalist: head (Verification eyebrow + headline + aside) over a single hairline-separated **row of cert marks** (logo or emerald text seal + short caption), one line on desktop; no record cards. The tinted **footer** is the distinct "special" ending (`--color-panel`, gated on `body.has-dark-hero` so inner pages keep the dark footer). Weave now uses `background-attachment: fixed` so the diagonal lines stay continuous across section seams.
-
-### DONE
-- Homepage light-dominant rework (boxed ExportCTA, minimalist certs, light footer, continuous weave, light mobile menu) — owner-approved.
-- **Products catalog + single-product pages migrated to the light system** (`body.page-light`, `data-scene="light"`, emerald Clash headings, white packshot tiles, `btn-secondary`, shared light boxed `ExportCTA`). Verified 200.
-- **About page migrated to light** (all scenes `data-scene="light"`, emerald headings, light frames, softened gallery duotone, gallery film-strip now contained to `.container-x`) + a **new lighter hero**: emerald headline on snow with the brand film in a wide rounded feature window (`/videos/about-hero.mp4`). Owner likes it; homepage hero left dark for now (his call).
-- **Form pages migrated to light** (distributors, samples, contact): `page-light`, light scenes, emerald headings, italic-serif accents removed, white form cards; shared `.input/.textarea/.select` now white + line-soft + slate placeholder. Verified 200. **The whole site is now on the light system except the placeholder `/legal/*` pages.**
-
-### NOT DONE — pick up here next session
-1. **`/legal/{privacy,cookies,terms}/`** — still legacy bone + placeholder copy. Migrate to light when convenient; real copy awaits counsel (low priority).
-2. **Optional:** roll the lighter feature-window hero to the **homepage hero** (currently still dark full-bleed video) — owner deferred this.
-3. **Optional revisit:** the homepage header, when scrolled, is still a dark emerald-black bar over the now-light page (owner checking with his team).
-
-### Locked decisions
-**Simplicity Pro (Semplicita Pro), self-hosted — one face for everything.** Reference-site palette: **cream** `--color-snow #FDFCF4`, **forest green** `#00300C` (headings/header/hero), **medium green** `#4f7f47` (CTA/links), **lime** `#A9DD72` accent. Greeny (forest-green) header on every page (+ **Home** in nav). Cert **marquee** under the hero on the homepage (Halal·BRC·IFS·HACCP·ISO 22000) replaces the cert section; homepage flow Hero → CertMarquee → ProductionStory → ProductWorlds → ExportCTA. **Plain, friendly, short copy — do not insist on being good/certified.** **Food is NOT made in the Netherlands** (NL = company base only; never claim a production location). No eyebrow pre-headings, no hero fact ledgers, no SKU counts. Emerald headings on light. Inset boxed panels (`.scene-panel`), one per page. Leaner homepage (Hero → ProductionStory → ProductWorlds → TrustArtifacts → ExportCTA). Tagline kept ("Halal, perfected. Crafted in Europe."). Product tiles: white on light scenes.
+Last updated: 2026-05-26.
 
 ---
 
-## 1. Locked-in decisions
+## Current state
 
-| Decision | Status |
+The site is **light-dominant** and rebranded to the owner's reference build (`lightyellow-penguin-202886.hostingersite.com` / melekhalalfood). Every page is off the old dark v8 system. Stack unchanged: **Astro 5 + Tailwind 4 + TypeScript + React islands + Vercel**.
+
+- **Font — one face: Simplicity Pro** (Semplicita Pro), **self-hosted** in `/public/fonts` (`@font-face` in `global.css`), used for headings AND body. No Manrope/Archivo, no Google Fonts.
+- **Palette (reference):** cream canvas `--color-snow #FDFCF4`; **forest green** `--color-emerald-deep / -black #00300C` (headings on light, header, hero); **medium green** `--color-emerald #4f7f47` (CTA, links); **lime** `--color-lime / --color-gold / --color-brass #A9DD72` (accent). Sage panels (`--color-panel`). `tokens.css` is the source of truth.
+- **Header:** greeny forest-green bar on every page — transparent over the dark hero on the homepage, solid greeny elsewhere (`body.page-light`). **Home** is in the nav.
+- **Copy:** plain, friendly, short; **do not insist** on being good/certified. **Melek SELLS / supplies — it does not make or manufacture** the food. **Never claim "made in the Netherlands"** or a production location (NL = company base + contact address only). No eyebrow pre-headings, no hero fact ledgers, no SKU counts, no em-dashes, no italic-serif accents.
+- **Spacing:** compact — per-section vertical padding (`--section-y` + per-component `--scene-pad`) cut roughly in half, desktop + mobile.
+- **Motion:** GSAP + Lenis, all reduced-motion gated (`src/lib/motion.ts`).
+
+### Homepage flow
+`Hero` (dark, MP4 video) → `CertMarquee` (green band, white cert icon-chips: Halal/BRC/IFS logos + HACCP/ISO check, scrolling) → `ProductionStory` ("From source to freezer", interactive click-driven walk-through: a tablist of steps Sourced/Selected/Checked/Delivered drives a cross-dissolving facility still, with an auto-advancing progress bar) → `ProductWorlds` (per-range packshot rails) → `ExportCTA` (the one boxed light `.scene-panel` CTA) → `Footer` (sage, light).
+Removed from the homepage during simplification: `OperationalStrip`, `HalalConfidence`, `TrustArtifacts` (the marquee carries the certs now). Those components + `Marquee` are now unused/unrendered.
+
+---
+
+## 1. Page status
+
+| Route | State |
 |---|---|
-| Brand: Melek (standalone, not Dünya sub-brand) | ✅ locked |
-| HQ: Netherlands; reach: all Europe | ✅ |
-| Audience: B2B distributors / importers primary | ✅ |
-| Languages: EN first, NL later (i18n-ready) | ✅ |
-| Visual tone: dünyaholding family, cleaner | ✅ |
-| Motion: tasteful and subtle | ✅ |
-| Trust signals: certs only, no fabricated capacity numbers | ✅ |
-| Content store: file-based Markdown in `/src/content/products/` | ✅ |
-| Hosting: Vercel (EU edge), MP4 / images self-hosted in `/public/` | ✅ |
-| Stack: Astro 5 + Tailwind 4 + TS + React islands + Vercel | ✅ |
-| Typography: Fraunces (headings) + Inter (body), 2 fonts only | ✅ (v2) |
-| No em-dashes anywhere in copy | ✅ (v2) |
-| No italic-serif accents inside heading sans | ✅ (v2) |
-| Logo aspect ratio: 2.16:1 (intrinsic 734 × 340) | ✅ (v3) |
-| Hero background: **MP4 only**, not YouTube | ✅ (v5) |
-| Header: `position: fixed`, transparent over hero, fades on scroll | ✅ (v5) |
-| Section alternation prevents two dark sections touching | ✅ (v4) |
+| `/` homepage | ✅ light + rebranded (flow above) |
+| `/products/` catalog | ✅ light; range sections, white packshot tiles, mobile carousel peek+fade, `ExportCTA` |
+| `/products/[slug]/` detail | ✅ light; white presentation media, facts (Unit weight / Certification / Packaging), related rail, `ExportCTA` |
+| `/about/` | ✅ light; lighter video hero (`/videos/about-hero.mp4`), manifesto, principles, Google Street View tour, facility gallery, video block, **`TrustArtifacts` cert section still here**, `ExportCTA` |
+| `/distributors/`, `/samples/`, `/contact/` | ✅ light forms (white cards, light inputs, emerald focus ring) |
+| `/legal/{privacy,cookies,terms}/` | ✅ light shell, **placeholder copy** (awaits counsel) |
 
 ---
 
-## 2. Section order (homepage)
+## 2. Open / next (priority order)
 
-v8 rebuilt the homepage into a fully dark-cinematic flow. The whole page is dark now (no beige seam). Scenes 01-04 + TrustArtifacts are bespoke; HalalPromise + DistributorCTA are legacy components running dark with wave dividers off (`dividers={false}`) until their bespoke rebuilds.
-
-```
-01 Hero               (cine-hero, emerald-black, MP4, Bodoni masked headline)        NEW v8
-02 OperationalStrip   (char-900, brutalist proof band)                               NEW v8
-03 ProductionStory    (emerald-black, sticky facility cross-dissolve)                NEW v8
-04 ProductWorlds      (emerald-black, per-range horizontal packshot rails, boxed)    NEW v8
-   HalalConfidence    (emerald-deep, editorial statement + serif definition list)    NEW v8
-   ExportCTA          (char-900, bold CTA + inline process flow)                     NEW v8
-   TrustArtifacts     (emerald-black, certs as pale inspection-record cards)          NEW v8
-   Footer             (emerald-deep)                                                  legacy, rebuild as brutalist
-```
-
-The whole homepage is now bespoke dark scenes except the Footer. Legacy `Process` was dropped (redundant with ProductionStory). `HalalPromise` → `HalalConfidence`, `DistributorCTA` → `ExportCTA`, `Certifications` → `TrustArtifacts` are homepage-only swaps; the shared legacy `HalalPromise`/`DistributorCTA`/`Certifications` components are untouched and still serve the About + products pages with their bone/wave behaviour.
+1. **About facility content** — the virtual tour + facility gallery + "From source to freezer" still imply an operation/facility. Since Melek only sells, owner to decide: trim those, or keep as illustrative (with brand-owned photos).
+2. **Marquee elsewhere?** — the cert icon-marquee is homepage-only; `/about/` still has the `TrustArtifacts` cert section. Option: put the marquee under the products + about heroes and drop the separate cert section there.
+3. **Homepage hero** — still the dark full-bleed MP4. Owner deferred swapping it for the lighter "feature-window" treatment used on About.
+4. **Legal copy** — real privacy/cookies/terms text from counsel.
+5. **Real cert authority + dates** — confirm the halal authority and BRC/IFS/HACCP/ISO certificate details to show as named, dated marks (currently names only).
+6. **Real brand media** — replace dünya placeholders: facility stills (`/public/images/facility/*`), `hero.mp4`. (`about-hero.mp4` came from the reference site.)
+7. **Forms delivery** — currently log + thank-you panel; wire to a real inbox (Resend) when credentials are provided.
+8. **NL locale** (`/nl/*` route tree), **sitemap/robots** verify, **OG image** (`/og-default.jpg` referenced, not created).
 
 ---
 
-## 3. What's complete (homepage)
+## 3. Locked decisions
 
-- [x] Hero with MP4 video, transparent floating header, fades to opaque on scroll
-- [x] Animated marquee with brand keywords
-- [x] Categories with real product images per card
-- [x] Featured products grid pulled from content collection
-- [x] Halal Promise (flat emerald-deep, no edge gradients)
-- [x] Process section with quick-stats and animated rule
-- [x] Distributor CTA panel with 3-step list
-- [x] Certifications with real badges (HALAL, BRC, IFS) + text seals (HACCP, ISO 22000)
-- [x] Footer with proper logo proportions
-- [x] Full-screen mobile menu (lives in Base layout, outside backdrop-filter)
-- [x] All wave dividers tone-matched with bg-color wrappers
-- [x] 46 product packshots downloaded and content files generated
+- **One face: Simplicity Pro** (self-hosted), headings + body. Never add a second/third font.
+- **Reference palette:** cream `#FDFCF4`, forest green `#00300C`, medium green `#4f7f47`, lime `#A9DD72`. `tokens.css` authoritative.
+- **Greeny header everywhere; Home in nav.**
+- **Plain, friendly, non-insisting copy.** **Sell, not make.** **No "made in the Netherlands" / no production claim.** No SKU counts, no em-dashes, no italic-serif accents, no eyebrow pre-headings, no hero fact ledgers.
+- **Cert marquee** carries the certs on the homepage (replaces the cert section).
+- Tagline kept: "Halal, perfected. Crafted in Europe." Logo `/public/logo.png` 2.16:1 (734×340). Hero background **MP4 only** (never YouTube). Products are file-based Markdown in `/src/content/products/`. Audience: B2B. Languages: EN now, NL later.
 
 ---
 
-## 4. What's complete (other pages)
+## 4. Assets the owner provides later
 
-These exist and return 200, but they were built before the v2+ design polish and **still use the older patterns**:
-
-| Route | Built | Needs v2+ polish |
-|---|---|---|
-| `/products/` | ✅ v6 | catalog now uses real packshots, no em-dashes, no italic accents, alternating bone/cream bands with wave dividers, distributor CTA at bottom |
-| `/products/[slug]/` | ✅ v6 | real packshots wired, 4-cell facts grid, related-products strip from same category, distributor CTA at bottom |
-| `/distributors/` | ✅ | em-dashes in form copy, header offset works fine |
-| `/samples/` | ✅ | em-dashes in copy |
-| `/about/` | ✅ v7 | rebuilt: hero, Melek-way cards, Google Street View virtual tour, video block, facility gallery (duotone placeholders), reused halal/process/certs/CTA. Gallery photos + Street View location are dunya placeholders to swap. |
-| `/contact/` | ✅ | em-dashes in body |
-| `/legal/{privacy,cookies,terms}/` | ✅ (placeholder) | needs real legal copy from counsel |
-
-**Migration status into the v9 light system** (per `STYLEGUIDE.md §9`: `data-scene="light"` snow scenes, Clash + Archivo, emerald headings, white packshot tiles, one `.scene-panel` box, documentary copy, no scene numbers / SKU counts):
-- `/products/` and `/products/[slug]/` — ✅ **migrated to light** (v9.6).
-- `/about/` — ✅ **migrated to light** (v9.7), with a new lighter video hero (feature-window), owner-liked.
-- `/distributors/`, `/samples/`, `/contact/` — ✅ **migrated to light** (v9.8): light scenes, emerald headings, white form cards, light input primitives.
-- `/legal/{privacy,cookies,terms}/` — still **legacy bone**, placeholder copy (low priority).
+- Brand-owned hero + facility video and photography (to replace dünya/reference placeholders).
+- Real cert PDFs / images per authority → `/public/images/certifications/`.
+- Distributor / retailer partner logos.
+- Final legal copy (privacy / cookies / terms).
+- Resend (or other) credentials for form delivery.
 
 ---
 
-## 5. Open TODOs (priority order)
+## 5. Versions / iteration history
 
-1. **Rebuild the Footer as a brutalist export terminal** (coordinates, shipping regions, batch/warehouse metadata, system feel) — the last non-bespoke piece of the homepage. It is global in `Base.astro`, so either make it homepage-aware or build a homepage-specific footer.
-2. **Optional extra scenes** from the brief, if the owner wants more depth: appetite/texture intermission (needs macro food photography), retail-readiness, packaging + logistics system. The homepage already reads as a complete cinematic flow without them.
-3. **Confirm remaining copy claims with the owner**: city is **Amsterdam** (owner confirmed, OK to name). Still open: is HACCP certified/auditable enough to state beyond a text seal? Any real traceability metric? Until confirmed, keep those generic.
-4. ~~Replace `site.tagline`~~ — owner confirmed the current tagline is good; keep it.
-5. **Source cinematic photography** the redesign wants but does not have: macro/appetite food close-ups, steam/sizzle b-roll, production-line video, a photographic film-grain overlay, real (non-dunya) facility imagery.
-6. **Remaining internal pages polish** — apply v2+ typography and copy rules to `/distributors/`, `/samples/`, `/contact/`. Drop em-dashes, drop italic accents, remove eyebrow rules. (`/products/`, `/products/[slug]/` shipped in v6; `/about/` shipped in v7.)
-2. **Real cert authority names** — user needs to confirm halal authority (HFCE? HQC? Halal Correct NL?) and any HACCP / IFS / BRC / ISO certificate dates so we can show them as named, dated trust marks.
-4. **Real production-facility video** — user is replacing `/public/videos/hero.mp4` (currently dünya's aerial footage) with brand-owned footage. Just drop a same-name file in place.
-5. **Dutch (NL) locale** — scaffold the `/nl/*` route tree. Copy is empty until user provides translations.
-6. **Resend (or alternative) form delivery** — currently forms log + show a thank-you panel. Wire to a real inbox when the user provides credentials.
-7. **Legal copy** — privacy / cookies / terms pages are draft placeholders. Counsel review needed before launch.
-8. **Distributor / partner logos** — if the user can share logos of existing distributors, add a marquee or grid for credibility.
-9. **Sitemap + robots** — Astro Sitemap integration is installed but not customised. Verify it builds correct URLs.
-10. **OG image** — `/og-default.jpg` referenced but not yet created. Needs a brand OG card.
-
----
-
-## 6. Assets the user is providing later
-
-- Final hero video (replace `/public/videos/hero.mp4`)
-- Real cert PDFs / images per authority (drop into `/public/images/certifications/`)
-- Logo variants if needed (currently one PNG handles all surfaces)
-- Distributor / retailer partner logos
-- Any product photography updates
-
----
-
-## 7. Versions / iteration history
-
-See `CHANGELOG.md` for the full log. Short version:
+Full log in `CHANGELOG.md`. Short version:
 
 | Version | Theme |
 |---|---|
-| v1 | Initial scaffold, all sections, default typography (Inter Tight + Fraunces italic) |
-| v2 | Typography rebuild (Fraunces + Inter), em-dashes removed, eyebrow rule dropped, mobile menu rebuilt, real product images wired |
-| v3 | Logo aspect fixed, wave divider directions corrected, footer separated from DCTA |
-| v4 | Flat-color dark sections so wave dividers tone-match, Certifications moved between DCTA and Footer, marquee replaces trust strip |
-| v5 | YouTube swapped for MP4, header switched from sticky to fixed with `has-dark-hero` body gate |
-| v6 | `/products/` catalog and `/products/[slug]/` detail rebuilt to match v2+ rules (real packshots, no italic accents, no em-dashes, alternating bands, related-products strip, distributor CTA) |
-| v7 | `/about/` rebuilt with Google Street View virtual tour, video block, facility gallery (emerald-duotone placeholders), Melek-way value cards, reused homepage sections |
-| v8 | Anti-AI cinematic homepage, vertical slice. New faces (Bodoni Moda + Archivo), dark scene-theming system, scenes 01-04 rebuilt (hero, OperationalStrip, ProductionStory, ProductWorlds). Three old hard rules overridden; lower sections still legacy. |
+| v1–v3 | Scaffold, typography rebuild (Fraunces + Inter), logo/divider fixes |
+| v4–v5 | Flat dark sections + wave dividers; MP4 hero; fixed header with `has-dark-hero` |
+| v6–v7 | `/products/` catalog + detail; `/about/` rebuild (Street View tour, gallery) |
+| v8 | Dark "cinematic" rebuild — Bodoni Moda + Archivo, `data-scene` theming, scenes 01–04 |
+| v9 | **Light-dominant**: Clash Display → Manrope → **Simplicity Pro**; whole site migrated to light; **reference-site rebrand** (cream + forest green + lime); cert **icon-marquee**; **sell-not-make** + de-Netherlands, plainer/non-insisting copy; Home nav; compact spacing |
 
 ---
 
-## 8. How to resume
+## 6. How to resume
 
-1. Start the dev server: `pnpm dev` (or it's already running).
-2. Take a fresh screenshot pass: `node scripts/screenshot.mjs` (writes to `temporary_screenshots/v5/` by default; set `SHOTS_DIR` env var to bump version).
-3. Read this file, `STYLEGUIDE.md`, and `ARCHITECTURE.md` before touching code.
-4. Pick the highest-priority TODO from §5 unless the user directs otherwise.
-5. After changes: re-screenshot, present to user, then update this file's §3/§4/§5 to reflect what shipped.
+1. Start the dev server: `pnpm dev` → **http://localhost:4321/** (use `localhost`, not `127.0.0.1` — local proxy intercepts it). Never run `pnpm build` while `pnpm dev` is watching.
+2. Read this file, `STYLEGUIDE.md`, recent `CHANGELOG.md`, and `ARCHITECTURE.md` before touching code.
+3. The owner reviews the live site himself — ask him to check `localhost` rather than auto-screenshotting every change.
+4. **Never commit or push without explicit approval.** Never deploy automatically.
 
 ---
 
-## 9. Conventions for picking up work
+## 7. Conventions for picking up work
 
 - One small testable change per turn, not five.
-- After any visible change: screenshot before presenting.
-- After every successful change: mark the relevant task `completed` and update this file's checklists.
-- Never invent statistics (capacity, years, employee counts) — the user said no fabricated trust signals.
-- Never add a third font family. Never reintroduce italic-serif accents inside heading sans.
-- Never use em-dashes in body copy.
+- Ask the owner to check `localhost`; capture a screenshot only when he asks or when a change genuinely can't be judged otherwise.
+- After shipping: update this file + `CHANGELOG.md`.
+- Hard rules (also in `CLAUDE.md` / `STYLEGUIDE.md`): one font (Simplicity Pro); no em-dashes; no italic-serif accents; no insisting; **sell not make**; **no "made in the Netherlands" / no production claim**; no SKU counts; no fabricated trust signals.
