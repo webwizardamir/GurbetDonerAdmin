@@ -427,6 +427,14 @@ verlegdLabel: { fontFamily: 'Helvetica-Bold' },
 4. No order locking after invoice - but all changes logged
 5. The **Credit Nota** reflects what was actually refunded: when refund rows exist, `buildInvoiceData` rebuilds the credit note's lines/totals from the cumulative `order_refund_items` (not the whole order); a plain cancellation with no refund rows falls back to the full order
 
+### Order Notes (editable in any status)
+Three note fields exist: per-line `order_items.notes` (the **product "notitie"** — the only one that prints, in the document "Notitie" column via `buildInvoiceData`), plus order-level `orders.delivery_notes` and `orders.internal_notes` (panel-only, not on PDFs).
+
+1. **Notes are editable in every status**, including `completed` / `cancelled` / `refunded`, from two places: the order detail panel's **"Notities bewerken"** button (`OrderNotesModal`), and the Orders-table **Edit** icon.
+2. **`updateOrderNotes` service** (notes-only) does this safely — it issues plain `UPDATE`s on `orders` and `order_items.notes`, so the stock deduct/restore triggers (which fire only on `order_items` INSERT/DELETE) never run. This is the **only** safe way to touch a cancelled/refunded order.
+3. **Orders-table Edit icon routing:** the icon now shows for **all** statuses. `cancelled`/`refunded` → `OrderNotesModal` (notes-only, StickyNote icon); every other status (incl. `completed`) → the full `OrderForm` editor (which also edits per-line notes). **Never route cancelled/refunded to the full editor** — its delete-and-reinsert of `order_items` re-fires the stock triggers and corrupts the already-restored stock (see `BUGS_AND_FIXES.md`).
+4. **Delete** stays restricted to `draft`/`pending`/`pending_payment`/`on_hold` (audit safety on invoiced/closed orders) — by design, not a bug.
+
 ### Refunds (in-app, full + partial)
 Issued from the order detail panel (Orders page → open an order → **Terugbetalen** → `RefundModal`). Deliberately separate from the status buttons.
 

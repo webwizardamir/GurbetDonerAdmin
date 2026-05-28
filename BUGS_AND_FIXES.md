@@ -456,3 +456,23 @@ There must be exactly **one** owner of stock for any state change. Refunds own p
 ### Reference: profit must be gated in the RPC, not the UI
 
 The customer detail **profit card** (owner-only) sums `get_customer_items_summary`, which returns `NULL` profit for non-owners server-side (see the Phase 3-4 hardening above). The card is also hidden in the UI for non-owners, but the server gate is what actually protects the data — a Shop Manager calling the RPC directly still gets no profit. Apply this to any new surface that shows cost/profit.
+
+---
+
+## Editing notes on closed orders
+
+### Gotcha: never run the full order editor on a cancelled/refunded order
+
+**Context:**
+Users asked to edit the per-product note ("notitie") and order notes *after* an order is created — in any status, including `completed`/`cancelled`/`refunded`. The obvious fix (show the Orders-table **Edit** icon for those statuses and send them to the full `OrderForm` editor) is a **stock-corruption trap**.
+
+**Why it corrupts stock:**
+The full editor saves via `updateOrderWithItems`, which **deletes every `order_items` row and re-inserts them**. Stock is driven by two `order_items` triggers — `BEFORE DELETE` restores `+qty`, `AFTER INSERT` deducts `-qty`. On an *open* order those net out. But a **cancelled/refunded** order already had its stock restored (by `handle_order_status_change` / `create_order_refund`), and its `order_items` rows still hold the original quantities. Re-saving them runs the delete-restore again on top of the already-restored stock → over/under-count (off by the changed qty).
+
+**Fix:**
+- Added `updateOrderNotes(orderId, orderNotes, itemNotes)` — a **notes-only** path that issues plain `UPDATE`s on `orders` and `order_items.notes`. `UPDATE` fires no stock trigger (only INSERT/DELETE do), so it is safe in every status.
+- New `OrderNotesModal` edits the per-line product notes + order delivery/internal notes. It's reachable from the order detail panel's **"Notities bewerken"** button (any status) and from the Orders-table Edit icon.
+- Edit-icon routing: `cancelled`/`refunded` → `OrderNotesModal` (notes-only); all other statuses → full `OrderForm` editor.
+
+**Prevention:**
+Anything that needs to mutate a cancelled/refunded order must avoid touching the `order_items` row set. Route note/metadata edits through `updateOrderNotes` (or another UPDATE-only path), never through `updateOrderWithItems`. The stock invariant from the refunds section still holds: exactly one owner of stock per state change, and a no-op edit must stay a no-op for stock.
