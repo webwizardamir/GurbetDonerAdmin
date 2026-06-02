@@ -88,8 +88,11 @@ export default function Orders() {
     return () => clearTimeout(timer)
   }, [searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Client-side filter also matches customer name and legacy WC invoice numbers
-  // (server-side search already queries order_number + woo_invoice_number).
+  // Instant-feedback filter over the already-loaded page (the 300ms before the
+  // server refetch lands). Mirrors the server search — order_number, customer
+  // company name + contact person, WC invoice — plus the app-generated invoice
+  // number which only exists client-side in documentInfo. Must stay a superset
+  // of the server match so it never hides a valid server result.
   const filteredOrdersUnsorted = useMemo(() => orders.filter(order => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -98,6 +101,7 @@ export default function Orders() {
     return (
       order.order_number.toLowerCase().includes(query) ||
       order.customer?.company_name?.toLowerCase().includes(query) ||
+      order.customer?.contact_person?.toLowerCase().includes(query) ||
       invoiceNum.includes(query) ||
       wooInvoice.includes(query)
     )

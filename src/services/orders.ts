@@ -181,9 +181,9 @@ export async function fetchOrderCount(filters: OrderFilters = {}): Promise<numbe
   if (filters.dateFrom) query = query.gte('order_date', filters.dateFrom)
   if (filters.dateTo) query = query.lte('order_date', filters.dateTo)
 
-  // Search by order_number and, when numeric, also by woo_invoice_number.
+  // Search by order_number, customer name, and (when numeric) the WC invoice.
   if (filters.search) {
-    query = query.or(buildSearchOr(filters.search))
+    query = query.or(await buildSearchOr(filters.search))
   }
 
   const { count, error } = await query
@@ -191,11 +191,34 @@ export async function fetchOrderCount(filters: OrderFilters = {}): Promise<numbe
   return count || 0
 }
 
-// Build a PostgREST `.or()` expression that matches order_number via ilike
-// and, if the term is a bare integer, also matches the legacy WC invoice number exactly.
-function buildSearchOr(term: string): string {
-  const clauses = [`order_number.ilike.%${term}%`]
+// Inside a double-quoted PostgREST value only `"` and `\` are special, so
+// stripping those makes an arbitrary user term safe to embed in an `.or()`
+// ilike clause (commas, parentheses, etc. are then treated literally).
+function escapeForOrValue(term: string): string {
+  return term.replace(/["\\]/g, '')
+}
+
+// Build a PostgREST `.or()` expression for the orders query. Matches:
+//  - order_number via ilike
+//  - the legacy WC invoice number exactly (when the term is a bare integer)
+//  - any order belonging to a customer whose company name OR contact person
+//    matches the term (resolved to customer_ids in a quick lookup, since the
+//    name lives on the related `customers` table, not on `orders`)
+async function buildSearchOr(term: string): Promise<string> {
+  const q = escapeForOrValue(term)
+  const clauses = [`order_number.ilike."%${q}%"`]
   if (/^\d+$/.test(term)) clauses.push(`woo_invoice_number.eq.${term}`)
+
+  // Resolve matching customers by name. Capped so a very broad term can't blow
+  // up the IN-list / URL length; order_number matching still covers the rest.
+  const { data: customers } = await supabase
+    .from('customers')
+    .select('id')
+    .or(`company_name.ilike."%${q}%",contact_person.ilike."%${q}%"`)
+    .limit(300)
+  const ids = (customers ?? []).map(c => c.id as string)
+  if (ids.length > 0) clauses.push(`customer_id.in.(${ids.join(',')})`)
+
   return clauses.join(',')
 }
 
@@ -236,7 +259,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
   }
 
   if (filters.search) {
-    query = query.or(buildSearchOr(filters.search))
+    query = query.or(await buildSearchOr(filters.search))
   }
 
   // Apply pagination with range
