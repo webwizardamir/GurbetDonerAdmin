@@ -12,7 +12,6 @@ import type { Product, UnitType } from '../types'
 export type TemplateColumnKey =
   | 'ID'
   | 'Naam'
-  | 'Categorie'
   | 'SKU'
   | 'Barcode'
   | 'StandaardEenheid'
@@ -37,7 +36,6 @@ export interface TemplateColumn {
 export const PRODUCT_TEMPLATE_COLUMNS: readonly TemplateColumn[] = [
   { key: 'ID',                header: 'ID',                  required: false, comment: 'Product ID (MHF-NNNNN). Leeg laten = nieuw product met auto-ID. Bestaande ID = bijwerken.' },
   { key: 'Naam',              header: 'Naam',                required: true,  comment: 'Productnaam (verplicht).' },
-  { key: 'Categorie',         header: 'Categorie',           required: true,  comment: 'Naam moet exact overeenkomen met een bestaande categorie.' },
   { key: 'SKU',               header: 'SKU',                 required: false, comment: 'Eigen SKU / artikelnummer (optioneel, uniek).' },
   { key: 'Barcode',           header: 'Barcode',             required: false, comment: 'EAN / UPC barcode (optioneel, uniek).' },
   { key: 'StandaardEenheid',  header: 'Standaard eenheid',   required: true,  comment: 'kg, piece, zak of doos.' },
@@ -91,7 +89,6 @@ function productToTemplateRow(
   return {
     ID: p.product_code ?? '',
     Naam: p.name,
-    Categorie: p.category?.name ?? '',
     SKU: p.sku ?? '',
     Barcode: p.barcode ?? '',
     StandaardEenheid: p.unit_type,
@@ -191,7 +188,6 @@ export async function downloadProductTemplate(
     const sample: Partial<Record<TemplateColumnKey, string | number>> = {
       ID: '',
       Naam: 'Voorbeeld product',
-      Categorie: 'Vlees',
       SKU: '',
       Barcode: '',
       StandaardEenheid: 'kg',

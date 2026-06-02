@@ -4,7 +4,6 @@ import {
   X, Upload, Loader2, CheckCircle, AlertCircle, FileDown, FileSpreadsheet,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { useCategories } from '../../hooks/useCategories'
 import {
   PRODUCT_TEMPLATE_COLUMNS,
   TEMPLATE_HEADERS,
@@ -61,7 +60,6 @@ const trimOrNull = (v: unknown): string | null => {
 export default function ProductImport({ onClose, onComplete }: ProductImportProps) {
   const { t } = useTranslation()
   const { isOwner } = useAuth()
-  const { categories } = useCategories({ activeOnly: true })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [view, setView] = useState<ViewState>('pick')
@@ -88,12 +86,6 @@ export default function ProductImport({ onClose, onComplete }: ProductImportProp
 
   if (!isOwner) return null
 
-  const categoryByName = useMemo(() => {
-    const map = new Map<string, string>()
-    categories.forEach(c => map.set(c.name.toLowerCase().trim(), c.id))
-    return map
-  }, [categories])
-
   const handleFile = async (file: File) => {
     setFileName(file.name)
     setParseError(null)
@@ -113,7 +105,6 @@ export default function ProductImport({ onClose, onComplete }: ProductImportProp
 
       const id = trimOrNull(getValue(source, 'ID'))
       const name = trimOrNull(getValue(source, 'Naam'))
-      const categoryName = trimOrNull(getValue(source, 'Categorie'))
       const sku = trimOrNull(getValue(source, 'SKU'))
       const barcode = trimOrNull(getValue(source, 'Barcode'))
       const unitTypeRaw = trimOrNull(getValue(source, 'Standaard eenheid'))?.toLowerCase()
@@ -128,16 +119,6 @@ export default function ProductImport({ onClose, onComplete }: ProductImportProp
       const description = trimOrNull(getValue(source, 'Beschrijving'))
 
       if (!name) errors.push({ field: 'Naam', message: t('products.import.requiredField', { field: 'Naam' }) })
-      if (!categoryName) {
-        errors.push({ field: 'Categorie', message: t('products.import.requiredField', { field: 'Categorie' }) })
-      }
-      let categoryId: string | undefined
-      if (categoryName) {
-        categoryId = categoryByName.get(categoryName.toLowerCase().trim())
-        if (!categoryId) {
-          errors.push({ field: 'Categorie', message: t('products.import.unknownCategory', { name: categoryName }) })
-        }
-      }
 
       if (!unitTypeRaw) {
         errors.push({ field: 'StandaardEenheid', message: t('products.import.requiredField', { field: 'Standaard eenheid' }) })
@@ -183,13 +164,12 @@ export default function ProductImport({ onClose, onComplete }: ProductImportProp
       if (priceZak !== null) unit_prices.zak = Math.round(priceZak * 100)
       if (priceDoos !== null) unit_prices.doos = Math.round(priceDoos * 100)
 
-      const parsed: ImportProductInput | null = errors.length > 0 || !name || !categoryId
+      const parsed: ImportProductInput | null = errors.length > 0 || !name
         ? null
         : {
           product_code: id,
           sku,
           name,
-          category_id: categoryId,
           barcode,
           default_unit_type: unitType,
           unit_prices,

@@ -306,7 +306,7 @@ export interface ImportProductInput {
   product_code?: string | null
   sku?: string | null
   name: string
-  category_id: string
+  category_id?: string | null
   barcode?: string | null
   default_unit_type: UnitType
   unit_prices: Partial<Record<UnitType, number>>   // cents
@@ -370,7 +370,7 @@ export async function upsertProductsFromImport(
   type ProductRow = {
     id?: string
     name: string
-    category_id: string
+    category_id: string | null
     unit_type: UnitType
     sku: string | null
     barcode: string | null
@@ -393,7 +393,7 @@ export async function upsertProductsFromImport(
 
     const base: ProductRow = {
       name: row.name,
-      category_id: row.category_id,
+      category_id: row.category_id ?? null,
       unit_type: row.default_unit_type,
       sku: row.sku?.trim() || null,
       barcode: row.barcode?.trim() || null,

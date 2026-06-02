@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Loader2, Package, Calendar, AlertCircle, Tag, Ruler, ChevronRight, ChevronDown } from 'lucide-react'
+import { Loader2, Package, Calendar, AlertCircle, Ruler, ChevronRight, ChevronDown } from 'lucide-react'
 import {
   fetchCustomerItemsSummary,
   fetchCustomerProductOrders,
@@ -55,7 +55,6 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
 
   // Q3b default = last 12 months
   const [range, setRange] = useState<DateRangeKey>('last12')
-  const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [unitFilter, setUnitFilter] = useState<string>('')
   const [rows, setRows] = useState<CustomerItemSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -120,13 +119,7 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
     return () => { cancelled = true }
   }, [customerId, range])
 
-  // Distinct categories + unit types from the loaded rows (no extra query)
-  const categoryOptions = useMemo(() => {
-    const s = new Set<string>()
-    for (const r of rows) if (r.category_name) s.add(r.category_name)
-    return Array.from(s).sort()
-  }, [rows])
-
+  // Distinct unit types from the loaded rows (no extra query)
   const unitOptions = useMemo(() => {
     const s = new Set<string>()
     for (const r of rows) if (r.unit_type) s.add(r.unit_type)
@@ -140,7 +133,6 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
 
   const filteredRows = useMemo(() => {
     const filtered = rows.filter(r => {
-      if (categoryFilter && r.category_name !== categoryFilter) return false
       if (unitFilter && r.unit_type !== unitFilter) return false
       return true
     })
@@ -155,7 +147,7 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
       revenue:      r => Number(r.total_revenue)  || 0,
       profit:       r => Number(r.total_profit)   || 0,
     })
-  }, [rows, categoryFilter, unitFilter, sortBy])
+  }, [rows, unitFilter, sortBy])
 
   // Footer SUMs — over the *filtered* set so they always match what's visible
   const totals = useMemo(() => {
@@ -185,19 +177,6 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
             ))}
           </select>
         </div>
-        {categoryOptions.length > 0 && (
-          <div className="relative">
-            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <select
-              value={categoryFilter}
-              onChange={e => setCategoryFilter(e.target.value)}
-              className="pl-10 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-            >
-              <option value="">{t('customerDetail.products.allCategories')}</option>
-              {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        )}
         {unitOptions.length > 1 && (
           <div className="relative">
             <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -228,7 +207,6 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
             pdfTitle={`Producten — ${customerName}`}
             pdfFilterSummary={[
               t(DATE_RANGES[range].labelKey),
-              categoryFilter,
               unitFilter,
             ].filter(Boolean).join(' · ') || undefined}
             size="sm"
@@ -294,9 +272,6 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                           {r.product_name}
-                          {r.category_name && (
-                            <div className="text-xs text-slate-500 dark:text-slate-500">{r.category_name}</div>
-                          )}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{r.unit_type}</td>
                         <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">

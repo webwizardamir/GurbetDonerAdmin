@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { DocumentSettings } from '../../types'
+import { computeTotalsRow } from '../../utils/export'
 
 // A4: 595.28 x 841.89 points
 // Compact ruleset per CLAUDE.md — designed to fit ~15-16 rows per page.
@@ -15,6 +16,8 @@ export interface DataExportColumn<T> {
   key: keyof T | string
   header: string
   format?: (value: unknown, row: T) => string
+  /** When true, this column is summed in the "Totaal" footer row. */
+  summable?: boolean
   /** PDF column width in points. If omitted, columns share remaining width equally. */
   width?: number
   /** Text alignment for the column. */
@@ -149,6 +152,18 @@ const buildStyles = (brand: string, brandDark: string) => StyleSheet.create({
     fontSize: 7.5,
     paddingHorizontal: 2,
   },
+  totalRow: {
+    flexDirection: 'row',
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+    borderTopWidth: 1.5,
+    borderTopColor: brand,
+  },
+  tdTotal: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    paddingHorizontal: 2,
+  },
 
   footer: {
     borderTopWidth: 1,
@@ -206,6 +221,9 @@ export function DataExportTemplate<T>({
   const fixedWidth = columns.reduce((sum, c) => sum + (c.width ?? 0), 0)
   const flexCount = columns.filter(c => c.width === undefined).length
   const flexWidth = flexCount > 0 ? Math.max(20, (PAGE_WIDTH - fixedWidth) / flexCount) : 0
+
+  // Footer "Totaal" row (null when no column is summable)
+  const totalsRow = computeTotalsRow(data as Record<string, unknown>[], columns as never)
 
   return (
     <Document>
@@ -281,6 +299,26 @@ export function DataExportTemplate<T>({
               ))}
             </View>
           ))}
+
+          {/* TOTALS ROW (only when a column is summable) */}
+          {totalsRow && (
+            <View style={styles.totalRow} wrap={false}>
+              {columns.map((col, colIdx) => (
+                <Text
+                  key={colIdx}
+                  style={[
+                    styles.tdTotal,
+                    {
+                      width: col.width ?? flexWidth,
+                      textAlign: col.align ?? 'left',
+                    },
+                  ]}
+                >
+                  {totalsRow[colIdx]}
+                </Text>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* FOOTER */}

@@ -7,7 +7,6 @@ import {
   Calendar,
   MapPin,
   Users,
-  Tag,
   Ruler,
   Layers,
   ChevronDown,
@@ -16,16 +15,12 @@ import {
   Copy,
   Printer,
   FileText,
-  AlertTriangle,
-  CheckCircle,
-  MinusCircle,
   TrendingUp,
   ShoppingCart,
   Euro,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSoldProducts, type DateRangeKey } from '../hooks/useSoldProducts'
-import { getStockStatus, getSuggestedRefill, type SoldProductItem } from '../services/soldProducts'
 import { formatPrice, formatQuantityWithUnit } from '../utils/format'
 import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
 import SortableTh from '../components/ui/SortableTh'
@@ -45,11 +40,9 @@ export default function SoldProducts() {
     refresh,
     cityFilter,     setCityFilter,
     customerFilter, setCustomerFilter,
-    categoryFilter, setCategoryFilter,
     unitFilter,     setUnitFilter,
     cityOptions,
     customerOptions,
-    categoryOptions,
     unitOptions,
     groupBy,        setGroupBy,
     groups,
@@ -57,22 +50,15 @@ export default function SoldProducts() {
 
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
-  // Phase 6: sortable columns. Default = null so the hook's existing
-  // low-stock-first → qty-desc ordering shows initially. User click overrides.
-  type SPSortKey = 'product' | 'category' | 'qty' | 'revenue' | 'stock' | 'status' | 'refill'
+  // Sortable columns. Default = null so the hook's existing ordering shows
+  // initially; a user click overrides. The report is sales-only now —
+  // Product / Qty / Revenue.
+  type SPSortKey = 'product' | 'qty' | 'revenue'
   const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<SPSortKey>(null, 'asc')
   const sortedItems = useMemo(() => sortBy(items, {
     product:  i => i.product_name,
-    category: i => i.category_name ?? '',
     qty:      i => Number(i.total_quantity) || 0,
     revenue:  i => Number(i.total_revenue) || 0,
-    stock:    i => i.track_stock ? (i.current_stock ?? 0) : -Infinity,
-    status:   i => i.track_stock ? (i.current_stock ?? 0) / Math.max(1, i.total_quantity) : 999,
-    refill:   i => {
-      if (!i.track_stock) return -Infinity
-      const target = i.total_quantity * 3
-      return Math.max(0, target - (i.current_stock ?? 0))
-    },
   }), [items, sortBy])
   const toggleGroup = (key: string) => setCollapsedGroups(prev => {
     const next = new Set(prev)
@@ -90,11 +76,11 @@ export default function SoldProducts() {
   // Helper to format quantity with translation support
   const formatQty = (qty: number, unit: string) => formatQuantityWithUnit(qty, unit, t)
 
-  // Copy to clipboard
+  // Copy to clipboard — product, quantity (+ revenue for owners)
   const handleCopy = () => {
     const lines = items.map(item => {
-      const stockText = item.track_stock ? `Stock: ${item.current_stock}` : ''
-      return `${item.product_name}: ${formatQty(item.total_quantity, item.unit_type)} ${stockText}`.trim()
+      const rev = isOwner ? `  ${formatPrice(item.total_revenue)}` : ''
+      return `${item.product_name}: ${formatQty(item.total_quantity, item.unit_type)}${rev}`.trim()
     })
 
     const text = `Sold Products (${dateRange.label})\n${'='.repeat(30)}\n${lines.join('\n')}`
@@ -109,21 +95,9 @@ export default function SoldProducts() {
     setShowPDF(true)
   }
 
-  // Stock status icon
-  const StockStatusIcon = ({ item }: { item: SoldProductItem }) => {
-    const status = getStockStatus(item)
-
-    if (status.status === 'not_tracked') {
-      return <MinusCircle className="w-4 h-4 text-slate-400" />
-    }
-    if (status.status === 'critical') {
-      return <AlertTriangle className="w-4 h-4 text-red-500" />
-    }
-    if (status.status === 'low') {
-      return <AlertTriangle className="w-4 h-4 text-amber-500" />
-    }
-    return <CheckCircle className="w-4 h-4 text-green-500" />
-  }
+  // Shared sticky-header cell background so the pinned <thead> stays opaque
+  // while rows scroll underneath it.
+  const stickyTh = 'px-6 bg-slate-50 dark:bg-slate-900'
 
   return (
     <div className="space-y-6">
@@ -228,7 +202,7 @@ export default function SoldProducts() {
       </div>
 
       {/* Filters row (Phase 4) — appears once data has loaded */}
-      {(cityOptions.length > 0 || customerOptions.length > 0 || categoryOptions.length > 0 || unitOptions.length > 1) && (
+      {(cityOptions.length > 0 || customerOptions.length > 0 || unitOptions.length > 1) && (
         <div className="flex items-center gap-2 flex-wrap">
           {cityOptions.length > 0 && (
             <div className="relative">
@@ -256,19 +230,6 @@ export default function SoldProducts() {
               </select>
             </div>
           )}
-          {categoryOptions.length > 0 && (
-            <div className="relative">
-              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <select
-                value={categoryFilter}
-                onChange={e => setCategoryFilter(e.target.value)}
-                className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-              >
-                <option value="">{t('soldProducts.filters.allCategories')}</option>
-                {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-          )}
           {unitOptions.length > 1 && (
             <div className="relative">
               <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -282,12 +243,11 @@ export default function SoldProducts() {
               </select>
             </div>
           )}
-          {(cityFilter || customerFilter || categoryFilter || unitFilter) && (
+          {(cityFilter || customerFilter || unitFilter) && (
             <button
               onClick={() => {
                 setCityFilter('')
                 setCustomerFilter('')
-                setCategoryFilter('')
                 setUnitFilter('')
               }}
               className="inline-flex items-center gap-1 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
@@ -326,204 +286,131 @@ export default function SoldProducts() {
         </div>
       )}
 
-      {/* Summary Cards */}
-      {summary && (
-        <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.products')}</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">{summary.totalProducts}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.totalQty')}</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">{Math.round(summary.totalQuantity)}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Revenue - Owner only */}
-          {isOwner && (
+      {/* Two-column layout: summary cards (left) + table/groups (right) */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left: summary cards — horizontal grid on mobile, vertical stack on desktop */}
+        {summary && (
+          <div className="grid grid-cols-2 lg:flex lg:flex-col gap-4 lg:w-56 lg:shrink-0">
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
-                  <Euro className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.revenue')}</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">{formatPrice(summary.totalRevenue)}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.products')}</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">{summary.totalProducts}</p>
                 </div>
               </div>
             </div>
-          )}
 
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${summary.lowStockCount > 0 ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
-                {summary.lowStockCount > 0 ? (
-                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                ) : (
-                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.lowStock')}</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">{summary.lowStockCount}</p>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.totalQty')}</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">{Math.round(summary.totalQuantity)}</p>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Products Table (flat — only shown when not grouping) */}
-      {groupBy === 'none' && (
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+            {/* Revenue - Owner only */}
+            {isOwner && (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
+                    <Euro className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('soldProducts.summary.revenue')}</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">{formatPrice(summary.totalRevenue)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        ) : items.length === 0 ? (
-          <div className="text-center py-12">
-            <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-600 dark:text-slate-400">
-              {t('soldProducts.noData')}
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Desktop Table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700">
-                    <SortableTh sortKey="product"  current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6">{t('soldProducts.table.product')}</SortableTh>
-                    <SortableTh sortKey="category" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6">{t('soldProducts.table.category')}</SortableTh>
-                    <SortableTh sortKey="qty"      current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="right">{t('soldProducts.table.qtySold')}</SortableTh>
-                    {isOwner && (
-                      <SortableTh sortKey="revenue" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="right">{t('soldProducts.table.revenue')}</SortableTh>
-                    )}
-                    <SortableTh sortKey="stock"  current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="right">{t('soldProducts.table.currentStock')}</SortableTh>
-                    <SortableTh sortKey="status" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="center">{t('common.status')}</SortableTh>
-                    <SortableTh sortKey="refill" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-6" align="right">{t('soldProducts.table.suggestedRefill')}</SortableTh>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {sortedItems.map(item => {
-                    const status = getStockStatus(item)
-                    const refill = getSuggestedRefill(item)
+        )}
 
-                    return (
-                      <tr
-                        key={item.product_id}
-                        className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
-                          status.status === 'critical' ? 'bg-red-50/50 dark:bg-red-900/10' :
-                          status.status === 'low' ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''
-                        }`}
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                              <Package className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-slate-900 dark:text-white">
-                                {item.product_name}
-                              </p>
-                              {item.product_sku && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                  SKU: {item.product_sku}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-slate-600 dark:text-slate-400">
-                            {item.category_name || '—'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="font-semibold text-slate-900 dark:text-white">
-                            {formatQty(item.total_quantity, item.unit_type)}
-                          </span>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {item.order_count} order{item.order_count !== 1 ? 's' : ''}
-                          </p>
-                        </td>
+        {/* Right: table / grouped sections */}
+        <div className="flex-1 min-w-0 space-y-6">
+          {/* Products Table (flat — only shown when not grouping) */}
+          {groupBy === 'none' && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+              </div>
+            ) : items.length === 0 ? (
+              <div className="text-center py-12">
+                <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-600 dark:text-slate-400">
+                  {t('soldProducts.noData')}
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table — body scrolls, header stays pinned */}
+                <div className="hidden md:block max-h-[70vh] overflow-auto">
+                  <table className="w-full">
+                    <thead className="sticky top-0 z-10">
+                      <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700">
+                        <SortableTh sortKey="product"  current={sortKey} dir={sortDir} onToggle={toggleSort} className={stickyTh}>{t('soldProducts.table.product')}</SortableTh>
+                        <SortableTh sortKey="qty"      current={sortKey} dir={sortDir} onToggle={toggleSort} className={stickyTh} align="right">{t('soldProducts.table.qtySold')}</SortableTh>
                         {isOwner && (
-                          <td className="px-6 py-4 text-right">
-                            <span className="font-medium text-green-600 dark:text-green-400">
-                              {formatPrice(item.total_revenue)}
-                            </span>
-                          </td>
+                          <SortableTh sortKey="revenue" current={sortKey} dir={sortDir} onToggle={toggleSort} className={stickyTh} align="right">{t('soldProducts.table.revenue')}</SortableTh>
                         )}
-                        <td className="px-6 py-4 text-right">
-                          {item.track_stock ? (
-                            <span className="font-medium text-slate-900 dark:text-white">
-                              {formatQty(item.current_stock || 0, item.unit_type)}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <StockStatusIcon item={item} />
-                            <span className={`text-xs font-medium ${
-                              status.status === 'critical' ? 'text-red-600 dark:text-red-400' :
-                              status.status === 'low' ? 'text-amber-600 dark:text-amber-400' :
-                              status.status === 'ok' ? 'text-green-600 dark:text-green-400' :
-                              'text-slate-400'
-                            }`}>
-                              {status.label}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          {refill !== null && refill > 0 ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium">
-                              +{formatQty(refill, item.unit_type)}
-                            </span>
-                          ) : refill === 0 ? (
-                            <span className="text-slate-400">—</span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                      {sortedItems.map(item => (
+                        <tr
+                          key={item.product_id}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                                <Package className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-900 dark:text-white">
+                                  {item.product_name}
+                                </p>
+                                {item.product_sku && (
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    SKU: {item.product_sku}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="font-semibold text-slate-900 dark:text-white">
+                              {formatQty(item.total_quantity, item.unit_type)}
+                            </span>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {item.order_count} order{item.order_count !== 1 ? 's' : ''}
+                            </p>
+                          </td>
+                          {isOwner && (
+                            <td className="px-6 py-4 text-right">
+                              <span className="font-medium text-green-600 dark:text-green-400">
+                                {formatPrice(item.total_revenue)}
+                              </span>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-            {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-700">
-              {sortedItems.map(item => {
-                const status = getStockStatus(item)
-                const refill = getSuggestedRefill(item)
-
-                return (
-                  <div
-                    key={item.product_id}
-                    className={`p-4 ${
-                      status.status === 'critical' ? 'bg-red-50/50 dark:bg-red-900/10' :
-                      status.status === 'low' ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-3">
+                {/* Mobile Cards */}
+                <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-700">
+                  {sortedItems.map(item => (
+                    <div key={item.product_id} className="p-4">
+                      <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
                           <Package className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                         </div>
@@ -531,146 +418,121 @@ export default function SoldProducts() {
                           <p className="font-medium text-slate-900 dark:text-white">
                             {item.product_name}
                           </p>
-                          {item.category_name && (
+                          {item.product_sku && (
                             <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {item.category_name}
+                              SKU: {item.product_sku}
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <StockStatusIcon item={item} />
-                      </div>
-                    </div>
 
-                    <div className={`grid ${isOwner ? 'grid-cols-2' : 'grid-cols-3'} gap-2 text-sm`}>
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.qtySold')}</p>
-                        <p className="font-semibold text-slate-900 dark:text-white">
-                          {formatQty(item.total_quantity, item.unit_type)}
-                        </p>
-                      </div>
-                      {isOwner && (
+                      <div className={`grid ${isOwner ? 'grid-cols-2' : 'grid-cols-1'} gap-2 text-sm`}>
                         <div>
-                          <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.revenue')}</p>
-                          <p className="font-medium text-green-600 dark:text-green-400">
-                            {formatPrice(item.total_revenue)}
+                          <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.qtySold')}</p>
+                          <p className="font-semibold text-slate-900 dark:text-white">
+                            {formatQty(item.total_quantity, item.unit_type)}
                           </p>
                         </div>
-                      )}
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.currentStock')}</p>
-                        <p className="font-medium text-slate-900 dark:text-white">
-                          {item.track_stock ? formatQty(item.current_stock || 0, item.unit_type) : '—'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.suggestedRefill')}</p>
-                        <p className="font-medium text-blue-600 dark:text-blue-400">
-                          {refill !== null && refill > 0 ? `+${formatQty(refill, item.unit_type)}` : '—'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </>
-        )}
-      </div>
-      )}
-
-      {/* Grouped sections (Phase 4 — driver routing / per-customer view) */}
-      {groupBy !== 'none' && !loading && (
-        groups.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 text-center py-12">
-            <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-600 dark:text-slate-400">{t('soldProducts.noData')}</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {groups.map(g => {
-              const collapsed = collapsedGroups.has(g.key)
-              const gridCols = isOwner
-                ? 'grid-cols-[minmax(0,1fr)_88px] sm:grid-cols-[minmax(0,1fr)_88px_104px]'
-                : 'grid-cols-[minmax(0,1fr)_88px]'
-              return (
-                <div key={g.key} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                  {/* Header — denser, totals as stacked metric chips */}
-                  <button
-                    onClick={() => toggleGroup(g.key)}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      {collapsed
-                        ? <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
-                        : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
-                      <h3 className="font-semibold text-slate-900 dark:text-white truncate">{g.name}</h3>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">{g.items.length}</span>
-                    </div>
-                    <div className="flex items-center gap-5 shrink-0">
-                      <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('soldProducts.groupBy.qty')}</div>
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white tabular-nums">
-                          {g.totalQuantity.toLocaleString('nl-NL', { maximumFractionDigits: 3 })}
-                        </div>
-                      </div>
-                      {isOwner && (
-                        <div className="text-right">
-                          <div className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('soldProducts.groupBy.revenue')}</div>
-                          <div className="text-sm font-semibold text-green-600 dark:text-green-400 tabular-nums">{formatPrice(g.totalRevenue)}</div>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                  {/* Body — grid list (no table chrome). Fixed column template
-                      so qty/revenue line up across multiple open cards. */}
-                  {!collapsed && (
-                    <ul className="border-t border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
-                      {g.items.map(item => (
-                        <li
-                          key={`${g.key}-${item.product_id}-${item.unit_type}`}
-                          className={`grid items-center gap-3 px-4 py-1.5 ${gridCols}`}
-                        >
-                          <span className="text-sm text-slate-900 dark:text-white truncate">
-                            {item.product_name}
-                            {item.product_sku && (
-                              <span className="ml-2 text-xs font-mono text-slate-400 dark:text-slate-500">{item.product_sku}</span>
-                            )}
-                          </span>
-                          <span className="text-sm tabular-nums text-right text-slate-900 dark:text-white">
-                            {formatQty(item.total_quantity, item.unit_type)}
-                          </span>
-                          {isOwner && (
-                            <span className="hidden sm:block text-sm tabular-nums text-right text-slate-600 dark:text-slate-400">
+                        {isOwner && (
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400">{t('soldProducts.table.revenue')}</p>
+                            <p className="font-medium text-green-600 dark:text-green-400">
                               {formatPrice(item.total_revenue)}
-                            </span>
-                          )}
-                          {isOwner && (
-                            <span className="sm:hidden col-span-2 -mt-1 text-xs tabular-nums text-right text-slate-500 dark:text-slate-400">
-                              {formatPrice(item.total_revenue)}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )
-            })}
+              </>
+            )}
           </div>
-        )
-      )}
+          )}
 
-      {/* Info about non-tracked products */}
-      {summary && summary.totalProducts > summary.trackedProducts && (
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            <span className="font-medium">{summary.totalProducts - summary.trackedProducts}</span> product{summary.totalProducts - summary.trackedProducts !== 1 ? 's' : ''} sold without stock tracking enabled.
-            Stock status and refill suggestions are only shown for tracked products.
-          </p>
+          {/* Grouped sections (Phase 4 — driver routing / per-customer view) */}
+          {groupBy !== 'none' && !loading && (
+            groups.length === 0 ? (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 text-center py-12">
+                <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-600 dark:text-slate-400">{t('soldProducts.noData')}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {groups.map(g => {
+                  const collapsed = collapsedGroups.has(g.key)
+                  const gridCols = isOwner
+                    ? 'grid-cols-[minmax(0,1fr)_88px] sm:grid-cols-[minmax(0,1fr)_88px_104px]'
+                    : 'grid-cols-[minmax(0,1fr)_88px]'
+                  return (
+                    <div key={g.key} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                      {/* Header — denser, totals as stacked metric chips */}
+                      <button
+                        onClick={() => toggleGroup(g.key)}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {collapsed
+                            ? <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                            : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
+                          <h3 className="font-semibold text-slate-900 dark:text-white truncate">{g.name}</h3>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">{g.items.length}</span>
+                        </div>
+                        <div className="flex items-center gap-5 shrink-0">
+                          <div className="text-right">
+                            <div className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('soldProducts.groupBy.qty')}</div>
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white tabular-nums">
+                              {g.totalQuantity.toLocaleString('nl-NL', { maximumFractionDigits: 3 })}
+                            </div>
+                          </div>
+                          {isOwner && (
+                            <div className="text-right">
+                              <div className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('soldProducts.groupBy.revenue')}</div>
+                              <div className="text-sm font-semibold text-green-600 dark:text-green-400 tabular-nums">{formatPrice(g.totalRevenue)}</div>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                      {/* Body — grid list (no table chrome). Fixed column template
+                          so qty/revenue line up across multiple open cards. */}
+                      {!collapsed && (
+                        <ul className="border-t border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
+                          {g.items.map(item => (
+                            <li
+                              key={`${g.key}-${item.product_id}-${item.unit_type}`}
+                              className={`grid items-center gap-3 px-4 py-1.5 ${gridCols}`}
+                            >
+                              <span className="text-sm text-slate-900 dark:text-white truncate">
+                                {item.product_name}
+                                {item.product_sku && (
+                                  <span className="ml-2 text-xs font-mono text-slate-400 dark:text-slate-500">{item.product_sku}</span>
+                                )}
+                              </span>
+                              <span className="text-sm tabular-nums text-right text-slate-900 dark:text-white">
+                                {formatQty(item.total_quantity, item.unit_type)}
+                              </span>
+                              {isOwner && (
+                                <span className="hidden sm:block text-sm tabular-nums text-right text-slate-600 dark:text-slate-400">
+                                  {formatPrice(item.total_revenue)}
+                                </span>
+                              )}
+                              {isOwner && (
+                                <span className="sm:hidden col-span-2 -mt-1 text-xs tabular-nums text-right text-slate-500 dark:text-slate-400">
+                                  {formatPrice(item.total_revenue)}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          )}
         </div>
-      )}
+      </div>
 
       {/* PDF Modal */}
       {showPDF && (

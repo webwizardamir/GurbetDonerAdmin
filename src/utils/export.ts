@@ -52,15 +52,52 @@ function escapeCSVValue(value: unknown): string {
   return str
 }
 
+// Shared column shape for the generic CSV/Excel/PDF exporters.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type GenericExportColumn<T = Record<string, any>> = {
+  key: keyof T | string
+  header: string
+  format?: (value: unknown, row: T) => string
+  /** When true, this column's raw numeric values are summed in the footer row. */
+  summable?: boolean
+}
+
+// Build a "Totaal" footer row aligned to `columns`: sums every column flagged
+// `summable` (raw numeric value, then run through the column's own `format` so
+// the total matches the column formatting), labels the first non-summable
+// column "Totaal", leaves the rest blank. Returns null when nothing is
+// summable or there are no rows.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function computeTotalsRow<T extends Record<string, any>>(
+  data: T[],
+  columns: GenericExportColumn<T>[],
+): string[] | null {
+  if (data.length === 0 || !columns.some(c => c.summable)) return null
+  let labelPlaced = false
+  return columns.map(col => {
+    if (col.summable) {
+      const sum = data.reduce((acc, row) => {
+        const raw = typeof col.key === 'string' && col.key.includes('.')
+          ? getNestedValue(row, col.key as string)
+          : row[col.key as keyof T]
+        const n = Number(raw)
+        return acc + (Number.isFinite(n) ? n : 0)
+      }, 0)
+      return col.format ? col.format(sum, undefined as unknown as T) : String(sum)
+    }
+    if (!labelPlaced) {
+      labelPlaced = true
+      return 'Totaal'
+    }
+    return ''
+  })
+}
+
 // Convert array of objects to CSV string
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function toCSV<T extends Record<string, any>>(
   data: T[],
-  columns: Array<{
-    key: keyof T | string
-    header: string
-    format?: (value: unknown, row: T) => string
-  }>
+  columns: GenericExportColumn<T>[]
 ): string {
   if (data.length === 0) return ''
 
@@ -79,7 +116,11 @@ export function toCSV<T extends Record<string, any>>(
     }).join(',')
   })
 
-  return [headerRow, ...dataRows].join('\n')
+  // Optional totals row
+  const totals = computeTotalsRow(data, columns)
+  const footer = totals ? [totals.map(escapeCSVValue).join(',')] : []
+
+  return [headerRow, ...dataRows, ...footer].join('\n')
 }
 
 // Get nested value from object (e.g., "customer.company_name")
@@ -111,11 +152,7 @@ export function downloadCSV(csvContent: string, filename: string): void {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function exportToCSV<T extends Record<string, any>>(
   data: T[],
-  columns: Array<{
-    key: keyof T | string
-    header: string
-    format?: (value: unknown, row: T) => string
-  }>,
+  columns: GenericExportColumn<T>[],
   filename: string
 ): void {
   const csv = toCSV(data, columns)
@@ -126,11 +163,7 @@ export function exportToCSV<T extends Record<string, any>>(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function exportToExcelGeneric<T extends Record<string, any>>(
   data: T[],
-  columns: Array<{
-    key: keyof T | string
-    header: string
-    format?: (value: unknown, row: T) => string
-  }>,
+  columns: GenericExportColumn<T>[],
   filename: string
 ): Promise<void> {
   const ExcelJS = await import('exceljs')
@@ -196,6 +229,28 @@ export async function exportToExcelGeneric<T extends Record<string, any>>(
     })
   })
 
+  // Totals row (bold, top border) — only for exports with summable columns
+  const totals = computeTotalsRow(data, columns)
+  if (totals) {
+    const totalRow = sheet.addRow(totals)
+    totalRow.eachCell((cell, colNumber) => {
+      cell.font = { bold: true }
+      cell.border = {
+        top: { style: 'double' },
+        bottom: { style: 'thin' },
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+      }
+      const val = String(totals[colNumber - 1])
+      if (val.includes(',') && /\d/.test(val) && !val.includes('@')) {
+        cell.alignment = { horizontal: 'right' }
+      }
+      if (val.length > colWidths[colNumber - 1]) {
+        colWidths[colNumber - 1] = val.length
+      }
+    })
+  }
+
   // Auto-fit columns
   colWidths.forEach((width, i) => {
     sheet.getColumn(i + 1).width = Math.min(width + 4, 50)
@@ -238,9 +293,9 @@ export const orderExportColumns = [
     if (v === 'bank') return 'Bank'
     return ''
   }},
-  { key: 'subtotal', header: 'Subtotaal', format: (v: unknown) => formatExportCurrency(v as number) },
-  { key: 'tax_amount', header: 'BTW', format: (v: unknown) => formatExportCurrency(v as number) },
-  { key: 'total', header: 'Totaal', format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'subtotal', header: 'Subtotaal', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
+  { key: 'tax_amount', header: 'BTW', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
+  { key: 'total', header: 'Totaal', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
   { key: 'delivery_notes', header: 'Bezorgnotities' },
   { key: 'created_at', header: 'Aangemaakt', format: (v: unknown) => formatExportDateTime(v as string) },
 ]
@@ -250,7 +305,6 @@ export const productExportColumns = [
   { key: 'name', header: 'Naam' },
   { key: 'sku', header: 'SKU' },
   { key: 'barcode', header: 'Barcode' },
-  { key: 'category.name', header: 'Categorie' },
   { key: 'unit_type', header: 'Eenheid', format: (v: unknown) => {
     if (v === 'kg') return 'kg'
     if (v === 'piece') return 'stuk'
@@ -287,14 +341,13 @@ export const customerExportColumns = [
 export const customerItemsSummaryExportColumns = [
   { key: 'product_code',   header: 'Product ID' },
   { key: 'product_name',   header: 'Naam' },
-  { key: 'category_name',  header: 'Categorie' },
   { key: 'unit_type',      header: 'Eenheid' },
-  { key: 'total_quantity', header: 'Aantal' },
-  { key: 'order_count',    header: 'Bestellingen' },
+  { key: 'total_quantity', header: 'Aantal', summable: true },
+  { key: 'order_count',    header: 'Bestellingen', summable: true },
   { key: 'last_ordered',   header: 'Laatst besteld', format: (v: unknown) => formatExportDate(v as string) },
   { key: 'avg_unit_price', header: 'Gem. prijs',     format: (v: unknown) => formatExportCurrency(v as number) },
-  { key: 'total_revenue',  header: 'Omzet',          format: (v: unknown) => formatExportCurrency(v as number) },
-  { key: 'total_profit',   header: 'Winst',          format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'total_revenue',  header: 'Omzet',          format: (v: unknown) => formatExportCurrency(v as number), summable: true },
+  { key: 'total_profit',   header: 'Winst',          format: (v: unknown) => formatExportCurrency(v as number), summable: true },
 ]
 
 // Documents export columns

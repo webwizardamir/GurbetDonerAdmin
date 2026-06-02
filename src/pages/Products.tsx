@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import {
   Search,
   Plus,
-  Tag,
   Pencil,
   Trash2,
   Loader2,
@@ -16,11 +15,9 @@ import {
   FileDown,
 } from 'lucide-react'
 import { useProducts } from '../hooks/useProducts'
-import { useCategories } from '../hooks/useCategories'
 import { usePermission } from '../hooks/usePermission'
 import { useAuth } from '../context/AuthContext'
 import ProductForm, { type ProductFormData } from '../components/products/ProductForm'
-import CategoryManager from '../components/products/CategoryManager'
 import ProductImport from '../components/products/ProductImport'
 import type { Product } from '../types'
 import { productExportColumns } from '../utils/export'
@@ -51,15 +48,12 @@ export default function Products() {
   const { t } = useTranslation()
   const { canCreate, canEdit, canDelete } = usePermission('products')
   const { products, loading, error, refresh, create, update, remove, page, setPage, totalPages, totalCount, setFilters } = useProducts()
-  const { categories } = useCategories({ activeOnly: true })
   const { profile } = useAuth()
   const isOwner = profile?.role === 'owner'
 
   const [searchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
-  const [categoryFilter, setCategoryFilter] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [showCategories, setShowCategories] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -90,21 +84,13 @@ export default function Products() {
     return () => clearTimeout(timer)
   }, [searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Server-side category filter (skip initial mount)
-  const [catInit, setCatInit] = useState(false)
-  useEffect(() => {
-    if (!catInit) { setCatInit(true); return }
-    setFilters({ category_id: categoryFilter || undefined })
-  }, [categoryFilter]) // eslint-disable-line react-hooks/exhaustive-deps
-
   // Phase 6: sortable columns
-  type ProductSortKey = 'product_code' | 'name' | 'category' | 'sku' | 'unit_type' | 'stock' | 'cost' | 'price' | 'margin'
+  type ProductSortKey = 'product_code' | 'name' | 'sku' | 'unit_type' | 'stock' | 'cost' | 'price' | 'margin'
   const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<ProductSortKey>('name', 'asc')
 
   const filteredProducts = useMemo(() => sortBy(products, {
     product_code: p => p.product_code ?? '',
     name:         p => p.name,
-    category:     p => p.category?.name ?? '',
     sku:          p => p.sku ?? '',
     unit_type:    p => p.unit_type,
     stock:        p => p.track_stock ? p.stock_quantity : -Infinity,
@@ -144,13 +130,9 @@ export default function Products() {
 
   const exportFilterSummary = useMemo(() => {
     const parts: string[] = []
-    if (categoryFilter) {
-      const cat = categories.find(c => c.id === categoryFilter)
-      if (cat) parts.push(`Categorie: ${cat.name}`)
-    }
     if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
     return parts.join(' · ')
-  }, [categoryFilter, searchQuery, categories])
+  }, [searchQuery])
 
   return (
     <div className="space-y-6">
@@ -161,15 +143,6 @@ export default function Products() {
           <input type="text" placeholder={t('products.searchPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500" />
         </div>
-        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
-          className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option value="">{t('products.allCategories')}</option>
-          {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
-        </select>
-        <button onClick={() => setShowCategories(true)}
-          className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" title={t('products.categories')}>
-          <Tag className="w-5 h-5" />
-        </button>
         {isOwner && (
           <>
             <button
@@ -228,11 +201,11 @@ export default function Products() {
             {t('products.noProductsMatch')}
           </h3>
           <p className="text-slate-500 dark:text-slate-400 mb-4">
-            {searchQuery || categoryFilter
+            {searchQuery
               ? t('common.noResults')
               : t('products.addFirstProduct')}
           </p>
-          {canCreate && !searchQuery && !categoryFilter && (
+          {canCreate && !searchQuery && (
             <button
               onClick={handleCreate}
               className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
@@ -252,7 +225,6 @@ export default function Products() {
                 <tr>
                   <SortableTh sortKey="product_code" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-3 py-3">{t('products.id')}</SortableTh>
                   <SortableTh sortKey="name"         current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.productName')}</SortableTh>
-                  <SortableTh sortKey="category"     current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.category')}</SortableTh>
                   <SortableTh sortKey="sku"          current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.sku')} / {t('products.barcode')}</SortableTh>
                   <SortableTh sortKey="unit_type"    current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.unitType')}</SortableTh>
                   <SortableTh sortKey="stock"        current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('products.stock')}</SortableTh>
@@ -289,9 +261,6 @@ export default function Products() {
                           </div>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
-                      {product.category?.name || '-'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm">
@@ -458,11 +427,6 @@ export default function Products() {
                       </div>
                     )}
                     <h3 className="font-medium text-slate-900 dark:text-white">{product.name}</h3>
-                    {product.category && (
-                      <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded">
-                        {product.category.name}
-                      </span>
-                    )}
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-green-600 dark:text-green-400">
@@ -548,16 +512,6 @@ export default function Products() {
       {/* Product Form Modal */}
       {showForm && (
         <ProductForm product={editingProduct} onClose={handleCloseForm} onSave={handleSave} />
-      )}
-
-      {/* Category Manager Modal */}
-      {showCategories && (
-        <CategoryManager
-          onClose={() => {
-            setShowCategories(false)
-            refresh()
-          }}
-        />
       )}
 
       {/* Product Import Modal */}

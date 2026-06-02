@@ -12,6 +12,8 @@ export type ExportColumn<T> = {
   key: keyof T | string
   header: string
   format?: (value: unknown, row: T) => string
+  /** When true, this column is summed in the export's "Totaal" footer row. */
+  summable?: boolean
   /** Optional PDF-only column width (points). Falls back to even split. */
   pdfWidth?: number
   /** Optional PDF-only alignment. */
@@ -83,7 +85,7 @@ export default function ExportMenu<T>({
   const padding = size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm'
 
   const stripPdfMeta = (cols: ExportColumn<T>[]) =>
-    cols.map(({ key, header, format }) => ({ key, header, format }))
+    cols.map(({ key, header, format, summable }) => ({ key, header, format, summable }))
 
   const handleExcel = async () => {
     setBusy('excel')
@@ -121,6 +123,7 @@ export default function ExportMenu<T>({
         key: c.key,
         header: c.header,
         format: c.format,
+        summable: c.summable,
         width: c.pdfWidth,
         align: c.pdfAlign,
       }))

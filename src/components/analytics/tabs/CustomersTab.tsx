@@ -90,15 +90,17 @@ export default function CustomersTab({ dateRange }: CustomersTabProps) {
   const top10 = customers.slice(0, 10)
 
   const handleExport = () => {
+    const sumBy = (rows: typeof sortedCustomers, fn: (r: typeof sortedCustomers[number]) => number) =>
+      rows.reduce((a, r) => a + (Number(fn(r)) || 0), 0)
     exportToExcel('klanten-analyse', [
-      { header: '#', accessor: (_, i) => i + 1 },
+      { header: '#', accessor: (_, i) => i + 1, total: () => 'Totaal' },
       { header: t('analytics.customers.company'), accessor: r => r.companyName },
-      { header: t('analytics.revenue'), accessor: r => formatCentsToCsvCurrency(r.totalRevenue) },
-      { header: t('analytics.profit'), accessor: r => formatCentsToCsvCurrency(r.totalProfit) },
+      { header: t('analytics.revenue'), accessor: r => formatCentsToCsvCurrency(r.totalRevenue), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.totalRevenue)) },
+      { header: t('analytics.profit'), accessor: r => formatCentsToCsvCurrency(r.totalProfit), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.totalProfit)) },
       { header: t('analytics.margin'), accessor: r => formatCsvPercentage(r.profitMargin) },
-      { header: t('analytics.orders'), accessor: r => r.orderCount },
+      { header: t('analytics.orders'), accessor: r => r.orderCount, total: rows => sumBy(rows, r => r.orderCount) },
       { header: t('analytics.customers.avgOrder'), accessor: r => formatCentsToCsvCurrency(r.avgOrderValue) },
-      { header: t('analytics.customers.tax'), accessor: r => formatCentsToCsvCurrency(r.totalTax) },
+      { header: t('analytics.customers.tax'), accessor: r => formatCentsToCsvCurrency(r.totalTax), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.totalTax)) },
       { header: t('analytics.customers.lastOrder'), accessor: r => r.lastOrderDate || '-' },
     ], sortedCustomers)
   }

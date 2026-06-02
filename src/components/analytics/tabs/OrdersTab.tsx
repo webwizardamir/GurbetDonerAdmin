@@ -85,18 +85,20 @@ export default function OrdersTab({ dateRange }: OrdersTabProps) {
   const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0
 
   const handleExport = () => {
+    const sumBy = (rows: typeof sortedOrders, fn: (r: typeof sortedOrders[number]) => number) =>
+      rows.reduce((a, r) => a + (Number(fn(r)) || 0), 0)
     exportToExcel('bestellingen-analyse', [
-      { header: '#', accessor: (_, i) => i + 1 },
+      { header: '#', accessor: (_, i) => i + 1, total: () => 'Totaal' },
       { header: t('analytics.orderReport.orderNr'), accessor: r => r.orderNumber },
       { header: t('analytics.orderReport.date'), accessor: r => r.orderDate },
       { header: t('analytics.orderReport.customer'), accessor: r => r.customerName },
       { header: t('analytics.orderReport.status'), accessor: r => r.status },
       { header: t('analytics.orderReport.payment'), accessor: r => r.paymentMethod },
-      { header: t('analytics.revenue'), accessor: r => formatCentsToCsvCurrency(r.subtotal) },
-      { header: t('analytics.orderReport.cost'), accessor: r => formatCentsToCsvCurrency(r.totalCost) },
-      { header: t('analytics.profit'), accessor: r => formatCentsToCsvCurrency(r.profit) },
+      { header: t('analytics.revenue'), accessor: r => formatCentsToCsvCurrency(r.subtotal), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.subtotal)) },
+      { header: t('analytics.orderReport.cost'), accessor: r => formatCentsToCsvCurrency(r.totalCost), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.totalCost)) },
+      { header: t('analytics.profit'), accessor: r => formatCentsToCsvCurrency(r.profit), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.profit)) },
       { header: t('analytics.margin'), accessor: r => formatCsvPercentage(r.profitMargin) },
-      { header: t('analytics.orderReport.tax'), accessor: r => formatCentsToCsvCurrency(r.taxAmount) },
+      { header: t('analytics.orderReport.tax'), accessor: r => formatCentsToCsvCurrency(r.taxAmount), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.taxAmount)) },
     ], sortedOrders)
   }
 

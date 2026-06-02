@@ -12,12 +12,11 @@ import {
   ChevronDown,
   Search,
 } from 'lucide-react'
-import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { useProductAnalytics } from '../../../hooks/useProductAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
 import type { ProductPerformanceRow } from '../../../services/analytics'
 import StatCard from '../../StatCard'
-import { formatChartCurrency, formatChartCompactCurrency, useChartColors } from '../ChartColors'
+import { formatChartCurrency } from '../ChartColors'
 import { formatDate, formatPercent, formatCount, formatQuantity } from '../../../utils/format'
 import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '../../../utils/excelExport'
 
@@ -25,13 +24,12 @@ interface ProductsTabProps {
   dateRange: DateRange
 }
 
-type SortKey = 'productName' | 'categoryName' | 'totalRevenue' | 'totalCogs' | 'totalProfit' | 'profitMargin' | 'totalQuantity' | 'orderCount' | 'abcClass'
+type SortKey = 'productName' | 'totalRevenue' | 'totalCogs' | 'totalProfit' | 'profitMargin' | 'totalQuantity' | 'orderCount' | 'abcClass'
 type SortDir = 'asc' | 'desc'
 
 export default function ProductsTab({ dateRange }: ProductsTabProps) {
   const { t } = useTranslation()
-  const { loading, error, products, slowMovers, categories } = useProductAnalytics(dateRange)
-  const { colors } = useChartColors()
+  const { loading, error, products, slowMovers } = useProductAnalytics(dateRange)
   const [sortKey, setSortKey] = useState<SortKey>('totalRevenue')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [search, setSearch] = useState('')
@@ -40,8 +38,7 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
     if (!search.trim()) return products
     const q = search.toLowerCase()
     return products.filter(p =>
-      p.productName.toLowerCase().includes(q) ||
-      p.categoryName.toLowerCase().includes(q)
+      p.productName.toLowerCase().includes(q)
     )
   }, [products, search])
 
@@ -76,29 +73,19 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
   const topProduct = products[0] || null
 
   const handleExport = () => {
+    const sumBy = (rows: typeof sortedProducts, fn: (r: typeof sortedProducts[number]) => number) =>
+      rows.reduce((a, r) => a + (Number(fn(r)) || 0), 0)
     exportToExcel('producten-analyse', [
-      { header: '#', accessor: (_, i) => i + 1 },
+      { header: '#', accessor: (_, i) => i + 1, total: () => 'Totaal' },
       { header: t('analytics.products.product'), accessor: r => r.productName },
-      { header: t('analytics.products.category'), accessor: r => r.categoryName || t('analytics.products.noCategory') },
-      { header: t('analytics.revenue'), accessor: r => formatCentsToCsvCurrency(r.totalRevenue) },
-      { header: t('analytics.products.cogs'), accessor: r => formatCentsToCsvCurrency(r.totalCogs) },
-      { header: t('analytics.profit'), accessor: r => formatCentsToCsvCurrency(r.totalProfit) },
+      { header: t('analytics.revenue'), accessor: r => formatCentsToCsvCurrency(r.totalRevenue), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.totalRevenue)) },
+      { header: t('analytics.products.cogs'), accessor: r => formatCentsToCsvCurrency(r.totalCogs), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.totalCogs)) },
+      { header: t('analytics.profit'), accessor: r => formatCentsToCsvCurrency(r.totalProfit), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.totalProfit)) },
       { header: t('analytics.margin'), accessor: r => formatCsvPercentage(r.profitMargin) },
-      { header: t('analytics.products.qty'), accessor: r => r.totalQuantity },
-      { header: t('analytics.orders'), accessor: r => r.orderCount },
+      { header: t('analytics.products.qty'), accessor: r => r.totalQuantity, total: rows => sumBy(rows, r => r.totalQuantity) },
+      { header: t('analytics.orders'), accessor: r => r.orderCount, total: rows => sumBy(rows, r => r.orderCount) },
       { header: t('analytics.products.abc'), accessor: r => r.abcClass },
     ], sortedProducts)
-  }
-
-  // Custom tooltip for category chart
-  const CategoryTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: { categoryName: string } }> }) => {
-    if (!active || !payload?.length) return null
-    return (
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 shadow-lg">
-        <p className="font-medium text-slate-900 dark:text-white text-sm">{payload[0].payload.categoryName || t('analytics.products.noCategory')}</p>
-        <p className="text-sm text-green-600 dark:text-green-400">{formatChartCurrency(payload[0].value)}</p>
-      </div>
-    )
   }
 
   if (loading) {
@@ -184,7 +171,6 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">#</th>
                 {([
                   ['productName', t('analytics.products.product')],
-                  ['categoryName', t('analytics.products.category')],
                   ['totalRevenue', t('analytics.revenue')],
                   ['totalCogs', t('analytics.products.cogs')],
                   ['totalProfit', t('analytics.profit')],
@@ -209,7 +195,7 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {sortedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     {t('common.noResults')}
                   </td>
                 </tr>
@@ -218,7 +204,6 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
                   <tr key={row.productName} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{row.productName}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{row.categoryName || t('analytics.products.noCategory')}</td>
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">{formatChartCurrency(row.totalRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatChartCurrency(row.totalCogs)}</td>
                     <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{formatChartCurrency(row.totalProfit)}</td>
@@ -235,56 +220,6 @@ export default function ProductsTab({ dateRange }: ProductsTabProps) {
           </table>
         </div>
       </div>
-
-      {/* Revenue by Category */}
-      {categories.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-slate-700">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">{t('analytics.products.revenueByCategory')}</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={categories} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
-                <XAxis type="number" tickFormatter={(v: number) => formatChartCompactCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
-                <YAxis
-                  type="category"
-                  dataKey="categoryName"
-                  tick={{ fill: colors.textSecondary, fontSize: 12 }}
-                  tickFormatter={(v: string) => v || t('analytics.products.noCategory')}
-                  width={75}
-                />
-                <Tooltip content={<CategoryTooltip />} />
-                <Bar dataKey="totalRevenue" radius={[0, 4, 4, 0]}>
-                  {categories.map((_, idx) => (
-                    <Cell key={idx} fill={idx === 0 ? colors.primary : colors.primaryLight} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          {/* Category summary table */}
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-              <thead>
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.products.category')}</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.revenue')}</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.profit')}</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.margin')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {categories.map(cat => (
-                  <tr key={cat.categoryName || '__none'}>
-                    <td className="px-3 py-2 text-sm text-slate-900 dark:text-white">{cat.categoryName || t('analytics.products.noCategory')}</td>
-                    <td className="px-3 py-2 text-sm text-right text-slate-900 dark:text-white">{formatChartCurrency(cat.totalRevenue)}</td>
-                    <td className="px-3 py-2 text-sm text-right text-emerald-600 dark:text-emerald-400">{formatChartCurrency(cat.totalProfit)}</td>
-                    <td className="px-3 py-2 text-sm text-right text-slate-600 dark:text-slate-400">{formatPercent(cat.profitMargin)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {/* Slow Movers */}
       {slowMovers.length > 0 && (

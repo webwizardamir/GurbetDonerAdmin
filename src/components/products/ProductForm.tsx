@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Package } from 'lucide-react'
-import { useCategories } from '../../hooks/useCategories'
 import Modal from '../ui/Modal'
 import { useAuth } from '../../context/AuthContext'
 import type { Product, UnitType, ProductUnitPrice } from '../../types'
@@ -45,7 +44,6 @@ const ALL_UNIT_TYPES: UnitType[] = ['piece', 'zak', 'doos', 'kg']
 
 export default function ProductForm({ product, onClose, onSave }: ProductFormProps) {
   const { t } = useTranslation()
-  const { categories } = useCategories({ activeOnly: true })
   const { profile } = useAuth()
   const isOwner = profile?.role === 'owner'
 
@@ -66,7 +64,6 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
   const [name, setName] = useState('')
   const [sku, setSku] = useState('')
   const [barcode, setBarcode] = useState('')
-  const [categoryId, setCategoryId] = useState('')
   const [taxRate, setTaxRate] = useState(9)
   const [stockQuantity, setStockQuantity] = useState(0)
   const [stockUnitType, setStockUnitType] = useState<UnitType>('doos')
@@ -87,7 +84,6 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
       setName(product.name)
       setSku(product.sku || '')
       setBarcode(product.barcode || '')
-      setCategoryId(product.category_id || '')
       setTaxRate(product.tax_rate)
       setStockQuantity(product.stock_quantity || 0)
       setStockUnitType(product.stock_unit_type || product.unit_type)
@@ -238,7 +234,6 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
         name: name.trim(),
         sku: sku.trim() || undefined,
         barcode: barcode.trim() || undefined,
-        category_id: categoryId || undefined,
         unit_type: defaultUnit,
         base_price: defaultPrice,
         tax_rate: taxRate,
@@ -335,41 +330,22 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
               </div>
             </div>
 
-            {/* Category and Tax Rate */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {t('products.category')}
-                </label>
-                <select
-                  value={categoryId}
-                  onChange={e => setCategoryId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="">{t('products.form.noCategory')}</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {t('products.taxRate')}
-                </label>
-                <select
-                  value={taxRate}
-                  onChange={e => setTaxRate(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  {TAX_RATE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Tax Rate */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t('products.taxRate')}
+              </label>
+              <select
+                value={taxRate}
+                onChange={e => setTaxRate(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                {TAX_RATE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Unit Prices Section */}

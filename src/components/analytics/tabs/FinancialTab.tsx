@@ -8,7 +8,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react'
-import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
+import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { useFinancialAnalytics } from '../../../hooks/useFinancialAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
 import StatCard from '../../StatCard'
@@ -21,7 +21,7 @@ interface FinancialTabProps {
 
 export default function FinancialTab({ dateRange }: FinancialTabProps) {
   const { t } = useTranslation()
-  const { loading, error, summary, monthly, categories, selectedYear, setYear } = useFinancialAnalytics(dateRange)
+  const { loading, error, summary, monthly, selectedYear, setYear } = useFinancialAnalytics(dateRange)
   const { colors } = useChartColors()
 
   const currentYear = new Date().getFullYear()
@@ -215,64 +215,6 @@ export default function FinancialTab({ dateRange }: FinancialTabProps) {
         </div>
       </div>
 
-      {/* Revenue by Category */}
-      {categories.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-slate-700">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">{t('analytics.financial.revenueByCategory')}</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={categories} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
-                <XAxis type="number" tickFormatter={(v: number) => formatChartCompactCurrency(v)} tick={{ fill: colors.textSecondary, fontSize: 12 }} />
-                <YAxis
-                  type="category"
-                  dataKey="categoryName"
-                  tick={{ fill: colors.textSecondary, fontSize: 12 }}
-                  tickFormatter={(v: string) => v || t('analytics.products.noCategory')}
-                  width={75}
-                />
-                <Tooltip
-                  formatter={(value) => formatChartCurrency(value as number)}
-                  contentStyle={{
-                    backgroundColor: colors.background,
-                    border: `1px solid ${colors.grid}`,
-                    borderRadius: '8px',
-                  }}
-                />
-                <Bar dataKey="totalRevenue" name={t('analytics.revenue')} radius={[0, 4, 4, 0]}>
-                  {categories.map((_, idx) => (
-                    <Cell key={idx} fill={idx === 0 ? colors.primary : colors.primaryLight} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          {/* Category table */}
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-              <thead>
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.products.category')}</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.revenue')}</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.products.cogs')}</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.profit')}</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.margin')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {categories.map(cat => (
-                  <tr key={cat.categoryName || '__none'}>
-                    <td className="px-3 py-2 text-sm text-slate-900 dark:text-white">{cat.categoryName || t('analytics.products.noCategory')}</td>
-                    <td className="px-3 py-2 text-sm text-right text-slate-900 dark:text-white">{formatChartCurrency(cat.totalRevenue)}</td>
-                    <td className="px-3 py-2 text-sm text-right text-slate-600 dark:text-slate-400">{formatChartCurrency(cat.totalCogs)}</td>
-                    <td className="px-3 py-2 text-sm text-right text-emerald-600 dark:text-emerald-400">{formatChartCurrency(cat.totalProfit)}</td>
-                    <td className="px-3 py-2 text-sm text-right text-slate-600 dark:text-slate-400">{formatPercent(cat.profitMargin)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

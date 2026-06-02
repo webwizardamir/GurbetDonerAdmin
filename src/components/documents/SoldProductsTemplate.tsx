@@ -154,7 +154,6 @@ const styles = StyleSheet.create({
 
   // Column widths
   colProduct: { flex: 2, paddingRight: 6 },
-  colCategory: { flex: 1, paddingRight: 6 },
   colSold: { width: 65, textAlign: 'right', paddingRight: 6 },
   colStock: { width: 65, textAlign: 'right', paddingRight: 6 },
   colStatus: { width: 50, textAlign: 'center', paddingRight: 6 },
@@ -277,7 +276,6 @@ function GroupedItemsTable({ items }: { items: SoldProductItem[] }) {
     <View style={styles.table}>
       <View style={styles.tableHeader}>
         <Text style={[styles.th, styles.colProduct]}>Product</Text>
-        <Text style={[styles.th, styles.colCategory]}>Categorie</Text>
         <Text style={[styles.th, styles.colSold]}>Verkocht</Text>
         <Text style={[styles.th, styles.colStock]}>Voorraad</Text>
         <Text style={[styles.th, styles.colStatus]}>Status</Text>
@@ -307,7 +305,6 @@ function GroupedItemsTable({ items }: { items: SoldProductItem[] }) {
                 <Text style={[styles.td, { fontSize: 6.5, color: '#64748b' }]}>SKU: {item.product_sku}</Text>
               )}
             </View>
-            <Text style={[styles.td, styles.colCategory]}>{item.category_name || '—'}</Text>
             <Text style={[styles.tdBold, styles.colSold]}>{formatQuantity(item.total_quantity, item.unit_type)}</Text>
             <Text style={[styles.td, styles.colStock]}>
               {item.track_stock ? formatQuantity(item.current_stock || 0, item.unit_type) : '—'}
@@ -439,7 +436,6 @@ function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFD
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colProduct]}>Product</Text>
-            <Text style={[styles.th, styles.colCategory]}>Categorie</Text>
             <Text style={[styles.th, styles.colSold]}>Verkocht</Text>
             <Text style={[styles.th, styles.colStock]}>Voorraad</Text>
             <Text style={[styles.th, styles.colStatus]}>Status</Text>
@@ -475,9 +471,6 @@ function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFD
                     </Text>
                   )}
                 </View>
-                <Text style={[styles.td, styles.colCategory]}>
-                  {item.category_name || '—'}
-                </Text>
                 <Text style={[styles.tdBold, styles.colSold]}>
                   {formatQuantity(item.total_quantity, item.unit_type)}
                 </Text>

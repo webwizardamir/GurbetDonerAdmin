@@ -6,6 +6,9 @@ import ExcelJS from 'exceljs'
 interface ExcelColumn<T> {
   header: string
   accessor: (row: T, index: number) => string | number
+  /** Optional footer cell. If ANY column defines `total`, a bold "Totaal" row
+   *  is appended; columns without it render blank in that row. */
+  total?: (rows: T[]) => string | number
 }
 
 export async function exportToExcel<T>(
@@ -72,6 +75,28 @@ export async function exportToExcel<T>(
       }
     })
   })
+
+  // Totals row (bold, top border) — only when at least one column defines total
+  if (columns.some(c => c.total)) {
+    const totals = columns.map(c => (c.total ? c.total(data) : ''))
+    const totalRow = sheet.addRow(totals)
+    totalRow.eachCell((cell, colNumber) => {
+      cell.font = { bold: true }
+      cell.border = {
+        top: { style: 'double' },
+        bottom: { style: 'thin' },
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+      }
+      const val = String(totals[colNumber - 1])
+      if (val.includes(',') && /\d/.test(val) && !val.includes('@')) {
+        cell.alignment = { horizontal: 'right' }
+      }
+      if (val.length > colWidths[colNumber - 1]) {
+        colWidths[colNumber - 1] = val.length
+      }
+    })
+  }
 
   // Auto-fit column widths (add padding)
   colWidths.forEach((width, i) => {
