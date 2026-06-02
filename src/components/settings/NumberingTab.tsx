@@ -64,6 +64,7 @@ const SECTIONS: NumberingSection[] = [
 
 export default function NumberingTab({ formData, onChange }: NumberingTabProps) {
   const { t } = useTranslation()
+  const orderNext = (formData.order_next_number as number) || 1
   return (
     <div className="space-y-6">
       <div>
@@ -72,6 +73,34 @@ export default function NumberingTab({ formData, onChange }: NumberingTabProps) 
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
           {t('settings.documents.numbering.description')}
+        </p>
+      </div>
+
+      {/* Order numbering — plain WooCommerce-style counter (no prefix/padding).
+          Rendered separately from the document sections below. */}
+      <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+        <h4 className="text-md font-medium text-slate-900 dark:text-white mb-1">
+          {t('settings.documents.numbering.order')}
+        </h4>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+          {t('settings.documents.numbering.orderHint')}
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {t('settings.documents.numbering.nextOrderNumber')}
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={orderNext}
+              onChange={e => onChange('order_next_number', parseInt(e.target.value) || 1)}
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+            />
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+          {t('settings.documents.numbering.nextOrder')}: <span className="font-mono font-medium">{orderNext}</span>
         </p>
       </div>
 

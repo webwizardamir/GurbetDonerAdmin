@@ -1063,7 +1063,11 @@
         "orderConfirmation": "Order Confirmation (Orderbevestiging)",
         "nextOrderConfirmation": "Next order confirmation",
         "paymentReminder": "Payment Reminder (Betalingsherinnering)",
-        "nextPaymentReminder": "Next payment reminder"
+        "nextPaymentReminder": "Next payment reminder",
+        "order": "Order numbering",
+        "orderHint": "Continuing order number for new orders (like WooCommerce). Set the number new orders start from. Existing ORD-… orders are left unchanged.",
+        "nextOrderNumber": "Next order number",
+        "nextOrder": "Next order"
       },
       "labels": {
         "title": "Document Labels",

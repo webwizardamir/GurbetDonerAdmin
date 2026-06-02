@@ -443,6 +443,9 @@ export interface DocumentSettings {
   payment_reminder_prefix: string
   payment_reminder_next_number: number
 
+  // Numbering - Orders (plain WooCommerce-style counter, no prefix/padding)
+  order_next_number: number
+
   // Customizable Labels
   label_invoice: string
   label_proforma: string

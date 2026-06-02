@@ -1063,7 +1063,11 @@
         "orderConfirmation": "Orderbevestiging",
         "nextOrderConfirmation": "Volgende orderbevestiging",
         "paymentReminder": "Betalingsherinnering",
-        "nextPaymentReminder": "Volgende betalingsherinnering"
+        "nextPaymentReminder": "Volgende betalingsherinnering",
+        "order": "Bestelnummering",
+        "orderHint": "Doorlopend bestelnummer voor nieuwe orders (zoals WooCommerce). Stel hier in vanaf welk nummer nieuwe orders beginnen. Bestaande ORD-… orders blijven ongewijzigd.",
+        "nextOrderNumber": "Volgend bestelnummer",
+        "nextOrder": "Volgende order"
       },
       "labels": {
         "title": "Documentlabels",
