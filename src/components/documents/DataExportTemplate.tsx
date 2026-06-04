@@ -29,7 +29,7 @@ export interface DataExportTemplateProps<T> {
   data: T[]
   columns: DataExportColumn<T>[]
   company: DocumentSettings | null
-  filterSummary?: string
+  orientation?: 'portrait' | 'landscape'
   brandColor?: string
   brandColorDark?: string
 }
@@ -106,25 +106,6 @@ const buildStyles = (brand: string, brandDark: string) => StyleSheet.create({
     marginTop: 3,
   },
 
-  filterBox: {
-    borderLeftWidth: 2,
-    borderLeftColor: brand,
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginBottom: 6,
-  },
-  filterLabel: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 7.5,
-    color: '#475569',
-  },
-  filterText: {
-    fontSize: 7.5,
-    color: '#475569',
-    lineHeight: 1.35,
-  },
-
   table: { marginBottom: 8 },
   tableHeader: {
     flexDirection: 'row',
@@ -194,7 +175,7 @@ export function DataExportTemplate<T>({
   data,
   columns,
   company,
-  filterSummary,
+  orientation = 'portrait',
   brandColor = '#16a34a',
   brandColorDark = '#166534',
 }: DataExportTemplateProps<T>) {
@@ -216,8 +197,11 @@ export function DataExportTemplate<T>({
     company?.company_website,
   ].filter(Boolean).join(' · ')
 
-  // Default column width: divide remaining width evenly among columns without explicit width
-  const PAGE_WIDTH = 595.28 - 28 * 2 // ~539
+  // Default column width: divide remaining width evenly among columns without
+  // explicit width. Landscape swaps the A4 dimensions, giving far more room for
+  // wide tables (≈786pt usable vs ≈539pt portrait).
+  const usableWidth = (orientation === 'landscape' ? 841.89 : 595.28) - 28 * 2
+  const PAGE_WIDTH = usableWidth
   const fixedWidth = columns.reduce((sum, c) => sum + (c.width ?? 0), 0)
   const flexCount = columns.filter(c => c.width === undefined).length
   const flexWidth = flexCount > 0 ? Math.max(20, (PAGE_WIDTH - fixedWidth) / flexCount) : 0
@@ -227,7 +211,7 @@ export function DataExportTemplate<T>({
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation={orientation} style={styles.page}>
         {/* HEADER */}
         <View style={styles.header} fixed>
           <View style={styles.headerLeft}>
@@ -246,16 +230,6 @@ export function DataExportTemplate<T>({
             <Text style={styles.docMeta}>{`Gegenereerd op ${formatGeneratedAt()}`}</Text>
           </View>
         </View>
-
-        {/* FILTER SUMMARY (optional) */}
-        {filterSummary ? (
-          <View style={styles.filterBox}>
-            <Text style={styles.filterText}>
-              <Text style={styles.filterLabel}>Filters: </Text>
-              {filterSummary}
-            </Text>
-          </View>
-        ) : null}
 
         {/* TABLE HEADER */}
         <View style={styles.table}>

@@ -13,6 +13,8 @@ interface CustomerTableRowProps {
   canEdit: boolean
   canDelete: boolean
   deleting: boolean
+  selected: boolean
+  onToggleSelect: () => void
   onMenuToggle: () => void
   onMenuClose: () => void
   onView: () => void
@@ -28,6 +30,8 @@ export default function CustomerTableRow({
   canEdit,
   canDelete,
   deleting,
+  selected,
+  onToggleSelect,
   onMenuToggle,
   onMenuClose,
   onView,
@@ -40,8 +44,12 @@ export default function CustomerTableRow({
   return (
     <tr
       onClick={onView}
-      className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+      className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${selected ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}
     >
+      <td className="pl-4 pr-2 py-3" onClick={(e) => e.stopPropagation()}>
+        <input type="checkbox" checked={selected} onChange={onToggleSelect}
+          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
+      </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">

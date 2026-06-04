@@ -20,6 +20,7 @@ import CustomerPricing from '../components/pricing/CustomerPricing'
 import CustomerTableRow from '../components/customers/CustomerTableRow'
 import CustomerCard from '../components/customers/CustomerCard'
 import { customerExportColumns } from '../utils/export'
+import { fetchCustomers } from '../services/customers'
 import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
@@ -41,6 +42,7 @@ export default function Customers() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [portalAccounts, setPortalAccounts] = useState<Map<string, CustomerAccount>>(new Map())
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Fetch portal accounts
   useEffect(() => {
@@ -99,12 +101,17 @@ export default function Customers() {
   }
 
   const handleFormClose = () => { setShowForm(false); setEditingCustomer(null) }
-  const exportFilterSummary = useMemo(() => {
-    const parts: string[] = []
-    if (cityFilter) parts.push(`Plaats: ${cityFilter}`)
-    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
-    return parts.join(' · ')
-  }, [cityFilter, searchQuery])
+
+  // Row selection (export scope only — no bulk actions)
+  const selectedCustomers = filteredCustomers.filter(c => selectedIds.has(c.id))
+  useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, cityFilter, page])
+  const toggleSelect = (id: string) => setSelectedIds(prev => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
+  const toggleSelectAll = () => setSelectedIds(prev =>
+    prev.size === filteredCustomers.length ? new Set() : new Set(filteredCustomers.map(c => c.id)))
 
   return (
     <div className="space-y-4 min-w-0">
@@ -127,11 +134,14 @@ export default function Customers() {
             </div>
           )}
           <ExportMenu
-            data={filteredCustomers}
+            getAllData={() => fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined })}
+            pageData={filteredCustomers}
+            selectedData={selectedCustomers}
+            totalCount={totalCount}
             columns={customerExportColumns as never}
             filename={`customers-${new Date().toISOString().split('T')[0]}`}
             pdfTitle="Klanten"
-            pdfFilterSummary={exportFilterSummary || undefined}
+            storageKey="customers"
           />
           {canCreate && (
             <button onClick={() => setShowImport(true)}
@@ -170,6 +180,10 @@ export default function Customers() {
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                  <th className="pl-4 pr-2 py-3 w-10">
+                    <input type="checkbox" checked={selectedIds.size === filteredCustomers.length && filteredCustomers.length > 0} onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
+                  </th>
                   <SortableTh sortKey="company_name"   current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.companyName')}</SortableTh>
                   <SortableTh sortKey="contact_person" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.contactPerson')}</SortableTh>
                   <SortableTh sortKey="city"           current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.city')}</SortableTh>
@@ -188,6 +202,8 @@ export default function Customers() {
                     canEdit={canEdit}
                     canDelete={canDelete}
                     deleting={deleting === customer.id}
+                    selected={selectedIds.has(customer.id)}
+                    onToggleSelect={() => toggleSelect(customer.id)}
                     onMenuToggle={() => setOpenMenuId(openMenuId === customer.id ? null : customer.id)}
                     onMenuClose={() => setOpenMenuId(null)}
                     onView={() => navigate(`/customers/${customer.id}`)}

@@ -198,17 +198,15 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
         <div className="flex-1" />
         {!loading && filteredRows.length > 0 && (
           <ExportMenu
-            data={filteredRows}
+            getAllData={async () => filteredRows}
+            totalCount={filteredRows.length}
             columns={(isOwner
               ? customerItemsSummaryExportColumns
               : customerItemsSummaryExportColumns.filter(c => c.key !== 'total_profit')
             ) as never}
             filename={`producten-${customerName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().split('T')[0]}`}
             pdfTitle={`Producten — ${customerName}`}
-            pdfFilterSummary={[
-              t(DATE_RANGES[range].labelKey),
-              unitFilter,
-            ].filter(Boolean).join(' · ') || undefined}
+            storageKey="customer-products"
             size="sm"
           />
         )}

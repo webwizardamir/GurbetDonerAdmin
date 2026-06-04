@@ -300,7 +300,7 @@ export default function Invoices() {
     } finally { setBulkProcessing(false) }
   }
 
-  const exportData = useMemo(() => filteredDocuments.map(doc => {
+  const mapDocForExport = (doc: Document) => {
     const { customerName, orderNumber } = getSnapshotData(doc)
     return {
       document_number: doc.document_number,
@@ -309,21 +309,13 @@ export default function Invoices() {
       order_number: orderNumber,
       generated_at: doc.generated_at,
     }
-  }), [filteredDocuments])
+  }
 
-  const exportFilterSummary = useMemo(() => {
-    const parts: string[] = []
-    if (typeFilter) {
-      const typeMap: Record<string, string> = {
-        invoice: 'Factuur', proforma: 'Proforma', credit_note: 'Creditnota',
-        packing_slip: 'Pakbon', order_confirmation: 'Orderbevestiging', payment_reminder: 'Betalingsherinnering',
-      }
-      parts.push(`Type: ${typeMap[typeFilter] || typeFilter}`)
-    }
-    if (customerFilter) parts.push(`Klant: ${customerFilter}`)
-    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
-    return parts.join(' · ')
-  }, [typeFilter, customerFilter, searchQuery])
+  const exportData = useMemo(() => filteredDocuments.map(mapDocForExport), [filteredDocuments]) // eslint-disable-line react-hooks/exhaustive-deps
+  const selectedExportData = useMemo(
+    () => filteredDocuments.filter(d => selectedIds.has(d.id)).map(mapDocForExport),
+    [filteredDocuments, selectedIds], // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const handleTypeFilterClick = (type: DocumentType) => {
     setTypeFilter(prev => (prev === type ? '' : type))
@@ -383,11 +375,13 @@ export default function Invoices() {
           </div>
         )}
         <ExportMenu
-          data={exportData}
+          getAllData={async () => exportData}
+          selectedData={selectedExportData}
+          totalCount={exportData.length}
           columns={documentExportColumns as never}
           filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
           pdfTitle="Documenten"
-          pdfFilterSummary={exportFilterSummary || undefined}
+          storageKey="documents"
         />
       </div>
 

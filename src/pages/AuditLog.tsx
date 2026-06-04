@@ -130,17 +130,6 @@ export default function AuditLog() {
     { key: 'new_values', header: 'Nieuwe waarden', format: (v: unknown) => JSON.stringify(v || {}) },
   ], [])
 
-  const exportFilterSummary = useMemo(() => {
-    const parts: string[] = []
-    if (entityFilter) parts.push(`Type: ${entityFilter}`)
-    if (actionFilter) {
-      const map: Record<string, string> = { create: 'Aangemaakt', update: 'Gewijzigd', delete: 'Verwijderd' }
-      parts.push(`Actie: ${map[actionFilter] || actionFilter}`)
-    }
-    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
-    return parts.join(' · ')
-  }, [entityFilter, actionFilter, searchQuery])
-
   const filteredLogs = logs.filter((log) => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -220,11 +209,11 @@ export default function AuditLog() {
           <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
         </button>
         <ExportMenu
-          getData={fetchAllLogsForExport}
+          getAllData={fetchAllLogsForExport}
           columns={auditExportColumns as never}
           filename={`audit-log-${new Date().toISOString().split('T')[0]}`}
           pdfTitle="Auditlogboek"
-          pdfFilterSummary={exportFilterSummary || undefined}
+          storageKey="audit"
           disabled={logs.length === 0}
         />
       </div>

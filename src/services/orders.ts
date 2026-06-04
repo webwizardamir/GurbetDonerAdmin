@@ -199,25 +199,36 @@ function escapeForOrValue(term: string): string {
 }
 
 // Build a PostgREST `.or()` expression for the orders query. Matches:
-//  - order_number via ilike
+//  - order_number via ilike (full trimmed phrase)
 //  - the legacy WC invoice number exactly (when the term is a bare integer)
 //  - any order belonging to a customer whose company name OR contact person
-//    matches the term (resolved to customer_ids in a quick lookup, since the
-//    name lives on the related `customers` table, not on `orders`)
+//    matches *every* whitespace-separated token (resolved to customer_ids in a
+//    quick lookup, since the name lives on the related `customers` table).
+//
+// Tokenising + trimming is what makes the search whitespace-tolerant: a stray
+// trailing space ("Sohbet ") collapses to a single token and still matches,
+// while a real multi-word term ("Sohbet BBQ") narrows by AND-ing the tokens.
 async function buildSearchOr(term: string): Promise<string> {
-  const q = escapeForOrValue(term)
+  const trimmed = term.trim()
+  const tokens = trimmed.split(/\s+/).filter(Boolean)
+  const q = escapeForOrValue(trimmed)
   const clauses = [`order_number.ilike."%${q}%"`]
-  if (/^\d+$/.test(term)) clauses.push(`woo_invoice_number.eq.${term}`)
+  if (/^\d+$/.test(trimmed)) clauses.push(`woo_invoice_number.eq.${trimmed}`)
 
-  // Resolve matching customers by name. Capped so a very broad term can't blow
-  // up the IN-list / URL length; order_number matching still covers the rest.
-  const { data: customers } = await supabase
-    .from('customers')
-    .select('id')
-    .or(`company_name.ilike."%${q}%",contact_person.ilike."%${q}%"`)
-    .limit(300)
-  const ids = (customers ?? []).map(c => c.id as string)
-  if (ids.length > 0) clauses.push(`customer_id.in.(${ids.join(',')})`)
+  // Resolve matching customers by name. Each token must match company_name OR
+  // contact_person; chaining `.or()` per token AND-combines them in PostgREST.
+  // Capped so a very broad term can't blow up the IN-list / URL length;
+  // order_number matching still covers the rest.
+  if (tokens.length > 0) {
+    let custQuery = supabase.from('customers').select('id')
+    for (const token of tokens) {
+      const tq = escapeForOrValue(token)
+      custQuery = custQuery.or(`company_name.ilike."%${tq}%",contact_person.ilike."%${tq}%"`)
+    }
+    const { data: customers } = await custQuery.limit(300)
+    const ids = (customers ?? []).map(c => c.id as string)
+    if (ids.length > 0) clauses.push(`customer_id.in.(${ids.join(',')})`)
+  }
 
   return clauses.join(',')
 }

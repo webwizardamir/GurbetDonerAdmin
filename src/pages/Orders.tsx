@@ -25,7 +25,7 @@ import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
 import type { OrderStatus, PaymentMethod } from '../types'
 import type { OrderWithItems } from '../services/orders'
-import { bulkUpdateOrderStatus, bulkDeleteOrders } from '../services/orders'
+import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders } from '../services/orders'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
 import { fetchSendCountsByOrder } from '../services/documentEmail'
 import SortableTh from '../components/ui/SortableTh'
@@ -35,6 +35,7 @@ import OrderNotesModal from '../components/orders/OrderNotesModal'
 import StatusBadge from '../components/ui/StatusBadge'
 import PaymentBadge from '../components/ui/PaymentBadge'
 import BulkActionsBar from '../components/orders/BulkActionsBar'
+import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
 import { orderExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import { formatPrice, formatDate } from '../utils/format'
@@ -93,19 +94,27 @@ export default function Orders() {
   // company name + contact person, WC invoice — plus the app-generated invoice
   // number which only exists client-side in documentInfo. Must stay a superset
   // of the server match so it never hides a valid server result.
-  const filteredOrdersUnsorted = useMemo(() => orders.filter(order => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    const invoiceNum = documentInfo.get(order.id)?.invoiceNumber?.toLowerCase() || ''
-    const wooInvoice = order.woo_invoice_number ? String(order.woo_invoice_number) : ''
-    return (
-      order.order_number.toLowerCase().includes(query) ||
-      order.customer?.company_name?.toLowerCase().includes(query) ||
-      order.customer?.contact_person?.toLowerCase().includes(query) ||
-      invoiceNum.includes(query) ||
-      wooInvoice.includes(query)
-    )
-  }), [orders, searchQuery, documentInfo])
+  const filteredOrdersUnsorted = useMemo(() => {
+    const trimmed = searchQuery.trim().toLowerCase()
+    if (!trimmed) return orders
+    const tokens = trimmed.split(/\s+/).filter(Boolean)
+    return orders.filter(order => {
+      const invoiceNum = documentInfo.get(order.id)?.invoiceNumber?.toLowerCase() || ''
+      const wooInvoice = order.woo_invoice_number ? String(order.woo_invoice_number) : ''
+      const name = order.customer?.company_name?.toLowerCase() || ''
+      const contact = order.customer?.contact_person?.toLowerCase() || ''
+      const orderNum = order.order_number.toLowerCase()
+      // Customer matches when every token hits the name or contact (mirrors the
+      // server AND-token match); order_number / invoice match the full phrase.
+      const customerMatch = tokens.every(tok => name.includes(tok) || contact.includes(tok))
+      return (
+        customerMatch ||
+        orderNum.includes(trimmed) ||
+        invoiceNum.includes(trimmed) ||
+        wooInvoice.includes(trimmed)
+      )
+    })
+  }, [orders, searchQuery, documentInfo])
 
   // Phase 6: sortable columns. Default = order_date desc (newest first)
   type OrderSortKey = 'order_number' | 'customer' | 'order_date' | 'status' | 'invoice' | 'total'
@@ -145,19 +154,20 @@ export default function Orders() {
   const handleStatusFilter = (status: OrderStatus | '') => setFilters({ ...filters, status: status || undefined })
   const handlePaymentFilter = (method: PaymentMethod | '') => setFilters({ ...filters, paymentMethod: method || undefined })
 
-  const exportFilterSummary = useMemo(() => {
-    const parts: string[] = []
-    if (filters.status) {
-      const statusMap: Record<string, string> = {
-        draft: 'Concept', pending_payment: 'In afwachting', completed: 'Voltooid',
-        cancelled: 'Geannuleerd', refunded: 'Terugbetaald', on_hold: 'In wacht',
-      }
-      parts.push(`Status: ${statusMap[filters.status] || filters.status}`)
-    }
-    if (filters.paymentMethod) parts.push(`Betaling: ${filters.paymentMethod === 'cash' ? 'Contant' : 'Bank'}`)
-    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
-    return parts.join(' · ')
-  }, [filters.status, filters.paymentMethod, searchQuery])
+  // Attach the displayed invoice number (app-generated, else legacy WC) to a row
+  // so the export's optional "Factuurnummer" column can render it. The number
+  // lives in a separate lookup, not on the order itself.
+  const withInvoiceNumber = (order: OrderWithItems, info: Map<string, OrderDocumentInfo>) => ({
+    ...order,
+    invoice_number: info.get(order.id)?.invoiceNumber
+      || (order.woo_invoice_number ? String(order.woo_invoice_number) : ''),
+  })
+
+  const exportGetAllData = async () => {
+    const all = await fetchOrders({ ...filters, limit: 100000, offset: 0 })
+    const info = await fetchDocumentInfoByOrder(all.map(o => o.id))
+    return all.map(o => withInvoiceNumber(o, info))
+  }
 
   const toggleSelect = (id: string) => {
     const newSet = new Set(selectedIds)
@@ -249,12 +259,19 @@ export default function Orders() {
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
+          <CustomerFilterSelect
+            value={filters.customerId}
+            onChange={(customerId) => setFilters({ ...filters, customerId })}
+          />
           <ExportMenu
-            data={filteredOrders}
+            getAllData={exportGetAllData}
+            pageData={filteredOrders.map(o => withInvoiceNumber(o, documentInfo))}
+            selectedData={selectedOrders.map(o => withInvoiceNumber(o, documentInfo))}
+            totalCount={totalCount}
             columns={orderExportColumns as never}
             filename={`orders-${new Date().toISOString().split('T')[0]}`}
             pdfTitle="Bestellingen"
-            pdfFilterSummary={exportFilterSummary || undefined}
+            storageKey="orders"
           />
           <div className="hidden sm:block flex-1" />
           {canCreate && (

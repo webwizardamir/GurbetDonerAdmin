@@ -276,6 +276,7 @@ export async function exportToExcelGeneric<T extends Record<string, any>>(
 // Orders export columns
 export const orderExportColumns = [
   { key: 'order_number', header: 'Ordernummer' },
+  { key: 'invoice_number', header: 'Factuurnummer' },
   { key: 'order_date', header: 'Datum', format: (v: unknown) => formatExportDate(v as string) },
   { key: 'customer.company_name', header: 'Klant' },
   { key: 'status', header: 'Status', format: (v: unknown) => {

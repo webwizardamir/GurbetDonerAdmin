@@ -57,6 +57,7 @@ export default function Products() {
   const [showImport, setShowImport] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Fetch ALL products (paginated) then download as a re-importable .xlsx.
   // Falls back to blank template if the fetch returns no rows.
@@ -128,11 +129,16 @@ export default function Products() {
     setEditingProduct(null)
   }
 
-  const exportFilterSummary = useMemo(() => {
-    const parts: string[] = []
-    if (searchQuery) parts.push(`Zoekterm: ${searchQuery}`)
-    return parts.join(' · ')
-  }, [searchQuery])
+  // Row selection (export scope only — no bulk actions)
+  const selectedProducts = filteredProducts.filter(p => selectedIds.has(p.id))
+  useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, page])
+  const toggleSelect = (id: string) => setSelectedIds(prev => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
+  const toggleSelectAll = () => setSelectedIds(prev =>
+    prev.size === filteredProducts.length ? new Set() : new Set(filteredProducts.map(p => p.id)))
 
   return (
     <div className="space-y-6">
@@ -165,11 +171,14 @@ export default function Products() {
           </>
         )}
         <ExportMenu
-          data={filteredProducts}
+          getAllData={fetchAllProducts}
+          pageData={filteredProducts}
+          selectedData={selectedProducts}
+          totalCount={totalCount}
           columns={productExportColumns as never}
           filename={`products-${new Date().toISOString().split('T')[0]}`}
           pdfTitle="Producten"
-          pdfFilterSummary={exportFilterSummary || undefined}
+          storageKey="products"
         />
         <div className="flex-1" />
         {canCreate && (
@@ -223,6 +232,10 @@ export default function Products() {
             <table className="w-full min-w-[800px]">
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
+                  <th className="pl-4 pr-2 py-3 w-10">
+                    <input type="checkbox" checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0} onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
+                  </th>
                   <SortableTh sortKey="product_code" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-3 py-3">{t('products.id')}</SortableTh>
                   <SortableTh sortKey="name"         current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.productName')}</SortableTh>
                   <SortableTh sortKey="sku"          current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('products.sku')} / {t('products.barcode')}</SortableTh>
@@ -245,8 +258,12 @@ export default function Products() {
                   <tr
                     key={product.id}
                     onClick={() => canEdit && handleEdit(product)}
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${canEdit ? 'cursor-pointer' : ''}`}
+                    className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${canEdit ? 'cursor-pointer' : ''} ${selectedIds.has(product.id) ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}
                   >
+                    <td className="pl-4 pr-2 py-3" onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={selectedIds.has(product.id)} onChange={() => toggleSelect(product.id)}
+                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
+                    </td>
                     <td className="px-3 py-3 text-xs font-mono font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
                       {product.product_code ?? '—'}
                     </td>
