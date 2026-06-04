@@ -396,6 +396,29 @@ verlegdLabel: { fontFamily: 'Helvetica-Bold' },
 
 ---
 
+## Data Export (list pages)
+
+The **"Exporteren"** button on list pages (Orders, Products, Customers, Documents/Invoices, Audit Log, customer Products tab) is the generic CSV/Excel/PDF exporter — separate from the invoice/proforma/etc. document templates above.
+
+### Components
+- **`components/ui/ExportMenu.tsx`** — the button + export **dialog** (uses `ui/Modal.tsx`). Lets the user pick **format** (PDF / Excel / CSV), tick **which columns** to include, choose **row scope**, and (PDF only) **orientation**. Choices are remembered per page in `localStorage` under `export:<storageKey>`.
+- **`components/documents/DataExportTemplate.tsx`** — the generic PDF table. Accepts an `orientation` prop (`portrait` | `landscape`; landscape gives ≈786pt usable width for wide tables). Renders a `computeTotalsRow` "Totaal" footer for any `summable` columns. There is **no** filter-summary box (removed by design).
+- **`utils/export.ts`** — the actual CSV/Excel writers (`exportToCSV`, `exportToExcelGeneric`) plus the per-entity column definitions (`orderExportColumns`, `productExportColumns`, etc.). Columns are `{ key, header, format?, summable?, pdfWidth?, pdfAlign? }`. `key` may be a dotted path (`customer.company_name`).
+
+### Wiring a page's export
+Pass to `ExportMenu`:
+- `getAllData: () => Promise<T[]>` — the **full** filtered dataset (all matching the current filter/search, not just the visible page). Fetched lazily, only when the "Alle resultaten" scope is exported.
+- `pageData?` — the currently loaded/visible page rows (omit when the list isn't paginated).
+- `selectedData?` — hand-picked rows (omit when the page has no row selection). Orders, Products, Customers and Documents have selection checkboxes; the count drives the "Geselecteerde rijen" scope.
+- `totalCount?`, `columns`, `filename`, `pdfTitle`, `storageKey` (unique per page, e.g. `"orders"`).
+
+### Notes / gotchas
+- **Column data must live on the row.** Values not stored on the entity (e.g. the Orders "Factuurnummer", which comes from a separate `fetchDocumentInfoByOrder` lookup) must be attached to the row objects for **all** scopes before handing them to `ExportMenu` (see `withInvoiceNumber` in `Orders.tsx`).
+- All export columns are checkboxes; they default to all-checked and the selection is persisted, so adding a column to a `*ExportColumns` array automatically surfaces it as a toggle.
+- `SoldProducts.tsx` is the exception — it uses its own `SoldProductsTemplate`, not `ExportMenu`.
+
+---
+
 ## Key Business Rules
 
 ### Stock Management

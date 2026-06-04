@@ -476,3 +476,23 @@ The full editor saves via `updateOrderWithItems`, which **deletes every `order_i
 
 **Prevention:**
 Anything that needs to mutate a cancelled/refunded order must avoid touching the `order_items` row set. Route note/metadata edits through `updateOrderNotes` (or another UPDATE-only path), never through `updateOrderWithItems`. The stock invariant from the refunds section still holds: exactly one owner of stock per state change, and a no-op edit must stay a no-op for stock.
+
+---
+
+## Orders search & export scope
+
+### Gotcha: substring search can't isolate a customer whose name is a prefix of another
+
+**Context:**
+Searching Orders for `Sohbet` returns both *Sohbet* and *Sohbet BBQ cafe*. Adding a trailing space (`Sohbet `) dropped the plain *Sohbet* — and no text term can ever isolate the shorter name, because "Sohbet BBQ cafe" literally **contains** "Sohbet". With ~70 orders each, hand-picking to export one customer wasn't viable.
+
+**Two parts to the fix:**
+1. **Whitespace / multi-word search** — `buildSearchOr` (`services/orders.ts`) now `trim()`s and tokenises the term. A trailing space collapses to one token (so `Sohbet ` still matches), and a real multi-word term narrows by **AND**-ing tokens across `company_name`/`contact_person` (chained `.or()` per token AND-combines in PostgREST). The instant client-side filter in `Orders.tsx` mirrors this so it stays a superset of the server match.
+2. **Exact customer filter** — substring search is the wrong tool for "only this customer". Added `components/orders/CustomerFilterSelect.tsx`, a searchable dropdown that sets the existing `customerId` filter (exact `customer_id` eq, already handled by `fetchOrders`/`fetchOrderCount`). Pick the exact customer, then export **Alle resultaten** to get precisely their orders.
+
+**Prevention:**
+For "rows belonging to entity X" use an exact id filter, not a name `ilike`. Reserve free-text search for fuzzy discovery. When adding such a filter, make sure **both** `fetchX` *and* `fetchXCount` apply it, or the list and the paginator/total disagree.
+
+### Note: export "all matching" vs the visible page
+
+`ExportMenu` exports per the chosen scope. "Huidige pagina" / "Geselecteerde rijen" use rows already in memory; "Alle resultaten" calls `getAllData()`, which must re-fetch the **full filtered set** (e.g. `fetchOrders({ ...filters, limit: 100000, offset: 0 })`) — not the 50-row page. Any column whose value isn't on the entity row (e.g. the app invoice number from `fetchDocumentInfoByOrder`) must be attached to the rows inside `getAllData` too, or it exports blank for the all-matching scope. See `exportGetAllData` / `withInvoiceNumber` in `Orders.tsx`.
