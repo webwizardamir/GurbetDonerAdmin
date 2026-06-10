@@ -285,7 +285,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#dc2626',
     paddingTop: 6,
-    marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
@@ -457,6 +456,9 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
             }
           </Text>
         </View>
+
+        {/* Spacer: pin the bank details + action + footer to the page bottom */}
+        <View style={{ marginTop: 'auto' }} />
 
         {/* Bank Details */}
         {hasBankInfo && (

@@ -417,6 +417,27 @@ async function fetchRefundCreditLines(orderId: string): Promise<RefundCreditLine
 }
 
 // Build invoice data from order and settings
+/**
+ * Resolve the payment-terms sentence for a specific customer.
+ * - If the configured text contains a `{days}` placeholder, it is filled with
+ *   the effective day count.
+ * - Otherwise, when the customer's term differs from the global default, the
+ *   standalone global day-count number in the text is swapped for the effective
+ *   one (so "...is 7 dagen na factuurdatum." becomes "...is 30 dagen...").
+ */
+function resolvePaymentTermsText(
+  text: string | undefined,
+  globalDays: number,
+  effectiveDays: number
+): string | undefined {
+  if (!text) return text
+  if (text.includes('{days}')) return text.split('{days}').join(String(effectiveDays))
+  if (effectiveDays !== globalDays) {
+    return text.replace(new RegExp(`\\b${globalDays}\\b`), String(effectiveDays))
+  }
+  return text
+}
+
 export async function buildInvoiceData(
   orderId: string,
   documentType: DocumentType
@@ -439,10 +460,14 @@ export async function buildInvoiceData(
   const settings = await fetchDocumentSettings()
   if (!settings) throw new Error('Document settings not configured')
 
-  // Calculate due date
+  // Calculate due date — a customer-specific payment term overrides the global
+  // default (NULL on the customer = use the global document setting).
+  const customer = order.customer || {}
+  const globalDueDays = settings.payment_terms_days || 14
+  const effectiveDueDays = Number(customer.payment_due_days ?? globalDueDays)
   const orderDate = new Date(order.order_date || order.created_at)
   const dueDate = new Date(orderDate)
-  dueDate.setDate(dueDate.getDate() + (settings.payment_terms_days || 14))
+  dueDate.setDate(dueDate.getDate() + effectiveDueDays)
 
   // Get document title based on type
   const documentTitles: Record<DocumentType, string> = {
@@ -544,9 +569,6 @@ export async function buildInvoiceData(
     }
   }
 
-  // Build customer address
-  const customer = order.customer || {}
-
   return {
     documentNumber: '', // Will be set when generating
     documentType,
@@ -619,7 +641,7 @@ export async function buildInvoiceData(
       signature: settings.label_signature,
     },
 
-    paymentTerms: settings.payment_terms_text,
+    paymentTerms: resolvePaymentTermsText(settings.payment_terms_text, globalDueDays, effectiveDueDays),
     footerText: settings.footer_text,
   }
 }

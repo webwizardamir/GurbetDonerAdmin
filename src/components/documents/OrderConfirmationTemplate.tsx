@@ -305,7 +305,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#0891b2',
     paddingTop: 6,
-    marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
@@ -463,6 +462,9 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
             </View>
           ))}
         </View>
+
+        {/* Spacer: pin the totals + footer to the page bottom */}
+        <View style={{ marginTop: 'auto' }} />
 
         {/* Totals */}
         <View style={styles.totalsSection} wrap={false}>

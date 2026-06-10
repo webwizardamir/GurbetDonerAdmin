@@ -262,7 +262,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#3b82f6',
     paddingTop: 6,
-    marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
@@ -433,6 +432,9 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
             )
           })}
         </View>
+
+        {/* Spacer: pin the totals + footer to the page bottom */}
+        <View style={{ marginTop: 'auto' }} />
 
         {/* Totals */}
         <View style={styles.totalsSection} wrap={false}>

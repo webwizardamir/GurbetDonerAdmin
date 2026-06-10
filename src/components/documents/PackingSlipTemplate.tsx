@@ -230,7 +230,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#1e293b',
     paddingTop: 6,
-    marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
@@ -370,6 +369,9 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
             Controleer alle artikelen bij ontvangst. Meld eventuele afwijkingen direct.
           </Text>
         </View>
+
+        {/* Spacer: pin the signatures + footer to the page bottom */}
+        <View style={{ marginTop: 'auto' }} />
 
         {/* ========== SIGNATURES ========== */}
         <View style={styles.signatureSection} wrap={false}>

@@ -104,6 +104,8 @@ export interface Customer {
   email?: string
   phone?: string
   vat_number?: string
+  // Per-customer invoice payment term (days). NULL = use global default.
+  payment_due_days?: number | null
   // Billing address
   billing_street?: string
   billing_city?: string

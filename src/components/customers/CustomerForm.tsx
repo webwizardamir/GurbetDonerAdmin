@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Building2, User, Mail, Phone, MapPin, FileText, CreditCard, Tags } from 'lucide-react'
+import { Loader2, Building2, User, Mail, Phone, MapPin, FileText, CreditCard, Tags, Clock } from 'lucide-react'
 import { Customer, PriceList } from '../../types'
 import { CustomerFormData, checkEmailExists } from '../../services/customers'
 import { fetchPriceLists } from '../../services/priceLists'
@@ -23,6 +23,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
     email: customer?.email || '',
     phone: customer?.phone || '',
     vat_number: customer?.vat_number || '',
+    payment_due_days: customer?.payment_due_days ?? null,
     billing_street: customer?.billing_street || '',
     billing_city: customer?.billing_city || '',
     billing_postal_code: customer?.billing_postal_code || '',
@@ -52,7 +53,11 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
       ...prev,
       [name]: type === 'checkbox'
         ? (e.target as HTMLInputElement).checked
-        : (name === 'price_list_id' ? (value || null) : value),
+        : name === 'price_list_id'
+        ? (value || null)
+        : name === 'payment_due_days'
+        ? (value === '' ? null : parseInt(value, 10))
+        : value,
     }))
   }
 
@@ -148,6 +153,25 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono"
                     placeholder="NL123456789B01"
                   />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    {t('customers.paymentDueDays')}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="payment_due_days"
+                    value={formData.payment_due_days ?? ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="7"
+                  />
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {t('customers.form.paymentDueDaysHint')}
+                  </p>
                 </div>
               </div>
             </div>

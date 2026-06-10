@@ -322,7 +322,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#16a34a',
     paddingTop: 6,
-    marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
@@ -490,6 +489,9 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
             )
           })}
         </View>
+
+        {/* Spacer: pin the payment block + totals + footer to the page bottom */}
+        <View style={{ marginTop: 'auto' }} />
 
         {/* ========== BOTTOM: PAYMENT/RECEIPT + TOTALS ========== */}
         <View style={styles.bottomSection} wrap={false}>

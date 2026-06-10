@@ -206,6 +206,7 @@
     "email": "E-mail",
     "phone": "Telefoon",
     "vatNumber": "BTW-nummer",
+    "paymentDueDays": "Betalingstermijn (dagen)",
     "priceList": "Prijslijst",
     "billingAddress": "Factuuradres",
     "shippingAddress": "Verzendadres",
@@ -239,6 +240,7 @@
       "priceList": "Prijslijst",
       "priceListNone": "Geen — productstandaardprijzen gebruiken",
       "priceListHint": "Optioneel. Klant-specifieke prijzen hebben nog steeds voorrang op de lijst.",
+      "paymentDueDaysHint": "Aantal dagen waarbinnen deze klant moet betalen. Leeg laten voor de standaardtermijn.",
       "enterCompanyName": "Voer bedrijfsnaam in",
       "enterContactPerson": "Jan Jansen",
       "enterEmail": "contact@bedrijf.nl",
@@ -1060,6 +1062,7 @@
         "dueDateNote": "Vervaldatum wordt berekend vanaf factuurdatum",
         "paymentTermsText": "Betalingsvoorwaarden tekst",
         "paymentTermsPlaceholder": "Betaling binnen 14 dagen na factuurdatum.",
+        "paymentTermsTextHint": "Tip: gebruik {days} als plaatshouder voor het aantal dagen — dit past zich automatisch aan de betalingstermijn van de klant aan.",
         "documentFooter": "Documentvoettekst",
         "footerLabel": "Voettekst (verschijnt onderaan alle documenten)",
         "footerPlaceholder": "Bedankt voor uw bestelling! Neem bij vragen contact met ons op."

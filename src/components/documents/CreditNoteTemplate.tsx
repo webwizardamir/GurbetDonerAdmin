@@ -301,7 +301,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#7c3aed',
     paddingTop: 6,
-    marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
@@ -487,6 +486,9 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
             )
           })}
         </View>
+
+        {/* Spacer: pin the block below + footer to the page bottom */}
+        <View style={{ marginTop: 'auto' }} />
 
         {/* Bottom: Reason + Totals */}
         <View style={styles.bottomSection} wrap={false}>

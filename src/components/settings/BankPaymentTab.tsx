@@ -116,6 +116,9 @@ export default function BankPaymentTab({ formData, onChange }: BankPaymentTabPro
               className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
               placeholder={t('settings.documents.bank.paymentTermsPlaceholder')}
             />
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {t('settings.documents.bank.paymentTermsTextHint')}
+            </p>
           </div>
         </div>
       </div>

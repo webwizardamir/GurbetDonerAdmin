@@ -7,6 +7,7 @@ export interface CustomerFormData {
   email?: string
   phone?: string
   vat_number?: string
+  payment_due_days?: number | null
   billing_street?: string
   billing_city?: string
   billing_postal_code?: string

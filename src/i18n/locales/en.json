@@ -206,6 +206,7 @@
     "email": "Email",
     "phone": "Phone",
     "vatNumber": "VAT Number",
+    "paymentDueDays": "Payment term (days)",
     "priceList": "Price List",
     "billingAddress": "Billing Address",
     "shippingAddress": "Shipping Address",
@@ -239,6 +240,7 @@
       "priceList": "Price List",
       "priceListNone": "None — use product defaults",
       "priceListHint": "Optional. Customer-specific prices still take precedence over the list.",
+      "paymentDueDaysHint": "Number of days this customer has to pay. Leave empty to use the default term.",
       "enterCompanyName": "Enter company name",
       "enterContactPerson": "John Doe",
       "enterEmail": "contact@company.com",
@@ -1060,6 +1062,7 @@
         "dueDateNote": "Due date will be calculated from invoice date",
         "paymentTermsText": "Payment Terms Text",
         "paymentTermsPlaceholder": "Payment due within 14 days of invoice date.",
+        "paymentTermsTextHint": "Tip: use {days} as a placeholder for the number of days — it adapts automatically to each customer's payment term.",
         "documentFooter": "Document Footer",
         "footerLabel": "Footer Text (appears at bottom of all documents)",
         "footerPlaceholder": "Thank you for your business! For questions, please contact us."
