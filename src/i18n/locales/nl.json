@@ -207,6 +207,8 @@
     "phone": "Telefoon",
     "vatNumber": "BTW-nummer",
     "paymentDueDays": "Betalingstermijn (dagen)",
+    "paymentDueDaysValue": "{{count}} dagen",
+    "standard": "Standaard",
     "priceList": "Prijslijst",
     "billingAddress": "Factuuradres",
     "shippingAddress": "Verzendadres",

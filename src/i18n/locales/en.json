@@ -207,6 +207,8 @@
     "phone": "Phone",
     "vatNumber": "VAT Number",
     "paymentDueDays": "Payment term (days)",
+    "paymentDueDaysValue": "{{count}} days",
+    "standard": "Default",
     "priceList": "Price List",
     "billingAddress": "Billing Address",
     "shippingAddress": "Shipping Address",

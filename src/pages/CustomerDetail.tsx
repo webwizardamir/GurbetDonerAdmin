@@ -22,8 +22,10 @@ import {
   Globe,
   Pencil,
   Tags,
+  Clock,
 } from 'lucide-react'
 import { useCustomerDetail } from '../hooks/useCustomerDetail'
+import { useDocumentSettings } from '../hooks/useDocumentSettings'
 import { useAuth } from '../context/AuthContext'
 import CustomerOrderRow from '../components/customers/CustomerOrderRow'
 import CustomerForm from '../components/customers/CustomerForm'
@@ -97,6 +99,16 @@ function CustomerDetailsTab({ customer }: { customer: Customer }) {
     ? t(`customers.countries.${customer.shipping_country}`, customer.shipping_country)
     : ''
   const isForeign = isReverseChargeCountry(customer.billing_country)
+  // Payment term: show the customer's override, or the global default when unset.
+  const { settings } = useDocumentSettings()
+  const hasPaymentOverride = customer.payment_due_days != null
+  const effectivePaymentDays = customer.payment_due_days ?? settings?.payment_terms_days ?? 7
+  const paymentDaysValue = t('customers.paymentDueDaysValue', { count: effectivePaymentDays })
+  const standardBadge = !hasPaymentOverride ? (
+    <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
+      {t('customers.standard')}
+    </span>
+  ) : null
   const verlegdBadge = isForeign ? (
     <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
       {t('orders.vat.reverseChargeSuffix')}
@@ -136,6 +148,12 @@ function CustomerDetailsTab({ customer }: { customer: Customer }) {
             value={customer.vat_number}
             mono
             badge={verlegdBadge}
+          />
+          <DetailRow
+            icon={<Clock className="w-5 h-5" />}
+            label={t('customers.paymentDueDays')}
+            value={paymentDaysValue}
+            badge={standardBadge}
           />
           <DetailRow
             icon={<Tags className="w-5 h-5" />}
