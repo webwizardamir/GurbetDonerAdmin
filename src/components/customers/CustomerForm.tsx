@@ -41,6 +41,23 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
   const [error, setError] = useState<string | null>(null)
   const [priceLists, setPriceLists] = useState<PriceList[]>([])
 
+  // Backed by its own string state so the displayed text always reflects the
+  // keystrokes (a controlled number input bound straight to a number can snap
+  // back to the previous value). formData stays the source of truth on submit.
+  const [paymentDaysInput, setPaymentDaysInput] = useState(
+    customer?.payment_due_days != null ? String(customer.payment_due_days) : ''
+  )
+
+  const handlePaymentDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    setPaymentDaysInput(raw)
+    const parsed = parseInt(raw, 10)
+    setFormData(prev => ({
+      ...prev,
+      payment_due_days: raw.trim() === '' || Number.isNaN(parsed) ? null : parsed,
+    }))
+  }
+
   useEffect(() => {
     void fetchPriceLists({ activeOnly: true }).then(setPriceLists).catch(() => setPriceLists([]))
   }, [])
@@ -55,8 +72,6 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
         ? (e.target as HTMLInputElement).checked
         : name === 'price_list_id'
         ? (value || null)
-        : name === 'payment_due_days'
-        ? (value === '' ? null : parseInt(value, 10))
         : value,
     }))
   }
@@ -164,8 +179,8 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                     type="number"
                     min="0"
                     name="payment_due_days"
-                    value={formData.payment_due_days ?? ''}
-                    onChange={handleChange}
+                    value={paymentDaysInput}
+                    onChange={handlePaymentDaysChange}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="7"
                   />
