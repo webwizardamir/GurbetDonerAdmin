@@ -496,3 +496,38 @@ For "rows belonging to entity X" use an exact id filter, not a name `ilike`. Res
 ### Note: export "all matching" vs the visible page
 
 `ExportMenu` exports per the chosen scope. "Huidige pagina" / "Geselecteerde rijen" use rows already in memory; "Alle resultaten" calls `getAllData()`, which must re-fetch the **full filtered set** (e.g. `fetchOrders({ ...filters, limit: 100000, offset: 0 })`) — not the 50-row page. Any column whose value isn't on the entity row (e.g. the app invoice number from `fetchDocumentInfoByOrder`) must be attached to the rows inside `getAllData` too, or it exports blank for the all-matching scope. See `exportGetAllData` / `withInvoiceNumber` in `Orders.tsx`.
+
+---
+
+## Known Security Follow-ups (NOT yet applied — need a DB migration)
+
+Surfaced by the security review during the June 2026 Price-List Usability work. Both are **pre-existing database-layer gaps** (not introduced by that feature), but the new in-app price-list flows make them more relevant. Both require SQL pasted into Supabase Studio (no CLI in this project), so they were deliberately deferred. Track and apply when convenient.
+
+### Flag 1 — `cost_cents` is gated only in the UI/route, not in RLS
+
+**Issue:** `products.cost_cents` and `product_unit_prices.cost_cents` are SELECT-able by **any** `is_admin_user()` (which includes Shop Manager). RLS is row-level and cannot hide a column, and `fetchProducts` selects `*`. Today cost is protected only because cost-bearing screens (Products cost editor, the price-list product picker with its cost/margin column) sit behind owner-only routes — but a Shop Manager could call `fetchProducts()` directly and receive `cost_cents` in the JSON. This violates the stated invariant "Shop Manager must NEVER see COGS/cost/margin — gate it in the RPC, not just the UI" (see the Profit Visibility rule in CLAUDE.md).
+
+**Severity:** High (defense-in-depth / role-boundary), but **no live leak in the current UI** (cost screens are owner-only).
+
+**Proper fix:** expose products to non-owners through a `SECURITY DEFINER` RPC / view that returns `cost_cents = NULL` unless `is_owner()` (same pattern as `get_customer_items_summary`), and point `fetchProducts` at it. Stop-gap: strip `cost_cents` server-side for non-owners — but prefer the RPC/view (don't trust the client).
+
+### Flag 2 — legacy `"Customers can update own data"` policy has no `WITH CHECK`
+
+**Issue:** Migration `00002_rls_policies.sql` created:
+```sql
+CREATE POLICY "Customers can update own data" ON customers
+  FOR UPDATE USING (user_id = auth.uid());
+```
+It was never dropped in a later migration, has **no `WITH CHECK`** and **no column restriction**, and `customers.user_id` still exists. If any portal/customer auth user has `customers.user_id = auth.uid()` populated, they could `UPDATE customers SET price_list_id = <any list> WHERE id = <own row>` and **self-assign a cheaper price list** (price-list selection drives order pricing). The modern portal links users via the `customer_accounts` join table, so `user_id` may be NULL for portal users — exploitability depends on production data.
+
+**Severity:** Medium (pricing-integrity / privilege), data-state dependent.
+
+**Proper fix (one-liner migration):**
+```sql
+DROP POLICY IF EXISTS "Customers can update own data" ON customers;
+```
+If self-service customer edits are ever needed, re-add with a strict `WITH CHECK` pinning immutable fields (at minimum `price_list_id`, `user_id`, and pricing columns unchanged). Before applying, audit live policies: `SELECT polname FROM pg_policies WHERE tablename='customers';` (migration-in-repo ≠ migration-applied).
+
+### Related hardening already applied (June 2026)
+
+The PostgREST `.or()` filter in `fetchProducts`/`fetchProductCount` (`services/products.ts`) was interpolating the raw search term unquoted (a filter-injection footgun). It now quotes each value and strips `"`/`\`, matching the safe `buildSearchOr`/`escapeForOrValue` pattern in `services/orders.ts`. Consider extracting that escape into a shared `services/searchFilter.ts` so the orders/customers/products search paths can't drift.

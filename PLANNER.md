@@ -1196,3 +1196,30 @@ CREATE TABLE customer_accounts (
   - `src/pages/Orders.tsx`, `Products.tsx`, `Customers.tsx`, `Invoices.tsx`, `AuditLog.tsx`
   - `src/components/analytics/tabs/ProductsTab.tsx`, `CustomersTab.tsx`, `OrdersTab.tsx`
   - `src/i18n/locales/nl.json`, `en.json` - Added `analytics.export` key
+
+---
+
+## June 2026 — UI/UX & Price-List Usability batch
+
+### Document / Orders / PDF polish ✅
+- **Document preview fit-to-page**: `DocumentGenerator.tsx` and `SoldProductsTemplate.tsx` now render the PDF preview via `BlobProvider` + an `<iframe>` with `#toolbar=0&navpanes=0&view=Fit` (replacing `PDFViewer`), so the whole A4 page is visible without scrolling on desktop and mobile. Added loading/error fallbacks. The Download/Print/Email paths (separate `pdf().toBlob()`) are unchanged.
+- **Orders table**: first column merged to show order number + customer name + item count (WooCommerce-style); the standalone Customer column was removed (order-number sort kept). Date display switched to `formatDateShort` ("15 jun 2026").
+- **Status filter counts**: the Orders status dropdown shows per-status counts (`Pending payment (352)`) via a new `getOrderStatusCounts()` reusing the existing `get_order_stats_by_status` RPC (global counts, no migration).
+- **Client-facing documents — order number removed**: the internal order number was removed from the top meta of Invoice, Proforma and Credit Note. The Payment Reminder now references the **invoice number** (reference box + "Vermeld bij betaling" line) instead of the order number — added optional `invoiceNumber` to `InvoiceData`, resolved for reminders in `buildInvoiceData` via `fetchLatestDocumentForOrder(..., 'invoice')` with a WC fallback. Order Confirmation and Packing Slip keep the order number.
+- **Mobile modal button overflow**: applied a consistent `flex-wrap` + `flex-1 min-w-0` rule to modal footers that overflowed on narrow screens — `SoldProductsTemplate`, `ExportMenu`, `ConfirmDialog`, `SendDocumentModal`, `PortalCreateForm`.
+- **Files**: `components/documents/DocumentGenerator.tsx`, `SoldProductsTemplate.tsx`, `InvoiceTemplate.tsx`, `ProformaTemplate.tsx`, `CreditNoteTemplate.tsx`, `PaymentReminderTemplate.tsx`, `SendDocumentModal.tsx`; `components/ui/ExportMenu.tsx`, `ConfirmDialog.tsx`; `components/customers/PortalCreateForm.tsx`; `pages/Orders.tsx`; `services/orders.ts`, `services/documents.ts`; `i18n/*`.
+
+### Price-List Usability ✅
+Goal: build and manage price lists without Excel, and manage which customers use a list — all from the list page. (Excel import flow left untouched. No DB migration — all tables/columns already existed; the price-lists routes stay owner-only via `OwnerRoute`.)
+
+- **View (eye) icon**: `PriceLists.tsx` table now has an Eye action that opens the list detail (the name link is kept).
+- **In-app product picker** (`components/priceLists/PriceListProductPicker.tsx`): "Add products" button on the detail page opens a large searchable modal.
+  - Server-side debounced search (`fetchProducts`, limit 50) by **name and product ID** (SKU/barcode too). To support product-ID search, `product_code` was added to the `fetchProducts`/`fetchProductCount` `.or()` filters (and those filters were hardened — see Security note below).
+  - Select products, then expand to edit a **selling price per available unit type** (kg/piece/zak/doos) prefilled from the product's defaults, with **read-only cost + live gross-margin %** (owner-only page) and a per-product VAT override (inherit / 0 / 9 / 21).
+  - "Add (n)" reuses the existing `upsertPriceListItems()` (upsert on `price_list_id,product_id,unit_type`) — one `price_list_items` row per unit priced; re-adding updates instead of duplicating. Selections persist across searches via a `seenProducts` ref.
+  - Note: price lists store **selling price + VAT only** (no per-list cost); cost stays a product property and is shown read-only for margin insight — the picker never mutates the product.
+- **Customer assignment** (`components/priceLists/PriceListCustomers.tsx`): a card on the detail page lists customers currently on the list (names link to `/customers/:id`), each removable; an "Add customers" modal (searchable, multi-select) assigns them. A customer can only have one list, so adding one already on another list **moves** them, shown with an amber "will be moved" warning before commit.
+  - New service fns in `services/priceLists.ts`: `fetchCustomersByPriceList` (capped `.limit(1000)`), `assignCustomersToPriceList`, `removeCustomerFromPriceList`.
+- **Reviewed** by the UI/UX, Security, Performance and Code-Review agents; actionable findings applied (mobile grid widths, touch targets/focus rings, `.or()` injection hardening, customer-fetch cap).
+- **Files Added**: `components/priceLists/PriceListProductPicker.tsx`, `components/priceLists/PriceListCustomers.tsx`.
+- **Files Modified**: `pages/PriceLists.tsx`, `pages/PriceListDetail.tsx`, `services/priceLists.ts`, `services/products.ts`, `i18n/locales/nl.json`, `en.json` (`priceLists.picker.*`, `priceLists.customers.*`, `priceLists.detail.addProducts`).
