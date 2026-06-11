@@ -25,7 +25,7 @@ import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
 import type { OrderStatus, PaymentMethod } from '../types'
 import type { OrderWithItems } from '../services/orders'
-import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders } from '../services/orders'
+import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders, getOrderStatusCounts } from '../services/orders'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
 import { fetchSendCountsByOrder } from '../services/documentEmail'
 import SortableTh from '../components/ui/SortableTh'
@@ -38,7 +38,7 @@ import BulkActionsBar from '../components/orders/BulkActionsBar'
 import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
 import { orderExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
-import { formatPrice, formatDate } from '../utils/format'
+import { formatPrice, formatDateShort } from '../utils/format'
 
 export default function Orders() {
   const { t } = useTranslation()
@@ -57,6 +57,7 @@ export default function Orders() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null)
   const [documentInfo, setDocumentInfo] = useState<Map<string, OrderDocumentInfo>>(new Map())
   const [sendInfo, setSendInfo] = useState<Record<string, { total: number; sent: number; failed: number }>>({})
+  const [statusCounts, setStatusCounts] = useState<Record<string, number> & { total: number }>({ total: 0 })
 
   // Read URL params on mount to apply filters (e.g. ?status=pending_payment)
   // and redirect legacy ?new=1 links to the new editor route.
@@ -136,6 +137,9 @@ export default function Orders() {
     }
     // Phase 5: one query for every order's send-status indicator
     fetchSendCountsByOrder().then(setSendInfo).catch(console.error)
+    // WC-style per-status counts for the status filter dropdown. Refetched when
+    // the orders list changes so they stay fresh after completing/cancelling.
+    getOrderStatusCounts().then(setStatusCounts).catch(console.error)
   }, [orders])
 
   useEffect(() => { setSelectedIds(new Set()) }, [filters, searchQuery])
@@ -240,13 +244,13 @@ export default function Orders() {
           <div className="relative">
             <select value={filters.status || ''} onChange={e => handleStatusFilter(e.target.value as OrderStatus | '')}
               className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
-              <option value="">{t('orders.allStatus')}</option>
-              <option value="draft">{t('orders.status.draft')}</option>
-              <option value="pending_payment">{t('orders.status.pending_payment')}</option>
-              <option value="on_hold">{t('orders.status.on_hold')}</option>
-              <option value="completed">{t('orders.status.completed')}</option>
-              <option value="cancelled">{t('orders.status.cancelled')}</option>
-              <option value="refunded">{t('orders.status.refunded')}</option>
+              <option value="">{t('orders.allStatus')} ({statusCounts.total})</option>
+              <option value="draft">{t('orders.status.draft')} ({statusCounts.draft ?? 0})</option>
+              <option value="pending_payment">{t('orders.status.pending_payment')} ({statusCounts.pending_payment ?? 0})</option>
+              <option value="on_hold">{t('orders.status.on_hold')} ({statusCounts.on_hold ?? 0})</option>
+              <option value="completed">{t('orders.status.completed')} ({statusCounts.completed ?? 0})</option>
+              <option value="cancelled">{t('orders.status.cancelled')} ({statusCounts.cancelled ?? 0})</option>
+              <option value="refunded">{t('orders.status.refunded')} ({statusCounts.refunded ?? 0})</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
@@ -321,8 +325,7 @@ export default function Orders() {
                     <input type="checkbox" checked={selectedIds.size === filteredOrders.length && filteredOrders.length > 0} onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
                   </th>
-                  <SortableTh sortKey="order_number" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.orderNumber')}</SortableTh>
-                  <SortableTh sortKey="customer"     current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.customer')}</SortableTh>
+                  <SortableTh sortKey="order_number" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.orderColumn')}</SortableTh>
                   <SortableTh sortKey="order_date"   current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('common.date')}</SortableTh>
                   <SortableTh sortKey="status"       current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('common.status')}</SortableTh>
                   <SortableTh sortKey="invoice"      current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.invoice')}</SortableTh>
@@ -346,23 +349,18 @@ export default function Orders() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0">
                             <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="font-semibold text-slate-900 dark:text-white">{order.order_number}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-300 truncate">{order.customer?.company_name || '-'}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-slate-400" />
-                          <span className="text-slate-700 dark:text-slate-300">{order.customer?.company_name || '-'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400"><Calendar className="w-4 h-4" />{formatDate(order.order_date)}</div>
+                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400"><Calendar className="w-4 h-4" />{formatDateShort(order.order_date)}</div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -477,7 +475,7 @@ export default function Orders() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(order.order_date)} · {order.items?.length || 0} items</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{formatDateShort(order.order_date)} · {order.items?.length || 0} items</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-semibold text-green-600 dark:text-green-400">{formatPrice(order.total)}</p>

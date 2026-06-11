@@ -776,3 +776,21 @@ export async function getOrderStats(): Promise<{
 
   return stats
 }
+
+// Per-status order counts for the status-filter dropdown (WooCommerce-style
+// `Pending (12)`). Reuses the same server RPC as getOrderStats so there's no
+// extra migration; returns a raw map keyed by the exact status value plus a
+// `total`. Counts are global (across all orders), matching how WC's status
+// tabs behave — they are not narrowed by the other active filters.
+export async function getOrderStatusCounts(): Promise<Record<string, number> & { total: number }> {
+  const { data, error } = await supabase.rpc('get_order_stats_by_status')
+  if (error) throw error
+
+  const counts: Record<string, number> & { total: number } = { total: 0 }
+  for (const row of data || []) {
+    const count = Number(row.count)
+    counts[row.status as string] = (counts[row.status as string] || 0) + count
+    counts.total += count
+  }
+  return counts
+}

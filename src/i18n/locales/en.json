@@ -434,6 +434,7 @@
     "editOrder": "Edit Order",
     "orderDetails": "Order Details",
     "orderNumber": "Order Number",
+    "orderColumn": "Order / Customer",
     "orderDate": "Order Date",
     "customer": "Customer",
     "selectCustomer": "Select Customer",

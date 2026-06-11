@@ -434,6 +434,7 @@
     "editOrder": "Bestelling bewerken",
     "orderDetails": "Bestelgegevens",
     "orderNumber": "Bestelnummer",
+    "orderColumn": "Bestelling / Klant",
     "orderDate": "Besteldatum",
     "customer": "Klant",
     "selectCustomer": "Selecteer klant",
