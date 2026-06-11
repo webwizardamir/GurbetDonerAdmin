@@ -22,8 +22,12 @@ export async function fetchProducts(filters: ProductFilters = {}): Promise<Produ
       .order('name', { ascending: true })
 
     if (filters.search) {
+      // Quote each value and strip `"`/`\` so commas/parens in the term are
+      // treated literally and can't inject extra PostgREST `.or()` nodes
+      // (same hardening as services/orders.ts buildSearchOr).
+      const q = filters.search.replace(/["\\]/g, '')
       query = query.or(
-        `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`
+        `name.ilike."%${q}%",sku.ilike."%${q}%",barcode.ilike."%${q}%",product_code.ilike."%${q}%"`
       )
     }
 
@@ -86,8 +90,9 @@ export async function fetchProductCount(filters: ProductFilters = {}): Promise<n
     .select('id', { count: 'exact', head: true })
 
   if (filters.search) {
+    const q = filters.search.replace(/["\\]/g, '')
     query = query.or(
-      `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`
+      `name.ilike."%${q}%",sku.ilike."%${q}%",barcode.ilike."%${q}%",product_code.ilike."%${q}%"`
     )
   }
 

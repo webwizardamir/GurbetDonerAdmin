@@ -847,6 +847,7 @@
       "itemsCount_other": "{{count}} items",
       "downloadTemplate": "Download template",
       "importItems": "Import items",
+      "addProducts": "Add products",
       "noItems": "No prices on this list yet",
       "deletedProduct": "Deleted product",
       "inheritTax": "from product",
@@ -861,6 +862,33 @@
         "tax": "VAT",
         "actions": "Actions"
       }
+    },
+    "picker": {
+      "title": "Add products to price list",
+      "searchPlaceholder": "Search by name or product ID...",
+      "searchHint": "Showing first {{count}} results — refine your search.",
+      "noResults": "No products found",
+      "alreadyInList": "On list",
+      "vat": "VAT",
+      "inheritVat": "from product",
+      "unit": "Unit",
+      "cost": "Cost",
+      "price": "Price",
+      "margin": "Margin",
+      "add": "Add ({{count}})",
+      "nothingToAdd": "Enter at least one price for the selected products."
+    },
+    "customers": {
+      "title": "Customers on this price list",
+      "none": "No customers assigned to this list yet.",
+      "add": "Add customers",
+      "addTitle": "Add customers to price list",
+      "remove": "Remove from list",
+      "confirmRemove": "Remove {{name}} from this price list?",
+      "searchPlaceholder": "Search customers by name...",
+      "noResults": "No customers found",
+      "willBeMoved": "On: {{name}} — will be moved",
+      "confirmAdd": "Add ({{count}})"
     },
     "import": {
       "title": "Import items",

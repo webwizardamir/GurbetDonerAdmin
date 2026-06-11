@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  ChevronLeft, Loader2, AlertCircle, Upload, FileDown, Trash2, Package, Pencil, Check, X,
+  ChevronLeft, Loader2, AlertCircle, Upload, FileDown, Trash2, Package, Pencil, Check, X, Plus,
 } from 'lucide-react'
 import {
   fetchPriceListById,
@@ -13,6 +13,8 @@ import {
 } from '../services/priceLists'
 import { downloadCurrentPriceList } from '../utils/priceListTemplate'
 import PriceListImport from '../components/priceLists/PriceListImport'
+import PriceListProductPicker from '../components/priceLists/PriceListProductPicker'
+import PriceListCustomers from '../components/priceLists/PriceListCustomers'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
@@ -27,8 +29,15 @@ export default function PriceListDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [deleteItemTarget, setDeleteItemTarget] = useState<PriceListItemWithProduct | null>(null)
+
+  // (product_id::unit_type) pairs already on the list — drives the picker's badge.
+  const existingKeys = useMemo(
+    () => new Set(items.map(it => `${it.product_id}::${it.unit_type}`)),
+    [items],
+  )
 
   // Phase 6: sortable columns. Default = name asc.
   type PLIKey = 'product_code' | 'product_name' | 'unit' | 'price' | 'tax'
@@ -202,10 +211,17 @@ export default function PriceListDetail() {
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
             <Upload className="w-4 h-4" />
-            <span>{t('priceLists.detail.importItems')}</span>
+            <span className="hidden sm:inline">{t('priceLists.detail.importItems')}</span>
+          </button>
+          <button
+            onClick={() => setShowPicker(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('priceLists.detail.addProducts')}</span>
           </button>
         </div>
       </div>
@@ -231,13 +247,22 @@ export default function PriceListDetail() {
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <Package className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-3" />
             <p className="text-slate-600 dark:text-slate-400 mb-4">{t('priceLists.detail.noItems')}</p>
-            <button
-              onClick={() => setShowImport(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-            >
-              <Upload className="w-4 h-4" />
-              {t('priceLists.detail.importItems')}
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={() => setShowPicker(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                {t('priceLists.detail.addProducts')}
+              </button>
+              <button
+                onClick={() => setShowImport(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                {t('priceLists.detail.importItems')}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -360,12 +385,24 @@ export default function PriceListDetail() {
         )}
       </div>
 
+      {/* Customers assigned to this list */}
+      <PriceListCustomers priceListId={list.id} />
+
       {showImport && (
         <PriceListImport
           priceListId={list.id}
           priceListName={list.name}
           onClose={() => setShowImport(false)}
           onComplete={() => { setShowImport(false); void load() }}
+        />
+      )}
+
+      {showPicker && (
+        <PriceListProductPicker
+          priceListId={list.id}
+          existingKeys={existingKeys}
+          onClose={() => setShowPicker(false)}
+          onAdded={() => { void load() }}
         />
       )}
 

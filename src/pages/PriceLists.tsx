@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  Plus, Tags, Pencil, Trash2, Loader2, AlertCircle, CheckCircle2, X,
+  Plus, Tags, Pencil, Trash2, Loader2, AlertCircle, CheckCircle2, X, Eye,
 } from 'lucide-react'
 import {
   fetchPriceLists,
@@ -191,6 +191,13 @@ export default function PriceLists() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex items-center gap-1">
+                      <Link
+                        to={`/price-lists/${list.id}`}
+                        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        title={t('common.view')}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => handleEdit(list)}
                         className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"

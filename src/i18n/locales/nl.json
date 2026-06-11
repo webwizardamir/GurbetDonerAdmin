@@ -847,6 +847,7 @@
       "itemsCount_other": "{{count}} regels",
       "downloadTemplate": "Sjabloon downloaden",
       "importItems": "Items importeren",
+      "addProducts": "Producten toevoegen",
       "noItems": "Nog geen prijzen op deze lijst",
       "deletedProduct": "Verwijderd product",
       "inheritTax": "BTW van product",
@@ -861,6 +862,33 @@
         "tax": "BTW",
         "actions": "Acties"
       }
+    },
+    "picker": {
+      "title": "Producten toevoegen aan prijslijst",
+      "searchPlaceholder": "Zoek op naam of product-ID...",
+      "searchHint": "Eerste {{count}} resultaten getoond — verfijn je zoekopdracht.",
+      "noResults": "Geen producten gevonden",
+      "alreadyInList": "Al op lijst",
+      "vat": "BTW",
+      "inheritVat": "BTW van product",
+      "unit": "Eenheid",
+      "cost": "Kostprijs",
+      "price": "Prijs",
+      "margin": "Marge",
+      "add": "Toevoegen ({{count}})",
+      "nothingToAdd": "Vul minstens één prijs in voor de geselecteerde producten."
+    },
+    "customers": {
+      "title": "Klanten met deze prijslijst",
+      "none": "Nog geen klanten aan deze lijst toegewezen.",
+      "add": "Klanten toevoegen",
+      "addTitle": "Klanten toevoegen aan prijslijst",
+      "remove": "Verwijderen van lijst",
+      "confirmRemove": "{{name}} van deze prijslijst verwijderen?",
+      "searchPlaceholder": "Zoek klanten op naam...",
+      "noResults": "Geen klanten gevonden",
+      "willBeMoved": "Nu op: {{name}} — wordt verplaatst",
+      "confirmAdd": "Toevoegen ({{count}})"
     },
     "import": {
       "title": "Items importeren",

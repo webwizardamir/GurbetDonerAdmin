@@ -122,6 +122,51 @@ export async function fetchPriceListCustomerCounts(): Promise<Record<string, num
 }
 
 // ===========================================================================
+// Customer ↔ price-list assignment (one list per customer via customers.price_list_id)
+// ===========================================================================
+
+export interface PriceListCustomer {
+  id: string
+  company_name: string
+  contact_person: string | null
+  billing_city: string | null
+}
+
+/** Customers currently assigned to this price list. */
+export async function fetchCustomersByPriceList(priceListId: string): Promise<PriceListCustomer[]> {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, company_name, contact_person, billing_city')
+    .eq('price_list_id', priceListId)
+    .order('company_name', { ascending: true })
+    .limit(1000)
+  if (error) throw error
+  return (data as PriceListCustomer[]) ?? []
+}
+
+/**
+ * Assign one or more customers to this price list. Because a customer can only
+ * have a single list, this *moves* any customer already on another list.
+ */
+export async function assignCustomersToPriceList(customerIds: string[], priceListId: string): Promise<void> {
+  if (customerIds.length === 0) return
+  const { error } = await supabase
+    .from('customers')
+    .update({ price_list_id: priceListId })
+    .in('id', customerIds)
+  if (error) throw error
+}
+
+/** Unassign a customer from any price list (clears customers.price_list_id). */
+export async function removeCustomerFromPriceList(customerId: string): Promise<void> {
+  const { error } = await supabase
+    .from('customers')
+    .update({ price_list_id: null })
+    .eq('id', customerId)
+  if (error) throw error
+}
+
+// ===========================================================================
 // Bulk import (Excel)
 // ===========================================================================
 
