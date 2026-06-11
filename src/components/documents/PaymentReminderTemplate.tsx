@@ -420,8 +420,8 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
           <Text style={styles.invoiceRefTitle}>Betreft: Openstaande factuur</Text>
           <View style={styles.invoiceRefGrid}>
             <View style={styles.invoiceRefItem}>
-              <Text style={styles.invoiceRefLabel}>Ordernummer:</Text>
-              <Text style={styles.invoiceRefValue}>{data.order.orderNumber}</Text>
+              <Text style={styles.invoiceRefLabel}>Factuurnummer:</Text>
+              <Text style={styles.invoiceRefValue}>{data.invoiceNumber || '—'}</Text>
             </View>
             <View style={styles.invoiceRefItem}>
               <Text style={styles.invoiceRefLabel}>Orderdatum:</Text>
@@ -482,7 +482,7 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
               <Text style={styles.bankIban}>{data.company.iban}</Text>
             )}
             <Text style={styles.paymentRef}>
-              Vermeld bij betaling: {data.order.orderNumber}
+              Vermeld bij betaling: {data.invoiceNumber || '—'}
             </Text>
           </View>
         )}

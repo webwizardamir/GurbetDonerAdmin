@@ -430,10 +430,6 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Order:</Text>
-              <Text style={styles.metaValue}>{data.order.orderNumber}</Text>
-            </View>
-            <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Leverdatum:</Text>
               <Text style={styles.metaValueDue}>{formatDate(data.dueDate)}</Text>
             </View>

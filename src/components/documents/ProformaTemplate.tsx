@@ -375,10 +375,6 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Referentie:</Text>
-              <Text style={styles.metaValue}>{data.order.orderNumber}</Text>
-            </View>
-            <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Geldig tot:</Text>
               <Text style={styles.metaValueHighlight}>{getValidityDate(data.documentDate)}</Text>
             </View>

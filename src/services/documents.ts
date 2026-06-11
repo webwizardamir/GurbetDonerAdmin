@@ -259,6 +259,10 @@ export async function deleteDocument(id: string): Promise<void> {
 export interface InvoiceData {
   // Document info
   documentNumber: string
+  // The customer-facing invoice number for this order (app-generated, else a
+  // legacy WC number). Used by the payment reminder so it references the
+  // invoice the customer received, never the internal order number.
+  invoiceNumber?: string
   documentType: DocumentType
   documentDate: string
   dueDate: string
@@ -569,8 +573,19 @@ export async function buildInvoiceData(
     }
   }
 
+  // For the payment reminder the reference must show the invoice number the
+  // customer received — never the internal order number. Look up the order's
+  // invoice document, falling back to a legacy WC invoice number.
+  let invoiceNumber: string | undefined
+  if (documentType === 'payment_reminder') {
+    const invoiceDoc = await fetchLatestDocumentForOrder(orderId, 'invoice')
+    invoiceNumber = invoiceDoc?.document_number
+      || (order.woo_invoice_number ? String(order.woo_invoice_number) : undefined)
+  }
+
   return {
     documentNumber: '', // Will be set when generating
+    invoiceNumber,
     documentType,
     documentDate: orderDate.toISOString().split('T')[0],
     dueDate: dueDate.toISOString().split('T')[0],

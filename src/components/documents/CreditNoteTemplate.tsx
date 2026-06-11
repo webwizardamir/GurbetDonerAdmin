@@ -424,10 +424,6 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
               <Text style={styles.metaLabel}>Creditnotadatum:</Text>
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Betreft order:</Text>
-              <Text style={styles.metaValueHighlight}>{data.order.orderNumber}</Text>
-            </View>
           </View>
         </View>
 
