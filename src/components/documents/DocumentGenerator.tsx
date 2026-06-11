@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { pdf } from '@react-pdf/renderer'
-import { PDFViewer } from '@react-pdf/renderer'
+import { BlobProvider } from '@react-pdf/renderer'
 import {
   X,
   Download,
@@ -222,9 +222,27 @@ export default function DocumentGenerator({
             </div>
           ) : showPreview && invoiceData ? (
             <div className="h-full">
-              <PDFViewer width="100%" height="100%" showToolbar={false}>
-                {getDocumentTemplate(documentType, invoiceData)}
-              </PDFViewer>
+              <BlobProvider document={getDocumentTemplate(documentType, invoiceData)}>
+                {({ url, loading: blobLoading, error: blobError }) =>
+                  blobError ? (
+                    <div className="flex items-center justify-center h-full p-6 text-sm text-red-700 dark:text-red-300">
+                      Voorbeeld kon niet worden geladen
+                    </div>
+                  ) : blobLoading || !url ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+                    </div>
+                  ) : (
+                    // #view=Fit makes the browser PDF viewer show the whole page
+                    // (no zoom/scroll); toolbar/navpanes hidden for a clean preview.
+                    <iframe
+                      title="document-preview"
+                      src={`${url}#toolbar=0&navpanes=0&view=Fit`}
+                      className="w-full h-full border-0"
+                    />
+                  )
+                }
+              </BlobProvider>
             </div>
           ) : invoiceData ? (
             <div className="p-6 space-y-6">

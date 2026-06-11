@@ -51,7 +51,7 @@ export default function ConfirmDialog({
         <div className="p-5">
           <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">{message}</p>
         </div>
-        <div className="flex items-center justify-end gap-2 p-5 border-t border-slate-200 dark:border-slate-700">
+        <div className="flex flex-wrap items-center justify-end gap-2 p-5 border-t border-slate-200 dark:border-slate-700">
           <button
             onClick={onCancel}
             className="px-4 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"

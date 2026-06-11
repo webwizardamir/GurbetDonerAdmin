@@ -125,13 +125,13 @@ export default function PortalCreateForm({
         </div>
       </div>
 
-      <div className="flex items-center gap-3 pt-2">
+      <div className="flex flex-wrap items-center gap-3 pt-2">
         <button type="submit" disabled={actionLoading}
-          className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+          className="flex-1 min-w-0 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
           {actionLoading ? (<><Loader2 className="w-4 h-4 animate-spin" />{t('portal.access.creating')}</>) : t('portal.access.enable')}
         </button>
         <button type="button" onClick={onCancel}
-          className="px-6 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium rounded-xl transition-colors">
+          className="shrink-0 px-6 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium rounded-xl transition-colors">
           {t('common.cancel')}
         </button>
       </div>

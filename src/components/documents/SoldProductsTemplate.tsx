@@ -6,7 +6,7 @@ import {
   Text,
   StyleSheet,
   pdf,
-  PDFViewer,
+  BlobProvider,
 } from '@react-pdf/renderer'
 import {
   X,
@@ -623,9 +623,26 @@ export default function SoldProductsPDF({
         <div className="flex-1 overflow-hidden">
           {showPreview ? (
             <div className="h-full">
-              <PDFViewer width="100%" height="100%" showToolbar={false}>
-                {renderDoc()}
-              </PDFViewer>
+              <BlobProvider document={renderDoc()}>
+                {({ url, loading: blobLoading, error: blobError }) =>
+                  blobError ? (
+                    <div className="flex items-center justify-center h-full p-6 text-sm text-red-700 dark:text-red-300">
+                      Voorbeeld kon niet worden geladen
+                    </div>
+                  ) : blobLoading || !url ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+                    </div>
+                  ) : (
+                    // #view=Fit shows the whole page without zoom/scroll.
+                    <iframe
+                      title="sold-products-preview"
+                      src={`${url}#toolbar=0&navpanes=0&view=Fit`}
+                      className="w-full h-full border-0"
+                    />
+                  )
+                }
+              </BlobProvider>
             </div>
           ) : (
             <div className="p-6 space-y-6">
@@ -672,28 +689,28 @@ export default function SoldProductsPDF({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowPreview(!showPreview)}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              className="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
             >
-              <Eye className="w-4 h-4" />
+              <Eye className="w-4 h-4 shrink-0" />
               {showPreview ? 'Verbergen' : 'Preview'}
             </button>
 
             <button
               onClick={handlePrint}
               disabled={generating}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+              className="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-4 h-4 shrink-0" />
               Print
             </button>
 
             <button
               onClick={handleDownload}
               disabled={generating}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-colors"
+              className="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-colors"
             >
               {generating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

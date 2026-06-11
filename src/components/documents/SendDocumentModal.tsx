@@ -220,7 +220,7 @@ export default function SendDocumentModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-5 border-t border-slate-200 dark:border-slate-700">
+        <div className="flex flex-wrap items-center justify-end gap-2 p-5 border-t border-slate-200 dark:border-slate-700">
           {done ? (
             <button onClick={onClose} className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors">
               {t('common.close')}
