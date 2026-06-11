@@ -23,7 +23,9 @@ interface PriceListProductPickerProps {
 // margin insight — the picker never writes back to the product.
 interface UnitRow {
   unitType: UnitType
-  priceCents: number
+  // The product's existing default price for this unit, or null when the product
+  // has no price for it — the user can still set one for the list.
+  priceCents: number | null
   costCents: number
 }
 
@@ -35,12 +37,26 @@ interface Draft {
   prices: Partial<Record<UnitType, string>>
 }
 
+// Always return all four unit types so a price can be set for the list even when
+// the product itself has no price for that unit (e.g. it only sells per piece).
+// Units the product already prices are prefilled; the rest start blank.
 function unitRowsFor(p: Product): UnitRow[] {
-  const ups = (p.unit_prices ?? []).filter(u => u.price != null)
-  const rows: UnitRow[] = ups.length > 0
-    ? ups.map(u => ({ unitType: u.unit_type, priceCents: u.price ?? 0, costCents: u.cost_cents ?? p.cost_cents ?? 0 }))
-    : [{ unitType: p.unit_type, priceCents: p.base_price, costCents: p.cost_cents ?? 0 }]
-  return rows.sort((a, b) => ALL_UNITS.indexOf(a.unitType) - ALL_UNITS.indexOf(b.unitType))
+  const byUnit = new Map<UnitType, { price: number | null; cost: number }>()
+  for (const u of p.unit_prices ?? []) {
+    byUnit.set(u.unit_type, { price: u.price ?? null, cost: u.cost_cents ?? p.cost_cents ?? 0 })
+  }
+  // The product's own default unit carries base_price when it has no unit_prices row.
+  if (!byUnit.has(p.unit_type)) {
+    byUnit.set(p.unit_type, { price: p.base_price, cost: p.cost_cents ?? 0 })
+  }
+  return ALL_UNITS.map(ut => {
+    const found = byUnit.get(ut)
+    return {
+      unitType: ut,
+      priceCents: found ? found.price : null,
+      costCents: found ? found.cost : 0,
+    }
+  })
 }
 
 const centsToEuroStr = (cents: number) => (cents / 100).toFixed(2).replace('.', ',')
@@ -99,7 +115,7 @@ export default function PriceListProductPicker({
       for (const p of products) {
         if (next.has(p.id)) continue
         const prices: Partial<Record<UnitType, string>> = {}
-        for (const r of unitRowsFor(p)) prices[r.unitType] = centsToEuroStr(r.priceCents)
+        for (const r of unitRowsFor(p)) prices[r.unitType] = r.priceCents != null ? centsToEuroStr(r.priceCents) : ''
         next.set(p.id, { selected: false, tax: '', prices })
         changed = true
       }
@@ -278,7 +294,7 @@ export default function PriceListProductPicker({
                               {t(`products.form.unitTypes.${r.unitType}`)}
                             </span>
                             <span className="text-right w-14 sm:w-20 text-sm text-slate-500 dark:text-slate-400 tabular-nums">
-                              {formatPrice(r.costCents)}
+                              {r.costCents > 0 ? formatPrice(r.costCents) : '—'}
                             </span>
                             <div className="w-20 sm:w-28 relative">
                               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
