@@ -30,7 +30,8 @@ interface OverviewData {
   kpis: KPIData | null
 }
 
-export function useOverviewAnalytics(dateRange: DateRange) {
+export function useOverviewAnalytics(dateRange: DateRange, statuses: string[] = []) {
+  const statusKey = statuses.join(',')
   const [state, setState] = useState<OverviewData>({
     loading: true,
     error: null,
@@ -49,12 +50,12 @@ export function useOverviewAnalytics(dateRange: DateRange) {
       const { start, end } = dateRange
 
       const [revenueData, ordersByStatus, paymentBreakdown, topCustomers, topProducts, kpis] = await Promise.all([
-        getRevenueByDay(start, end),
-        getOrdersByStatus(start, end),
-        getRevenueByPaymentMethod(start, end),
-        getTopCustomers(start, end, 10),
-        getTopProducts(start, end, 10),
-        getKPIs(start, end),
+        getRevenueByDay(start, end, statuses),
+        getOrdersByStatus(start, end, statuses),
+        getRevenueByPaymentMethod(start, end, statuses),
+        getTopCustomers(start, end, 10, statuses),
+        getTopProducts(start, end, 10, statuses),
+        getKPIs(start, end, statuses),
       ])
 
       setState({
@@ -74,7 +75,8 @@ export function useOverviewAnalytics(dateRange: DateRange) {
         error: err instanceof Error ? err.message : 'Failed to load analytics',
       }))
     }
-  }, [dateRange.start, dateRange.end])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange.start, dateRange.end, statusKey])
 
   useEffect(() => {
     fetchData()

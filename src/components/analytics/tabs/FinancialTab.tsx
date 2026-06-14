@@ -17,11 +17,12 @@ import { formatPercent, formatCount } from '../../../utils/format'
 
 interface FinancialTabProps {
   dateRange: DateRange
+  statuses?: string[]
 }
 
-export default function FinancialTab({ dateRange }: FinancialTabProps) {
+export default function FinancialTab({ dateRange, statuses = [] }: FinancialTabProps) {
   const { t } = useTranslation()
-  const { loading, error, summary, monthly, selectedYear, setYear } = useFinancialAnalytics(dateRange)
+  const { loading, error, summary, monthly, selectedYear, setYear } = useFinancialAnalytics(dateRange, statuses)
   const { colors } = useChartColors()
 
   const currentYear = new Date().getFullYear()

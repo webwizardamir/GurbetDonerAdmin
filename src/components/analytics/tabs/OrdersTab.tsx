@@ -21,6 +21,7 @@ import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '..
 
 interface OrdersTabProps {
   dateRange: DateRange
+  statuses?: string[]
 }
 
 type SortKey = 'orderNumber' | 'orderDate' | 'customerName' | 'status' | 'paymentMethod' | 'subtotal' | 'total' | 'totalCost' | 'profit' | 'profitMargin' | 'taxAmount'
@@ -28,9 +29,9 @@ type SortDir = 'asc' | 'desc'
 
 const STATUS_OPTIONS = ['draft', 'pending_payment', 'on_hold', 'completed', 'cancelled', 'refunded', 'delivered']
 
-export default function OrdersTab({ dateRange }: OrdersTabProps) {
+export default function OrdersTab({ dateRange, statuses = [] }: OrdersTabProps) {
   const { t } = useTranslation()
-  const { loading, error, orders } = useOrderAnalytics(dateRange)
+  const { loading, error, orders } = useOrderAnalytics(dateRange, statuses)
   const [sortKey, setSortKey] = useState<SortKey>('orderDate')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [statusFilter, setStatusFilter] = useState('')

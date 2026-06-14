@@ -31,14 +31,15 @@ import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '..
 
 interface CustomersTabProps {
   dateRange: DateRange
+  statuses?: string[]
 }
 
 type SortKey = 'companyName' | 'totalRevenue' | 'totalProfit' | 'profitMargin' | 'orderCount' | 'avgOrderValue' | 'totalTax' | 'lastOrderDate'
 type SortDir = 'asc' | 'desc'
 
-export default function CustomersTab({ dateRange }: CustomersTabProps) {
+export default function CustomersTab({ dateRange, statuses = [] }: CustomersTabProps) {
   const { t } = useTranslation()
-  const { loading, error, customers } = useCustomerAnalytics(dateRange)
+  const { loading, error, customers } = useCustomerAnalytics(dateRange, statuses)
   const { colors } = useChartColors()
   const [sortKey, setSortKey] = useState<SortKey>('totalRevenue')
   const [sortDir, setSortDir] = useState<SortDir>('desc')

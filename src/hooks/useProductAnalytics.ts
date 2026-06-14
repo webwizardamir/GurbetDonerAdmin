@@ -17,7 +17,8 @@ interface ProductAnalyticsState {
   categories: CategoryRevenueRow[]
 }
 
-export function useProductAnalytics(dateRange: DateRange) {
+export function useProductAnalytics(dateRange: DateRange, statuses: string[] = []) {
+  const statusKey = statuses.join(',')
   const [state, setState] = useState<ProductAnalyticsState>({
     loading: true,
     error: null,
@@ -33,9 +34,9 @@ export function useProductAnalytics(dateRange: DateRange) {
       const { start, end } = dateRange
 
       const [products, slowMovers, categories] = await Promise.all([
-        getProductPerformance(start, end),
+        getProductPerformance(start, end, statuses),
         getSlowMovers(60),
-        getRevenueByCategoryFlat(start, end),
+        getRevenueByCategoryFlat(start, end, statuses),
       ])
 
       setState({
@@ -52,7 +53,8 @@ export function useProductAnalytics(dateRange: DateRange) {
         error: err instanceof Error ? err.message : 'Failed to load product analytics',
       }))
     }
-  }, [dateRange.start, dateRange.end])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange.start, dateRange.end, statusKey])
 
   useEffect(() => {
     fetchData()

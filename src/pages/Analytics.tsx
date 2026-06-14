@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useDateRange } from '../hooks/useDateRange'
 import DateRangePicker from '../components/analytics/DateRangePicker'
+import StatusFilter from '../components/analytics/StatusFilter'
 import OverviewTab from '../components/analytics/tabs/OverviewTab'
 
 const ProductsTab = lazy(() => import('../components/analytics/tabs/ProductsTab'))
@@ -40,6 +41,7 @@ export default function Analytics() {
   const { dateRange, dateRangeKey, setDateRange, dateRanges } = useDateRange()
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [statuses, setStatuses] = useState<string[]>([])
 
   // Redirect non-owners
   useEffect(() => {
@@ -97,6 +99,9 @@ export default function Analytics() {
             <RefreshCw className="w-4 h-4" />
           </button>
           {showDatePicker && (
+            <StatusFilter selected={statuses} onChange={setStatuses} />
+          )}
+          {showDatePicker && (
             <DateRangePicker
               currentKey={dateRangeKey}
               currentLabel={dateRange.label}
@@ -115,11 +120,11 @@ export default function Analytics() {
           </div>
         }
       >
-        {activeTab === 'overview' && <OverviewTab key={refreshKey} dateRange={dateRange} />}
-        {activeTab === 'products' && <ProductsTab key={refreshKey} dateRange={dateRange} />}
-        {activeTab === 'customers' && <CustomersTab key={refreshKey} dateRange={dateRange} />}
-        {activeTab === 'orders' && <OrdersTab key={refreshKey} dateRange={dateRange} />}
-        {activeTab === 'financial' && <FinancialTab key={refreshKey} dateRange={dateRange} />}
+        {activeTab === 'overview' && <OverviewTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
+        {activeTab === 'products' && <ProductsTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
+        {activeTab === 'customers' && <CustomersTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
+        {activeTab === 'orders' && <OrdersTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
+        {activeTab === 'financial' && <FinancialTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
         {activeTab === 'inventory' && <InventoryTab key={refreshKey} dateRange={dateRange} />}
       </Suspense>
     </div>

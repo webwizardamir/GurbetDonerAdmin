@@ -22,14 +22,15 @@ import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '..
 
 interface ProductsTabProps {
   dateRange: DateRange
+  statuses?: string[]
 }
 
 type SortKey = 'productName' | 'totalRevenue' | 'totalCogs' | 'totalProfit' | 'profitMargin' | 'totalQuantity' | 'orderCount' | 'abcClass'
 type SortDir = 'asc' | 'desc'
 
-export default function ProductsTab({ dateRange }: ProductsTabProps) {
+export default function ProductsTab({ dateRange, statuses = [] }: ProductsTabProps) {
   const { t } = useTranslation()
-  const { loading, error, products, slowMovers } = useProductAnalytics(dateRange)
+  const { loading, error, products, slowMovers } = useProductAnalytics(dateRange, statuses)
   const [sortKey, setSortKey] = useState<SortKey>('totalRevenue')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [search, setSearch] = useState('')

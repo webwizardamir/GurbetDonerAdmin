@@ -2,6 +2,7 @@
 // Uses server-side RPC functions for accurate aggregation (no row-limit issues).
 
 import { supabase } from './supabase'
+import { statusArg } from './analyticsHelpers'
 import type { PaymentMethod } from '../types'
 
 export interface RevenueDataPoint {
@@ -46,11 +47,13 @@ export interface MonthlyRow {
 // Get revenue data grouped by day (server-side RPC)
 export async function getRevenueByDay(
   startDate: string,
-  endDate: string
+  endDate: string,
+  statuses?: string[] | null
 ): Promise<RevenueDataPoint[]> {
   const { data, error } = await supabase.rpc('get_revenue_by_day', {
     p_start: startDate,
     p_end: endDate,
+    ...statusArg(statuses),
   })
 
   if (error) throw error
@@ -69,11 +72,13 @@ export async function getRevenueByDay(
 // Get revenue breakdown by payment method (server-side RPC)
 export async function getRevenueByPaymentMethod(
   startDate: string,
-  endDate: string
+  endDate: string,
+  statuses?: string[] | null
 ): Promise<PaymentMethodBreakdown[]> {
   const { data, error } = await supabase.rpc('get_revenue_by_payment_method', {
     p_start: startDate,
     p_end: endDate,
+    ...statusArg(statuses),
   })
 
   if (error) throw error
@@ -90,11 +95,13 @@ export async function getRevenueByPaymentMethod(
 // Get financial summary with previous period comparison (server-side RPC)
 export async function getFinancialSummary(
   startDate: string,
-  endDate: string
+  endDate: string,
+  statuses?: string[] | null
 ): Promise<FinancialSummary> {
   const { data, error } = await supabase.rpc('get_financial_summary', {
     p_start: startDate,
     p_end: endDate,
+    ...statusArg(statuses),
   })
 
   if (error) throw error
@@ -123,9 +130,13 @@ export async function getFinancialSummary(
 }
 
 // Get monthly revenue/profit comparison for a given year (server-side RPC)
-export async function getMonthlyComparison(year: number): Promise<MonthlyRow[]> {
+export async function getMonthlyComparison(
+  year: number,
+  statuses?: string[] | null
+): Promise<MonthlyRow[]> {
   const { data, error } = await supabase.rpc('get_monthly_comparison', {
     p_year: year,
+    ...statusArg(statuses),
   })
 
   if (error) throw error

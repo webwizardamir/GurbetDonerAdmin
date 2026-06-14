@@ -11,7 +11,8 @@ interface CustomerAnalyticsState {
   customers: CustomerPerformanceRow[]
 }
 
-export function useCustomerAnalytics(dateRange: DateRange) {
+export function useCustomerAnalytics(dateRange: DateRange, statuses: string[] = []) {
+  const statusKey = statuses.join(',')
   const [state, setState] = useState<CustomerAnalyticsState>({
     loading: true,
     error: null,
@@ -22,7 +23,7 @@ export function useCustomerAnalytics(dateRange: DateRange) {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const customers = await getCustomerPerformance(dateRange.start, dateRange.end)
+      const customers = await getCustomerPerformance(dateRange.start, dateRange.end, statuses)
 
       setState({
         loading: false,
@@ -36,7 +37,8 @@ export function useCustomerAnalytics(dateRange: DateRange) {
         error: err instanceof Error ? err.message : 'Failed to load customer analytics',
       }))
     }
-  }, [dateRange.start, dateRange.end])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange.start, dateRange.end, statusKey])
 
   useEffect(() => {
     fetchData()

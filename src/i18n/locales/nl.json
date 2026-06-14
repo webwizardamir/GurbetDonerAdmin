@@ -673,6 +673,10 @@
     "revenueAndProfit": "Omzet & Winst",
     "exportCsv": "Exporteer CSV",
     "export": "Exporteren",
+    "statusFilter": {
+      "all": "Alle statussen",
+      "count": "{{count}} statussen"
+    },
     "tabs": {
       "overview": "Overzicht",
       "products": "Producten",

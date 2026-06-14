@@ -18,7 +18,8 @@ interface FinancialAnalyticsState {
   selectedYear: number
 }
 
-export function useFinancialAnalytics(dateRange: DateRange) {
+export function useFinancialAnalytics(dateRange: DateRange, statuses: string[] = []) {
+  const statusKey = statuses.join(',')
   const currentYear = new Date().getFullYear()
   const [state, setState] = useState<FinancialAnalyticsState>({
     loading: true,
@@ -36,9 +37,9 @@ export function useFinancialAnalytics(dateRange: DateRange) {
       const { start, end } = dateRange
 
       const [summary, monthly, categories] = await Promise.all([
-        getFinancialSummary(start, end),
-        getMonthlyComparison(state.selectedYear),
-        getRevenueByCategoryFlat(start, end),
+        getFinancialSummary(start, end, statuses),
+        getMonthlyComparison(state.selectedYear, statuses),
+        getRevenueByCategoryFlat(start, end, statuses),
       ])
 
       setState(prev => ({
@@ -56,7 +57,8 @@ export function useFinancialAnalytics(dateRange: DateRange) {
         error: err instanceof Error ? err.message : 'Failed to load financial analytics',
       }))
     }
-  }, [dateRange.start, dateRange.end, state.selectedYear])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange.start, dateRange.end, state.selectedYear, statusKey])
 
   useEffect(() => {
     fetchData()

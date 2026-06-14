@@ -2,6 +2,7 @@
 // Uses server-side RPC functions to avoid PostgREST 1000-row limit
 
 import { supabase } from './supabase'
+import { statusArg } from './analyticsHelpers'
 
 export interface TopProduct {
   productName: string
@@ -53,12 +54,14 @@ export interface LowStockProduct {
 export async function getTopProducts(
   startDate: string,
   endDate: string,
-  limit = 10
+  limit = 10,
+  statuses?: string[] | null
 ): Promise<TopProduct[]> {
   const { data, error } = await supabase.rpc('get_top_products', {
     p_start_date: startDate,
     p_end_date: endDate,
     p_limit: limit,
+    ...statusArg(statuses),
   })
 
   if (error) throw error
@@ -81,11 +84,13 @@ export async function getTopProducts(
 // Get product performance with ABC classification using server-side RPC
 export async function getProductPerformance(
   startDate: string,
-  endDate: string
+  endDate: string,
+  statuses?: string[] | null
 ): Promise<ProductPerformanceRow[]> {
   const { data, error } = await supabase.rpc('get_product_performance', {
     p_start_date: startDate,
     p_end_date: endDate,
+    ...statusArg(statuses),
   })
 
   if (error) throw error
@@ -155,11 +160,13 @@ export async function getSlowMovers(daysSinceLastSale = 60): Promise<SlowMoverRo
 // Get revenue breakdown by category using server-side RPC
 export async function getRevenueByCategoryFlat(
   startDate: string,
-  endDate: string
+  endDate: string,
+  statuses?: string[] | null
 ): Promise<CategoryRevenueRow[]> {
   const { data, error } = await supabase.rpc('get_revenue_by_category', {
     p_start_date: startDate,
     p_end_date: endDate,
+    ...statusArg(statuses),
   })
 
   if (error) throw error

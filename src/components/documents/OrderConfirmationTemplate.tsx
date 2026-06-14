@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 3,
     paddingHorizontal: 5,
     borderBottomWidth: 0.5,

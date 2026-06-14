@@ -1,6 +1,7 @@
 // Dashboard KPIs, today's orders, and summary statistics
 
 import { supabase } from './supabase'
+import { statusArg } from './analyticsHelpers'
 
 // --- New dashboard interfaces (today-focused) ---
 
@@ -111,11 +112,13 @@ export interface DashboardStats {
 // Get KPIs with period comparison (server-side RPC to avoid row limits)
 export async function getKPIs(
   startDate: string,
-  endDate: string
+  endDate: string,
+  statuses?: string[] | null
 ): Promise<KPIData> {
   const { data, error } = await supabase.rpc('get_kpis', {
     p_start: startDate,
     p_end: endDate,
+    ...statusArg(statuses),
   })
 
   if (error) throw error

@@ -2,6 +2,7 @@
 // Uses server-side RPC functions to avoid PostgREST 1000-row limit
 
 import { supabase } from './supabase'
+import { statusArg } from './analyticsHelpers'
 
 export interface OrderStatusCount {
   status: string
@@ -28,11 +29,13 @@ export interface OrderPerformanceRow {
 // Get order counts by status using server-side RPC
 export async function getOrdersByStatus(
   startDate: string,
-  endDate: string
+  endDate: string,
+  statuses?: string[] | null
 ): Promise<OrderStatusCount[]> {
   const { data, error } = await supabase.rpc('get_orders_by_status', {
     p_start_date: startDate,
     p_end_date: endDate,
+    ...statusArg(statuses),
   })
 
   if (error) throw error
@@ -47,11 +50,13 @@ export async function getOrdersByStatus(
 // Get detailed order performance table using server-side RPC
 export async function getOrderPerformance(
   startDate: string,
-  endDate: string
+  endDate: string,
+  statuses?: string[] | null
 ): Promise<OrderPerformanceRow[]> {
   const { data, error } = await supabase.rpc('get_order_performance', {
     p_start_date: startDate,
     p_end_date: endDate,
+    ...statusArg(statuses),
   })
 
   if (error) throw error

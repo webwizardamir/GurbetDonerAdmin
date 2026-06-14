@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 3,
     paddingHorizontal: 5,
     borderBottomWidth: 0.5,
@@ -189,12 +190,12 @@ const styles = StyleSheet.create({
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
   },
-  colNum: { width: 20, textAlign: 'right', paddingRight: 5 },
-  colDesc: { width: 165 },
-  colUnitPrice: { width: 70, textAlign: 'right' },
-  colQty: { width: 55, textAlign: 'right' },
-  colExclVat: { width: 70, textAlign: 'right' },
-  colVatAmt: { width: 55, textAlign: 'right' },
+  colNum: { width: 18, textAlign: 'right', paddingRight: 6 },
+  colDesc: { flex: 1, paddingRight: 8 },
+  colUnitPrice: { width: 70, textAlign: 'right', paddingRight: 6 },
+  colQty: { width: 55, textAlign: 'right', paddingRight: 6 },
+  colExclVat: { width: 70, textAlign: 'right', paddingRight: 6 },
+  colVatAmt: { width: 55, textAlign: 'right', paddingRight: 6 },
   colInclVat: { width: 70, textAlign: 'right' },
 
   totalsSection: {

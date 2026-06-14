@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 3,
     paddingHorizontal: 5,
     borderBottomWidth: 0.5,
@@ -181,14 +182,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
   },
   // Column widths
-  colNum: { width: 20, textAlign: 'right', paddingRight: 5 },
-  colDesc: { width: 130 },
-  colNote: { width: 60 },
-  colUnitPrice: { width: 60, textAlign: 'right' },
-  colQty: { width: 50, textAlign: 'right' },
-  colExclVat: { width: 65, textAlign: 'right' },
-  colVatAmt: { width: 50, textAlign: 'right' },
-  colInclVat: { width: 65, textAlign: 'right' },
+  colNum: { width: 18, textAlign: 'right', paddingRight: 6 },
+  colDesc: { flex: 1, paddingRight: 8 },
+  colNote: { width: 62, paddingRight: 6 },
+  colUnitPrice: { width: 62, textAlign: 'right', paddingRight: 6 },
+  colQty: { width: 52, textAlign: 'right', paddingRight: 6 },
+  colExclVat: { width: 66, textAlign: 'right', paddingRight: 6 },
+  colVatAmt: { width: 50, textAlign: 'right', paddingRight: 6 },
+  colInclVat: { width: 66, textAlign: 'right' },
 
   // ===========================================
   // BOTTOM SECTION

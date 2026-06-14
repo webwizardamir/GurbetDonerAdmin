@@ -3,6 +3,18 @@
 import { supabase } from './supabase'
 
 /**
+ * Build the optional `p_statuses` argument for the analytics RPCs.
+ * An empty/absent selection means "use the RPC default" (every order except
+ * cancelled/refunded). We OMIT the key entirely in that case (rather than
+ * sending null) so the call still resolves against an older DB that predates
+ * the p_statuses parameter — keeping default analytics working even if the
+ * migration hasn't been applied yet. Only an explicit selection requires it.
+ */
+export function statusArg(statuses?: string[] | null): { p_statuses?: string[] } {
+  return statuses && statuses.length > 0 ? { p_statuses: statuses } : {}
+}
+
+/**
  * Process an array in chunks to avoid Supabase `.in()` limits.
  * Supabase/PostgREST can struggle with very large IN lists,
  * so we cap each batch at 500 IDs.

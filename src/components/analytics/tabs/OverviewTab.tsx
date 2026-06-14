@@ -24,9 +24,10 @@ import { formatQuantityWithUnit, formatPercent, formatCount, formatQuantity } fr
 
 interface OverviewTabProps {
   dateRange: DateRange
+  statuses?: string[]
 }
 
-export default function OverviewTab({ dateRange }: OverviewTabProps) {
+export default function OverviewTab({ dateRange, statuses = [] }: OverviewTabProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const {
@@ -38,7 +39,7 @@ export default function OverviewTab({ dateRange }: OverviewTabProps) {
     topCustomers,
     topProducts,
     kpis,
-  } = useOverviewAnalytics(dateRange)
+  } = useOverviewAnalytics(dateRange, statuses)
 
   return (
     <div className="space-y-6">
