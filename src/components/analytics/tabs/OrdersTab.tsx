@@ -27,14 +27,11 @@ interface OrdersTabProps {
 type SortKey = 'orderNumber' | 'orderDate' | 'customerName' | 'status' | 'paymentMethod' | 'subtotal' | 'total' | 'totalCost' | 'profit' | 'profitMargin' | 'taxAmount'
 type SortDir = 'asc' | 'desc'
 
-const STATUS_OPTIONS = ['draft', 'pending_payment', 'on_hold', 'completed', 'cancelled', 'refunded', 'delivered']
-
 export default function OrdersTab({ dateRange, statuses = [] }: OrdersTabProps) {
   const { t } = useTranslation()
   const { loading, error, orders } = useOrderAnalytics(dateRange, statuses)
   const [sortKey, setSortKey] = useState<SortKey>('orderDate')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
-  const [statusFilter, setStatusFilter] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('')
   const [search, setSearch] = useState('')
 
@@ -47,14 +44,11 @@ export default function OrdersTab({ dateRange, statuses = [] }: OrdersTabProps) 
         o.customerName.toLowerCase().includes(q)
       )
     }
-    if (statusFilter) {
-      result = result.filter(o => o.status === statusFilter)
-    }
     if (paymentFilter) {
       result = result.filter(o => o.paymentMethod === paymentFilter)
     }
     return result
-  }, [orders, search, statusFilter, paymentFilter])
+  }, [orders, search, paymentFilter])
 
   const sortedOrders = useMemo(() => {
     return [...filteredOrders].sort((a, b) => {
@@ -178,16 +172,6 @@ export default function OrdersTab({ dateRange, statuses = [] }: OrdersTabProps) 
               className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 w-full sm:w-48 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="flex-1 sm:flex-none px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300"
-          >
-            <option value="">{t('orders.allStatus')}</option>
-            {STATUS_OPTIONS.map(s => (
-              <option key={s} value={s}>{t(`orders.status.${s}`)}</option>
-            ))}
-          </select>
           <select
             value={paymentFilter}
             onChange={e => setPaymentFilter(e.target.value)}
