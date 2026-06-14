@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   colNum: { width: 18, textAlign: 'right', paddingRight: 6 },
   colDesc: { flex: 1, paddingRight: 8 },
   colUnitPrice: { width: 70, textAlign: 'right', paddingRight: 6 },
-  colQty: { width: 55, textAlign: 'right', paddingRight: 6 },
+  colQty: { width: 55, textAlign: 'left', paddingLeft: 4 },
   colExclVat: { width: 70, textAlign: 'right', paddingRight: 6 },
   colVatAmt: { width: 55, textAlign: 'right', paddingRight: 6 },
   colInclVat: { width: 70, textAlign: 'right' },
