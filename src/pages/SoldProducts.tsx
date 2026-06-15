@@ -18,11 +18,13 @@ import {
   TrendingUp,
   ShoppingCart,
   Euro,
+  Route,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSoldProducts, type DateRangeKey } from '../hooks/useSoldProducts'
 import { formatPrice, formatQuantityWithUnit } from '../utils/format'
 import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
+import DeliveryRoutePanel from '../components/route/DeliveryRoutePanel'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
 
@@ -68,7 +70,12 @@ export default function SoldProducts() {
   })
 
   const [showPDF, setShowPDF] = useState(false)
+  const [showRoute, setShowRoute] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // The route is a single-day plan. The Sold Products date filter allows ranges;
+  // only enable routing when one day is selected.
+  const isSingleDay = dateRange.start === dateRange.end
   const [showCustomDate, setShowCustomDate] = useState(false)
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
@@ -187,6 +194,17 @@ export default function SoldProducts() {
             title="Print / Export PDF"
           >
             <Printer className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+          </button>
+
+          {/* Plan delivery route */}
+          <button
+            onClick={() => setShowRoute(true)}
+            disabled={items.length === 0 || !isSingleDay}
+            title={!isSingleDay ? t('route.singleDayOnly') : t('route.planRoute')}
+            className="inline-flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+          >
+            <Route className="w-4 h-4" />
+            {t('route.planRoute')}
           </button>
 
           {/* PDF Export */}
@@ -543,6 +561,16 @@ export default function SoldProducts() {
           onClose={() => setShowPDF(false)}
           groups={groupBy !== 'none' ? groups : undefined}
           groupByLabel={groupBy !== 'none' ? t(`soldProducts.groupBy.${groupBy}`) : undefined}
+        />
+      )}
+
+      {/* Delivery Route Panel */}
+      {showRoute && (
+        <DeliveryRoutePanel
+          day={dateRange.start}
+          dayLabel={dateRange.label}
+          city={cityFilter || undefined}
+          onClose={() => setShowRoute(false)}
         />
       )}
     </div>

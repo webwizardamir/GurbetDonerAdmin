@@ -251,6 +251,75 @@ export default function CompanyTab({ formData, onChange }: CompanyTabProps) {
         </div>
       </div>
 
+      {/* Delivery Depot (route start/return point) */}
+      <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
+        <h4 className="text-md font-medium text-slate-900 dark:text-white mb-1">
+          {t('settings.documents.company.depotTitle')}
+        </h4>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          {t('settings.documents.company.depotDescription')}
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {t('settings.documents.company.depotLabel')}
+            </label>
+            <input
+              type="text"
+              value={formData.depot_label || ''}
+              onChange={e => onChange('depot_label', e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Magazijn"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {t('settings.documents.company.streetAddress')}
+            </label>
+            <input
+              type="text"
+              value={formData.depot_street || ''}
+              onChange={e => onChange('depot_street', e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {t('settings.documents.company.postalCode')}
+            </label>
+            <input
+              type="text"
+              value={formData.depot_postal_code || ''}
+              onChange={e => onChange('depot_postal_code', e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {t('settings.documents.company.city')}
+            </label>
+            <input
+              type="text"
+              value={formData.depot_city || ''}
+              onChange={e => onChange('depot_city', e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {t('settings.documents.company.country')}
+            </label>
+            <input
+              type="text"
+              value={formData.depot_country || 'NL'}
+              onChange={e => onChange('depot_country', e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Logo Upload */}
       <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
         <h4 className="text-md font-medium text-slate-900 dark:text-white mb-4">

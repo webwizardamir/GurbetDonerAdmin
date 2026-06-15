@@ -120,6 +120,11 @@ export interface Customer {
   // Pricing
   price_list_id?: string | null
   price_list?: PriceList | null
+  // Geocode cache (delivery route) — see migration 00055
+  latitude?: number | null
+  longitude?: number | null
+  geocoded_at?: string | null
+  geocode_status?: 'ok' | 'zero_results' | 'error' | null
   // Other
   internal_notes?: string
   created_by?: string
@@ -481,6 +486,15 @@ export interface DocumentSettings {
   // Email (Phase 5)
   email_bcc?: string | null
   email_templates?: EmailTemplateMap | null
+
+  // Delivery depot (route start/return point) — see migration 00055
+  depot_label?: string
+  depot_street?: string
+  depot_postal_code?: string
+  depot_city?: string
+  depot_country?: string
+  depot_latitude?: number | null
+  depot_longitude?: number | null
 
   // Timestamps
   created_at: string
