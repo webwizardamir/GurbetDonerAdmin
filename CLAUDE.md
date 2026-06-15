@@ -419,6 +419,48 @@ Pass to `ExportMenu`:
 
 ---
 
+## Delivery Route (Bezorgroute)
+
+Launched from **Sold Products** ("Route plannen"): turns the selected day/range's orders into an
+optimized delivery route + a truck loading order, via Google Maps through a Supabase Edge Function.
+
+### Pieces
+- **Edge Function `supabase/functions/plan-delivery-route/index.ts`** — the only thing that talks to
+  Google. Verifies the caller JWT + role (`owner`/`shop_manager`), **derives the candidate stops
+  server-side** from `{ delivery_date, end_date?, city? }` (never trusts client-sent addresses),
+  geocodes **cache-misses only** (writes lat/lng back to `customers`), then calls the Directions API.
+  Modes: `auto` (optimize:true), `manual` (optimize:false, exact order), `mixed` (pin/lock via
+  greedy nearest-neighbour into fixed slots). >23 stops → greedy fallback + `truncatedOptimization`.
+  Secret: `GOOGLE_MAPS_API_KEY` (the key must NOT be HTTP-referrer-restricted — server-side calls
+  send no referrer; use API restrictions instead).
+- **`services/route.ts`** — `fetchRouteOrders` (display data: one stop per customer, merged
+  manifests), `planDeliveryRoute` / `computeLegsForOrder` (invoke the edge fn + merge), address
+  resolution (shipping if `shipping_same_as_billing=false` & set, else billing).
+- **`hooks/useDeliveryRoute.ts`** — manual hook (no React Query). Selection/locks/order/departure are
+  **local state**; only `optimize()` / `applyManualOrder()` hit Google. `loadingOrder` is derived =
+  `[...route.stops].reverse()`.
+- **`components/route/*`** — `DeliveryRoutePanel` (centered modal), `DeliveryStopList` (select,
+  move-up/down + drag, pin/lock, manifest), `LoadingOrderList` (reverse, read-only).
+- **`components/documents/DeliveryRouteTemplate.tsx`** — Dutch PDF (cyan brand): page 1 bezorglijst,
+  page 2 inlaadvolgorde.
+- **Depot** lives on the `document_settings` singleton (`depot_*` cols, migration 00055), edited in
+  **Settings → Company → Bezorgdepot**; geocoded once and cached.
+
+### Rules
+1. **Loading order = exact reverse of delivery order** (last delivery loaded first / deepest). v1 has
+   no weights/volume.
+2. **Foreign customers auto-excluded.** Resolved delivery country ≠ NL → the stop starts **unticked**
+   (in "Niet meegenomen", amber "Buitenland" badge) since it's export/freight, not a van delivery.
+   Re-tickable. (`isLocalStop` in the hook.)
+3. **Geocode cache** on `customers` (lat/lng/geocoded_at/geocode_address_hash/geocode_status); a
+   trigger nulls it when the address changes so it re-geocodes only that row.
+4. **Driver hand-off**: "Deel met chauffeur" opens WhatsApp with the Google Maps directions link
+   (works with no app access); the share text + "Copy" text are **always Dutch** (like the PDFs),
+   regardless of app language. PDFs render in Dutch only.
+5. `google-map-api.txt` (repo root) holds the live key in plaintext — **gitignored, never commit it.**
+
+---
+
 ## Key Business Rules
 
 ### Stock Management
