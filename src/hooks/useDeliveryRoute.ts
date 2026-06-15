@@ -27,6 +27,13 @@ export interface DisplayStop extends RouteStopInput {
   etaSeconds?: number
 }
 
+// A stop counts as "local" (van-deliverable) when its country is NL or unset.
+// Foreign customers are export/freight orders and start deselected.
+function isLocalStop(s: RouteStopInput): boolean {
+  const c = (s.address.country || '').trim().toUpperCase()
+  return c === '' || c === 'NL' || c === 'NEDERLAND' || c === 'NETHERLANDS'
+}
+
 function arrayMove<T>(arr: T[], from: number, to: number): T[] {
   const next = arr.slice()
   const [moved] = next.splice(from, 1)
@@ -68,7 +75,11 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
       .then(stops => {
         if (cancelled) return
         setCandidates(stops)
-        setSelectedIds(new Set(stops.map(s => s.customerId)))
+        // Default-select local (NL) stops only. Foreign customers are export/
+        // freight orders, not van deliveries — they start unticked (visible in
+        // "Niet meegenomen") so a Paris order never bloats a local route, but
+        // can still be added back for a cross-border run.
+        setSelectedIds(new Set(stops.filter(isLocalStop).map(s => s.customerId)))
         setLocks(new Map())
         setManualOrder(stops.map(s => s.customerId))
       })
