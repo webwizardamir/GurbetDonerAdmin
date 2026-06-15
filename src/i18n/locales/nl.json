@@ -1013,6 +1013,8 @@
     "openInGoogleMaps": "Open in Google Maps",
     "shareWithDriver": "Deel met chauffeur",
     "selectAtLeastOne": "Selecteer minstens één stop",
+    "foreignOrder": "Buitenland",
+    "foreignOrderHint": "Buitenlandse order — standaard niet op de bezorgroute",
     "printPdf": "PDF afdrukken",
     "copy": "Kopiëren",
     "geocodeFailed_one": "{{count}} adres kon niet op de kaart worden gevonden",

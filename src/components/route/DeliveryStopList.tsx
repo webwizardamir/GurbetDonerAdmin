@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   ChevronDown, ChevronRight, GripVertical, Lock,
-  MapPinOff, MoreVertical, ArrowUp, ArrowDown, StickyNote, RotateCcw,
+  MapPinOff, MoreVertical, ArrowUp, ArrowDown, StickyNote, RotateCcw, Globe,
 } from 'lucide-react'
 import type { DisplayStop } from '../../hooks/useDeliveryRoute'
 import type { LockPosition } from '../../services/route'
@@ -31,6 +31,11 @@ export default function DeliveryStopList({
   const toggleManifest = (id: string) => setOpenManifest(prev => {
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next
   })
+
+  const isForeign = (s: DisplayStop) => {
+    const c = (s.address.country || '').trim().toUpperCase()
+    return c !== '' && c !== 'NL' && c !== 'NEDERLAND' && c !== 'NETHERLANDS'
+  }
 
   return (
     <div className="space-y-2">
@@ -180,10 +185,15 @@ export default function DeliveryStopList({
               {excluded.map(stop => (
                 <li key={stop.customerId} className="flex items-center gap-2 px-4 py-2">
                   <input type="checkbox" checked={false} onChange={() => onToggle(stop.customerId)}
-                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
-                  <span className="text-sm text-slate-600 dark:text-slate-400 truncate flex-1">{stop.customerName}</span>
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500 shrink-0" />
+                  <span className="text-sm text-slate-600 dark:text-slate-400 truncate min-w-0 flex-1">{stop.customerName}</span>
+                  {isForeign(stop) && (
+                    <span className="shrink-0 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" title={t('route.foreignOrderHint')}>
+                      <Globe className="w-2.5 h-2.5" /> {t('route.foreignOrder')}
+                    </span>
+                  )}
                   <button onClick={() => onToggle(stop.customerId)}
-                    className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-green-600">
+                    className="shrink-0 inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-green-600">
                     <RotateCcw className="w-3 h-3" /> {t('route.restore')}
                   </button>
                 </li>

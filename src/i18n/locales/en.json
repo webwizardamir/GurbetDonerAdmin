@@ -1013,6 +1013,8 @@
     "openInGoogleMaps": "Open in Google Maps",
     "shareWithDriver": "Share with driver",
     "selectAtLeastOne": "Select at least one stop",
+    "foreignOrder": "Foreign",
+    "foreignOrderHint": "Foreign order — excluded from the delivery route by default",
     "printPdf": "Print PDF",
     "copy": "Copy",
     "geocodeFailed_one": "{{count}} address could not be located on the map",

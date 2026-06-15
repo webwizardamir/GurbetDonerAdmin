@@ -28,13 +28,20 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
   const allSelected = r.selectedCount === r.candidateCount && r.candidateCount > 0
   const canExport = !!r.route && r.route.stops.length > 0 && !r.dirty
 
+  // Driver-facing text is always Dutch (like the PDFs), regardless of app
+  // language. The range label is English, so format the date(s) in Dutch.
+  const dutchDate = () => {
+    const f = (d: string) => new Date(d).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
+    return endDay && endDay !== day ? `${f(day)} t/m ${f(endDay)}` : f(day)
+  }
+
   const routeText = () => {
     if (!r.route) return ''
     const lines = r.route.stops.map(s => {
       const eta = etaClock(r.route!.departureTime, s.etaSeconds)
       return `${s.sequence}. ${s.customerName} — ${s.address.oneLine}${eta ? `  (${eta})` : ''}`
     })
-    return `${t('route.title')} — ${dayLabel}\n${lines.join('\n')}`
+    return `Bezorgroute ${dutchDate()}\n${lines.join('\n')}`
   }
 
   const handleCopy = () => {
@@ -52,7 +59,8 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
   // directions link works for anyone — send it over WhatsApp.
   const shareWhatsApp = () => {
     if (!r.route) return
-    const text = `${t('route.title')} — ${dayLabel}\n${t('route.openInGoogleMaps')}: ${mapsUrl()}`
+    const n = r.route.stops.length
+    const text = `Bezorgroute ${dutchDate()} (${n} stops)\nRoute openen in Google Maps:\n${mapsUrl()}`
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
   }
 
