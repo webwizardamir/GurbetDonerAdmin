@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import i18n from '../i18n'
 import {
   fetchRouteOrders,
   planDeliveryRoute,
@@ -9,6 +10,8 @@ import {
   type LockPosition,
   type RouteLock,
 } from '../services/route'
+
+const t = (k: string) => i18n.t(k)
 
 // A candidate stop enriched with the user's selection/lock state and (once a
 // route has been computed) the planned sequence + leg metrics.
@@ -37,7 +40,7 @@ function arrayMove<T>(arr: T[], from: number, to: number): T[] {
  * Google — only the explicit optimize() / applyManualOrder() actions do, so we
  * never burn billed API calls on a checkbox click.
  */
-export function useDeliveryRoute(day: string, city?: string) {
+export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
   const [candidates, setCandidates] = useState<RouteStopInput[]>([])
   const [loadingCandidates, setLoadingCandidates] = useState(false)
   const [candidatesError, setCandidatesError] = useState<string | null>(null)
@@ -61,7 +64,7 @@ export function useDeliveryRoute(day: string, city?: string) {
     setRoute(null)
     setError(null)
     setDirty(false)
-    fetchRouteOrders({ day, city })
+    fetchRouteOrders({ day, endDay, city })
       .then(stops => {
         if (cancelled) return
         setCandidates(stops)
@@ -69,10 +72,10 @@ export function useDeliveryRoute(day: string, city?: string) {
         setLocks(new Map())
         setManualOrder(stops.map(s => s.customerId))
       })
-      .catch(e => { if (!cancelled) setCandidatesError(e instanceof Error ? e.message : 'Kon orders niet laden') })
+      .catch(e => { if (!cancelled) setCandidatesError(e instanceof Error ? e.message : t('route.error')) })
       .finally(() => { if (!cancelled) setLoadingCandidates(false) })
     return () => { cancelled = true }
-  }, [day, city])
+  }, [day, endDay, city])
 
   const departureTimeIso = useMemo(
     () => (departureHHmm ? `${day}T${departureHHmm}:00` : null),
@@ -124,7 +127,7 @@ export function useDeliveryRoute(day: string, city?: string) {
   // ---- plan actions (the only paths that hit Google) -----------------------
   const optimize = useCallback(async () => {
     const selected = [...selectedIds]
-    if (selected.length === 0) { setError('Selecteer minstens één stop'); return }
+    if (selected.length === 0) { setError(t('route.selectAtLeastOne')); return }
     setPlanning(true)
     setError(null)
     try {
@@ -132,7 +135,7 @@ export function useDeliveryRoute(day: string, city?: string) {
         .filter(([id]) => selectedIds.has(id))
         .map(([customerId, position]) => ({ customerId, position }))
       const result = await planDeliveryRoute(
-        { day, city, selectedCustomerIds: selected, lockedStops, departureTime: departureTimeIso, returnToDepot },
+        { day, endDay, city, selectedCustomerIds: selected, lockedStops, departureTime: departureTimeIso, returnToDepot },
         candidates,
       )
       setRoute(result)
@@ -142,30 +145,30 @@ export function useDeliveryRoute(day: string, city?: string) {
       setManualOrder([...plannedIds, ...rest])
       setDirty(false)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Route plannen mislukt')
+      setError(e instanceof Error ? e.message : t('route.error'))
     } finally {
       setPlanning(false)
     }
-  }, [selectedIds, locks, day, city, departureTimeIso, returnToDepot, candidates, manualOrder])
+  }, [selectedIds, locks, day, endDay, city, departureTimeIso, returnToDepot, candidates, manualOrder])
 
   const applyManualOrder = useCallback(async () => {
     const order = manualOrder.filter(id => selectedIds.has(id))
-    if (order.length === 0) { setError('Selecteer minstens één stop'); return }
+    if (order.length === 0) { setError(t('route.selectAtLeastOne')); return }
     setPlanning(true)
     setError(null)
     try {
       const result = await computeLegsForOrder(
-        { day, city, order, departureTime: departureTimeIso, returnToDepot },
+        { day, endDay, city, order, departureTime: departureTimeIso, returnToDepot },
         candidates,
       )
       setRoute(result)
       setDirty(false)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Volgorde toepassen mislukt')
+      setError(e instanceof Error ? e.message : t('route.error'))
     } finally {
       setPlanning(false)
     }
-  }, [manualOrder, selectedIds, day, city, departureTimeIso, returnToDepot, candidates])
+  }, [manualOrder, selectedIds, day, endDay, city, departureTimeIso, returnToDepot, candidates])
 
   // ---- derived display state ----------------------------------------------
   const { includedStops, excludedStops } = useMemo(() => {

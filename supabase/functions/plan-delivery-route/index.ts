@@ -37,6 +37,7 @@ interface RouteLock { customerId: string; position: LockPosition }
 
 interface PlanRequest {
   delivery_date: string
+  end_date?: string
   city?: string
   mode?: 'auto' | 'manual' | 'mixed'
   selectedCustomerIds?: string[]
@@ -85,13 +86,17 @@ serve(async (req) => {
     if (!body.delivery_date || !/^\d{4}-\d{2}-\d{2}$/.test(body.delivery_date)) {
       return json({ error: 'invalid delivery_date (YYYY-MM-DD)' }, 400)
     }
+    if (body.end_date && !/^\d{4}-\d{2}-\d{2}$/.test(body.end_date)) {
+      return json({ error: 'invalid end_date (YYYY-MM-DD)' }, 400)
+    }
+    const endDate = body.end_date && body.end_date >= body.delivery_date ? body.end_date : body.delivery_date
     const mode = body.mode ?? 'auto'
     const returnToDepot = body.returnToDepot ?? true
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
 
-    // 3. Derive candidate stops server-side
-    const candidates = await deriveCandidates(admin, body.delivery_date, body.city)
+    // 3. Derive candidate stops server-side (one stop per customer across the range)
+    const candidates = await deriveCandidates(admin, body.delivery_date, endDate, body.city)
     if (candidates.length === 0) {
       return json(emptyResponse(mode, body.departureTime ?? null, returnToDepot), 200)
     }
@@ -209,7 +214,7 @@ serve(async (req) => {
 // ===========================================================================
 // Candidate derivation
 // ===========================================================================
-async function deriveCandidates(admin: ReturnType<typeof createClient>, day: string, city?: string): Promise<Candidate[]> {
+async function deriveCandidates(admin: ReturnType<typeof createClient>, startDay: string, endDay: string, city?: string): Promise<Candidate[]> {
   const { data, error } = await admin
     .from('orders')
     .select(`
@@ -220,7 +225,8 @@ async function deriveCandidates(admin: ReturnType<typeof createClient>, day: str
         latitude, longitude, geocode_address_hash, geocode_status
       )
     `)
-    .eq('order_date', day)
+    .gte('order_date', startDay)
+    .lte('order_date', endDay)
     .not('status', 'in', '(cancelled,refunded)')
   if (error) throw error
 

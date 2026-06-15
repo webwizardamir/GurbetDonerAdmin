@@ -72,10 +72,6 @@ export default function SoldProducts() {
   const [showPDF, setShowPDF] = useState(false)
   const [showRoute, setShowRoute] = useState(false)
   const [copied, setCopied] = useState(false)
-
-  // The route is a single-day plan. The Sold Products date filter allows ranges;
-  // only enable routing when one day is selected.
-  const isSingleDay = dateRange.start === dateRange.end
   const [showCustomDate, setShowCustomDate] = useState(false)
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
@@ -199,8 +195,8 @@ export default function SoldProducts() {
           {/* Plan delivery route */}
           <button
             onClick={() => setShowRoute(true)}
-            disabled={items.length === 0 || !isSingleDay}
-            title={!isSingleDay ? t('route.singleDayOnly') : t('route.planRoute')}
+            disabled={items.length === 0}
+            title={t('route.planRoute')}
             className="inline-flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
           >
             <Route className="w-4 h-4" />
@@ -568,6 +564,7 @@ export default function SoldProducts() {
       {showRoute && (
         <DeliveryRoutePanel
           day={dateRange.start}
+          endDay={dateRange.end}
           dayLabel={dateRange.label}
           city={cityFilter || undefined}
           onClose={() => setShowRoute(false)}

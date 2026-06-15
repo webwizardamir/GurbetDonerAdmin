@@ -1011,6 +1011,8 @@
     "moveUp": "Move up",
     "moveDown": "Move down",
     "openInGoogleMaps": "Open in Google Maps",
+    "shareWithDriver": "Share with driver",
+    "selectAtLeastOne": "Select at least one stop",
     "printPdf": "Print PDF",
     "copy": "Copy",
     "geocodeFailed_one": "{{count}} address could not be located on the map",

@@ -1011,6 +1011,8 @@
     "moveUp": "Omhoog",
     "moveDown": "Omlaag",
     "openInGoogleMaps": "Open in Google Maps",
+    "shareWithDriver": "Deel met chauffeur",
+    "selectAtLeastOne": "Selecteer minstens één stop",
     "printPdf": "PDF afdrukken",
     "copy": "Kopiëren",
     "geocodeFailed_one": "{{count}} adres kon niet op de kaart worden gevonden",
