@@ -233,11 +233,12 @@ export default function DocumentGenerator({
                       <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
                     </div>
                   ) : (
-                    // #view=Fit makes the browser PDF viewer show the whole page
-                    // (no zoom/scroll); toolbar/navpanes hidden for a clean preview.
+                    // Show the viewer toolbar so the document opens at a readable
+                    // zoom and the user can zoom/print/scroll. (#view=Fit shrank
+                    // the whole page to fit and made it unreadable.)
                     <iframe
                       title="document-preview"
-                      src={`${url}#toolbar=0&navpanes=0&view=Fit`}
+                      src={`${url}#toolbar=1&navpanes=0`}
                       className="w-full h-full border-0"
                     />
                   )
