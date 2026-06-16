@@ -2,16 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  ChevronLeft, Loader2, AlertCircle, Upload, FileDown, Trash2, Package, Pencil, Check, X, Plus, SlidersHorizontal,
+  ChevronLeft, Loader2, AlertCircle, Upload, FileDown, Trash2, Package, Pencil, Plus,
 } from 'lucide-react'
 import {
   fetchPriceListById,
   fetchPriceListItems,
   deletePriceListItem,
-  updatePriceListItem,
-  resolveItemCostCents,
   type PriceListItemWithProduct,
 } from '../services/priceLists'
+import type { UnitType } from '../types'
 import { downloadCurrentPriceList } from '../utils/priceListTemplate'
 import PriceListImport from '../components/priceLists/PriceListImport'
 import PriceListProductPicker from '../components/priceLists/PriceListProductPicker'
@@ -33,7 +32,6 @@ export default function PriceListDetail() {
   const [showImport, setShowImport] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
-  const [deleteItemTarget, setDeleteItemTarget] = useState<PriceListItemWithProduct | null>(null)
   // Product id whose unit-prices are being edited (opens ProductUnitsEditor).
   const [unitsEditProductId, setUnitsEditProductId] = useState<string | null>(null)
 
@@ -43,74 +41,39 @@ export default function PriceListDetail() {
     [items],
   )
 
+  // One row per product: a product priced in several unit types shows as a
+  // single line you open (modal) to edit all its units — not one row per unit.
+  interface ProductGroup {
+    productId: string
+    product: PriceListItemWithProduct['product'] | undefined
+    items: PriceListItemWithProduct[]
+  }
+  const groups = useMemo<ProductGroup[]>(() => {
+    const m = new Map<string, ProductGroup>()
+    for (const it of items) {
+      let g = m.get(it.product_id)
+      if (!g) { g = { productId: it.product_id, product: it.product, items: [] }; m.set(it.product_id, g) }
+      g.items.push(it)
+    }
+    return Array.from(m.values())
+  }, [items])
+
+  // Sort the grouped rows by product code / name.
+  type PLIKey = 'product_code' | 'product_name'
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<PLIKey>('product_name', 'asc')
+  const sortedGroups = useMemo(() => sortBy(groups, {
+    product_code: g => g.product?.product_code ?? '',
+    product_name: g => g.product?.name ?? '',
+  }), [groups, sortBy])
+
   // All price-list items for the product being unit-edited.
   const unitsEditItems = useMemo(
     () => (unitsEditProductId ? items.filter(it => it.product_id === unitsEditProductId) : []),
     [items, unitsEditProductId],
   )
 
-  // Phase 6: sortable columns. Default = name asc.
-  type PLIKey = 'product_code' | 'product_name' | 'unit' | 'price' | 'tax'
-  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<PLIKey>('product_name', 'asc')
-  const sortedItems = useMemo(() => sortBy(items, {
-    product_code: it => it.product?.product_code ?? '',
-    product_name: it => it.product?.name ?? '',
-    unit:         it => it.unit_type,
-    price:        it => it.price_cents ?? 0,
-    tax:          it => it.tax_rate ?? -1,
-  }), [items, sortBy])
-
-  // Inline edit state. editingId = which row is being edited; editPrice / editTax
-  // are the staged string inputs (kept as strings so blank ↔ "use product BTW"
-  // round-trips cleanly).
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editPrice, setEditPrice] = useState('')
-  const [editTax, setEditTax] = useState('')
-  const [editError, setEditError] = useState<string | null>(null)
-  const [savingEdit, setSavingEdit] = useState(false)
-
-  const startEdit = (item: PriceListItemWithProduct) => {
-    setEditingId(item.id)
-    setEditPrice((item.price_cents / 100).toFixed(2).replace('.', ','))
-    setEditTax(item.tax_rate != null ? String(item.tax_rate) : '')
-    setEditError(null)
-  }
-
-  const cancelEdit = () => {
-    setEditingId(null)
-    setEditError(null)
-  }
-
-  const saveEdit = async (item: PriceListItemWithProduct) => {
-    const priceNum = Number(editPrice.replace(',', '.'))
-    if (!Number.isFinite(priceNum) || priceNum < 0) {
-      setEditError(t('priceLists.detail.invalidPrice'))
-      return
-    }
-    let taxValue: number | null = null
-    if (editTax.trim() !== '') {
-      const taxNum = Number(editTax.replace(',', '.'))
-      if (![0, 9, 21].includes(taxNum)) {
-        setEditError(t('priceLists.detail.invalidTax'))
-        return
-      }
-      taxValue = taxNum
-    }
-    setSavingEdit(true)
-    setEditError(null)
-    try {
-      await updatePriceListItem(item.id, {
-        price_cents: Math.round(priceNum * 100),
-        tax_rate: taxValue,
-      })
-      setEditingId(null)
-      await load()
-    } catch (e) {
-      setEditError((e as Error).message)
-    } finally {
-      setSavingEdit(false)
-    }
-  }
+  // Delete confirmation targets a whole product (all its unit rows).
+  const [deleteProductTarget, setDeleteProductTarget] = useState<ProductGroup | null>(null)
 
   const load = async () => {
     if (!id) return
@@ -134,17 +97,16 @@ export default function PriceListDetail() {
     void load()
   }, [id])
 
-  const handleDeleteItem = (item: PriceListItemWithProduct) => setDeleteItemTarget(item)
-
-  const confirmDeleteItem = async () => {
-    if (!deleteItemTarget) return
+  const confirmDeleteProduct = async () => {
+    if (!deleteProductTarget) return
     try {
-      await deletePriceListItem(deleteItemTarget.id)
+      // Remove every unit row for this product.
+      await Promise.all(deleteProductTarget.items.map(it => deletePriceListItem(it.id)))
       await load()
     } catch (e) {
       setError((e as Error).message)
     } finally {
-      setDeleteItemTarget(null)
+      setDeleteProductTarget(null)
     }
   }
 
@@ -244,13 +206,6 @@ export default function PriceListDetail() {
         </div>
       )}
 
-      {editError && (
-        <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-          <div className="text-sm text-red-700 dark:text-red-300">{editError}</div>
-        </div>
-      )}
-
       {/* Items table */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         {items.length === 0 ? (
@@ -281,146 +236,55 @@ export default function PriceListDetail() {
               <tr>
                 <SortableTh sortKey="product_code" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.detail.columns.productId')}</SortableTh>
                 <SortableTh sortKey="product_name" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.detail.columns.productName')}</SortableTh>
-                <SortableTh sortKey="unit"         current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.detail.columns.unit')}</SortableTh>
-                <SortableTh sortKey="price"        current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('priceLists.detail.columns.price')}</SortableTh>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.cost')}</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.margin')}</th>
-                <SortableTh sortKey="tax"          current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('priceLists.detail.columns.tax')}</SortableTh>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.units')}</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {sortedItems.map(item => {
-                const isEditing = editingId === item.id
-                return (
-                  <tr key={item.id} className={isEditing ? 'bg-purple-50/40 dark:bg-purple-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'}>
-                    <td className="px-4 py-3 font-mono text-sm text-slate-900 dark:text-white">
-                      {item.product?.product_code ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                      {item.product?.name ?? t('priceLists.detail.deletedProduct')}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                      {item.unit_type}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white tabular-nums font-medium">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={editPrice}
-                          onChange={e => setEditPrice(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') void saveEdit(item)
-                            else if (e.key === 'Escape') cancelEdit()
-                          }}
-                          autoFocus
-                          disabled={savingEdit}
-                          className="w-24 px-2 py-1 text-right bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                      ) : (
-                        formatPrice(item.price_cents)
-                      )}
-                    </td>
-                    {(() => {
-                      const cost = resolveItemCostCents(item)
-                      // Margin uses the staged price while editing so it updates live.
-                      const priceForMargin = isEditing
-                        ? Math.round((Number(editPrice.replace(',', '.')) || 0) * 100)
-                        : item.price_cents
-                      const margin = priceForMargin > 0 && cost > 0
-                        ? Math.round(((priceForMargin - cost) / priceForMargin) * 100)
-                        : null
-                      return (
-                        <>
-                          <td className="px-4 py-3 text-right text-sm text-slate-500 dark:text-slate-400 tabular-nums">
-                            {cost > 0 ? formatPrice(cost) : '—'}
-                          </td>
-                          <td className={`px-4 py-3 text-right text-sm tabular-nums ${
-                            margin == null ? 'text-slate-400 dark:text-slate-600' : margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                          }`}>
-                            {margin == null ? '—' : `${margin}%`}
-                          </td>
-                        </>
-                      )
-                    })()}
-                    <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">
-                      {isEditing ? (
-                        <select
-                          value={editTax}
-                          onChange={e => setEditTax(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') void saveEdit(item)
-                            else if (e.key === 'Escape') cancelEdit()
-                          }}
-                          disabled={savingEdit}
-                          className="w-24 px-2 py-1 text-right bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                        >
-                          <option value="">— {t('priceLists.detail.inheritTax')} —</option>
-                          <option value="0">0%</option>
-                          <option value="9">9%</option>
-                          <option value="21">21%</option>
-                        </select>
-                      ) : (
-                        item.tax_rate != null
-                          ? `${item.tax_rate}%`
-                          : <span className="text-slate-400 dark:text-slate-600 italic">{t('priceLists.detail.inheritTax')}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        {isEditing ? (
-                          <>
-                            <button
-                              onClick={() => void saveEdit(item)}
-                              disabled={savingEdit}
-                              className="p-1.5 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 disabled:opacity-50 transition-colors"
-                              title={t('common.save')}
-                            >
-                              {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                            </button>
-                            <button
-                              onClick={cancelEdit}
-                              disabled={savingEdit}
-                              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
-                              title={t('common.cancel')}
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => startEdit(item)}
-                              disabled={editingId !== null}
-                              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
-                              title={t('common.edit')}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => setUnitsEditProductId(item.product_id)}
-                              disabled={editingId !== null || !item.product}
-                              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
-                              title={t('priceLists.detail.editUnits')}
-                            >
-                              <SlidersHorizontal className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteItem(item)}
-                              disabled={editingId !== null}
-                              className="p-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 transition-colors"
-                              title={t('common.delete')}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
+              {sortedGroups.map(g => (
+                <tr
+                  key={g.productId}
+                  onClick={() => g.product && setUnitsEditProductId(g.productId)}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-700/40 cursor-pointer"
+                >
+                  <td className="px-4 py-3 font-mono text-sm text-slate-900 dark:text-white whitespace-nowrap">
+                    {g.product?.product_code ?? '—'}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                    {g.product?.name ?? t('priceLists.detail.deletedProduct')}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {g.items.map(it => (
+                        <span key={it.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                          <span className="text-slate-500 dark:text-slate-400">{t(`products.form.unitTypes.${it.unit_type as UnitType}`)}</span>
+                          <span className="font-medium tabular-nums">{formatPrice(it.price_cents)}</span>
+                          {it.tax_rate != null && <span className="text-slate-400 dark:text-slate-500">· {it.tax_rate}%</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        onClick={() => g.product && setUnitsEditProductId(g.productId)}
+                        disabled={!g.product}
+                        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                        title={t('common.edit')}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteProductTarget(g)}
+                        className="p-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title={t('common.delete')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
           </div>
@@ -458,13 +322,13 @@ export default function PriceListDetail() {
       )}
 
       <ConfirmDialog
-        open={!!deleteItemTarget}
+        open={!!deleteProductTarget}
         title={t('common.delete')}
-        message={t('priceLists.detail.confirmDeleteItem', { name: deleteItemTarget?.product?.name ?? '' })}
+        message={t('priceLists.detail.confirmDeleteItem', { name: deleteProductTarget?.product?.name ?? '' })}
         variant="danger"
         confirmLabel={t('common.delete')}
-        onConfirm={confirmDeleteItem}
-        onCancel={() => setDeleteItemTarget(null)}
+        onConfirm={confirmDeleteProduct}
+        onCancel={() => setDeleteProductTarget(null)}
       />
     </div>
   )

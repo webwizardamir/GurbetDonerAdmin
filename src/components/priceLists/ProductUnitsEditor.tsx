@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Save, AlertCircle } from 'lucide-react'
 import Modal from '../ui/Modal'
-import { upsertPriceListItems, type PriceListItemWithProduct } from '../../services/priceLists'
+import { upsertPriceListItems, deletePriceListItem, type PriceListItemWithProduct } from '../../services/priceLists'
 import type { UnitType } from '../../types'
 import { formatPrice } from '../../utils/format'
 
@@ -61,6 +61,13 @@ export default function ProductUnitsEditor({ priceListId, productItems, onClose,
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Existing price-list item id per unit, so a cleared unit can be deleted.
+  const existingItemByUnit = useMemo(() => {
+    const m = new Map<UnitType, string>()
+    for (const it of productItems) m.set(it.unit_type, it.id)
+    return m
+  }, [productItems])
+
   const handleSave = async () => {
     if (!productId) return
     const taxRate = tax === '' ? null : Number(tax)
@@ -69,17 +76,28 @@ export default function ProductUnitsEditor({ priceListId, productItems, onClose,
       if (cents == null || cents <= 0) return []
       return [{ product_id: productId, unit_type: u, price_cents: cents, tax_rate: taxRate }]
     })
-    if (rows.length === 0) {
+    // Units that were on the list but are now cleared → remove them.
+    const toDelete = ALL_UNITS.flatMap(u => {
+      const cents = euroStrToCents(prices[u] ?? '')
+      const existingId = existingItemByUnit.get(u)
+      return existingId && (cents == null || cents <= 0) ? [existingId] : []
+    })
+    if (rows.length === 0 && toDelete.length === 0) {
       setError(t('priceLists.units.nothingToSave'))
       return
     }
     setSaving(true)
     setError(null)
     try {
-      const result = await upsertPriceListItems(priceListId, rows)
-      if (result.errors.length > 0) {
-        setError(result.errors.join('; '))
-        return
+      if (rows.length > 0) {
+        const result = await upsertPriceListItems(priceListId, rows)
+        if (result.errors.length > 0) {
+          setError(result.errors.join('; '))
+          return
+        }
+      }
+      if (toDelete.length > 0) {
+        await Promise.all(toDelete.map(itemId => deletePriceListItem(itemId)))
       }
       onSaved()
       onClose()
