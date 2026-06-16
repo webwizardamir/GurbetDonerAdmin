@@ -522,6 +522,21 @@ function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFD
   )
 }
 
+// Build the sold-products Document element (grouped or flat) without the modal
+// chrome, so other flows (e.g. the Dagafsluiting batch) can render it to a blob.
+export function buildSoldProductsDocument(args: {
+  items: SoldProductItem[]
+  summary: SoldProductsResult['summary']
+  dateRange: DateRange
+  groups?: SoldProductsGroup[]
+  groupByLabel?: string
+}) {
+  const grouped = args.groups && args.groups.length > 0
+  return grouped
+    ? <SoldProductsGroupedPDFDocument groups={args.groups!} dateRange={args.dateRange} groupByLabel={args.groupByLabel ?? ''} />
+    : <SoldProductsPDFDocument items={args.items} summary={args.summary} dateRange={args.dateRange} />
+}
+
 interface SoldProductsPDFProps {
   items: SoldProductItem[]
   summary: SoldProductsResult['summary'] | null

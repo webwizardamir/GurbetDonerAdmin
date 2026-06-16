@@ -362,7 +362,10 @@ interface InvoiceTemplateProps {
   data: InvoiceData
 }
 
-export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
+// The invoice page body WITHOUT the <Document> wrapper, so it can be composed
+// into a multi-invoice document (CombinedInvoicesTemplate) as well as the
+// single-invoice InvoiceTemplate below.
+export function InvoicePage({ data }: InvoiceTemplateProps) {
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
   const isReverseCharge = !!data.customer.country && data.customer.country.trim().toUpperCase() !== 'NL'
 
@@ -383,8 +386,7 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
   if (data.customer.vatNumber) customerLines.push(`BTW: ${data.customer.vatNumber}`)
 
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
+    <Page size="A4" style={styles.page}>
         {/* ========== HEADER ========== */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -584,7 +586,14 @@ export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
             <Text style={styles.footerCenter}>{data.footerText}</Text>
           )}
         </View>
-      </Page>
+    </Page>
+  )
+}
+
+export function InvoiceTemplate({ data }: InvoiceTemplateProps) {
+  return (
+    <Document>
+      <InvoicePage data={data} />
     </Document>
   )
 }

@@ -19,11 +19,13 @@ import {
   ShoppingCart,
   Euro,
   Route,
+  ClipboardList,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSoldProducts, type DateRangeKey } from '../hooks/useSoldProducts'
 import { formatPrice, formatQuantityWithUnit } from '../utils/format'
 import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
+import DayCloseModal from '../components/documents/DayCloseModal'
 import DeliveryRoutePanel from '../components/route/DeliveryRoutePanel'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
@@ -71,6 +73,7 @@ export default function SoldProducts() {
 
   const [showPDF, setShowPDF] = useState(false)
   const [showRoute, setShowRoute] = useState(false)
+  const [showDayClose, setShowDayClose] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showCustomDate, setShowCustomDate] = useState(false)
   const [customStart, setCustomStart] = useState('')
@@ -201,6 +204,17 @@ export default function SoldProducts() {
           >
             <Route className="w-4 h-4" />
             {t('route.planRoute')}
+          </button>
+
+          {/* Day close — batch invoices + sold products + route in one place */}
+          <button
+            onClick={() => setShowDayClose(true)}
+            disabled={items.length === 0}
+            title={t('dayClose.title')}
+            className="inline-flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+          >
+            <ClipboardList className="w-4 h-4" />
+            {t('dayClose.title')}
           </button>
 
           {/* PDF Export */}
@@ -568,6 +582,22 @@ export default function SoldProducts() {
           dayLabel={dateRange.label}
           city={cityFilter || undefined}
           onClose={() => setShowRoute(false)}
+        />
+      )}
+
+      {/* Day-close batch (invoices + sold-products PDF + route handoff) */}
+      {showDayClose && (
+        <DayCloseModal
+          dateRange={dateRange}
+          soldProducts={summary ? {
+            items,
+            summary,
+            dateRange,
+            groups: groupBy !== 'none' ? groups : undefined,
+            groupByLabel: groupBy !== 'none' ? t(`soldProducts.groupBy.${groupBy}`) : undefined,
+          } : undefined}
+          onOpenRoute={() => setShowRoute(true)}
+          onClose={() => setShowDayClose(false)}
         />
       )}
     </div>
