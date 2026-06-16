@@ -415,7 +415,9 @@ Pass to `ExportMenu`:
 ### Notes / gotchas
 - **Column data must live on the row.** Values not stored on the entity (e.g. the Orders "Factuurnummer", which comes from a separate `fetchDocumentInfoByOrder` lookup) must be attached to the row objects for **all** scopes before handing them to `ExportMenu` (see `withInvoiceNumber` in `Orders.tsx`).
 - All export columns are checkboxes; they default to all-checked and the selection is persisted, so adding a column to a `*ExportColumns` array automatically surfaces it as a toggle.
-- `SoldProducts.tsx` is the exception — it uses its own `SoldProductsTemplate`, not `ExportMenu`.
+- `SoldProducts.tsx` is the exception — it uses its own `SoldProductsTemplate` (and hosts the
+  **Dagafsluiting** batch + route planner), not `ExportMenu`. The **Analytics Overview** tab also has
+  its own export (whole-page PDF with charts), separate from `ExportMenu` — see sections below.
 
 ---
 
@@ -437,8 +439,14 @@ optimized delivery route + a truck loading order, via Google Maps through a Supa
   manifests), `planDeliveryRoute` / `computeLegsForOrder` (invoke the edge fn + merge), address
   resolution (shipping if `shipping_same_as_billing=false` & set, else billing).
 - **`hooks/useDeliveryRoute.ts`** — manual hook (no React Query). Selection/locks/order/departure are
-  **local state**; only `optimize()` / `applyManualOrder()` hit Google. `loadingOrder` is derived =
-  `[...route.stops].reverse()`.
+  **local state**; only `optimize()` / `applyManualOrder()` hit Google. The **manual order is
+  authoritative**: a reorder updates a derived `effectiveStops`/`effectiveRoute` (renumbered 1..N,
+  following `manualOrder`) immediately with no Google call, and `loadingOrder = [...effectiveStops].reverse()`
+  so the truck order tracks manual edits live. `orderDirty` (a reorder/selection/settings change)
+  only blanks the now-stale leg distances/ETAs (to "—"); it does **not** block export. The hard
+  export gate is `exportReady` = every included stop has lat/lng (a freshly toggled-in, never-geocoded
+  stop blocks export until a re-optimize geocodes it). `applyManualOrder()` is an **optional** ETA
+  refresh, not required before export.
 - **`components/route/*`** — `DeliveryRoutePanel` (centered modal), `DeliveryStopList` (select,
   move-up/down + drag, pin/lock, manifest), `LoadingOrderList` (reverse, read-only).
 - **`components/documents/DeliveryRouteTemplate.tsx`** — Dutch PDF (cyan brand): page 1 bezorglijst,
@@ -447,17 +455,75 @@ optimized delivery route + a truck loading order, via Google Maps through a Supa
   **Settings → Company → Bezorgdepot**; geocoded once and cached.
 
 ### Rules
-1. **Loading order = exact reverse of delivery order** (last delivery loaded first / deepest). v1 has
-   no weights/volume.
-2. **Foreign customers auto-excluded.** Resolved delivery country ≠ NL → the stop starts **unticked**
+1. **Loading order = exact reverse of delivery order**, and it follows the **manual** delivery order
+   (via `effectiveStops`), not just the last optimized one — reorder a stop and the loading list +
+   exports update instantly. Last delivery loaded first / deepest. v1 has no weights/volume.
+2. **Manual reorder never needs a Google call and never disables export.** Re-optimize is a
+   deliberate, separate action that may reshuffle the order; the optional "ETA's verversen" button
+   refreshes leg distances/ETAs for the exact manual order. See `useDeliveryRoute.ts` above
+   (`orderDirty` vs `exportReady`).
+3. **Foreign customers auto-excluded.** Resolved delivery country ≠ NL → the stop starts **unticked**
    (in "Niet meegenomen", amber "Buitenland" badge) since it's export/freight, not a van delivery.
    Re-tickable. (`isLocalStop` in the hook.)
-3. **Geocode cache** on `customers` (lat/lng/geocoded_at/geocode_address_hash/geocode_status); a
+4. **Geocode cache** on `customers` (lat/lng/geocoded_at/geocode_address_hash/geocode_status); a
    trigger nulls it when the address changes so it re-geocodes only that row.
-4. **Driver hand-off**: "Deel met chauffeur" opens WhatsApp with the Google Maps directions link
+5. **Driver hand-off**: "Deel met chauffeur" opens WhatsApp with the Google Maps directions link
    (works with no app access); the share text + "Copy" text are **always Dutch** (like the PDFs),
    regardless of app language. PDFs render in Dutch only.
-5. `google-map-api.txt` (repo root) holds the live key in plaintext — **gitignored, never commit it.**
+6. `google-map-api.txt` (repo root) holds the live key in plaintext — **gitignored, never commit it.**
+
+---
+
+## Dagafsluiting (day-close batch)
+
+Launched from **Sold Products** ("Dagafsluiting"): one modal to produce the morning's documents for
+the selected day/range in one place.
+
+- **`components/documents/DayCloseModal.tsx`** — lists the day's orders (`fetchOrders` with
+  `dateFrom/dateTo`, `limit: 1000`, cancelled/refunded filtered out), default **all selected** with
+  per-order checkboxes. Three opt-in outputs: **Facturen** (invoices), **Verkochte producten (PDF)**,
+  **Bezorgroute**. Invoice output is **één gecombineerde PDF** or **aparte bestanden**.
+- **`services/batchInvoices.ts`** — `generateBatchInvoices(orderIds)` is **strictly sequential**
+  (await per order; never `Promise.all`) because `getNextDocumentNumber` reads-then-writes the
+  `document_settings` counter with no DB atomicity — parallel calls would duplicate invoice numbers.
+  Reuses existing numbers via `fetchLatestDocumentForOrder`, so re-running a day is idempotent.
+- **`components/documents/CombinedInvoicesTemplate.tsx`** — one `<Document>` rendering many invoices.
+  `InvoiceTemplate.tsx` exposes `InvoicePage` (the page body, no `<Document>` wrapper) for this; the
+  single-invoice `InvoiceTemplate` is a thin wrapper around it (DocumentGenerator/SendDocumentModal
+  unchanged). `SoldProductsTemplate.tsx` exposes `buildSoldProductsDocument` for the same reason.
+- **Route hand-off**: the route needs a billed Google optimize, so the modal never runs it silently —
+  ticking "Bezorgroute" just opens the existing `DeliveryRoutePanel`.
+- **Separate-files caveat**: browsers throttle many rapid downloads (spaced ~400ms); the combined PDF
+  is the reliable default for big days. Available to owner **and** shop_manager (invoices carry no cost).
+
+---
+
+## Analytics — Overview tab export
+
+The **Overview** tab (`components/analytics/tabs/OverviewTab.tsx`) has a single **Exporteren** menu
+(distinct from the list-page `ExportMenu` above):
+- **Volledige pagina (PDF, met grafieken)** — captures the rendered overview DOM (a `captureRef`
+  wrapper excluding the export bar), **charts included**, into a multi-page A4 PDF.
+  `utils/analyticsExport.ts` → `exportOverviewPdf` uses **`html-to-image`** (renders via the browser,
+  so it handles Recharts SVG + Tailwind v4 `oklch` colors) + **`jspdf`** (slices the tall image across
+  pages). Background follows the active theme.
+- **Gegevens (Excel)** — `exportOverviewExcel` writes one styled sheet with the KPI summary + top
+  customers + top products sections (charts aren't representable in a spreadsheet).
+- New deps for this: `html-to-image`, `jspdf`. Analytics is owner-only, so profit/margin columns are fine.
+
+---
+
+## Price lists — detail UI
+
+`pages/PriceListDetail.tsx` shows **one row per product** (not one row per unit), even when a product
+is priced in several unit types (kg/piece/zak/doos). Clicking a row (or the pencil) opens
+`components/priceLists/ProductUnitsEditor.tsx` — a modal listing **all four unit types** with cost +
+live **margin**, prefilled from the list's own values (never product defaults, so re-saving can't
+clobber a custom price). Entering a price for a blank unit adds it; clearing a set unit removes it;
+the row's trash deletes the whole product. Adding products still goes through
+`PriceListProductPicker` (one `price_list_items` row per unit, upserted on
+`price_list_id,product_id,unit_type`). `fetchPriceListItems` now also selects `cost_cents` +
+`product_unit_prices` for the margin (see `resolveItemCostCents`).
 
 ---
 
