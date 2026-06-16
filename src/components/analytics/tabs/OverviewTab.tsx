@@ -14,13 +14,19 @@ import {
 } from 'lucide-react'
 import { useOverviewAnalytics } from '../../../hooks/useAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
+import type { TopCustomer } from '../../../services/analyticsCustomers'
+import type { TopProduct } from '../../../services/analyticsProducts'
 import StatCard from '../../StatCard'
 import RevenueChart from '../RevenueChart'
 import OrdersChart from '../OrdersChart'
 import TopCustomersChart from '../TopCustomersChart'
 import TopProductsChart from '../TopProductsChart'
+import ExportMenu, { type ExportColumn } from '../../ui/ExportMenu'
 import { formatChartCurrency } from '../ChartColors'
+import { formatCentsToCsvCurrency, formatCsvPercentage } from '../../../utils/excelExport'
 import { formatQuantityWithUnit, formatPercent, formatCount, formatQuantity } from '../../../utils/format'
+
+const marginPct = (revenue: number, profit: number) => (revenue > 0 ? Math.round((profit / revenue) * 100) : 0)
 
 interface OverviewTabProps {
   dateRange: DateRange
@@ -41,8 +47,56 @@ export default function OverviewTab({ dateRange, statuses = [] }: OverviewTabPro
     kpis,
   } = useOverviewAnalytics(dateRange, statuses)
 
+  // Export column definitions (column selection via ExportMenu). Currency
+  // columns keep the raw cents as the key so the "Totaal" footer can sum them,
+  // and format to euro on render. Analytics is owner-only, so profit is fine.
+  const customerColumns: ExportColumn<TopCustomer>[] = [
+    { key: 'companyName', header: t('analytics.topCustomers') },
+    { key: 'totalRevenue', header: t('analytics.revenue'), summable: true, pdfAlign: 'right', format: v => formatCentsToCsvCurrency(Number(v) || 0) },
+    { key: 'totalProfit', header: t('analytics.profit'), summable: true, pdfAlign: 'right', format: v => formatCentsToCsvCurrency(Number(v) || 0) },
+    { key: 'margin', header: t('analytics.margin'), pdfAlign: 'right', format: (_v, r) => formatCsvPercentage(marginPct(r.totalRevenue, r.totalProfit)) },
+    { key: 'orderCount', header: t('analytics.orders'), summable: true, pdfAlign: 'right' },
+  ]
+  const productColumns: ExportColumn<TopProduct>[] = [
+    { key: 'productName', header: t('analytics.topProducts') },
+    { key: 'totalQuantity', header: t('analytics.itemsSold'), summable: true, pdfAlign: 'right' },
+    { key: 'unitType', header: t('analytics.unit') },
+    { key: 'totalRevenue', header: t('analytics.revenue'), summable: true, pdfAlign: 'right', format: v => formatCentsToCsvCurrency(Number(v) || 0) },
+    { key: 'totalProfit', header: t('analytics.profit'), summable: true, pdfAlign: 'right', format: v => formatCentsToCsvCurrency(Number(v) || 0) },
+    { key: 'margin', header: t('analytics.margin'), pdfAlign: 'right', format: (_v, r) => formatCsvPercentage(marginPct(r.totalRevenue, r.totalProfit)) },
+  ]
+
   return (
     <div className="space-y-6">
+      {/* Export bar — choose columns then export the overview tables */}
+      {!loading && (topCustomers.length > 0 || topProducts.length > 0) && (
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          <span className="text-sm text-slate-500 dark:text-slate-400 mr-1">{t('analytics.exportOverview')}</span>
+          <ExportMenu<TopCustomer>
+            getAllData={async () => topCustomers}
+            totalCount={topCustomers.length}
+            columns={customerColumns}
+            filename="top-klanten"
+            pdfTitle={t('analytics.topCustomers')}
+            storageKey="analytics-overview-customers"
+            size="sm"
+            label={t('analytics.topCustomers')}
+            disabled={topCustomers.length === 0}
+          />
+          <ExportMenu<TopProduct>
+            getAllData={async () => topProducts}
+            totalCount={topProducts.length}
+            columns={productColumns}
+            filename="top-producten"
+            pdfTitle={t('analytics.topProducts')}
+            storageKey="analytics-overview-products"
+            size="sm"
+            label={t('analytics.topProducts')}
+            disabled={topProducts.length === 0}
+          />
+        </div>
+      )}
+
       {/* Error State */}
       {error && (
         <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400">
