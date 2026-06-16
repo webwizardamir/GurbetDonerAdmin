@@ -26,7 +26,9 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
   const [copied, setCopied] = useState(false)
 
   const allSelected = r.selectedCount === r.candidateCount && r.candidateCount > 0
-  const canExport = !!r.route && r.route.stops.length > 0 && !r.dirty
+  // The manual order is authoritative — export stays enabled after a reorder.
+  // Only a never-geocoded (just toggled-in) stop blocks it (handled by exportReady).
+  const canExport = r.exportReady
 
   // Driver-facing text is always Dutch (like the PDFs), regardless of app
   // language. The range label is English, so format the date(s) in Dutch.
@@ -36,30 +38,31 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
   }
 
   const routeText = () => {
-    if (!r.route) return ''
-    const lines = r.route.stops.map(s => {
-      const eta = etaClock(r.route!.departureTime, s.etaSeconds)
+    const er = r.effectiveRoute
+    if (!er) return ''
+    const lines = er.stops.map(s => {
+      const eta = etaClock(er.departureTime, s.etaSeconds)
       return `${s.sequence}. ${s.customerName} — ${s.address.oneLine}${eta ? `  (${eta})` : ''}`
     })
     return `Bezorgroute ${dutchDate()}\n${lines.join('\n')}`
   }
 
   const handleCopy = () => {
-    if (!r.route) return
+    if (!r.effectiveRoute) return
     navigator.clipboard.writeText(routeText())
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const mapsUrl = () => r.route ? buildGoogleMapsUrl(r.route.depot, r.route.stops, r.route.returnToDepot) : ''
+  const mapsUrl = () => r.effectiveRoute ? buildGoogleMapsUrl(r.effectiveRoute.depot, r.effectiveRoute.stops, r.effectiveRoute.returnToDepot) : ''
 
-  const openInMaps = () => { if (r.route) window.open(mapsUrl(), '_blank') }
+  const openInMaps = () => { if (r.effectiveRoute) window.open(mapsUrl(), '_blank') }
 
   // Share the route with the driver (who has no app access): a Google Maps
   // directions link works for anyone — send it over WhatsApp.
   const shareWhatsApp = () => {
-    if (!r.route) return
-    const n = r.route.stops.length
+    if (!r.effectiveRoute) return
+    const n = r.effectiveRoute.stops.length
     const text = `Bezorgroute ${dutchDate()} (${n} stops)\nRoute openen in Google Maps:\n${mapsUrl()}`
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
   }
@@ -95,10 +98,10 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
             </label>
             <span className="text-slate-500 dark:text-slate-400 tabular-nums">{t('route.stops')}: <span className="font-semibold text-slate-900 dark:text-white">{r.selectedCount}/{r.candidateCount}</span></span>
             <span className="text-slate-500 dark:text-slate-400 tabular-nums">{t('route.items')}: <span className="font-semibold text-slate-900 dark:text-white">{Math.round(r.itemCount)}</span></span>
-            {r.route && <span className="text-slate-500 dark:text-slate-400 tabular-nums">{formatDistance(r.route.totals.distanceMeters)} · {formatDuration(r.route.totals.durationSeconds)}</span>}
-            {r.dirty && r.route && (
+            {r.route && !r.orderDirty && <span className="text-slate-500 dark:text-slate-400 tabular-nums">{formatDistance(r.effectiveTotals.distanceMeters)} · {formatDuration(r.effectiveTotals.durationSeconds)}</span>}
+            {r.orderDirty && r.route && (
               <span className="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {t('route.staleHint')}
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {t('route.etaStaleHint')}
               </span>
             )}
           </div>
@@ -144,6 +147,11 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
               {r.error && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">{r.error}</div>
               )}
+              {r.route && !r.exportReady && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" /> {t('route.needsReoptimize')}
+                </div>
+              )}
               {r.route?.truncatedOptimization && (
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" /> {t('route.truncatedOptimization')}
@@ -166,8 +174,8 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
                 <DeliveryStopList
                   included={r.includedStops}
                   excluded={r.excludedStops}
-                  hasRoute={!!r.route && !r.dirty}
-                  departureTime={r.route?.departureTime ?? null}
+                  hasRoute={!!r.route}
+                  departureTime={r.effectiveRoute?.departureTime ?? null}
                   onToggle={r.toggleStop}
                   onMove={r.moveStop}
                   onSetLock={r.setLock}
@@ -187,10 +195,11 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
             {r.planning ? <Loader2 className="w-4 h-4 animate-spin" /> : <RouteIcon className="w-4 h-4" />}
             {r.route ? t('route.reoptimize') : t('route.optimize')}
           </button>
-          {r.route && r.dirty && (
+          {r.route && r.orderDirty && (
             <button onClick={r.applyManualOrder} disabled={r.planning}
+              title={t('route.refreshEtas')}
               className="inline-flex items-center justify-center gap-2 px-3 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
-              <RefreshCw className="w-4 h-4" /> <span className="hidden sm:inline">{t('route.applyOrder')}</span>
+              <RefreshCw className="w-4 h-4" /> <span className="hidden sm:inline">{t('route.refreshEtas')}</span>
             </button>
           )}
           <button onClick={shareWhatsApp} disabled={!canExport}
@@ -212,8 +221,8 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
         </div>
       </div>
 
-      {showPDF && r.route && (
-        <DeliveryRoutePDF route={r.route} day={day} onClose={() => setShowPDF(false)} />
+      {showPDF && r.effectiveRoute && (
+        <DeliveryRoutePDF route={r.effectiveRoute} day={day} onClose={() => setShowPDF(false)} />
       )}
     </div>
   )

@@ -61,7 +61,11 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
   const [route, setRoute] = useState<PlannedRoute | null>(null)
   const [planning, setPlanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [dirty, setDirty] = useState(false)
+  // orderDirty = the manual order / selection / settings diverge from the last
+  // Google computation, so leg distances & ETAs are stale. It does NOT block
+  // export anymore (the manual order is authoritative for the driver); it only
+  // blanks the stale metrics and offers an optional ETA refresh.
+  const [orderDirty, setOrderDirty] = useState(false)
 
   // Load the day's candidate stops; reset all control state on day/city change.
   useEffect(() => {
@@ -70,7 +74,7 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
     setCandidatesError(null)
     setRoute(null)
     setError(null)
-    setDirty(false)
+    setOrderDirty(false)
     fetchRouteOrders({ day, endDay, city })
       .then(stops => {
         if (cancelled) return
@@ -101,13 +105,13 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
       else next.add(id)
       return next
     })
-    setDirty(true)
+    setOrderDirty(true)
   }, [])
   const selectAll = useCallback(() => {
     setSelectedIds(new Set(candidates.map(s => s.customerId)))
-    setDirty(true)
+    setOrderDirty(true)
   }, [candidates])
-  const selectNone = useCallback(() => { setSelectedIds(new Set()); setDirty(true) }, [])
+  const selectNone = useCallback(() => { setSelectedIds(new Set()); setOrderDirty(true) }, [])
 
   // ---- locks ---------------------------------------------------------------
   const setLock = useCallback((id: string, position: LockPosition | null) => {
@@ -117,7 +121,7 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
       else next.set(id, position)
       return next
     })
-    setDirty(true)
+    setOrderDirty(true)
   }, [])
 
   // ---- manual order --------------------------------------------------------
@@ -128,12 +132,12 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
       if (from < 0 || to < 0 || from === to) return prev
       return arrayMove(prev, from, to)
     })
-    setDirty(true)
+    setOrderDirty(true)
   }, [])
 
   // ---- settings ------------------------------------------------------------
-  const updateDeparture = useCallback((hhmm: string) => { setDepartureHHmm(hhmm); setDirty(true) }, [])
-  const toggleReturnToDepot = useCallback(() => { setReturnToDepot(v => !v); setDirty(true) }, [])
+  const updateDeparture = useCallback((hhmm: string) => { setDepartureHHmm(hhmm); setOrderDirty(true) }, [])
+  const toggleReturnToDepot = useCallback(() => { setReturnToDepot(v => !v); setOrderDirty(true) }, [])
 
   // ---- plan actions (the only paths that hit Google) -----------------------
   const optimize = useCallback(async () => {
@@ -154,7 +158,7 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
       const plannedIds = result.stops.map(s => s.customerId)
       const rest = manualOrder.filter(id => !plannedIds.includes(id))
       setManualOrder([...plannedIds, ...rest])
-      setDirty(false)
+      setOrderDirty(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : t('route.error'))
     } finally {
@@ -173,7 +177,7 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
         candidates,
       )
       setRoute(result)
-      setDirty(false)
+      setOrderDirty(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : t('route.error'))
     } finally {
@@ -195,24 +199,75 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
         ...c,
         included: selectedIds.has(id),
         lock: locks.get(id) ?? null,
+        // sequence is renumbered below to follow the (manual) display order.
         sequence: r?.sequence,
         lat: r?.lat ?? c.cachedLat,
         lng: r?.lng ?? c.cachedLng,
         geocodeStatus: r?.geocodeStatus,
-        legDistanceMeters: r?.legDistanceMeters,
-        legDurationSeconds: r?.legDurationSeconds,
-        etaSeconds: r?.etaSeconds,
+        // Leg metrics depend on the exact order, so once the manual order /
+        // selection diverges from the last Google run they're stale — blank
+        // them so the UI/PDF show "—" instead of wrong distances/ETAs.
+        legDistanceMeters: orderDirty ? 0 : r?.legDistanceMeters,
+        legDurationSeconds: orderDirty ? 0 : r?.legDurationSeconds,
+        etaSeconds: orderDirty ? 0 : r?.etaSeconds,
       }
       ;(stop.included ? included : excluded).push(stop)
     }
+    // Renumber included stops 1..N by their position in the (manual) order so
+    // the sequence badges always match what the user sees / will load.
+    included.forEach((s, i) => { s.sequence = i + 1 })
     return { includedStops: included, excludedStops: excluded }
-  }, [candidates, route, manualOrder, selectedIds, locks])
+  }, [candidates, route, manualOrder, selectedIds, locks, orderDirty])
 
-  // Loading order = reverse of the planned delivery order (load last-delivered
-  // first / deepest). Derived from the route's stop order, not editable.
+  // The route as it should actually be exported/printed: the user's manual
+  // order is authoritative. Maps onto PlannedStop, renumbered 1..N.
+  const effectiveStops: PlannedStop[] = useMemo(
+    () => includedStops.map((s, i) => ({
+      ...s,
+      sequence: i + 1,
+      locked: s.lock != null,
+      lat: s.lat ?? null,
+      lng: s.lng ?? null,
+      geocodeStatus: s.geocodeStatus ?? 'ok',
+      legDistanceMeters: s.legDistanceMeters ?? 0,
+      legDurationSeconds: s.legDurationSeconds ?? 0,
+      etaSeconds: s.etaSeconds ?? 0,
+    })),
+    [includedStops],
+  )
+
+  // Totals: pass through Google's numbers while the order is clean; blank the
+  // distance/time (keep stop count) once the manual order makes them stale.
+  const effectiveTotals = useMemo(
+    () => (route && !orderDirty
+      ? route.totals
+      : { distanceMeters: 0, durationSeconds: 0, stopCount: effectiveStops.length }),
+    [route, orderDirty, effectiveStops.length],
+  )
+
+  // A route object reflecting the manual order, for exports/PDF/Maps. When the
+  // order is stale we null the departure time so ETAs render as "—" rather than
+  // a misleading clock.
+  const effectiveRoute: PlannedRoute | null = useMemo(
+    () => (route
+      ? { ...route, stops: effectiveStops, totals: effectiveTotals, departureTime: orderDirty ? null : route.departureTime }
+      : null),
+    [route, effectiveStops, effectiveTotals, orderDirty],
+  )
+
+  // Loading order = reverse of the (effective) delivery order — load the last
+  // stop first / deepest. Follows the manual order instantly, no Google call.
   const loadingOrder: PlannedStop[] = useMemo(
-    () => (route ? [...route.stops].reverse() : []),
-    [route],
+    () => [...effectiveStops].reverse(),
+    [effectiveStops],
+  )
+
+  // Export is safe only when every included stop has coordinates from a prior
+  // computation. A freshly toggled-in, never-geocoded stop has no lat/lng and
+  // would silently drop from the Maps URL — require a (re)optimize first.
+  const exportReady = useMemo(
+    () => !!route && effectiveStops.length > 0 && effectiveStops.every(s => s.lat != null && s.lng != null),
+    [route, effectiveStops],
   )
 
   const itemCount = useMemo(
@@ -232,9 +287,13 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
     itemCount,
     // route result
     route,
+    effectiveRoute,
+    effectiveStops,
+    effectiveTotals,
+    exportReady,
     planning,
     error,
-    dirty,
+    orderDirty,
     // controls
     selectedCount: selectedIds.size,
     departureHHmm,
