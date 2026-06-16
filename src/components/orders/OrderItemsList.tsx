@@ -84,6 +84,54 @@ function PriceInput({
   )
 }
 
+// Quantity input that keeps the user's typed string while focused so the field
+// can be fully cleared (empty / intermediate states) without snapping back to
+// the old value. Commits the parsed number on every valid keystroke and on
+// blur; blurring while empty / ≤ 0 removes the line. Mirrors PriceInput above.
+function QtyInput({
+  quantity,
+  onCommit,
+  onRemove,
+  className = '',
+}: {
+  quantity: number
+  onCommit: (qty: number) => void
+  onRemove: () => void
+  className?: string
+}) {
+  const [draft, setDraft] = useState(String(quantity))
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) setDraft(String(quantity))
+  }, [quantity, focused])
+
+  // text + inputMode=decimal (not type=number) so a comma never makes the
+  // browser report an empty value, and the field can be fully cleared mid-edit.
+  // We commit off the draft string on both change and blur — never off the raw
+  // DOM value — so a valid value is never dropped or the line wrongly removed.
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={focused ? draft : String(quantity)}
+      onFocus={e => { setFocused(true); setDraft(String(quantity)); e.target.select() }}
+      onChange={e => {
+        const raw = e.target.value
+        setDraft(raw)
+        const val = parseFloat(raw.replace(',', '.'))
+        if (Number.isFinite(val) && val > 0) onCommit(val)
+      }}
+      onBlur={() => {
+        setFocused(false)
+        const val = parseFloat(draft.replace(',', '.'))
+        if (!Number.isFinite(val) || val <= 0) onRemove()
+      }}
+      className={className}
+    />
+  )
+}
+
 // Notes icon button. Coloured when notes exist, neutral when empty.
 // Click opens the shared notes editor modal (managed at the list level).
 function NotesButton({
@@ -286,19 +334,10 @@ export default function OrderItemsList({
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <input
-                            type="number"
-                            min="0.001"
-                            step="any"
-                            value={item.quantity}
-                            onChange={e => {
-                              const val = parseFloat(e.target.value) || 0
-                              if (val > 0) onSetQuantity(item.lineId, val)
-                            }}
-                            onBlur={e => {
-                              const val = parseFloat(e.target.value) || 0
-                              if (val <= 0) onRemoveItem(item.lineId)
-                            }}
+                          <QtyInput
+                            quantity={item.quantity}
+                            onCommit={qty => onSetQuantity(item.lineId, qty)}
+                            onRemove={() => onRemoveItem(item.lineId)}
                             className="w-14 text-center text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-green-500"
                           />
                           <button
@@ -395,19 +434,10 @@ export default function OrderItemsList({
                       >
                         <Minus className="w-4 h-4" />
                       </button>
-                      <input
-                        type="number"
-                        min="0.001"
-                        step="any"
-                        value={item.quantity}
-                        onChange={e => {
-                          const val = parseFloat(e.target.value) || 0
-                          if (val > 0) onSetQuantity(item.lineId, val)
-                        }}
-                        onBlur={e => {
-                          const val = parseFloat(e.target.value) || 0
-                          if (val <= 0) onRemoveItem(item.lineId)
-                        }}
+                      <QtyInput
+                        quantity={item.quantity}
+                        onCommit={qty => onSetQuantity(item.lineId, qty)}
+                        onRemove={() => onRemoveItem(item.lineId)}
                         className="w-14 text-center text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-green-500"
                       />
                       <button
