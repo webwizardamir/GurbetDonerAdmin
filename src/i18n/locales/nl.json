@@ -648,6 +648,8 @@
     "orders": "Bestellingen",
     "averageOrder": "Gem. bestelling",
     "itemsSold": "Artikelen verkocht",
+    "unit": "Eenheid",
+    "exportOverview": "Overzicht exporteren:",
     "revenueOverTime": "Omzet over tijd",
     "ordersByStatus": "Bestellingen per status",
     "topCustomers": "Top klanten",
@@ -858,14 +860,28 @@
       "invalidPrice": "Ongeldige prijs",
       "invalidTax": "BTW moet 0, 9 of 21 zijn",
       "confirmDeleteItem": "Deze regel verwijderen ({{name}})?",
+      "editUnits": "Andere eenheden",
       "columns": {
         "productId": "Product ID",
         "productName": "Productnaam",
         "unit": "Eenheid",
         "price": "Prijs",
+        "cost": "Kostprijs",
+        "margin": "Marge",
         "tax": "BTW",
         "actions": "Acties"
       }
+    },
+    "units": {
+      "title": "Eenheden bewerken",
+      "vat": "BTW",
+      "inheritVat": "BTW van product",
+      "unit": "Eenheid",
+      "cost": "Kostprijs",
+      "price": "Prijs",
+      "margin": "Marge",
+      "hint": "Laat een prijs leeg om die eenheid niet op de lijst te zetten.",
+      "nothingToSave": "Vul minstens één prijs in."
     },
     "picker": {
       "title": "Producten toevoegen aan prijslijst",
@@ -920,6 +936,28 @@
       "invalidTax": "BTW moet 0, 9 of 21 zijn",
       "duplicateInFile": "Dubbele combinatie in bestand: {{code}} / {{unit}}"
     }
+  },
+  "dayClose": {
+    "title": "Dagafsluiting",
+    "subtitle": "Genereer documenten voor {{range}} in één keer.",
+    "outputs": "Wat genereren",
+    "invoices": "Facturen",
+    "invoicesHint": "Facturen voor de geselecteerde bestellingen van vandaag",
+    "soldProducts": "Verkochte producten (PDF)",
+    "soldProductsHint": "Het verkoopoverzicht van dit datumbereik",
+    "route": "Bezorgroute",
+    "routeHint": "Opent de routeplanner (optimaliseren via Google)",
+    "outputFormat": "Factuuruitvoer",
+    "combined": "Eén gecombineerde PDF",
+    "separate": "Aparte bestanden",
+    "selectAll": "Alles selecteren",
+    "selectedCount": "{{n}}/{{total}} geselecteerd",
+    "noOrders": "Geen bestellingen in dit bereik",
+    "bigBatchWarning": "{{n}} bestellingen — het genereren kan even duren.",
+    "cappedWarning": "Eerste 1000 bestellingen getoond — kies een korter datumbereik voor de rest.",
+    "errorIssued": "{{n}} facturen zijn al aangemaakt — voer opnieuw uit om verder te gaan.",
+    "generating": "Facturen genereren…",
+    "generate": "Genereren"
   },
   "soldProducts": {
     "title": "Verkochte Producten",
@@ -983,6 +1021,9 @@
     "reoptimize": "Opnieuw optimaliseren",
     "applyOrder": "Volgorde toepassen",
     "staleHint": "Wijzigingen — opnieuw optimaliseren",
+    "refreshEtas": "ETA's verversen",
+    "etaStaleHint": "ETA's verouderd — optioneel verversen",
+    "needsReoptimize": "Nieuwe stop toegevoegd — optimaliseer opnieuw om te exporteren",
     "deliveryOrder": "Bezorgvolgorde",
     "loadingOrder": "Laadvolgorde",
     "reverseOfDelivery": "omgekeerd aan de bezorgvolgorde",

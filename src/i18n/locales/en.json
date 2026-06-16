@@ -648,6 +648,8 @@
     "orders": "Orders",
     "averageOrder": "Avg. Order",
     "itemsSold": "Items Sold",
+    "unit": "Unit",
+    "exportOverview": "Export overview:",
     "revenueOverTime": "Revenue Over Time",
     "ordersByStatus": "Orders by Status",
     "topCustomers": "Top Customers",
@@ -858,14 +860,28 @@
       "invalidPrice": "Invalid price",
       "invalidTax": "VAT must be 0, 9 or 21",
       "confirmDeleteItem": "Delete this item ({{name}})?",
+      "editUnits": "Other units",
       "columns": {
         "productId": "Product ID",
         "productName": "Product Name",
         "unit": "Unit",
         "price": "Price",
+        "cost": "Cost",
+        "margin": "Margin",
         "tax": "VAT",
         "actions": "Actions"
       }
+    },
+    "units": {
+      "title": "Edit units",
+      "vat": "VAT",
+      "inheritVat": "Product VAT",
+      "unit": "Unit",
+      "cost": "Cost",
+      "price": "Price",
+      "margin": "Margin",
+      "hint": "Leave a price empty to keep that unit off the list.",
+      "nothingToSave": "Enter at least one price."
     },
     "picker": {
       "title": "Add products to price list",
@@ -920,6 +936,28 @@
       "invalidTax": "VAT must be 0, 9 or 21",
       "duplicateInFile": "Duplicate row in file: {{code}} / {{unit}}"
     }
+  },
+  "dayClose": {
+    "title": "Day close",
+    "subtitle": "Generate documents for {{range}} in one go.",
+    "outputs": "What to generate",
+    "invoices": "Invoices",
+    "invoicesHint": "Invoices for the selected orders of the day",
+    "soldProducts": "Sold products (PDF)",
+    "soldProductsHint": "The sales overview for this date range",
+    "route": "Delivery route",
+    "routeHint": "Opens the route planner (optimize via Google)",
+    "outputFormat": "Invoice output",
+    "combined": "One combined PDF",
+    "separate": "Separate files",
+    "selectAll": "Select all",
+    "selectedCount": "{{n}}/{{total}} selected",
+    "noOrders": "No orders in this range",
+    "bigBatchWarning": "{{n}} orders — generating may take a while.",
+    "cappedWarning": "Showing the first 1000 orders — pick a shorter date range for the rest.",
+    "errorIssued": "{{n}} invoices were already created — re-run to continue.",
+    "generating": "Generating invoices…",
+    "generate": "Generate"
   },
   "soldProducts": {
     "title": "Sold Products",
@@ -983,6 +1021,9 @@
     "reoptimize": "Re-optimize",
     "applyOrder": "Apply order",
     "staleHint": "Changes — re-optimize",
+    "refreshEtas": "Refresh ETAs",
+    "etaStaleHint": "ETAs outdated — refresh optional",
+    "needsReoptimize": "New stop added — re-optimize to export",
     "deliveryOrder": "Delivery order",
     "loadingOrder": "Loading order",
     "reverseOfDelivery": "reverse of the delivery order",
