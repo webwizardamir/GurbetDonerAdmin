@@ -2,18 +2,20 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  ChevronLeft, Loader2, AlertCircle, Upload, FileDown, Trash2, Package, Pencil, Check, X, Plus,
+  ChevronLeft, Loader2, AlertCircle, Upload, FileDown, Trash2, Package, Pencil, Check, X, Plus, SlidersHorizontal,
 } from 'lucide-react'
 import {
   fetchPriceListById,
   fetchPriceListItems,
   deletePriceListItem,
   updatePriceListItem,
+  resolveItemCostCents,
   type PriceListItemWithProduct,
 } from '../services/priceLists'
 import { downloadCurrentPriceList } from '../utils/priceListTemplate'
 import PriceListImport from '../components/priceLists/PriceListImport'
 import PriceListProductPicker from '../components/priceLists/PriceListProductPicker'
+import ProductUnitsEditor from '../components/priceLists/ProductUnitsEditor'
 import PriceListCustomers from '../components/priceLists/PriceListCustomers'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import SortableTh from '../components/ui/SortableTh'
@@ -32,11 +34,19 @@ export default function PriceListDetail() {
   const [showPicker, setShowPicker] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [deleteItemTarget, setDeleteItemTarget] = useState<PriceListItemWithProduct | null>(null)
+  // Product id whose unit-prices are being edited (opens ProductUnitsEditor).
+  const [unitsEditProductId, setUnitsEditProductId] = useState<string | null>(null)
 
   // (product_id::unit_type) pairs already on the list — drives the picker's badge.
   const existingKeys = useMemo(
     () => new Set(items.map(it => `${it.product_id}::${it.unit_type}`)),
     [items],
+  )
+
+  // All price-list items for the product being unit-edited.
+  const unitsEditItems = useMemo(
+    () => (unitsEditProductId ? items.filter(it => it.product_id === unitsEditProductId) : []),
+    [items, unitsEditProductId],
   )
 
   // Phase 6: sortable columns. Default = name asc.
@@ -273,6 +283,8 @@ export default function PriceListDetail() {
                 <SortableTh sortKey="product_name" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.detail.columns.productName')}</SortableTh>
                 <SortableTh sortKey="unit"         current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.detail.columns.unit')}</SortableTh>
                 <SortableTh sortKey="price"        current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('priceLists.detail.columns.price')}</SortableTh>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.cost')}</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.margin')}</th>
                 <SortableTh sortKey="tax"          current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('priceLists.detail.columns.tax')}</SortableTh>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priceLists.detail.columns.actions')}</th>
               </tr>
@@ -310,6 +322,28 @@ export default function PriceListDetail() {
                         formatPrice(item.price_cents)
                       )}
                     </td>
+                    {(() => {
+                      const cost = resolveItemCostCents(item)
+                      // Margin uses the staged price while editing so it updates live.
+                      const priceForMargin = isEditing
+                        ? Math.round((Number(editPrice.replace(',', '.')) || 0) * 100)
+                        : item.price_cents
+                      const margin = priceForMargin > 0 && cost > 0
+                        ? Math.round(((priceForMargin - cost) / priceForMargin) * 100)
+                        : null
+                      return (
+                        <>
+                          <td className="px-4 py-3 text-right text-sm text-slate-500 dark:text-slate-400 tabular-nums">
+                            {cost > 0 ? formatPrice(cost) : '—'}
+                          </td>
+                          <td className={`px-4 py-3 text-right text-sm tabular-nums ${
+                            margin == null ? 'text-slate-400 dark:text-slate-600' : margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                          }`}>
+                            {margin == null ? '—' : `${margin}%`}
+                          </td>
+                        </>
+                      )
+                    })()}
                     <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">
                       {isEditing ? (
                         <select
@@ -365,6 +399,14 @@ export default function PriceListDetail() {
                               <Pencil className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => setUnitsEditProductId(item.product_id)}
+                              disabled={editingId !== null || !item.product}
+                              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                              title={t('priceLists.detail.editUnits')}
+                            >
+                              <SlidersHorizontal className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleDeleteItem(item)}
                               disabled={editingId !== null}
                               className="p-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 transition-colors"
@@ -403,6 +445,15 @@ export default function PriceListDetail() {
           existingKeys={existingKeys}
           onClose={() => setShowPicker(false)}
           onAdded={() => { void load() }}
+        />
+      )}
+
+      {unitsEditProductId && unitsEditItems.length > 0 && (
+        <ProductUnitsEditor
+          priceListId={list.id}
+          productItems={unitsEditItems}
+          onClose={() => setUnitsEditProductId(null)}
+          onSaved={() => { void load() }}
         />
       )}
 

@@ -79,17 +79,33 @@ export type PriceListItemWithProduct = Omit<PriceListItem, 'product'> & {
     name: string
     base_price: number
     unit_type: UnitType
+    cost_cents: number | null
+    // Per-unit prices/costs so the detail view can show margin and offer the
+    // product's other (still unpriced) unit types for editing.
+    unit_prices: { unit_type: UnitType; price: number | null; cost_cents: number | null }[]
   }
 }
 
 export async function fetchPriceListItems(priceListId: string): Promise<PriceListItemWithProduct[]> {
   const { data, error } = await supabase
     .from('price_list_items')
-    .select('*, product:products(id, product_code, name, base_price, unit_type)')
+    .select(
+      '*, product:products(id, product_code, name, base_price, unit_type, cost_cents, unit_prices:product_unit_prices(unit_type, price, cost_cents))',
+    )
     .eq('price_list_id', priceListId)
     .order('created_at', { ascending: true })
   if (error) throw error
   return (data as unknown as PriceListItemWithProduct[]) ?? []
+}
+
+/**
+ * Resolve the per-unit cost (cents) for a price-list item, mirroring the
+ * picker's logic: the matching unit's cost_cents, falling back to the product
+ * cost. Returns 0 when unknown (cost 0 = unknown, not a 100% margin).
+ */
+export function resolveItemCostCents(item: PriceListItemWithProduct): number {
+  const unit = item.product?.unit_prices?.find(u => u.unit_type === item.unit_type)
+  return unit?.cost_cents ?? item.product?.cost_cents ?? 0
 }
 
 /**
