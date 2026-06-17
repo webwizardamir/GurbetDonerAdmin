@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  Document, Page, View, Text, StyleSheet, pdf, BlobProvider,
+  Document, Page, View, Text, Image, StyleSheet, pdf, BlobProvider,
 } from '@react-pdf/renderer'
 import { X, Download, Eye, Printer, Loader2, Truck } from 'lucide-react'
 import type { PlannedRoute, PlannedStop } from '../../services/route'
+import { fetchDocumentSettings } from '../../services/documents'
 import { formatDistance, formatDuration, etaClock } from '../../utils/route'
 import { formatQuantityWithUnit } from '../../utils/format'
 
@@ -13,15 +14,44 @@ const CYAN = '#0891b2'
 const CYAN_DARK = '#0e7490'
 const AMBER = '#f59e0b'
 
+// Company identity for the document header/footer — same source as the invoice
+// (document_settings), so the route sheet matches the rest of the document family.
+interface RouteCompany {
+  name: string
+  address?: string
+  postalCode?: string
+  city?: string
+  phone?: string
+  email?: string
+  website?: string
+  logoUrl?: string
+  vatNumber?: string
+  kvkNumber?: string
+}
+
 const styles = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 8, padding: 28, backgroundColor: '#ffffff', color: '#1e293b' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: CYAN },
+
+  // Header — logo + company info (left), document title (right), matching InvoiceTemplate
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+  headerLeft: { flexDirection: 'row', alignItems: 'flex-start' },
+  logo: { width: 80, height: 'auto', maxHeight: 36, objectFit: 'contain', marginRight: 10 },
+  companyInfo: {},
+  companyName: { fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 2 },
+  companyDetail: { fontSize: 7, color: '#64748b', lineHeight: 1.35 },
+  headerRight: { alignItems: 'flex-end' },
   title: { fontSize: 18, textTransform: 'uppercase', letterSpacing: 1, color: CYAN, fontFamily: 'Helvetica-Bold' },
-  subtitle: { fontSize: 8, color: '#64748b', marginTop: 2 },
-  metaBox: { alignItems: 'flex-end' },
-  metaRow: { fontSize: 8, marginBottom: 1 },
-  metaLabel: { color: '#64748b' },
-  metaValue: { fontFamily: 'Helvetica-Bold' },
+
+  // Info row — depot box (left, cyan accent) + meta (right), matching InvoiceTemplate
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  depotBox: { width: '55%', borderLeftWidth: 2, borderLeftColor: CYAN, paddingLeft: 8, paddingVertical: 4, backgroundColor: '#f8fafc' },
+  depotLabel: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 },
+  depotName: { fontSize: 10, fontFamily: 'Helvetica-Bold', marginBottom: 1 },
+  depotDetail: { fontSize: 8, color: '#475569', lineHeight: 1.35 },
+  metaBox: { width: '40%' },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 1, paddingVertical: 1 },
+  metaLabel: { fontSize: 7.5, color: '#64748b' },
+  metaValue: { fontSize: 8, fontFamily: 'Helvetica-Bold' },
 
   totals: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   totalCard: { flex: 1, backgroundColor: '#f8fafc', borderTopWidth: 2, borderTopColor: CYAN, padding: 6 },
@@ -45,7 +75,10 @@ const styles = StyleSheet.create({
   itemLine: { fontSize: 7 },
   td: { fontSize: 7.5 },
   footer: { marginTop: 'auto', borderTopWidth: 1, borderTopColor: CYAN, paddingTop: 6 },
-  footerText: { fontSize: 6.5, color: '#64748b' },
+  footerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
+  footerCompany: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', marginBottom: 1 },
+  footerDetail: { fontSize: 6.5, color: '#64748b', lineHeight: 1.4 },
+  footerCenter: { fontSize: 6.5, color: '#64748b', textAlign: 'center', marginTop: 3 },
   tag: { fontSize: 6, color: '#64748b' },
 })
 
@@ -83,20 +116,84 @@ function StopRow({ stop, index, amber, total, departureTime }: {
   )
 }
 
-function RouteDoc({ route, day }: { route: PlannedRoute; day: string }) {
+// Shared logo + company header (matches InvoiceTemplate). `title` is the
+// document title (cyan, right-aligned).
+function DocHeader({ company, title }: { company: RouteCompany | null; title: string }) {
+  const hasDetails = company && (company.address || company.phone || company.email)
+  return (
+    <View style={styles.header}>
+      <View style={styles.headerLeft}>
+        {company?.logoUrl && <Image src={company.logoUrl} style={styles.logo} />}
+        <View style={styles.companyInfo}>
+          <Text style={styles.companyName}>{company?.name || 'MelekHalalFood'}</Text>
+          {hasDetails && (
+            <Text style={styles.companyDetail}>
+              {[
+                company?.address,
+                company?.postalCode && company?.city ? `${company.postalCode} ${company.city}` : null,
+                company?.phone ? `Tel: ${company.phone}` : null,
+                company?.email,
+              ].filter(Boolean).join('\n')}
+            </Text>
+          )}
+        </View>
+      </View>
+      <View style={styles.headerRight}>
+        <Text style={styles.title}>{title}</Text>
+      </View>
+    </View>
+  )
+}
+
+// Shared branded footer (matches InvoiceTemplate).
+function DocFooter({ company, centerText }: { company: RouteCompany | null; centerText: string }) {
+  return (
+    <View style={styles.footer} wrap={false}>
+      <View style={styles.footerRow}>
+        <View>
+          <Text style={styles.footerCompany}>{company?.name || 'MelekHalalFood'}</Text>
+          <Text style={styles.footerDetail}>
+            {[
+              company?.address,
+              company?.postalCode && company?.city ? `${company.postalCode} ${company.city}` : null,
+            ].filter(Boolean).join(', ')}
+          </Text>
+        </View>
+        <View>
+          <Text style={styles.footerDetail}>
+            {[
+              company?.kvkNumber && `KVK: ${company.kvkNumber}`,
+              company?.vatNumber && `BTW: ${company.vatNumber}`,
+            ].filter(Boolean).join('  |  ')}
+          </Text>
+          {company?.website && <Text style={styles.footerDetail}>{company.website}</Text>}
+        </View>
+      </View>
+      <Text style={styles.footerCenter}>{centerText}</Text>
+    </View>
+  )
+}
+
+function RouteDoc({ route, day, company }: { route: PlannedRoute; day: string; company: RouteCompany | null }) {
   const loading = [...route.stops].reverse()
   const dateLabel = new Date(day).toLocaleDateString('nl-NL', { day: '2-digit', month: 'long', year: 'numeric' })
+  const depotAddr = route.depot.oneLine
   return (
     <Document>
       {/* Page 1 — delivery order */}
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Bezorgroute</Text>
-            <Text style={styles.subtitle}>Vertrek vanaf {route.depot.label}{route.returnToDepot ? ' · terug naar depot' : ''}</Text>
+        <DocHeader company={company} title="Bezorgroute" />
+
+        <View style={styles.infoRow}>
+          <View style={styles.depotBox}>
+            <Text style={styles.depotLabel}>Vertrekpunt</Text>
+            <Text style={styles.depotName}>{route.depot.label}</Text>
+            {depotAddr ? <Text style={styles.depotDetail}>{depotAddr}</Text> : null}
           </View>
           <View style={styles.metaBox}>
-            <Text style={styles.metaRow}><Text style={styles.metaLabel}>Datum: </Text><Text style={styles.metaValue}>{dateLabel}</Text></Text>
+            <View style={styles.metaRow}><Text style={styles.metaLabel}>Datum:</Text><Text style={styles.metaValue}>{dateLabel}</Text></View>
+            <View style={styles.metaRow}><Text style={styles.metaLabel}>Stops:</Text><Text style={styles.metaValue}>{route.totals.stopCount}</Text></View>
+            <View style={styles.metaRow}><Text style={styles.metaLabel}>Terug naar depot:</Text><Text style={styles.metaValue}>{route.returnToDepot ? 'Ja' : 'Nee'}</Text></View>
           </View>
         </View>
 
@@ -117,19 +214,12 @@ function RouteDoc({ route, day }: { route: PlannedRoute; day: string }) {
           <StopRow key={s.customerId} stop={s} index={i} total={route.stops.length} departureTime={route.departureTime} />
         ))}
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Bezorglijst — {dateLabel}</Text>
-        </View>
+        <DocFooter company={company} centerText={`Bezorglijst — ${dateLabel}`} />
       </Page>
 
       {/* Page 2 — loading order (reverse) */}
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Inlaadvolgorde</Text>
-            <Text style={styles.subtitle}>{dateLabel}</Text>
-          </View>
-        </View>
+        <DocHeader company={company} title="Inlaadvolgorde" />
 
         <View style={styles.banner}>
           <Text style={styles.bannerText}>
@@ -147,9 +237,7 @@ function RouteDoc({ route, day }: { route: PlannedRoute; day: string }) {
           <StopRow key={s.customerId} stop={s} index={i} amber total={loading.length} departureTime={route.departureTime} />
         ))}
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Inlaadlijst — {dateLabel}</Text>
-        </View>
+        <DocFooter company={company} centerText={`Inlaadlijst — ${dateLabel}`} />
       </Page>
     </Document>
   )
@@ -160,7 +248,34 @@ export default function DeliveryRoutePDF({ route, day, onClose }: {
 }) {
   const [showPreview, setShowPreview] = useState(false)
   const [generating, setGenerating] = useState(false)
-  const renderDoc = () => <RouteDoc route={route} day={day} />
+  const [company, setCompany] = useState<RouteCompany | null>(null)
+
+  // Load company identity (logo/name/address) so the route sheet matches the
+  // invoice/document family. Failure is non-fatal — the doc falls back to a
+  // plain name-only header.
+  useEffect(() => {
+    let active = true
+    fetchDocumentSettings()
+      .then(s => {
+        if (!active || !s) return
+        setCompany({
+          name: s.company_name,
+          address: s.company_address,
+          postalCode: s.company_postal_code,
+          city: s.company_city,
+          phone: s.company_phone,
+          email: s.company_email,
+          website: s.company_website,
+          logoUrl: s.company_logo_url,
+          vatNumber: s.company_vat_number,
+          kvkNumber: s.company_kvk_number,
+        })
+      })
+      .catch(err => console.error('Failed to load company settings for route PDF:', err))
+    return () => { active = false }
+  }, [])
+
+  const renderDoc = () => <RouteDoc route={route} day={day} company={company} />
 
   const handleDownload = async () => {
     setGenerating(true)
@@ -224,7 +339,10 @@ export default function DeliveryRoutePDF({ route, day, onClose }: {
                   ) : blobLoading || !url ? (
                     <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 text-cyan-600 animate-spin" /></div>
                   ) : (
-                    <iframe title="route-preview" src={`${url}#toolbar=0&navpanes=0&view=Fit`} className="w-full h-full border-0" />
+                    // Show the viewer toolbar so the document opens at a
+                    // readable zoom and the user can zoom/print/scroll
+                    // (matches the invoice preview).
+                    <iframe title="route-preview" src={`${url}#toolbar=1&navpanes=0`} className="w-full h-full border-0" />
                   )
                 }
               </BlobProvider>
