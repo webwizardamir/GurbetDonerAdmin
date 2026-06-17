@@ -446,6 +446,7 @@
       "unit": "Unit",
       "price": "Price",
       "qty": "Qty",
+      "discount": "Discount",
       "total": "Total"
     },
     "backToOrders": "Back to Orders",
@@ -548,7 +549,9 @@
       "lineNote": "Note",
       "linePlaceholder": "Note (shown on invoice)",
       "selectUnitType": "Select unit type to add",
-      "inCart": "{{qty}}× in cart"
+      "inCart": "{{qty}}× in cart",
+      "orderDiscount": "Discount",
+      "discountToggle": "Switch between % and €"
     },
     "detail": {
       "created": "Created",

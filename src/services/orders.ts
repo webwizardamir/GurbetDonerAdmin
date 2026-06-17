@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { Order, OrderItem, OrderStatus, PaymentMethod, UnitType } from '../types'
+import { computeOrderTotals, resolveDiscountCents, type DiscountType } from '../utils/discount'
 
 // Database row shapes for type-safe transformations
 interface DbOrderRow {
@@ -10,6 +11,8 @@ interface DbOrderRow {
   payment_method?: PaymentMethod | null
   subtotal: number
   discount: number
+  discount_type?: string | null
+  discount_value?: number | null
   tax: number
   delivery_fee?: number
   total: number
@@ -54,7 +57,9 @@ interface DbOrderItemRow {
   quantity: number
   unit_price: number
   cost_cents?: number
-  discount?: number
+  discount_amount?: number
+  discount_type?: string | null
+  discount_value?: number | null
   tax_rate: number
   tax_amount?: number
   total: number
@@ -92,6 +97,10 @@ export interface CreateOrderData {
   delivery_notes?: string
   internal_notes?: string
   payment_method?: PaymentMethod
+  // Order-level discount input. percentage -> basis points (10% = 1000);
+  // fixed -> cents. The service resolves + distributes it across lines.
+  discount_type?: DiscountType | null
+  discount_value?: number | null
 }
 
 export interface CreateOrderItemData {
@@ -102,7 +111,9 @@ export interface CreateOrderItemData {
   quantity: number
   unit_price: number // cents
   cost_cents?: number // cents - cost at time of sale
-  discount_amount?: number // cents
+  // Per-line discount input. percentage -> basis points; fixed -> cents.
+  discount_type?: DiscountType | null
+  discount_value?: number | null
   tax_rate: number
   notes?: string
 }
@@ -128,6 +139,8 @@ function transformOrderFromDb(dbOrder: DbOrderRow): OrderWithItems | null {
     // Values are already in cents (INTEGER)
     subtotal: Number(dbOrder.subtotal) || 0,
     discount_amount: Number(dbOrder.discount) || 0,
+    discount_type: (dbOrder.discount_type as 'percentage' | 'fixed' | null) ?? null,
+    discount_value: dbOrder.discount_value ?? null,
     tax_amount: Number(dbOrder.tax) || 0,
     delivery_fee: Number(dbOrder.delivery_fee) || 0,
     total: Number(dbOrder.total) || 0,
@@ -160,7 +173,9 @@ function transformOrderItemFromDb(dbItem: DbOrderItemRow): OrderItem {
     // Values are already in cents (INTEGER)
     unit_price: Number(dbItem.unit_price) || 0,
     cost_cents: Number(dbItem.cost_cents) || 0,
-    discount_amount: Number(dbItem.discount) || 0,
+    discount_amount: Number(dbItem.discount_amount) || 0,
+    discount_type: (dbItem.discount_type as 'percentage' | 'fixed' | null) ?? null,
+    discount_value: dbItem.discount_value ?? null,
     tax_rate: Number(dbItem.tax_rate) || 0,
     tax_amount: Number(dbItem.tax_amount) || 0,
     line_total: Number(dbItem.total) || 0,
@@ -240,11 +255,11 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
     .from('orders')
     .select(`
       id, order_number, customer_id, status, payment_method,
-      subtotal, discount, tax, total, order_date, invoice_date,
+      subtotal, discount, discount_type, discount_value, tax, total, order_date, invoice_date,
       woo_invoice_number, woo_invoice_date, refund_amount,
       delivery_notes, internal_notes, created_at, updated_at, created_by,
       customer:customers!customer_id(id, company_name, contact_person, billing_country, vat_number),
-      items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, tax_rate, total, unit_type, notes),
+      items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, discount_amount, discount_type, discount_value, tax_rate, tax_amount, total, unit_type, notes),
       refunds:order_refunds(id, woo_refund_id, woo_credit_note_number, refund_date, amount, reason)
     `)
     .order('created_at', { ascending: false })
@@ -300,6 +315,64 @@ export async function fetchOrderById(id: string): Promise<OrderWithItems | null>
   return transformOrderFromDb(data)
 }
 
+// Resolve discounts + totals authoritatively from the discount inputs and build
+// the order header + order_items rows. Shared by createOrder/updateOrderWithItems
+// so the math lives in exactly one place (and matches the order form's preview,
+// which calls the same computeOrderTotals). The service NEVER trusts a
+// client-sent cents amount — it recomputes from {discount_type, discount_value}.
+//
+// Per-line `total`/`tax_amount` are stored fully net of BOTH the line discount
+// and the line's share of the order-level discount (refund-safety invariant —
+// see migration 00056). `order_items.discount_amount` holds the LINE portion
+// only; `orders.discount` holds the grand-total discount.
+function buildOrderRows(
+  orderData: Pick<CreateOrderData, 'discount_type' | 'discount_value'>,
+  items: CreateOrderItemData[],
+) {
+  const totals = computeOrderTotals(
+    items.map(i => ({
+      unitPrice: i.unit_price,
+      quantity: i.quantity,
+      taxRate: i.tax_rate,
+      lineDiscountType: i.discount_type ?? null,
+      lineDiscountValue: i.discount_value ?? null,
+    })),
+    orderData.discount_type ?? null,
+    orderData.discount_value ?? null,
+  )
+
+  const itemRows = items.map((item, idx) => {
+    const line = totals.lines[idx]
+    return {
+      product_id: item.product_id,
+      product_name: item.product_name,
+      product_sku: item.product_sku || '',
+      unit_type: item.unit_type,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      cost_cents: item.cost_cents || 0,
+      discount_amount: line.lineDiscount,
+      discount_type: item.discount_type ?? null,
+      discount_value: item.discount_value ?? null,
+      tax_rate: item.tax_rate,
+      tax_amount: line.tax,
+      total: line.total,
+      notes: item.notes || null,
+    }
+  })
+
+  const header = {
+    subtotal: totals.subtotal,
+    discount: totals.discountTotal,
+    discount_type: orderData.discount_type ?? null,
+    discount_value: orderData.discount_value ?? null,
+    tax: totals.tax,
+    total: totals.total,
+  }
+
+  return { header, itemRows }
+}
+
 // Create order with items
 export async function createOrder(
   orderData: CreateOrderData,
@@ -311,31 +384,7 @@ export async function createOrder(
   // Generate order number
   const orderNumber = await generateOrderNumber()
 
-  // Calculate totals
-  let subtotal = 0
-  let totalTax = 0
-  let totalDiscount = 0
-
-  const processedItems = items.map(item => {
-    const lineSubtotal = item.unit_price * item.quantity
-    const discount = item.discount_amount || 0
-    const taxableAmount = lineSubtotal - discount
-    const tax = Math.round(taxableAmount * (item.tax_rate / 100))
-    const lineTotal = taxableAmount + tax
-
-    subtotal += lineSubtotal
-    totalTax += tax
-    totalDiscount += discount
-
-    return {
-      ...item,
-      discount_amount: discount,
-      tax_amount: tax,
-      line_total: lineTotal,
-    }
-  })
-
-  const total = subtotal - totalDiscount + totalTax
+  const { header, itemRows } = buildOrderRows(orderData, items)
 
   // Insert order
   const { data: order, error: orderError } = await supabase
@@ -346,10 +395,7 @@ export async function createOrder(
       order_date: orderData.order_date || new Date().toISOString().split('T')[0],
       delivery_notes: orderData.delivery_notes || '',
       internal_notes: orderData.internal_notes || '',
-      subtotal: subtotal,
-      tax: totalTax,
-      discount: totalDiscount,
-      total: total,
+      ...header,
       created_by: userId,
     })
     .select()
@@ -358,21 +404,7 @@ export async function createOrder(
   if (orderError) throw orderError
 
   // Insert order items
-  const itemsToInsert = processedItems.map(item => ({
-    order_id: order.id,
-    product_id: item.product_id,
-    product_name: item.product_name,
-    product_sku: item.product_sku || '',
-    unit_type: item.unit_type,
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    cost_cents: item.cost_cents || 0,
-    discount_amount: item.discount_amount,
-    tax_rate: item.tax_rate,
-    tax_amount: item.tax_amount,
-    total: item.line_total,
-    notes: item.notes || null,
-  }))
+  const itemsToInsert = itemRows.map(row => ({ order_id: order.id, ...row }))
 
   const { error: itemsError } = await supabase
     .from('order_items')
@@ -541,31 +573,7 @@ export async function updateOrderWithItems(
   orderData: Partial<CreateOrderData>,
   items: CreateOrderItemData[]
 ): Promise<OrderWithItems> {
-  // Calculate totals
-  let subtotal = 0
-  let totalTax = 0
-  let totalDiscount = 0
-
-  const processedItems = items.map(item => {
-    const lineSubtotal = item.unit_price * item.quantity
-    const discount = item.discount_amount || 0
-    const taxableAmount = lineSubtotal - discount
-    const tax = Math.round(taxableAmount * (item.tax_rate / 100))
-    const lineTotal = taxableAmount + tax
-
-    subtotal += lineSubtotal
-    totalTax += tax
-    totalDiscount += discount
-
-    return {
-      ...item,
-      discount_amount: discount,
-      tax_amount: tax,
-      line_total: lineTotal,
-    }
-  })
-
-  const total = subtotal - totalDiscount + totalTax
+  const { header, itemRows } = buildOrderRows(orderData, items)
 
   // Update order
   const { error: orderError } = await supabase
@@ -575,10 +583,7 @@ export async function updateOrderWithItems(
       order_date: orderData.order_date,
       delivery_notes: orderData.delivery_notes || '',
       internal_notes: orderData.internal_notes || '',
-      subtotal: subtotal,
-      tax: totalTax,
-      discount: totalDiscount,
-      total: total,
+      ...header,
     })
     .eq('id', orderId)
 
@@ -593,21 +598,7 @@ export async function updateOrderWithItems(
   if (deleteError) throw deleteError
 
   // Insert new items
-  const itemsToInsert = processedItems.map(item => ({
-    order_id: orderId,
-    product_id: item.product_id,
-    product_name: item.product_name,
-    product_sku: item.product_sku || '',
-    unit_type: item.unit_type,
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    cost_cents: item.cost_cents || 0,
-    discount_amount: item.discount_amount,
-    tax_rate: item.tax_rate,
-    tax_amount: item.tax_amount,
-    total: item.line_total,
-    notes: item.notes || null,
-  }))
+  const itemsToInsert = itemRows.map(row => ({ order_id: orderId, ...row }))
 
   const { error: itemsError } = await supabase
     .from('order_items')
@@ -626,8 +617,12 @@ export async function addOrderItem(
   orderId: string,
   item: CreateOrderItemData
 ): Promise<OrderItem> {
+  // Single-item add resolves only this line's own discount. NOTE: it does not
+  // re-distribute the order-level discount onto the new line — that requires a
+  // full-order recompute (use updateOrderWithItems). recalculateOrderTotals
+  // below keeps the header consistent with the stored line nets regardless.
   const lineSubtotal = item.unit_price * item.quantity
-  const discount = item.discount_amount || 0
+  const discount = resolveDiscountCents(item.discount_type ?? null, item.discount_value ?? null, lineSubtotal)
   const taxableAmount = lineSubtotal - discount
   const tax = Math.round(taxableAmount * (item.tax_rate / 100))
   const lineTotal = taxableAmount + tax
@@ -644,6 +639,8 @@ export async function addOrderItem(
       unit_price: item.unit_price,
       cost_cents: item.cost_cents || 0,
       discount_amount: discount,
+      discount_type: item.discount_type ?? null,
+      discount_value: item.discount_value ?? null,
       tax_rate: item.tax_rate,
       tax_amount: tax,
       total: lineTotal,
@@ -683,19 +680,27 @@ export async function recalculateOrderTotals(orderId: string): Promise<void> {
 
   if (itemsError) throw itemsError
 
+  // Derive the header from the stored per-line NET values (`total`/`tax_amount`
+  // are already net of every discount), so the discount is recovered as the gap
+  // between gross goods and net total. This stays correct no matter how the
+  // discount was split between line and order level (the per-item `discount`
+  // column only holds the line portion).
   let subtotal = 0
   let totalTax = 0
-  let totalDiscount = 0
+  let netTotal = 0
 
   for (const item of items || []) {
     // Values are in cents (INTEGER)
     const unitPrice = Number(item.unit_price) || 0
-    subtotal += unitPrice * Number(item.quantity)
+    // Round per line to match computeOrderTotals (the create/update path), so
+    // decimal kg quantities don't drift the stored subtotal/discount.
+    subtotal += Math.round(unitPrice * Number(item.quantity))
     totalTax += Number(item.tax_amount) || 0
-    totalDiscount += Number(item.discount) || 0
+    netTotal += Number(item.total) || 0
   }
 
-  const total = subtotal - totalDiscount + totalTax
+  const total = netTotal
+  const totalDiscount = subtotal + totalTax - total
 
   // Update with cents values
   const { error: updateError } = await supabase

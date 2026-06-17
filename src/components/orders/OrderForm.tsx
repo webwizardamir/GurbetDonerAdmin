@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X, Tags } from 'lucide-react'
 import { useCustomers } from '../../hooks/useCustomers'
@@ -13,6 +13,7 @@ import type { Customer, Product, UnitType, ProductUnitPrice } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import { formatPrice } from '../../utils/format'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
+import { computeOrderTotals, type DiscountType } from '../../utils/discount'
 
 interface OrderFormProps {
   onCancel: () => void
@@ -28,6 +29,8 @@ interface OrderLineItem {
   unit_price: number
   tax_rate: number
   notes?: string
+  discount_type?: DiscountType | null
+  discount_value?: number | null
   availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
@@ -46,6 +49,8 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const [deliveryNotes, setDeliveryNotes] = useState('')
   const [internalNotes, setInternalNotes] = useState('')
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0])
+  const [orderDiscountType, setOrderDiscountType] = useState<DiscountType | null>(null)
+  const [orderDiscountValue, setOrderDiscountValue] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loadingPrices] = useState(false)
@@ -156,6 +161,8 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     setOrderDate(editOrder.order_date || new Date().toISOString().split('T')[0])
     setDeliveryNotes(editOrder.delivery_notes || '')
     setInternalNotes(editOrder.internal_notes || '')
+    setOrderDiscountType(editOrder.discount_type ?? null)
+    setOrderDiscountValue(editOrder.discount_value ?? null)
     if (editOrder.items && editOrder.items.length > 0) {
       const loadedItems: OrderLineItem[] = editOrder.items.map(item => {
         const product = products.find(p => p.id === item.product_id)
@@ -182,6 +189,8 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
           unit_price: item.unit_price,
           tax_rate: item.tax_rate,
           notes: item.notes || '',
+          discount_type: item.discount_type ?? null,
+          discount_value: item.discount_value ?? null,
           availableUnitTypes,
         }
       })
@@ -282,9 +291,20 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const reverseCharge = !isImported && !!selectedCustomer && isReverseChargeCountry(selectedCustomer.billing_country)
   const effectiveTaxRate = (rate: number) => reverseCharge ? 0 : rate
 
-  const subtotal = items.reduce((sum, i) => sum + (i.unit_price * i.quantity), 0)
-  const taxTotal = items.reduce((sum, i) => sum + Math.round(i.unit_price * i.quantity * (effectiveTaxRate(i.tax_rate) / 100)), 0)
-  const total = subtotal + taxTotal
+  // Single source of truth for the live preview — the same helper the service
+  // uses to persist, so the displayed totals always match what is stored.
+  const totals = useMemo(() => computeOrderTotals(
+    items.map(i => ({
+      unitPrice: i.unit_price,
+      quantity: i.quantity,
+      taxRate: effectiveTaxRate(i.tax_rate),
+      lineDiscountType: i.discount_type ?? null,
+      lineDiscountValue: i.discount_value ?? null,
+    })),
+    orderDiscountType,
+    orderDiscountValue,
+  ), [items, orderDiscountType, orderDiscountValue, reverseCharge])
+  const { subtotal, discountTotal, tax: taxTotal, total } = totals
 
   const handleSubmit = async () => {
     if (!selectedCustomer) { setError(t('orders.form.selectCustomerError')); return }
@@ -295,6 +315,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       const orderData = {
         customer_id: selectedCustomer.id, order_date: orderDate,
         delivery_notes: deliveryNotes || undefined, internal_notes: internalNotes || undefined,
+        discount_type: orderDiscountType, discount_value: orderDiscountValue,
       }
       const itemsData = items.map(i => {
         const unitPriceCost = i.product.unit_prices?.find(up => up.unit_type === i.selectedUnitType)?.cost_cents
@@ -302,6 +323,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
           product_id: i.product.id, product_name: i.product.name, product_sku: i.product.sku,
           unit_type: i.selectedUnitType, quantity: i.quantity, unit_price: i.unit_price,
           cost_cents: unitPriceCost ?? i.product.cost_cents ?? 0, tax_rate: effectiveTaxRate(i.tax_rate),
+          discount_type: i.discount_type ?? null, discount_value: i.discount_value ?? null,
           notes: i.notes?.trim() || undefined,
         }
       })
@@ -480,9 +502,12 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
             <OrderItemsList
               items={items}
               subtotal={subtotal}
+              discountTotal={discountTotal}
               taxTotal={taxTotal}
               total={total}
               reverseCharge={reverseCharge}
+              orderDiscountType={orderDiscountType}
+              orderDiscountValue={orderDiscountValue}
               onUpdateQuantity={updateQuantity}
               onSetQuantity={setQuantity}
               onRemoveItem={removeItem}
@@ -496,6 +521,15 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
                 setItems(prev => prev.map(item =>
                   item.lineId === lineId ? { ...item, notes } : item
                 ))
+              }}
+              onSetLineDiscount={(lineId, type, value) => {
+                setItems(prev => prev.map(item =>
+                  item.lineId === lineId ? { ...item, discount_type: type, discount_value: value } : item
+                ))
+              }}
+              onSetOrderDiscount={(type, value) => {
+                setOrderDiscountType(type)
+                setOrderDiscountValue(value)
               }}
             />
           </div>

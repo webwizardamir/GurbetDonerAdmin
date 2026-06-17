@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Minus, Trash2, Package, MessageSquare, X } from 'lucide-react'
 import type { UnitType } from '../../types'
 import { formatPrice } from '../../utils/format'
+import { resolveDiscountCents, type DiscountType } from '../../utils/discount'
 
 export interface OrderLineItem {
   lineId: string
@@ -20,21 +21,29 @@ export interface OrderLineItem {
   unit_price: number
   tax_rate: number
   notes?: string
+  // Per-line discount input. percentage -> basis points (10% = 1000); fixed -> cents.
+  discount_type?: DiscountType | null
+  discount_value?: number | null
   availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
 interface OrderItemsListProps {
   items: OrderLineItem[]
   subtotal: number
+  discountTotal: number
   taxTotal: number
   total: number
   reverseCharge?: boolean
+  orderDiscountType?: DiscountType | null
+  orderDiscountValue?: number | null
   onUpdateQuantity: (lineId: string, delta: number) => void
   onSetQuantity: (lineId: string, quantity: number) => void
   onRemoveItem: (lineId: string) => void
   onChangeUnitType: (lineId: string, unitType: UnitType) => void
   onSetPrice?: (lineId: string, priceInCents: number) => void
   onSetNotes?: (lineId: string, notes: string) => void
+  onSetLineDiscount?: (lineId: string, type: DiscountType, value: number | null) => void
+  onSetOrderDiscount?: (type: DiscountType, value: number | null) => void
 }
 
 // Price input that keeps the user's typed string while focused and only
@@ -81,6 +90,88 @@ function PriceInput({
       }}
       className={`text-sm px-2 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-right text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-green-500 ${className}`}
     />
+  )
+}
+
+// Discount input: a compact %/€ toggle + numeric value. Mirrors PriceInput's
+// keep-draft-while-focused / commit-on-blur pattern. The stored `value` is
+// basis points when type='percentage' (10% = 1000) and cents when type='fixed';
+// both display as the human number divided by 100, so "10" -> 1000 either way.
+// An empty value clears the discount (committed as null).
+function DiscountInput({
+  type,
+  value,
+  onCommit,
+  className = '',
+}: {
+  type: DiscountType | null | undefined
+  value: number | null | undefined
+  onCommit: (type: DiscountType, value: number | null) => void
+  className?: string
+}) {
+  const effType: DiscountType = type || 'percentage'
+  const display = value == null
+    ? ''
+    : effType === 'percentage'
+      ? String(value / 100)
+      : (value / 100).toFixed(2)
+  const [draft, setDraft] = useState(display)
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) setDraft(display)
+  }, [display, focused])
+
+  // Parse the draft to a stored integer (basis points / cents). '' -> null.
+  const parseDraft = (): number | null => {
+    const normalized = draft.replace(',', '.').trim()
+    if (normalized === '') return null
+    const n = parseFloat(normalized)
+    if (!Number.isFinite(n) || n < 0) return null
+    return Math.round(n * 100)
+  }
+
+  const commit = () => {
+    const normalized = draft.replace(',', '.').trim()
+    if (normalized === '') { onCommit(effType, null); return }
+    const stored = parseDraft()
+    if (stored == null) { setDraft(display); return }
+    onCommit(effType, stored)
+  }
+
+  const switchType = () => {
+    const next: DiscountType = effType === 'percentage' ? 'fixed' : 'percentage'
+    onCommit(next, parseDraft())
+  }
+
+  const { t } = useTranslation()
+  return (
+    <div className={`inline-flex items-stretch rounded border border-slate-200 dark:border-slate-600 overflow-hidden focus-within:ring-1 focus-within:ring-green-500 ${className}`}>
+      <button
+        type="button"
+        onClick={switchType}
+        aria-label={t('orders.form.discountToggle')}
+        title={t('orders.form.discountToggle')}
+        className="px-2 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-500 focus:outline-none"
+      >
+        {effType === 'percentage' ? '%' : '€'}
+      </button>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={draft}
+        placeholder="0"
+        aria-label={t('orders.itemsTable.discount')}
+        onFocus={e => { setFocused(true); e.target.select() }}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={() => { setFocused(false); commit() }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.currentTarget.blur() }
+          if (e.key === 'Escape') { setDraft(display); e.currentTarget.blur() }
+        }}
+        className="w-full min-w-0 text-sm px-1.5 py-1 bg-white dark:bg-slate-700 text-right text-slate-700 dark:text-slate-200 focus:outline-none"
+      />
+    </div>
   )
 }
 
@@ -231,15 +322,20 @@ function NotesEditorModal({
 export default function OrderItemsList({
   items,
   subtotal,
+  discountTotal,
   taxTotal,
   total,
   reverseCharge,
+  orderDiscountType,
+  orderDiscountValue,
   onUpdateQuantity,
   onSetQuantity,
   onRemoveItem,
   onChangeUnitType,
   onSetPrice,
   onSetNotes,
+  onSetLineDiscount,
+  onSetOrderDiscount,
 }: OrderItemsListProps) {
   const { t } = useTranslation()
   const [notesEditorLineId, setNotesEditorLineId] = useState<string | null>(null)
@@ -279,13 +375,18 @@ export default function OrderItemsList({
                   <th className="px-2 py-2 text-left">{t('orders.itemsTable.unit')}</th>
                   <th className="px-2 py-2 text-right w-24">{t('orders.itemsTable.price')}</th>
                   <th className="px-2 py-2 text-center w-28">{t('orders.itemsTable.qty')}</th>
+                  {onSetLineDiscount && (
+                    <th className="px-2 py-2 text-right w-28">{t('orders.itemsTable.discount')}</th>
+                  )}
                   <th className="px-2 py-2 text-right w-24">{t('orders.itemsTable.total')}</th>
                   <th className="px-2 py-2 w-20"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {items.map((item, idx) => {
-                  const lineTotal = item.unit_price * item.quantity
+                  const lineGross = item.unit_price * item.quantity
+                  const lineDiscount = resolveDiscountCents(item.discount_type, item.discount_value, Math.round(lineGross))
+                  const lineTotal = lineGross - lineDiscount
                   return (
                     <tr key={item.lineId} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30">
                       <td className="px-2 py-2 text-slate-400 dark:text-slate-500 align-middle">{idx + 1}</td>
@@ -350,6 +451,21 @@ export default function OrderItemsList({
                           </button>
                         </div>
                       </td>
+                      {onSetLineDiscount && (
+                        <td className="px-2 py-2 align-middle text-right">
+                          <div className="flex flex-col items-end gap-0.5">
+                            <DiscountInput
+                              type={item.discount_type}
+                              value={item.discount_value}
+                              onCommit={(type, value) => onSetLineDiscount(item.lineId, type, value)}
+                              className="w-24"
+                            />
+                            {lineDiscount > 0 && (
+                              <span className="text-xs text-red-600 dark:text-red-400">-{formatPrice(lineDiscount)}</span>
+                            )}
+                          </div>
+                        </td>
+                      )}
                       <td className="px-2 py-2 align-middle text-right font-medium text-slate-900 dark:text-white">
                         {formatPrice(lineTotal)}
                       </td>
@@ -382,7 +498,9 @@ export default function OrderItemsList({
           {/* Mobile: compact cards */}
           <div className="md:hidden space-y-2">
             {items.map((item, idx) => {
-              const lineTotal = item.unit_price * item.quantity
+              const lineGross = item.unit_price * item.quantity
+              const lineDiscount = resolveDiscountCents(item.discount_type, item.discount_value, Math.round(lineGross))
+              const lineTotal = lineGross - lineDiscount
               return (
                 <div key={item.lineId} className="p-3 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl space-y-2">
                   <div className="flex items-start gap-2">
@@ -450,6 +568,23 @@ export default function OrderItemsList({
                     </div>
                   </div>
 
+                  {onSetLineDiscount && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">{t('orders.itemsTable.discount')}</span>
+                      <div className="flex items-center gap-2">
+                        {lineDiscount > 0 && (
+                          <span className="text-xs text-red-600 dark:text-red-400">-{formatPrice(lineDiscount)}</span>
+                        )}
+                        <DiscountInput
+                          type={item.discount_type}
+                          value={item.discount_value}
+                          onCommit={(type, value) => onSetLineDiscount(item.lineId, type, value)}
+                          className="w-24"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500 dark:text-slate-400">{t('orders.itemsTable.total')}</span>
                     <span className="font-semibold text-slate-900 dark:text-white">{formatPrice(lineTotal)}</span>
@@ -471,11 +606,28 @@ export default function OrderItemsList({
 
           {/* Sticky thin totals strip — sits at the bottom of the items panel */}
           <div className="sticky bottom-0 z-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-            <div className="flex items-center justify-end gap-6 px-4 py-2 text-sm">
+            <div className="flex flex-wrap items-center justify-end gap-x-6 gap-y-2 px-4 py-2 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-slate-500 dark:text-slate-400">{t('orders.subtotal')}</span>
                 <span className="text-slate-900 dark:text-white font-medium">{formatPrice(subtotal)}</span>
               </div>
+              {onSetOrderDiscount && (
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400">{t('orders.form.orderDiscount')}</span>
+                  <DiscountInput
+                    type={orderDiscountType}
+                    value={orderDiscountValue}
+                    onCommit={(type, value) => onSetOrderDiscount(type, value)}
+                    className="w-24"
+                  />
+                </div>
+              )}
+              {discountTotal > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400">{t('orders.detail.discount')}</span>
+                  <span className="text-red-600 dark:text-red-400 font-medium">-{formatPrice(discountTotal)}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <span className="text-slate-500 dark:text-slate-400">
                   {t('orders.tax')}

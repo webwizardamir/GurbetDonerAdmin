@@ -306,7 +306,11 @@ export interface Order {
   status: OrderStatus
   payment_method?: PaymentMethod
   subtotal: number // cents
-  discount_amount: number // cents
+  discount_amount: number // cents — resolved grand-total discount (line + order-level)
+  // Echo of the order-level discount input, so edit round-trips ("10%" reopens
+  // as "10%"). percentage -> basis points (10% = 1000); fixed -> cents.
+  discount_type?: 'percentage' | 'fixed' | null
+  discount_value?: number | null
   tax_amount: number // cents
   delivery_fee: number // cents
   total: number // cents
@@ -346,7 +350,11 @@ export interface OrderItem {
   quantity: number
   unit_price: number // cents - price at time of sale
   cost_cents?: number // cents - cost at time of sale, for profit calculation
-  discount_amount: number // cents
+  discount_amount: number // cents — resolved LINE discount only (not the order-level share)
+  // Echo of the line discount input, so edit round-trips. percentage -> basis
+  // points (10% = 1000); fixed -> cents.
+  discount_type?: 'percentage' | 'fixed' | null
+  discount_value?: number | null
   tax_rate: number
   tax_amount: number // cents
   line_total: number // cents

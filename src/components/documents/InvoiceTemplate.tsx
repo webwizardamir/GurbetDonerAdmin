@@ -535,6 +535,12 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
                 <Text style={styles.totalLabel}>{data.labels.subtotal}</Text>
                 <Text style={styles.totalValue}>{formatPrice(data.subtotal)}</Text>
               </View>
+              {data.discount > 0 && data.documentType !== 'credit_note' && (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Korting</Text>
+                  <Text style={styles.totalValue}>-{formatPrice(data.discount)}</Text>
+                </View>
+              )}
               {data.vatBreakdown.map((vat, idx) => (
                 <View key={idx} style={styles.totalRow}>
                   <Text style={styles.totalLabel}>{data.labels.vat} {vat.rate}%</Text>

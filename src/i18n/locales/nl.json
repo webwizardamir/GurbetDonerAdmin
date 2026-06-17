@@ -446,6 +446,7 @@
       "unit": "Eenheid",
       "price": "Prijs",
       "qty": "Aantal",
+      "discount": "Korting",
       "total": "Totaal"
     },
     "backToOrders": "Terug naar bestellingen",
@@ -548,7 +549,9 @@
       "lineNote": "Notitie",
       "linePlaceholder": "Notitie (verschijnt op factuur)",
       "selectUnitType": "Selecteer eenheid om toe te voegen",
-      "inCart": "{{qty}}× in wagen"
+      "inCart": "{{qty}}× in wagen",
+      "orderDiscount": "Korting",
+      "discountToggle": "Wisselen tussen % en €"
     },
     "detail": {
       "created": "Aangemaakt",

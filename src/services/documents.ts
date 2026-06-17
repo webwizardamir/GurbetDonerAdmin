@@ -319,10 +319,11 @@ export interface InvoiceData {
   }>
 
   // Totals
-  subtotal: number // cents
+  subtotal: number // cents — gross goods, ex-VAT, BEFORE discount
+  discount: number // cents — total discount (line + order-level), ex-VAT; 0 hides the row
   vatBreakdown: Array<{
     rate: number
-    base: number // cents
+    base: number // cents — taxable base AFTER discount
     amount: number // cents
   }>
   totalVat: number // cents
@@ -517,15 +518,20 @@ export async function buildInvoiceData(
     }
   })
 
-  // Calculate VAT breakdown by rate
+  // Calculate VAT breakdown by rate from the STORED per-line net values, so any
+  // line and order-level discount is reflected: `total` is incl-VAT net of all
+  // discounts and `tax_amount` is the VAT portion, hence the taxable base is
+  // (total - tax_amount). Recomputing from unit_price*qty would ignore discounts
+  // and overstate BTW. With no discount this reproduces the old result exactly.
   const vatMap = new Map<number, { base: number; amount: number }>()
-  for (const item of items) {
-    const lineBase = item.unitPrice * item.quantity
-    const lineVat = Math.round(lineBase * (item.vatRate / 100))
+  for (const item of (order.items || []) as Record<string, unknown>[]) {
+    const rate = Number(item.tax_rate) || 0
+    const lineVat = Number(item.tax_amount) || 0
+    const lineBaseNet = (Number(item.total) || 0) - lineVat
 
-    const existing = vatMap.get(item.vatRate) || { base: 0, amount: 0 }
-    vatMap.set(item.vatRate, {
-      base: existing.base + lineBase,
+    const existing = vatMap.get(rate) || { base: 0, amount: 0 }
+    vatMap.set(rate, {
+      base: existing.base + lineBaseNet,
       amount: existing.amount + lineVat,
     })
   }
@@ -536,7 +542,8 @@ export async function buildInvoiceData(
 
   let totalVat = vatBreakdown.reduce((sum, v) => sum + v.amount, 0)
   let subtotal = Number(order.subtotal) || items.reduce((sum: number, i: { unitPrice: number; quantity: number }) => sum + (i.unitPrice * i.quantity), 0)
-  let grandTotal = Number(order.total) || (subtotal + totalVat)
+  let discount = Number(order.discount) || 0
+  let grandTotal = Number(order.total) || (subtotal - discount + totalVat)
 
   // A credit note must reflect what was actually refunded, not the full order.
   // When refund rows exist we rebuild the lines and totals from them; a plain
@@ -570,6 +577,8 @@ export async function buildInvoiceData(
       subtotal = refundSub
       totalVat = refundVat
       grandTotal = refundSub + refundVat
+      // Refund lines are already net of any discount; no separate Korting row.
+      discount = 0
     }
   }
 
@@ -629,6 +638,7 @@ export async function buildInvoiceData(
     items,
 
     subtotal,
+    discount,
     vatBreakdown,
     totalVat,
     grandTotal,
