@@ -450,7 +450,12 @@ optimized delivery route + a truck loading order, via Google Maps through a Supa
 - **`components/route/*`** — `DeliveryRoutePanel` (centered modal), `DeliveryStopList` (select,
   move-up/down + drag, pin/lock, manifest), `LoadingOrderList` (reverse, read-only).
 - **`components/documents/DeliveryRouteTemplate.tsx`** — Dutch PDF (cyan brand): page 1 bezorglijst,
-  page 2 inlaadvolgorde.
+  page 2 inlaadvolgorde. Uses the **same invoice-style chrome** as the document family: logo +
+  company-info header (`DocHeader`), cyan doc title, a cyan-accent depot info row + meta box, and a
+  branded footer (`DocFooter`) — all sourced from `document_settings` via `fetchDocumentSettings`
+  (loaded in a `useEffect`, non-fatal fallback to a name-only header). The export modal's **preview
+  iframe uses `#toolbar=1&navpanes=0`** (native PDF zoom/scroll/print controls), matching
+  `DocumentGenerator`'s invoice preview — not `&view=Fit`.
 - **Depot** lives on the `document_settings` singleton (`depot_*` cols, migration 00055), edited in
   **Settings → Company → Bezorgdepot**; geocoded once and cached.
 
