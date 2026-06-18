@@ -495,6 +495,9 @@ export interface DocumentSettings {
   email_bcc?: string | null
   email_templates?: EmailTemplateMap | null
 
+  // Client overdue-invoice reminder schedule (migration 00058)
+  client_reminder_config?: ClientReminderConfig | null
+
   // Delivery depot (route start/return point) — see migration 00055
   depot_label?: string
   depot_street?: string
@@ -523,7 +526,68 @@ export interface EmailTemplate {
   body: string
 }
 
-export type EmailTemplateMap = Partial<Record<EmailDocumentType, EmailTemplate>>
+// Per-step reminder template keys live in the same email_templates JSONB map but
+// are NOT valid document_sends.document_type enum values — sends always log as
+// 'payment_reminder'. These are just extra keys for storing escalation copy.
+export type ReminderStepKey =
+  | 'payment_reminder_1'
+  | 'payment_reminder_2'
+  | 'payment_reminder_final'
+
+export type EmailTemplateKey = EmailDocumentType | ReminderStepKey
+
+export type EmailTemplateMap = Partial<Record<EmailTemplateKey, EmailTemplate>>
+
+// ---------------------------------------------------------------------------
+// Client overdue-invoice reminder configuration (document_settings JSONB)
+// ---------------------------------------------------------------------------
+export type ReminderTone = 'gentle' | 'second' | 'final'
+
+export interface ClientReminderStep {
+  days_after_due: number       // overdue days at which this step fires
+  template_key: EmailTemplateKey // which email_templates entry to use
+  tone: ReminderTone           // drives PDF escalation wording
+}
+
+export interface ClientReminderConfig {
+  auto_send_enabled: boolean   // GLOBAL kill-switch for automated email
+  send_hour: number            // 0-23 local hour the daily job may send
+  working_days_only: boolean   // skip Sat/Sun for automated sends
+  repeat_interval_days: number // after the last explicit step, repeat every N days
+  max_count: number            // max reminders ever sent per invoice
+  steps: ClientReminderStep[]  // ordered escalation milestones
+}
+
+// ---------------------------------------------------------------------------
+// Overdue-invoice work queue (get_overdue_invoices RPC row)
+// ---------------------------------------------------------------------------
+export interface OverdueInvoice {
+  order_id: string
+  order_number: string
+  customer_id: string
+  customer_name: string
+  customer_email: string | null
+  total: number                // cents
+  invoice_due_date: string     // YYYY-MM-DD
+  days_overdue: number
+  invoice_number: string | null
+  reminders_sent: number
+  last_reminder_at: string | null
+  snoozed_until: string | null
+}
+
+// invoice_reminders send-log row (migration 00059)
+export interface InvoiceReminder {
+  id: string
+  order_id: string
+  step_number: number
+  channel: 'manual' | 'auto'
+  status: 'sent' | 'failed'
+  document_send_id: string | null
+  sent_at: string
+  created_by: string | null
+  created_at: string
+}
 
 export type DocumentSendStatus = 'pending' | 'sent' | 'failed' | 'bounced'
 

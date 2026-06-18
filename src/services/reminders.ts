@@ -1,5 +1,8 @@
 import { supabase } from './supabase'
 
+export type ReminderRecurrence = 'none' | 'daily' | 'weekly' | 'monthly'
+export type ReminderCategory = 'generic' | 'payment_due'
+
 export interface Reminder {
   id: string
   user_id: string
@@ -11,6 +14,11 @@ export interface Reminder {
   order_id?: string
   customer_id?: string
   product_id?: string
+  recurrence: ReminderRecurrence
+  recurrence_until?: string | null
+  email_enabled: boolean
+  email_sent_at?: string | null
+  category: ReminderCategory
   created_at: string
   updated_at: string
 }
@@ -22,12 +30,29 @@ export interface CreateReminderData {
   order_id?: string
   customer_id?: string
   product_id?: string
+  recurrence?: ReminderRecurrence
+  recurrence_until?: string | null
+  email_enabled?: boolean
+  category?: ReminderCategory
 }
 
 export interface UpdateReminderData {
   title?: string
   notes?: string
   remind_at?: string
+  recurrence?: ReminderRecurrence
+  recurrence_until?: string | null
+  email_enabled?: boolean
+}
+
+/** Advance a timestamp by one recurrence interval. Returns null when 'none'. */
+export function nextOccurrence(remindAt: string, recurrence: ReminderRecurrence): string | null {
+  if (recurrence === 'none') return null
+  const d = new Date(remindAt)
+  if (recurrence === 'daily') d.setDate(d.getDate() + 1)
+  else if (recurrence === 'weekly') d.setDate(d.getDate() + 7)
+  else if (recurrence === 'monthly') d.setMonth(d.getMonth() + 1)
+  return d.toISOString()
 }
 
 // Fetch all reminders for current user (active + dismissed within last 24h)
@@ -103,6 +128,10 @@ export async function createReminder(data: CreateReminderData): Promise<Reminder
       order_id: data.order_id || null,
       customer_id: data.customer_id || null,
       product_id: data.product_id || null,
+      recurrence: data.recurrence ?? 'none',
+      recurrence_until: data.recurrence_until ?? null,
+      email_enabled: data.email_enabled ?? false,
+      category: data.category ?? 'generic',
     })
     .select()
     .single()
@@ -116,10 +145,14 @@ export async function updateReminder(id: string, data: UpdateReminderData): Prom
   const updateData: Record<string, unknown> = {}
   if (data.title !== undefined) updateData.title = data.title
   if (data.notes !== undefined) updateData.notes = data.notes || null
+  if (data.recurrence !== undefined) updateData.recurrence = data.recurrence
+  if (data.recurrence_until !== undefined) updateData.recurrence_until = data.recurrence_until
+  if (data.email_enabled !== undefined) updateData.email_enabled = data.email_enabled
   if (data.remind_at !== undefined) {
     updateData.remind_at = data.remind_at
     updateData.is_read = false // Reset read status when time changes
     updateData.is_dismissed = false // Reactivate if dismissed
+    updateData.email_sent_at = null // Allow the email nudge to fire again
   }
 
   const { data: reminder, error } = await supabase
@@ -131,6 +164,31 @@ export async function updateReminder(id: string, data: UpdateReminderData): Prom
 
   if (error) throw error
   return reminder
+}
+
+/**
+ * For a recurring reminder, create the next occurrence (if still within
+ * recurrence_until). Called when the current occurrence is read/dismissed.
+ * No-op for non-recurring reminders.
+ */
+export async function maybeSpawnNextOccurrence(reminder: Reminder): Promise<void> {
+  if (!reminder.recurrence || reminder.recurrence === 'none') return
+  const next = nextOccurrence(reminder.remind_at, reminder.recurrence)
+  if (!next) return
+  if (reminder.recurrence_until && new Date(next) > new Date(reminder.recurrence_until)) return
+
+  await createReminder({
+    title: reminder.title,
+    notes: reminder.notes,
+    remind_at: next,
+    order_id: reminder.order_id,
+    customer_id: reminder.customer_id,
+    product_id: reminder.product_id,
+    recurrence: reminder.recurrence,
+    recurrence_until: reminder.recurrence_until,
+    email_enabled: reminder.email_enabled,
+    category: reminder.category,
+  })
 }
 
 // Mark reminder as read

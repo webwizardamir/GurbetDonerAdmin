@@ -9,17 +9,19 @@ import {
   Tag,
   Mail,
   Settings,
+  BellRing,
   X,
 } from 'lucide-react'
 import { useDocumentSettings } from '../hooks/useDocumentSettings'
-import type { DocumentSettings, EmailTemplateMap } from '../types'
+import type { ClientReminderConfig, DocumentSettings, EmailTemplateMap } from '../types'
 import CompanyTab from '../components/settings/CompanyTab'
 import BankPaymentTab from '../components/settings/BankPaymentTab'
 import NumberingTab from '../components/settings/NumberingTab'
 import LabelsTab from '../components/settings/LabelsTab'
 import EmailTab from '../components/settings/EmailTab'
+import RemindersTab from '../components/settings/RemindersTab'
 
-type TabId = 'company' | 'bank' | 'numbering' | 'labels' | 'email'
+type TabId = 'company' | 'bank' | 'numbering' | 'labels' | 'email' | 'reminders'
 
 interface TabConfig {
   id: TabId
@@ -33,6 +35,7 @@ const tabs: TabConfig[] = [
   { id: 'numbering', labelKey: 'settings.documents.tabs.numbering', icon: <FileText className="w-4 h-4" /> },
   { id: 'labels', labelKey: 'settings.documents.tabs.labels', icon: <Tag className="w-4 h-4" /> },
   { id: 'email', labelKey: 'settings.documents.tabs.email', icon: <Mail className="w-4 h-4" /> },
+  { id: 'reminders', labelKey: 'settings.documents.tabs.reminders', icon: <BellRing className="w-4 h-4" /> },
 ]
 
 export default function DocumentSettingsPage() {
@@ -56,6 +59,11 @@ export default function DocumentSettingsPage() {
 
   const handleTemplatesChange = (templates: EmailTemplateMap) => {
     setFormData(prev => ({ ...prev, email_templates: templates }))
+    setSaveSuccess(false)
+  }
+
+  const handleReminderConfigChange = (config: ClientReminderConfig) => {
+    setFormData(prev => ({ ...prev, client_reminder_config: config }))
     setSaveSuccess(false)
   }
 
@@ -159,6 +167,9 @@ export default function DocumentSettingsPage() {
         )}
         {activeTab === 'email' && (
           <EmailTab formData={formData} onChange={handleChange} onTemplatesChange={handleTemplatesChange} />
+        )}
+        {activeTab === 'reminders' && (
+          <RemindersTab formData={formData} onConfigChange={handleReminderConfigChange} onTemplatesChange={handleTemplatesChange} />
         )}
       </div>
     </div>

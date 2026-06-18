@@ -13,6 +13,7 @@ import TodayKPICards from '../components/dashboard/TodayKPICards'
 import type { TodayStats } from '../components/dashboard/TodayKPICards'
 import ActionRequiredBanner from '../components/dashboard/ActionRequiredBanner'
 import type { ActionRequired } from '../components/dashboard/ActionRequiredBanner'
+import OverdueWidget from '../components/dashboard/OverdueWidget'
 import TodayOrdersList from '../components/dashboard/TodayOrdersList'
 import StockAlerts from '../components/dashboard/StockAlerts'
 import WeeklyMiniChart from '../components/dashboard/WeeklyMiniChart'
@@ -168,6 +169,7 @@ export default function Dashboard() {
       />
       <TodayKPICards todayStats={todayStats} isOwner={isOwner} />
       <ActionRequiredBanner actionRequired={actionRequired} />
+      <OverdueWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left column - Orders */}

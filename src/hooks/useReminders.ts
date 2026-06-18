@@ -9,6 +9,7 @@ import {
   dismissReminder,
   snoozeReminder,
   deleteReminder,
+  maybeSpawnNextOccurrence,
   type Reminder,
   type CreateReminderData,
   type UpdateReminderData,
@@ -104,10 +105,13 @@ export function useReminders() {
 
   const markRead = async (id: string) => {
     try {
+      const target = reminders.find(r => r.id === id)
       await markReminderRead(id)
+      if (target) await maybeSpawnNextOccurrence(target)
       setReminders(prev => prev.map(r => r.id === id ? { ...r, is_read: true } : r))
       setDueReminders(prev => prev.filter(r => r.id !== id))
       setUnreadCount(prev => Math.max(0, prev - 1))
+      if (target?.recurrence && target.recurrence !== 'none') await loadReminders()
     } catch (err) {
       console.error('Failed to mark reminder as read:', err)
     }
@@ -115,6 +119,8 @@ export function useReminders() {
 
   const dismiss = async (id: string) => {
     try {
+      // Dismiss ends the series for a recurring reminder (no next occurrence);
+      // "mark read" is the action that advances a recurring reminder.
       await dismissReminder(id)
       // Update local state to show as dismissed (not remove - stays visible for 24h)
       setReminders(prev => prev.map(r => r.id === id ? { ...r, is_dismissed: true } : r))

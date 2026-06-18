@@ -91,7 +91,16 @@
     "users": "Gebruikers",
     "auditLog": "Auditlogboek",
     "documents": "Documenten",
-    "signOut": "Uitloggen"
+    "signOut": "Uitloggen",
+    "overdueInvoices": "Herinneringen",
+    "sections": {
+      "overview": "Overzicht",
+      "sales": "Verkoop",
+      "catalog": "Catalogus",
+      "documents": "Documenten",
+      "analysis": "Analyse",
+      "admin": "Beheer"
+    }
   },
   "auth": {
     "signIn": "Inloggen",
@@ -769,8 +778,8 @@
       "currentStateInfo": "Dit tabblad toont de huidige voorraadstatus en wordt niet gefilterd op datumbereik.",
       "alertBanner": "{{count}} verlopen of kritieke batches ter waarde van {{value}}",
       "expired": "Verlopen",
-      "critical": "Kritiek \u22647 dgn",
-      "warning": "Waarschuwing \u226430 dgn",
+      "critical": "Kritiek ≤7 dgn",
+      "warning": "Waarschuwing ≤30 dgn",
       "totalStockValue": "Totale voorraadwaarde",
       "expiryRisk": "Vervalrisico",
       "product": "Product",
@@ -1129,7 +1138,8 @@
         "bank": "Bank & Betaling",
         "numbering": "Nummering",
         "labels": "Labels",
-        "email": "E-mail"
+        "email": "E-mail",
+        "reminders": "Herinneringen"
       },
       "email": {
         "resendNotice": "Resend API-sleutel staat als Supabase edge-function secret. UI heeft geen invoer; stel hem eenmalig in Supabase Studio in.",
@@ -1268,6 +1278,35 @@
       "timestamp": "Tijdstip",
       "details": "Details",
       "noLogs": "Geen logboekgegevens gevonden"
+    },
+    "reminders": {
+      "queueNote": "De openstaande-facturenlijst is altijd actief; je team ziet verlopen facturen en kan handmatig een herinnering sturen. Automatisch verzenden hieronder is optioneel.",
+      "autoSend": {
+        "title": "Automatisch verzenden",
+        "subtitle": "Stuur herinneringen automatisch per e-mail volgens onderstaand schema.",
+        "warning": "Let op: als dit aanstaat worden er automatisch e-mails naar klanten verstuurd zonder handmatige goedkeuring.",
+        "sendHour": "Verzenduur (0-23)",
+        "workingDaysOnly": "Alleen op werkdagen (ma-vr)"
+      },
+      "schedule": {
+        "title": "Schema & escalatie",
+        "subtitle": "Bepaal wanneer en hoe vaak klanten een herinnering krijgen.",
+        "daysAfterDue": "Dagen na vervaldatum",
+        "tone": "Toon",
+        "addStep": "Stap toevoegen",
+        "repeatInterval": "Herhaalinterval (dagen)",
+        "repeatHint": "Na de laatste stap elke zoveel dagen herhalen.",
+        "maxCount": "Max. aantal herinneringen",
+        "maxHint": "Stop na dit aantal herinneringen per factuur."
+      },
+      "tones": {
+        "gentle": "Eerste herinnering",
+        "second": "Tweede herinnering",
+        "final": "Laatste aanmaning"
+      },
+      "copy": {
+        "title": "Tekst per herinnering"
+      }
     }
   },
   "pricing": {
@@ -1313,7 +1352,31 @@
     "upcoming": "Aankomend",
     "active": "Actief",
     "dismissed": "Afgewezen",
-    "reactivate": "Heractiveren"
+    "reactivate": "Heractiveren",
+    "add": "Herinnering toevoegen",
+    "editTitle": "Herinnering bewerken",
+    "newTitle": "Nieuwe herinnering",
+    "markRead": "Markeer als gelezen",
+    "dismiss": "Afwijzen",
+    "empty": "Nog geen herinneringen",
+    "addFirst": "Voeg uw eerste herinnering toe",
+    "emailNudge": "Ook per e-mail herinneren",
+    "recurrence": {
+      "none": "Eenmalig",
+      "daily": "Dagelijks",
+      "weekly": "Wekelijks",
+      "monthly": "Maandelijks"
+    },
+    "time": {
+      "justNow": "Zojuist",
+      "soon": "Binnenkort",
+      "minAgo": "{{n}} min geleden",
+      "inMin": "Over {{n}} min",
+      "hourAgo": "{{n}} u geleden",
+      "inHour": "Over {{n}} u",
+      "dayAgo": "{{n}} d geleden",
+      "inDay": "Over {{n}} d"
+    }
   },
   "categories": {
     "title": "Categorieën",
@@ -1562,6 +1625,57 @@
       "emailIntro": "Uw klantenportaal account is aangemaakt. U kunt nu uw bestellingen, facturen en documenten online bekijken.",
       "emailOutro": "Bewaar deze gegevens veilig. U kunt uw wachtwoord wijzigen na het inloggen.",
       "emailSignature": "Met vriendelijke groet,\nMelek Halal Food Team"
+    }
+  },
+  "overdue": {
+    "subtitle": "Openstaande facturen opvolgen",
+    "noEmail": "geen e-mail",
+    "daysLabel_one": "{{count}} dag",
+    "daysLabel_other": "{{count}} dagen",
+    "snoozeDays_one": "{{count}} dag",
+    "snoozeDays_other": "{{count}} dagen",
+    "snoozedUntil": "Gesnoozed tot {{date}}",
+    "stats": {
+      "outstanding": "Openstaand bedrag",
+      "overdueCount": "Verlopen facturen",
+      "neverReminded": "Nog niet herinnerd",
+      "snoozed": "Gesnoozed"
+    },
+    "filters": {
+      "active": "Actief",
+      "snoozed": "Gesnoozed",
+      "all": "Alle"
+    },
+    "cols": {
+      "invoice": "Factuur",
+      "customer": "Klant",
+      "amount": "Bedrag",
+      "due": "Vervaldatum",
+      "overdue": "Verlopen",
+      "reminders": "Herinneringen",
+      "actions": "Acties"
+    },
+    "actions": {
+      "sendReminder": "Herinnering sturen",
+      "snooze": "Snoozen",
+      "unsnooze": "Hervatten",
+      "markPaid": "Markeer als betaald",
+      "optOut": "Geen herinneringen meer"
+    },
+    "markPaid": {
+      "title": "Factuur als betaald markeren",
+      "message": "Factuur {{invoice}} van {{customer}} markeren als betaald? De bestelling wordt voltooid en herinneringen stoppen."
+    },
+    "empty": {
+      "title": "Geen openstaande facturen",
+      "subtitle": "Alle facturen zijn betaald of binnen de betaaltermijn."
+    },
+    "widget": {
+      "title": "Openstaande facturen",
+      "summary": "{{count}} verlopen · {{total}} openstaand",
+      "minimizedBar": "{{count}} openstaande facturen · {{total}}",
+      "viewAll": "Alles bekijken",
+      "minimize": "Minimaliseren"
     }
   }
 }

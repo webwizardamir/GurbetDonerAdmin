@@ -91,7 +91,16 @@
     "users": "Users",
     "auditLog": "Audit Log",
     "documents": "Documents",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "overdueInvoices": "Reminders",
+    "sections": {
+      "overview": "Overview",
+      "sales": "Sales",
+      "catalog": "Catalog",
+      "documents": "Documents",
+      "analysis": "Analysis",
+      "admin": "Administration"
+    }
   },
   "auth": {
     "signIn": "Sign in",
@@ -769,8 +778,8 @@
       "currentStateInfo": "This tab shows the current stock status and is not filtered by date range.",
       "alertBanner": "{{count}} expired or critical batches worth {{value}}",
       "expired": "Expired",
-      "critical": "Critical \u22647 days",
-      "warning": "Warning \u226430 days",
+      "critical": "Critical ≤7 days",
+      "warning": "Warning ≤30 days",
       "totalStockValue": "Total stock value",
       "expiryRisk": "Expiry Risk",
       "product": "Product",
@@ -1129,7 +1138,8 @@
         "bank": "Bank & Payment",
         "numbering": "Numbering",
         "labels": "Labels",
-        "email": "Email"
+        "email": "Email",
+        "reminders": "Reminders"
       },
       "email": {
         "resendNotice": "Resend API key lives as a Supabase edge-function secret. No UI field; set it once in Supabase Studio.",
@@ -1268,6 +1278,35 @@
       "timestamp": "Timestamp",
       "details": "Details",
       "noLogs": "No audit logs found"
+    },
+    "reminders": {
+      "queueNote": "The outstanding-invoices list is always on; your team sees overdue invoices and can send a reminder manually. Automatic sending below is optional.",
+      "autoSend": {
+        "title": "Automatic sending",
+        "subtitle": "Send reminders automatically by email on the schedule below.",
+        "warning": "Note: when enabled, emails are sent to customers automatically without manual approval.",
+        "sendHour": "Send hour (0-23)",
+        "workingDaysOnly": "Working days only (Mon-Fri)"
+      },
+      "schedule": {
+        "title": "Schedule & escalation",
+        "subtitle": "Decide when and how often customers are reminded.",
+        "daysAfterDue": "Days after due date",
+        "tone": "Tone",
+        "addStep": "Add step",
+        "repeatInterval": "Repeat interval (days)",
+        "repeatHint": "After the last step, repeat every N days.",
+        "maxCount": "Max number of reminders",
+        "maxHint": "Stop after this many reminders per invoice."
+      },
+      "tones": {
+        "gentle": "First reminder",
+        "second": "Second reminder",
+        "final": "Final notice"
+      },
+      "copy": {
+        "title": "Copy per reminder"
+      }
     }
   },
   "pricing": {
@@ -1313,7 +1352,31 @@
     "upcoming": "Upcoming",
     "active": "Active",
     "dismissed": "Dismissed",
-    "reactivate": "Reactivate"
+    "reactivate": "Reactivate",
+    "add": "Add reminder",
+    "editTitle": "Edit reminder",
+    "newTitle": "New reminder",
+    "markRead": "Mark as read",
+    "dismiss": "Dismiss",
+    "empty": "No reminders yet",
+    "addFirst": "Add your first reminder",
+    "emailNudge": "Also remind by email",
+    "recurrence": {
+      "none": "One-time",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    },
+    "time": {
+      "justNow": "Just now",
+      "soon": "Soon",
+      "minAgo": "{{n}}m ago",
+      "inMin": "In {{n}}m",
+      "hourAgo": "{{n}}h ago",
+      "inHour": "In {{n}}h",
+      "dayAgo": "{{n}}d ago",
+      "inDay": "In {{n}}d"
+    }
   },
   "categories": {
     "title": "Categories",
@@ -1562,6 +1625,57 @@
       "emailIntro": "Your customer portal account has been created. You can now access your orders, invoices, and documents online.",
       "emailOutro": "Please keep these credentials secure. You can change your password after logging in.",
       "emailSignature": "Kind regards,\nMelek Halal Food Team"
+    }
+  },
+  "overdue": {
+    "subtitle": "Follow up on outstanding invoices",
+    "noEmail": "no email",
+    "daysLabel_one": "{{count}} day",
+    "daysLabel_other": "{{count}} days",
+    "snoozeDays_one": "{{count}} day",
+    "snoozeDays_other": "{{count}} days",
+    "snoozedUntil": "Snoozed until {{date}}",
+    "stats": {
+      "outstanding": "Outstanding amount",
+      "overdueCount": "Overdue invoices",
+      "neverReminded": "Not yet reminded",
+      "snoozed": "Snoozed"
+    },
+    "filters": {
+      "active": "Active",
+      "snoozed": "Snoozed",
+      "all": "All"
+    },
+    "cols": {
+      "invoice": "Invoice",
+      "customer": "Customer",
+      "amount": "Amount",
+      "due": "Due date",
+      "overdue": "Overdue",
+      "reminders": "Reminders",
+      "actions": "Actions"
+    },
+    "actions": {
+      "sendReminder": "Send reminder",
+      "snooze": "Snooze",
+      "unsnooze": "Resume",
+      "markPaid": "Mark as paid",
+      "optOut": "Stop reminders"
+    },
+    "markPaid": {
+      "title": "Mark invoice as paid",
+      "message": "Mark invoice {{invoice}} for {{customer}} as paid? The order is completed and reminders stop."
+    },
+    "empty": {
+      "title": "No outstanding invoices",
+      "subtitle": "All invoices are paid or within their payment term."
+    },
+    "widget": {
+      "title": "Outstanding invoices",
+      "summary": "{{count}} overdue · {{total}} outstanding",
+      "minimizedBar": "{{count}} outstanding invoices · {{total}}",
+      "viewAll": "View all",
+      "minimize": "Minimize"
     }
   }
 }

@@ -1223,3 +1223,28 @@ Goal: build and manage price lists without Excel, and manage which customers use
 - **Reviewed** by the UI/UX, Security, Performance and Code-Review agents; actionable findings applied (mobile grid widths, touch targets/focus rings, `.or()` injection hardening, customer-fetch cap).
 - **Files Added**: `components/priceLists/PriceListProductPicker.tsx`, `components/priceLists/PriceListCustomers.tsx`.
 - **Files Modified**: `pages/PriceLists.tsx`, `pages/PriceListDetail.tsx`, `services/priceLists.ts`, `services/products.ts`, `i18n/locales/nl.json`, `en.json` (`priceLists.picker.*`, `priceLists.customers.*`, `priceLists.detail.addProducts`).
+
+---
+
+## June 2026 — Reminder System (admin + client overdue invoices)
+
+### Built & deployed ✅ (2026-06-19)
+A standard-operation reminder system with two audiences, a grouped sidebar, and a revamped notification center.
+
+- **Grouped sidebar** (`Sidebar.tsx`): flat nav → labelled sections (Overzicht · Verkoop · Catalogus · Documenten · Analyse · Beheer); owner-only filtering preserved, empty sections hidden.
+- **Admin reminders** (revamped header bell `NotificationPanel.tsx` + `ReminderAlert.tsx`): full i18n, recurrence (none/daily/weekly/monthly, spawns next occurrence on mark-read), optional email nudge. Service/hook: `services/reminders.ts`, `hooks/useReminders.ts`. Migration `00062` (recurrence/email columns).
+- **Client overdue-invoice reminders**:
+  - In-app work queue `/overdue` (`pages/OverdueInvoices.tsx`, `hooks/useOverdueInvoices.ts`, `services/invoiceReminders.ts`) — Send reminder (reuses `DocumentGenerator`), Snooze (DB-shared), Mark paid, Stop reminders. Mobile cards + desktop table.
+  - Dashboard widget `components/dashboard/OverdueWidget.tsx` (minimizable per-session, resurfaces on open).
+  - Settings → **Herinneringen** tab `components/settings/RemindersTab.tsx` — auto-send kill-switch, send hour, working-days, escalation steps (days/interval/max, tone per step), per-tone email copy.
+  - **Paid = order status `completed`**. Overdue = invoice doc exists + `invoice_due_date < today` + status not in completed/cancelled/refunded + not opted out.
+- **DB (LIVE on project `pnimvwconhhmcwxcuxcz`)**: `00057` (orders.invoice_due_date/invoice_paid_at + trigger + backfill all ~7022 orders + partial index), `00058` (document_settings.client_reminder_config JSONB + customers/orders opt-out), `00059` (invoice_reminders + invoice_reminder_state tables, admin RLS, paid-clears-state trigger), `00060` (get_overdue_invoices / snooze / clear RPCs). Reminder counts unify manual + auto via `document_sends`.
+- **Edge fn `process-invoice-reminders`** DEPLOYED (v1, verify_jwt=false, shared-secret auth, HTML-only email, milestone-indexed idempotency + spacing guard). Inert until secrets set.
+- Reviewed by security / code+perf / ui-ux agents; findings applied (trigger search_path, milestone idempotency, insert-before-send guard, mark-paid status guard, recurrence single-spawn, focus throttle, rounded-2xl/aria/mobile-card fixes).
+
+### TODO — enable automated reminder EMAILS (auto-send) ⏳
+The in-app queue + manual reminders work without this. To turn on automatic client emails:
+1. In Supabase Studio → Edge Functions → `process-invoice-reminders` → Secrets, set: `RESEND_API_KEY`, `RESEND_FROM_ADDRESS`, `APP_URL`, `REMINDER_CRON_SECRET`. (No MCP/API for function env — must be done in Studio.)
+2. Then apply migration `00061_reminders_cron.sql` (needs `pg_cron` + `pg_net` extensions + Vault secrets `project_url` and `reminder_cron_secret` = the function's `REMINDER_CRON_SECRET`). Can be applied via Supabase MCP once the secret value exists.
+3. Finally toggle **auto_send_enabled** on in Settings → Reminders (it defaults OFF).
+- Files staged for this: `supabase/functions/process-invoice-reminders/index.ts`, `supabase/migrations/00061_reminders_cron.sql`.
