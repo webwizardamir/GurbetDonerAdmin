@@ -25,7 +25,8 @@ export function useSoldProducts() {
   const [error, setError] = useState<string | null>(null)
 
   // Filter state (Phase 4)
-  const [cityFilter, setCityFilter] = useState<string>('')
+  // City supports multi-select (empty array = all cities).
+  const [cityFilter, setCityFilter] = useState<string[]>([])
   const [customerFilter, setCustomerFilter] = useState<string>('')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [unitFilter, setUnitFilter] = useState<string>('')
@@ -89,8 +90,9 @@ export function useSoldProducts() {
   // Filtered breakdown — drives both the flat table (aggregated up) and the
   // groupings in subsequent steps.
   const filteredBreakdown = useMemo(() => {
+    const citySet = cityFilter.length ? new Set(cityFilter) : null
     return breakdown.filter(r => {
-      if (cityFilter     && r.city          !== cityFilter)     return false
+      if (citySet        && !(r.city && citySet.has(r.city)))   return false
       if (customerFilter && r.customer_id   !== customerFilter) return false
       if (categoryFilter && r.category_name !== categoryFilter) return false
       if (unitFilter     && r.unit_type     !== unitFilter)     return false

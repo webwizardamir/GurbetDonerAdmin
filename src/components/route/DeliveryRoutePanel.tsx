@@ -14,13 +14,14 @@ interface Props {
   day: string
   endDay?: string
   dayLabel: string
-  city?: string
+  cities?: string[]
   onClose: () => void
 }
 
-export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClose }: Props) {
+export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, onClose }: Props) {
   const { t } = useTranslation()
-  const r = useDeliveryRoute(day, endDay, city)
+  const r = useDeliveryRoute(day, endDay, cities)
+  const cityLabel = cities && cities.length ? cities.join(', ') : ''
   const [view, setView] = useState<'delivery' | 'loading'>('delivery')
   const [showPDF, setShowPDF] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -80,7 +81,7 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, city, onClos
             </div>
             <div className="min-w-0">
               <h2 className="text-base font-semibold text-slate-900 dark:text-white truncate">{t('route.title')}</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{dayLabel}{city ? ` · ${city}` : ''}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{dayLabel}{cityLabel ? ` · ${cityLabel}` : ''}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 shrink-0">

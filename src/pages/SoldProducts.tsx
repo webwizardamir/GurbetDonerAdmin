@@ -28,6 +28,7 @@ import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
 import DayCloseModal from '../components/documents/DayCloseModal'
 import DeliveryRoutePanel from '../components/route/DeliveryRoutePanel'
 import SortableTh from '../components/ui/SortableTh'
+import MultiSelectFilter from '../components/ui/MultiSelectFilter'
 import { useTableSort } from '../hooks/useTableSort'
 
 export default function SoldProducts() {
@@ -53,6 +54,13 @@ export default function SoldProducts() {
   } = useSoldProducts()
 
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+
+  // Stable {value,label} list for the city multi-select (avoids rebuilding the
+  // array — and so re-filtering inside the dropdown — on every render).
+  const cityFilterOptions = useMemo(
+    () => cityOptions.map(c => ({ value: c, label: c })),
+    [cityOptions],
+  )
 
   // Sortable columns. Default = null so the hook's existing ordering shows
   // initially; a user click overrides. The report is sales-only now —
@@ -233,17 +241,17 @@ export default function SoldProducts() {
       {(cityOptions.length > 0 || customerOptions.length > 0 || unitOptions.length > 1) && (
         <div className="flex items-center gap-2 flex-wrap">
           {cityOptions.length > 0 && (
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <select
-                value={cityFilter}
-                onChange={e => setCityFilter(e.target.value)}
-                className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-              >
-                <option value="">{t('soldProducts.filters.allCities')}</option>
-                {cityOptions.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
+            <MultiSelectFilter
+              icon={MapPin}
+              options={cityFilterOptions}
+              selected={cityFilter}
+              onChange={setCityFilter}
+              allLabel={t('soldProducts.filters.allCities')}
+              searchPlaceholder={t('soldProducts.filters.searchCities')}
+              selectAllLabel={t('soldProducts.filters.selectAll')}
+              noResultsLabel={t('soldProducts.filters.noCities')}
+              renderCount={n => t('soldProducts.filters.citiesSelected', { count: n })}
+            />
           )}
           {customerOptions.length > 0 && (
             <div className="relative">
@@ -271,10 +279,10 @@ export default function SoldProducts() {
               </select>
             </div>
           )}
-          {(cityFilter || customerFilter || unitFilter) && (
+          {(cityFilter.length > 0 || customerFilter || unitFilter) && (
             <button
               onClick={() => {
-                setCityFilter('')
+                setCityFilter([])
                 setCustomerFilter('')
                 setUnitFilter('')
               }}
@@ -580,7 +588,7 @@ export default function SoldProducts() {
           day={dateRange.start}
           endDay={dateRange.end}
           dayLabel={dateRange.label}
-          city={cityFilter || undefined}
+          cities={cityFilter.length ? cityFilter : undefined}
           onClose={() => setShowRoute(false)}
         />
       )}

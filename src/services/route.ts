@@ -111,7 +111,7 @@ export interface PlannedRoute {
 export interface PlanRouteArgs {
   day: string
   endDay?: string
-  city?: string
+  cities?: string[]
   selectedCustomerIds?: string[]
   lockedStops?: RouteLock[]
   departureTime?: string | null
@@ -121,7 +121,7 @@ export interface PlanRouteArgs {
 export interface ComputeLegsArgs {
   day: string
   endDay?: string
-  city?: string
+  cities?: string[]
   order: string[]
   departureTime?: string | null
   returnToDepot?: boolean
@@ -179,7 +179,8 @@ interface OrderRow {
   items: OrderItemRow[]
 }
 
-export async function fetchRouteOrders(args: { day: string; endDay?: string; city?: string }): Promise<RouteStopInput[]> {
+export async function fetchRouteOrders(args: { day: string; endDay?: string; cities?: string[] }): Promise<RouteStopInput[]> {
+  const citySet = args.cities && args.cities.length ? new Set(args.cities) : null
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -206,7 +207,7 @@ export async function fetchRouteOrders(args: { day: string; endDay?: string; cit
     const c = row.customer
     if (!c) continue
     const address = resolveDeliveryAddress(c)
-    if (args.city && address.city !== args.city) continue
+    if (citySet && !(address.city && citySet.has(address.city))) continue
 
     let stop = byCustomer.get(c.id)
     if (!stop) {
@@ -359,7 +360,7 @@ export async function planDeliveryRoute(
   const resp = await invokePlan({
     delivery_date: args.day,
     end_date: args.endDay,
-    city: args.city,
+    cities: args.cities,
     mode: args.lockedStops && args.lockedStops.length ? 'mixed' : 'auto',
     selectedCustomerIds: args.selectedCustomerIds,
     lockedStops: args.lockedStops,
@@ -378,7 +379,7 @@ export async function computeLegsForOrder(
   const resp = await invokePlan({
     delivery_date: args.day,
     end_date: args.endDay,
-    city: args.city,
+    cities: args.cities,
     mode: 'manual',
     order: args.order,
     departureTime: args.departureTime ?? null,

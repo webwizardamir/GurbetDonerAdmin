@@ -38,7 +38,8 @@ interface RouteLock { customerId: string; position: LockPosition }
 interface PlanRequest {
   delivery_date: string
   end_date?: string
-  city?: string
+  city?: string          // legacy single-city (still honoured)
+  cities?: string[]       // multi-city filter (empty/absent = all cities)
   mode?: 'auto' | 'manual' | 'mixed'
   selectedCustomerIds?: string[]
   order?: string[]
@@ -96,7 +97,9 @@ serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
 
     // 3. Derive candidate stops server-side (one stop per customer across the range)
-    const candidates = await deriveCandidates(admin, body.delivery_date, endDate, body.city)
+    // Accept multi-city (cities[]) and fall back to the legacy single city.
+    const cityFilter = (body.cities && body.cities.length ? body.cities : (body.city ? [body.city] : []))
+    const candidates = await deriveCandidates(admin, body.delivery_date, endDate, cityFilter)
     if (candidates.length === 0) {
       return json(emptyResponse(mode, body.departureTime ?? null, returnToDepot), 200)
     }
@@ -214,7 +217,8 @@ serve(async (req) => {
 // ===========================================================================
 // Candidate derivation
 // ===========================================================================
-async function deriveCandidates(admin: ReturnType<typeof createClient>, startDay: string, endDay: string, city?: string): Promise<Candidate[]> {
+async function deriveCandidates(admin: ReturnType<typeof createClient>, startDay: string, endDay: string, cities: string[] = []): Promise<Candidate[]> {
+  const citySet = cities.length ? new Set(cities) : null
   const { data, error } = await admin
     .from('orders')
     .select(`
@@ -235,7 +239,7 @@ async function deriveCandidates(admin: ReturnType<typeof createClient>, startDay
     const c = row.customer as Record<string, unknown> | null
     if (!c) continue
     const addr = resolveAddress(c)
-    if (city && addr.city !== city) continue
+    if (citySet && !(addr.city && citySet.has(addr.city))) continue
     const id = c.id as string
     if (byId.has(id)) continue
     const hash = await sha256(addr.oneLine.toLowerCase().trim())

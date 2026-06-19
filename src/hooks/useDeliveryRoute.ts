@@ -47,7 +47,12 @@ function arrayMove<T>(arr: T[], from: number, to: number): T[] {
  * Google — only the explicit optimize() / applyManualOrder() actions do, so we
  * never burn billed API calls on a checkbox click.
  */
-export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
+export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]) {
+  // Stable primitive key so the array reference doesn't churn effect/callback deps.
+  // Callbacks reconstruct the array from this key (cityArg) instead of closing
+  // over the `cities` prop, so the value provably matches the dep — no stale set.
+  const citiesKey = cities && cities.length ? cities.join('|') : ''
+  const cityArg = citiesKey ? citiesKey.split('|') : undefined
   const [candidates, setCandidates] = useState<RouteStopInput[]>([])
   const [loadingCandidates, setLoadingCandidates] = useState(false)
   const [candidatesError, setCandidatesError] = useState<string | null>(null)
@@ -75,7 +80,7 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
     setRoute(null)
     setError(null)
     setOrderDirty(false)
-    fetchRouteOrders({ day, endDay, city })
+    fetchRouteOrders({ day, endDay, cities: cityArg })
       .then(stops => {
         if (cancelled) return
         setCandidates(stops)
@@ -90,7 +95,8 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
       .catch(e => { if (!cancelled) setCandidatesError(e instanceof Error ? e.message : t('route.error')) })
       .finally(() => { if (!cancelled) setLoadingCandidates(false) })
     return () => { cancelled = true }
-  }, [day, endDay, city])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day, endDay, citiesKey])
 
   const departureTimeIso = useMemo(
     () => (departureHHmm ? `${day}T${departureHHmm}:00` : null),
@@ -150,7 +156,7 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
         .filter(([id]) => selectedIds.has(id))
         .map(([customerId, position]) => ({ customerId, position }))
       const result = await planDeliveryRoute(
-        { day, endDay, city, selectedCustomerIds: selected, lockedStops, departureTime: departureTimeIso, returnToDepot },
+        { day, endDay, cities: cityArg, selectedCustomerIds: selected, lockedStops, departureTime: departureTimeIso, returnToDepot },
         candidates,
       )
       setRoute(result)
@@ -164,7 +170,8 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
     } finally {
       setPlanning(false)
     }
-  }, [selectedIds, locks, day, endDay, city, departureTimeIso, returnToDepot, candidates, manualOrder])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds, locks, day, endDay, citiesKey, departureTimeIso, returnToDepot, candidates, manualOrder])
 
   const applyManualOrder = useCallback(async () => {
     const order = manualOrder.filter(id => selectedIds.has(id))
@@ -173,7 +180,7 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
     setError(null)
     try {
       const result = await computeLegsForOrder(
-        { day, endDay, city, order, departureTime: departureTimeIso, returnToDepot },
+        { day, endDay, cities: cityArg, order, departureTime: departureTimeIso, returnToDepot },
         candidates,
       )
       setRoute(result)
@@ -183,7 +190,8 @@ export function useDeliveryRoute(day: string, endDay?: string, city?: string) {
     } finally {
       setPlanning(false)
     }
-  }, [manualOrder, selectedIds, day, endDay, city, departureTimeIso, returnToDepot, candidates])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manualOrder, selectedIds, day, endDay, citiesKey, departureTimeIso, returnToDepot, candidates])
 
   // ---- derived display state ----------------------------------------------
   const { includedStops, excludedStops } = useMemo(() => {

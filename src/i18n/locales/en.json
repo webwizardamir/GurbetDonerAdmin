@@ -989,7 +989,11 @@
       "allCustomers": "All customers",
       "allCategories": "All categories",
       "allUnits": "All units",
-      "clear": "Clear filters"
+      "clear": "Clear filters",
+      "searchCities": "Search city...",
+      "selectAll": "Select all",
+      "noCities": "No cities found",
+      "citiesSelected": "{{count}} cities"
     },
     "groupBy": {
       "label": "Group by",

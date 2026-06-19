@@ -989,7 +989,11 @@
       "allCustomers": "Alle klanten",
       "allCategories": "Alle categorieën",
       "allUnits": "Alle eenheden",
-      "clear": "Filters wissen"
+      "clear": "Filters wissen",
+      "searchCities": "Zoek stad...",
+      "selectAll": "Alles selecteren",
+      "noCities": "Geen steden gevonden",
+      "citiesSelected": "{{count}} steden"
     },
     "groupBy": {
       "label": "Groeperen",
