@@ -1661,6 +1661,7 @@
     },
     "actions": {
       "sendReminder": "Herinnering sturen",
+      "viewInvoice": "Factuur bekijken",
       "snooze": "Snoozen",
       "unsnooze": "Hervatten",
       "markPaid": "Markeer als betaald",

@@ -12,6 +12,7 @@ import {
   ExternalLink,
   RotateCcw,
   BellOff,
+  FileText,
 } from 'lucide-react'
 import { useOverdueInvoices } from '../hooks/useOverdueInvoices'
 import { formatPrice, formatDate } from '../utils/format'
@@ -32,6 +33,7 @@ export default function OverdueInvoices() {
   const [filter, setFilter] = useState<Filter>('active')
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [sendFor, setSendFor] = useState<OverdueInvoice | null>(null)
+  const [viewFor, setViewFor] = useState<OverdueInvoice | null>(null)
   const [payFor, setPayFor] = useState<OverdueInvoice | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -179,6 +181,9 @@ export default function OverdueInvoices() {
                   <p className="text-xs text-amber-600 dark:text-amber-400">{t('overdue.noEmail')}</p>
                 )}
                 <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setViewFor(inv)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg">
+                    <FileText className="w-3.5 h-3.5" />{t('overdue.actions.viewInvoice')}
+                  </button>
                   {isSnoozed ? (
                     <button onClick={() => doUnsnooze(inv.order_id)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg">
                       <RotateCcw className="w-3.5 h-3.5" />{t('overdue.actions.unsnooze')}
@@ -256,6 +261,15 @@ export default function OverdueInvoices() {
                     <td className="px-4 py-3 text-sm text-right">
                       <div className="inline-flex items-center gap-1 relative">
                         {busy === inv.order_id && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
+                        <button
+                          onClick={() => setViewFor(inv)}
+                          aria-label={t('overdue.actions.viewInvoice')}
+                          title={t('overdue.actions.viewInvoice')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          {t('overdue.actions.viewInvoice')}
+                        </button>
                         {isSnoozed ? (
                           <button
                             onClick={() => doUnsnooze(inv.order_id)}
@@ -338,6 +352,17 @@ export default function OverdueInvoices() {
           documentType="payment_reminder"
           onClose={() => setSendFor(null)}
           onGenerated={() => { refresh() }}
+        />
+      )}
+
+      {/* View invoice — same generator modal (zoomable preview/print/download),
+          reuses the existing invoice number, never mints a new one. */}
+      {viewFor && (
+        <DocumentGenerator
+          orderId={viewFor.order_id}
+          orderNumber={viewFor.order_number}
+          documentType="invoice"
+          onClose={() => setViewFor(null)}
         />
       )}
 

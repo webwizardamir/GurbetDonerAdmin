@@ -1661,6 +1661,7 @@
     },
     "actions": {
       "sendReminder": "Send reminder",
+      "viewInvoice": "View invoice",
       "snooze": "Snooze",
       "unsnooze": "Resume",
       "markPaid": "Mark as paid",
