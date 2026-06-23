@@ -483,7 +483,9 @@
       "restore": "Restore",
       "purge": "Delete permanently",
       "purgeConfirm": "Permanently delete order {{number}}? This cannot be undone.",
-      "empty": "Trash is empty"
+      "empty": "Trash is empty",
+      "emptyTrash": "Empty trash",
+      "emptyConfirm": "Permanently delete all {{count}} orders in the trash? This cannot be undone."
     },
     "confirmCancel": "Cancel {{count}} order(s)? This will restore stock for tracked items.",
     "status": {

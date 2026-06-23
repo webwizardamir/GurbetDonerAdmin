@@ -587,6 +587,13 @@ export async function purgeOrder(id: string): Promise<void> {
   if (error) throw error
 }
 
+// Permanently delete ALL trashed orders. Returns how many were purged.
+export async function emptyOrderTrash(): Promise<number> {
+  const { data, error } = await supabase.rpc('empty_order_trash')
+  if (error) throw error
+  return (data as number) ?? 0
+}
+
 // Update order with items (full order edit)
 export async function updateOrderWithItems(
   orderId: string,

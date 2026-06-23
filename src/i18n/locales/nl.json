@@ -483,7 +483,9 @@
       "restore": "Herstellen",
       "purge": "Definitief verwijderen",
       "purgeConfirm": "Bestelling {{number}} definitief verwijderen? Dit kan niet ongedaan worden gemaakt.",
-      "empty": "De prullenbak is leeg"
+      "empty": "De prullenbak is leeg",
+      "emptyTrash": "Prullenbak legen",
+      "emptyConfirm": "Alle {{count}} bestellingen in de prullenbak definitief verwijderen? Dit kan niet ongedaan worden gemaakt."
     },
     "confirmCancel": "{{count}} bestelling(en) annuleren? Dit herstelt de voorraad voor bijgehouden artikelen.",
     "status": {

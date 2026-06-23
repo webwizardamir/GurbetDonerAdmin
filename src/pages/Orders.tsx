@@ -25,7 +25,7 @@ import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
 import type { OrderStatus, PaymentMethod } from '../types'
 import type { OrderWithItems } from '../services/orders'
-import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders, getOrderStatusCounts, restoreOrder, purgeOrder } from '../services/orders'
+import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders, getOrderStatusCounts, restoreOrder, purgeOrder, emptyOrderTrash } from '../services/orders'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
 import { fetchSendCountsByOrder } from '../services/documentEmail'
@@ -53,6 +53,8 @@ export default function Orders() {
   const [notesOrder, setNotesOrder] = useState<OrderWithItems | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [purgeTarget, setPurgeTarget] = useState<OrderWithItems | null>(null)
+  const [confirmEmpty, setConfirmEmpty] = useState(false)
+  const [emptying, setEmptying] = useState(false)
   const trashed = !!filters.trashed
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkProcessing, setBulkProcessing] = useState(false)
@@ -170,6 +172,13 @@ export default function Orders() {
     try { await purgeOrder(purgeTarget.id); setPurgeTarget(null); refresh() }
     catch (e) { console.error('Purge failed:', e) }
     finally { setDeleting(null) }
+  }
+
+  const handleEmptyTrash = async () => {
+    setEmptying(true)
+    try { await emptyOrderTrash(); setConfirmEmpty(false); refresh() }
+    catch (e) { console.error('Empty trash failed:', e) }
+    finally { setEmptying(false) }
   }
 
   const toggleTrashView = () => {
@@ -310,6 +319,13 @@ export default function Orders() {
             <span className="hidden sm:inline">{t('orders.trash.title')}</span>
           </button>
           <div className="hidden sm:block flex-1" />
+          {trashed && totalCount > 0 && (
+            <button onClick={() => setConfirmEmpty(true)}
+              className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0">
+              <Trash2 className="w-5 h-5" />
+              <span className="hidden sm:inline">{t('orders.trash.emptyTrash')}</span>
+            </button>
+          )}
           {canCreate && !trashed && (
             <button onClick={() => navigate('/orders/new')}
               className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0">
@@ -686,6 +702,16 @@ export default function Orders() {
         confirmLabel={t('orders.trash.purge')}
         onConfirm={handlePurge}
         onCancel={() => setPurgeTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmEmpty}
+        variant="danger"
+        title={t('orders.trash.emptyTrash')}
+        message={emptying ? t('common.saving') : t('orders.trash.emptyConfirm', { count: totalCount })}
+        confirmLabel={t('orders.trash.emptyTrash')}
+        onConfirm={handleEmptyTrash}
+        onCancel={() => { if (!emptying) setConfirmEmpty(false) }}
       />
     </div>
   )
