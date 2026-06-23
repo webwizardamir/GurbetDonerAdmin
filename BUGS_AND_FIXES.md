@@ -531,3 +531,35 @@ If self-service customer edits are ever needed, re-add with a strict `WITH CHECK
 ### Related hardening already applied (June 2026)
 
 The PostgREST `.or()` filter in `fetchProducts`/`fetchProductCount` (`services/products.ts`) was interpolating the raw search term unquoted (a filter-injection footgun). It now quotes each value and strips `"`/`\`, matching the safe `buildSearchOr`/`escapeForOrValue` pattern in `services/orders.ts`. Consider extracting that escape into a shared `services/searchFilter.ts` so the orders/customers/products search paths can't drift.
+
+---
+
+## Phase: Go-live features (June 2026)
+
+### Bug: `trash_order` rejected normal orders with a 400
+
+**Error:** `POST /rest/v1/rpc/trash_order → 400` ("Only draft / pending / on-hold orders can be trashed") when deleting a normal order.
+
+**Cause:** The `order_status` enum contains a live `pending` value (the default for new app-created orders), but the `trash_order` guard only allowed `draft`/`pending_payment`/`on_hold`. The UI delete button already allowed `pending`, so the two drifted.
+
+**Solution:** Aligned the RPC guard with the UI deletable set: `draft`/`pending`/`pending_payment`/`on_hold` (migration 00065).
+
+**Prevention:** When guarding by status in an RPC, dump the real enum (`SELECT unnest(enum_range(NULL::order_status))`) — it has more values (`pending`, `processing`, `delivered`) than the original migration 00015 listed. Keep RPC status guards and UI status lists in sync.
+
+### Bug: Customer portal login stuck in a login → logout loop
+
+**Cause:** The admin `AuthContext` (which wraps the whole app, including `/portal/*`) signed out with the **default global scope** when a non-staff account authenticated. A global sign-out revokes the user's refresh tokens everywhere, killing the separate portal session. Compounded by the new `manage-portal-account` `classify()` initially treating *any* `profiles` row as "admin" — but the `handle_new_user` trigger gives **every** auth user a `profiles` row (role `customer`).
+
+**Solution:** Admin reject-sign-outs now use `scope: 'local'`; `classify()` checks the staff **role**, not row existence.
+
+**Prevention:** With two GoTrue clients (admin + portal) on one auth.users table, never use global sign-out on a reject path. Any "has a profile = admin" check is wrong here — always check the role.
+
+### Bug: Order line showed €0 line total in the customer portal
+
+**Cause:** `order_items` carried three line-amount columns from early churn (`total`, `line_total`, `line_total_cents`). The app writes/reads `total`; the admin UI's `line_total` is an alias sourced from `total`, but the **portal** query read the dead DB `line_total` column (always 0 for app-created orders).
+
+**Solution:** Repointed the portal query to `total` and dropped the dead `line_total`/`line_total_cents` columns (migration 00063). `total` is the single canonical per-line amount.
+
+### Note: clipped row-action dropdowns
+
+Table row menus positioned with `absolute` get clipped by the table wrapper's `overflow-hidden`/`overflow-x-auto`. Use `components/ui/DropdownMenu.tsx` (React-portal to `document.body` + `position: fixed` from the trigger rect, flips up near the viewport bottom). This is the standard fix for any future table action menu.

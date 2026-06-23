@@ -476,6 +476,11 @@ optimized delivery route + a truck loading order, via Google Maps through a Supa
    (works with no app access); the share text + "Copy" text are **always Dutch** (like the PDFs),
    regardless of app language. PDFs render in Dutch only.
 6. `google-map-api.txt` (repo root) holds the live key in plaintext — **gitignored, never commit it.**
+7. **Invoices in route order.** The panel has a "Facturen (routevolgorde)" action (Receipt icon →
+   combined/separate choice) that prints invoices in the exact arranged sequence
+   (`effectiveStops.flatMap(s => s.orderIds)`) via the shared `utils/renderInvoices.tsx`
+   (`renderInvoicesToFiles`). The panel also emits `onRouteOrderChange(orderedIds)` so the page can
+   share the order with **Dagafsluiting** (which gets a "Sorteer op routevolgorde" toggle).
 
 ---
 
@@ -485,13 +490,21 @@ Launched from **Sold Products** ("Dagafsluiting"): one modal to produce the morn
 the selected day/range in one place.
 
 - **`components/documents/DayCloseModal.tsx`** — lists the day's orders (`fetchOrders` with
-  `dateFrom/dateTo`, `limit: 1000`, cancelled/refunded filtered out), default **all selected** with
+  `dateFrom/dateTo`, `limit: 1000`, cancelled/refunded filtered out; trashed orders are excluded
+  automatically since `fetchOrders` defaults to `deleted_at IS NULL`), default **all selected** with
   per-order checkboxes. Three opt-in outputs: **Facturen** (invoices), **Verkochte producten (PDF)**,
-  **Bezorgroute**. Invoice output is **één gecombineerde PDF** or **aparte bestanden**.
+  **Bezorgroute**. Invoice output is **één gecombineerde PDF** or **aparte bestanden**. When a route
+  was planned this session it shows a **"Sorteer op routevolgorde"** toggle (reorders the selected
+  ids by the route's `routeOrderedIds` before generating).
 - **`services/batchInvoices.ts`** — `generateBatchInvoices(orderIds)` is **strictly sequential**
   (await per order; never `Promise.all`) because `getNextDocumentNumber` reads-then-writes the
   `document_settings` counter with no DB atomicity — parallel calls would duplicate invoice numbers.
-  Reuses existing numbers via `fetchLatestDocumentForOrder`, so re-running a day is idempotent.
+  Reuses existing numbers via `fetchLatestDocumentForOrder`, so re-running a day is idempotent. It
+  preserves input order, so callers control invoice sequence.
+- **`utils/renderInvoices.tsx`** — `renderInvoicesToFiles(orderedIds, {mode,combinedFilename,onProgress})`
+  is the shared invoice→PDF helper (combined via `CombinedInvoicesTemplate` or separate via
+  `InvoiceTemplate`). Used by **both** DayCloseModal and the route panel so invoice ordering is
+  identical regardless of entry point.
 - **`components/documents/CombinedInvoicesTemplate.tsx`** — one `<Document>` rendering many invoices.
   `InvoiceTemplate.tsx` exposes `InvoicePage` (the page body, no `<Document>` wrapper) for this; the
   single-invoice `InvoiceTemplate` is a thin wrapper around it (DocumentGenerator/SendDocumentModal
@@ -532,6 +545,42 @@ the row's trash deletes the whole product. Adding products still goes through
 
 ---
 
+## Customer Portal
+
+Customers can log in at **`/portal/login`** (separate from the admin `/login`) to view their orders,
+documents and account. Two independent Supabase auth clients: `supabase` (admin, default storage key)
+and `portalSupabase` (`storageKey: 'sb-portal-auth-token'`). `PortalAuthProvider` is mounted only on
+`/portal/*`; the admin `AuthProvider` wraps the whole app.
+
+### Management (owner-only) — `pages/PortalManagement.tsx` at `/settings/portal`
+- Lists every customer with portal status / portal email / last login; search + status filter + summary
+  counts. Reuses `getCustomersWithPortalStatus()` and the existing `PortalAccessModal` /
+  `PortalCreateForm` / `PortalCredentials`. Per row: enable, manage (disable / re-enable / reset link),
+  and **delete account** (`ConfirmDialog`).
+- **Onboarding offers two modes** per customer: set a password, or generate a **shareable invite link**
+  via `admin.generateLink` (returned to copy/share — **no SMTP dependency**). Service wrappers:
+  `enablePortalAccess` (idempotent + relink), `createPortalInvite`, `getPortalResetLink`,
+  `deletePortalAccount` in `services/portalAuth.ts`.
+
+### Edge function `manage-portal-account` (owner-gated) — do not weaken
+Single function, dispatch on `action` (create / relink / invite_link / reset_link / set_password /
+update_email / delete). The **safety invariant**: a `classify(userId)` guard refuses to
+create/relink/delete/modify any auth user whose `profiles.role` is **staff** (owner/shop_manager/admin)
+or that belongs to a **different** customer. NOTE: a `handle_new_user` trigger gives **every** auth user
+a `profiles` row (role defaults to `customer`), so classify checks the **role**, never mere existence.
+
+### Security rules (enforced, keep them)
+- `customer_accounts` has **no customer UPDATE policy** (migration 00064) — a customer could otherwise
+  repoint `customer_id` (IDOR). `last_login_at` is written via the `touch_portal_last_login()`
+  SECURITY DEFINER RPC scoped to `auth.uid()`.
+- The admin app's reject-sign-outs use `scope: 'local'` so authenticating a non-staff account on the
+  admin login never globally revokes that user's (portal) session.
+- Trashed orders are excluded from the portal (RLS + service `deleted_at IS NULL`).
+- Reusable `components/ui/DropdownMenu.tsx` (React-portal + fixed positioning) is the pattern for table
+  row menus that must escape `overflow-hidden` clipping.
+
+---
+
 ## Key Business Rules
 
 ### Stock Management
@@ -539,6 +588,7 @@ the row's trash deletes the whole product. Adding products still goes through
 2. Cancelled orders restore stock — the `handle_order_status_change` trigger restores the **not-yet-refunded** units (see **Refunds**)
 3. Refunds restore stock per refunded unit (handled by `create_order_refund`, not the status trigger — see **Refunds**)
 4. Implemented stock model is a simple `products.stock_quantity` counter (batch/FIFO/FEFO tables exist but are not wired into the live deduct/restore path)
+5. **Trashing** an order restores stock and **restoring** re-deducts it — both go through the `cancelled` status transition, not new stock code (see **Order Trash**)
 
 ### Pricing
 1. Products support multiple unit types (kg, piece, zak, doos) with independent pricing
@@ -546,6 +596,14 @@ the row's trash deletes the whole product. Adding products still goes through
 3. Same product can appear multiple times in an order with different unit types
 4. Sold price stored immutably on order line (snapshot at time of sale)
 5. Price changes never affect historical orders
+6. **Remembered customer prices (auto-memory):** editing a line price in `OrderForm` auto-saves it as
+   that customer's `customer_prices` (per product + unit_type) **on submit** — only when it differs
+   from the base/list tier, deduped per product+unit, and **skipped for imported (WC) orders**. It
+   then auto-applies next time via the resolution chain (`resolveEffectivePrice` checks
+   `customer_prices` first — see [[pricing_resolution_chain]]) and shows an amber "Onthouden prijs"
+   badge in `OrderItemsList` with a forget × (`clearCustomerPrice`, handles unit-less `*` rows too).
+   No global promotion — overrides stay per-customer until cleared. Tracked via a per-line
+   `priceEdited` flag.
 
 ### VAT (BTW) — Reverse charge for non-NL customers
 1. NL customer → product's `tax_rate` (9% food / 21% non-food / 0%) — unchanged
@@ -569,7 +627,34 @@ Three note fields exist: per-line `order_items.notes` (the **product "notitie"**
 1. **Notes are editable in every status**, including `completed` / `cancelled` / `refunded`, from two places: the order detail panel's **"Notities bewerken"** button (`OrderNotesModal`), and the Orders-table **Edit** icon.
 2. **`updateOrderNotes` service** (notes-only) does this safely — it issues plain `UPDATE`s on `orders` and `order_items.notes`, so the stock deduct/restore triggers (which fire only on `order_items` INSERT/DELETE) never run. This is the **only** safe way to touch a cancelled/refunded order.
 3. **Orders-table Edit icon routing:** the icon now shows for **all** statuses. `cancelled`/`refunded` → `OrderNotesModal` (notes-only, StickyNote icon); every other status (incl. `completed`) → the full `OrderForm` editor (which also edits per-line notes). **Never route cancelled/refunded to the full editor** — its delete-and-reinsert of `order_items` re-fires the stock triggers and corrupts the already-restored stock (see `BUGS_AND_FIXES.md`).
-4. **Delete** stays restricted to `draft`/`pending`/`pending_payment`/`on_hold` (audit safety on invoiced/closed orders) — by design, not a bug.
+4. **Delete** stays restricted to `draft`/`pending`/`pending_payment`/`on_hold` (audit safety on invoiced/closed orders) — by design, not a bug. The Orders-table delete now **trashes** (soft delete) rather than hard-deleting — see **Order Trash**.
+
+### Order Trash (soft delete) — migrations 00065–00067
+WooCommerce-style trash with restore + permanent delete. Implemented by **reusing the cancel stock
+path** rather than a separate stock model.
+
+1. **Columns:** `orders.deleted_at` (timestamptz) + `orders.pre_trash_status` (remembers the original
+   status). The Orders page filters `deleted_at IS NULL` by default; the **Prullenbak** toggle
+   (`filters.trashed`) shows `deleted_at IS NOT NULL` and renders `pre_trash_status` as the status badge.
+2. **RPCs (all `SECURITY DEFINER` + `is_admin_user()` guard):**
+   - `trash_order(p_id)` — only for the deletable set (`draft`/`pending`/`pending_payment`/`on_hold`);
+     saves `pre_trash_status`, sets `status='cancelled'` (the `handle_order_status_change` trigger
+     **restores stock**) + `deleted_at`.
+   - `restore_order(p_id)` — sets `status = pre_trash_status` (leaving `cancelled` **re-deducts** stock),
+     clears `deleted_at`.
+   - `purge_order(p_id)` / `empty_order_trash()` — permanent: set status back (re-deduct) **then**
+     `DELETE` (cascade `order_items`-delete trigger restores) → net stock correct, **no double-restore**.
+3. **Why this design:** because a trashed order carries `status='cancelled'`, every analytics RPC
+   (which already excludes `cancelled`/`refunded`) drops it automatically — **no analytics sweep
+   needed**. Only the status-COUNT RPCs and the customer-portal orders RLS needed explicit
+   `deleted_at IS NULL` (migration 00066). Genuine cancelled orders (deleted_at null) still show in the
+   normal list.
+4. **Do not break:** the deletable-set guard in `trash_order` must match the UI (`draft`/`pending`/
+   `pending_payment`/`on_hold` — note `pending` is a live enum value used for new orders). `purge`
+   must keep the re-deduct-then-delete order or stock double-restores. The portal RLS + portal service
+   queries must keep the `deleted_at IS NULL` filter (otherwise trashed orders leak to the customer).
+5. **Service:** `deleteOrder`/`bulkDeleteOrders` now call `trash_order`; `restoreOrder`, `purgeOrder`,
+   `emptyOrderTrash` added. `fetchOrders`/`fetchOrderCount` take a `trashed?: boolean` filter.
 
 ### Refunds (in-app, full + partial)
 Issued from the order detail panel (Orders page → open an order → **Terugbetalen** → `RefundModal`). Deliberately separate from the status buttons.
@@ -588,11 +673,12 @@ Issued from the order detail panel (Orders page → open an order → **Terugbet
 |------------|-------|--------------|
 | Customers | Full | View/Create/Edit |
 | Products | Full | View/Create/Edit (no cost) |
-| Orders | Full | View/Create/Edit/Refund |
+| Orders | Full | View/Create/Edit/Refund/Trash |
 | Documents | Full | Generate/Download |
 | Inventory | Full | View/Adjust (no cost) |
 | Analytics | Full | None |
 | Settings | Full | None |
+| Portal Management | Full | None (owner-only) |
 | Audit Log | View | None |
 
 ---
