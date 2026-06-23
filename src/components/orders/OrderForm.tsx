@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X, Tags } from 'lucide-react'
 import { useCustomers } from '../../hooks/useCustomers'
@@ -57,6 +57,10 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const [showScanner, setShowScanner] = useState(false)
   const [initialized, setInitialized] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState(false)
+  // Re-pricing existing lines is only allowed after the user actively changes
+  // the customer. Sold prices are immutable, so loading an existing order (which
+  // sets the customer programmatically) must NOT recalculate stored line prices.
+  const repriceArmedRef = useRef(false)
   const [unitTypeSelector, setUnitTypeSelector] = useState<{
     product: Product
     availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
@@ -266,6 +270,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     const updatedItems = items.map(item => {
       const available = enumerateUnitTypes(item.product)
       if (available.length === 0) return item
+      // Not armed = initial edit-mode load: refresh the unit-type options for the
+      // dropdown but KEEP the stored price (immutable sold price).
+      if (!repriceArmedRef.current) return { ...item, availableUnitTypes: available }
       const currentUnit = available.find(ut => ut.unitType === item.selectedUnitType)
       if (currentUnit) return { ...item, unit_price: currentUnit.price, availableUnitTypes: available }
       const defaultUnit = available.find(ut => ut.isDefault) || available[0]
@@ -444,8 +451,8 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
                   selectedCustomer={selectedCustomer}
                   customers={customers}
                   customersLoading={customersLoading}
-                  onSelect={(c) => { setSelectedCustomer(c); setEditingCustomer(false) }}
-                  onClear={() => setSelectedCustomer(null)}
+                  onSelect={(c) => { repriceArmedRef.current = true; setSelectedCustomer(c); setEditingCustomer(false) }}
+                  onClear={() => { repriceArmedRef.current = true; setSelectedCustomer(null) }}
                 />
               )}
 
