@@ -25,7 +25,8 @@ import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
 import type { OrderStatus, PaymentMethod } from '../types'
 import type { OrderWithItems } from '../services/orders'
-import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders, getOrderStatusCounts } from '../services/orders'
+import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders, getOrderStatusCounts, restoreOrder, purgeOrder } from '../services/orders'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
 import { fetchSendCountsByOrder } from '../services/documentEmail'
 import SortableTh from '../components/ui/SortableTh'
@@ -51,6 +52,8 @@ export default function Orders() {
   const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
   const [notesOrder, setNotesOrder] = useState<OrderWithItems | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [purgeTarget, setPurgeTarget] = useState<OrderWithItems | null>(null)
+  const trashed = !!filters.trashed
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkProcessing, setBulkProcessing] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState<'single' | 'bulk' | null>(null)
@@ -149,10 +152,29 @@ export default function Orders() {
   const deletableSelected = selectedOrders.filter(o => ['draft', 'pending', 'pending_payment', 'on_hold'].includes(o.status))
 
   const handleDelete = async (order: OrderWithItems) => {
-    if (!confirm(t('orders.confirmDelete', { number: order.order_number }))) return
+    if (!confirm(t('orders.confirmTrash', { number: order.order_number }))) return
     setDeleting(order.id)
-    try { await remove(order.id) } catch { /* Error handled by hook */ }
+    try { await remove(order.id); refresh() } catch { /* Error handled by hook */ }
     finally { setDeleting(null) }
+  }
+
+  const handleRestore = async (order: OrderWithItems) => {
+    setDeleting(order.id)
+    try { await restoreOrder(order.id); refresh() } catch (e) { console.error('Restore failed:', e) }
+    finally { setDeleting(null) }
+  }
+
+  const handlePurge = async () => {
+    if (!purgeTarget) return
+    setDeleting(purgeTarget.id)
+    try { await purgeOrder(purgeTarget.id); setPurgeTarget(null); refresh() }
+    catch (e) { console.error('Purge failed:', e) }
+    finally { setDeleting(null) }
+  }
+
+  const toggleTrashView = () => {
+    setSelectedIds(new Set())
+    setFilters({ ...filters, trashed: !trashed, status: undefined })
   }
 
   const handleStatusFilter = (status: OrderStatus | '') => setFilters({ ...filters, status: status || undefined })
@@ -277,8 +299,18 @@ export default function Orders() {
             pdfTitle="Bestellingen"
             storageKey="orders"
           />
+          <button onClick={toggleTrashView}
+            className={`inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 font-medium rounded-xl transition-colors whitespace-nowrap shrink-0 border ${
+              trashed
+                ? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
+                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+            }`}
+            title={t('orders.trash.title')} aria-label={t('orders.trash.title')}>
+            <Trash2 className="w-5 h-5" />
+            <span className="hidden sm:inline">{t('orders.trash.title')}</span>
+          </button>
           <div className="hidden sm:block flex-1" />
-          {canCreate && (
+          {canCreate && !trashed && (
             <button onClick={() => navigate('/orders/new')}
               className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0">
               <Plus className="w-5 h-5" />
@@ -294,17 +326,19 @@ export default function Orders() {
         </div>
       )}
 
-      <BulkActionsBar
-        selectedCount={selectedIds.size}
-        completableCount={completableSelected.length}
-        deletableCount={deletableSelected.length}
-        bulkProcessing={bulkProcessing}
-        canDelete={canDelete}
-        onClear={() => setSelectedIds(new Set())}
-        onBulkComplete={handleBulkComplete}
-        onBulkCancel={handleBulkCancel}
-        onBulkDelete={handleBulkDelete}
-      />
+      {!trashed && (
+        <BulkActionsBar
+          selectedCount={selectedIds.size}
+          completableCount={completableSelected.length}
+          deletableCount={deletableSelected.length}
+          bulkProcessing={bulkProcessing}
+          canDelete={canDelete}
+          onClear={() => setSelectedIds(new Set())}
+          onBulkComplete={handleBulkComplete}
+          onBulkCancel={handleBulkCancel}
+          onBulkDelete={handleBulkDelete}
+        />
+      )}
 
       {/* Desktop Table */}
       <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -313,8 +347,8 @@ export default function Orders() {
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-600 dark:text-slate-400">{searchQuery || filters.status ? t('orders.noOrdersMatch') : t('orders.noOrders')}</p>
-            {!searchQuery && !filters.status && canCreate && <p className="text-sm text-slate-500 mt-1">{t('orders.createFirstOrder')}</p>}
+            <p className="text-slate-600 dark:text-slate-400">{trashed ? t('orders.trash.empty') : (searchQuery || filters.status ? t('orders.noOrdersMatch') : t('orders.noOrders'))}</p>
+            {!trashed && !searchQuery && !filters.status && canCreate && <p className="text-sm text-slate-500 mt-1">{t('orders.createFirstOrder')}</p>}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -353,9 +387,8 @@ export default function Orders() {
                             <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-slate-900 dark:text-white">{order.order_number}</p>
-                            <p className="text-sm text-slate-600 dark:text-slate-300 truncate">{order.customer?.company_name || '-'}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">{order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}</p>
+                            <p className="font-semibold text-slate-900 dark:text-white truncate">{order.customer?.company_name || '-'}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">#{order.order_number} · {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}</p>
                           </div>
                         </div>
                       </td>
@@ -364,7 +397,7 @@ export default function Orders() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <StatusBadge status={order.status} />
+                          <StatusBadge status={trashed ? (order.pre_trash_status || order.status) : order.status} />
                           <PaymentBadge method={order.payment_method} />
                           {(order.refund_amount ?? 0) > 0 && (order.refund_amount ?? 0) < order.total && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 whitespace-nowrap" title={t('orders.refund.partiallyRefunded')}>
@@ -387,6 +420,19 @@ export default function Orders() {
                       </td>
                       <td className="px-4 py-4 text-right"><span className="font-semibold text-slate-900 dark:text-white">{formatPrice(order.total)}</span></td>
                       <td className="px-4 py-4 text-right" onClick={e => e.stopPropagation()}>
+                        {trashed ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => handleRestore(order)} disabled={deleting === order.id} className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.trash.restore')}>
+                              {deleting === order.id ? <Loader2 className="w-4 h-4 text-green-600 animate-spin" /> : <RotateCcw className="w-4 h-4 text-green-600" />}
+                            </button>
+                            <button onClick={() => setViewingOrder(order)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.view')}>
+                              <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                            </button>
+                            <button onClick={() => setPurgeTarget(order)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.trash.purge')} aria-label={t('orders.trash.purge')}>
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          </div>
+                        ) : (
                         <div className="flex items-center justify-end gap-1">
                           {docInfo.count > 1 && (
                             <div className="relative p-2" title={`${docInfo.count} documents generated`}>
@@ -437,6 +483,7 @@ export default function Orders() {
                             </button>
                           )}
                         </div>
+                        )}
                       </td>
                     </tr>
                   )
@@ -454,7 +501,7 @@ export default function Orders() {
         ) : filteredOrders.length === 0 ? (
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
             <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-600 dark:text-slate-400">{searchQuery || filters.status ? t('orders.noOrdersMatch') : t('orders.noOrders')}</p>
+            <p className="text-slate-600 dark:text-slate-400">{trashed ? t('orders.trash.empty') : (searchQuery || filters.status ? t('orders.noOrdersMatch') : t('orders.noOrders'))}</p>
           </div>
         ) : (
           filteredOrders.map(order => {
@@ -468,18 +515,18 @@ export default function Orders() {
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-slate-900 dark:text-white truncate">{order.order_number}</p>
+                      <p className="font-semibold text-slate-900 dark:text-white truncate">{order.customer?.company_name || '-'}</p>
                       {(docInfo.invoiceNumber || order.woo_invoice_number) && (
                         <span className="text-xs text-violet-600 dark:text-violet-400 font-medium shrink-0">
                           {docInfo.invoiceNumber || order.woo_invoice_number}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{formatDateShort(order.order_date)} · {order.items?.length || 0} items</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">#{order.order_number} · {formatDateShort(order.order_date)} · {order.items?.length || 0} items</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-semibold text-green-600 dark:text-green-400">{formatPrice(order.total)}</p>
-                    <StatusBadge status={order.status} />
+                    <StatusBadge status={trashed ? (order.pre_trash_status || order.status) : order.status} />
                     {(order.refund_amount ?? 0) > 0 && (order.refund_amount ?? 0) < order.total && (
                       <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 whitespace-nowrap">
                         <RotateCcw className="w-3 h-3" />{t('orders.refund.partiallyRefunded')}
@@ -487,14 +534,23 @@ export default function Orders() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center justify-between mb-3 pl-7">
-                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 truncate">
-                    <Building2 className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{order.customer?.company_name || '-'}</span>
+                {order.payment_method && (
+                  <div className="mb-3 pl-7">
+                    <PaymentBadge method={order.payment_method} />
                   </div>
-                  <PaymentBadge method={order.payment_method} />
-                </div>
+                )}
                 <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 flex-wrap" onClick={e => e.stopPropagation()}>
+                  {trashed ? (
+                    <>
+                      <button onClick={() => handleRestore(order)} disabled={deleting === order.id} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium whitespace-nowrap">
+                        {deleting === order.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}{t('orders.trash.restore')}
+                      </button>
+                      <button onClick={() => setPurgeTarget(order)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </>
+                  ) : (
+                  <>
                   {canComplete && (
                     <button onClick={() => handleQuickComplete(order.id)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium whitespace-nowrap">
                       <Check className="w-4 h-4 flex-shrink-0" />{t('orders.actions.complete')}
@@ -518,6 +574,8 @@ export default function Orders() {
                     <button onClick={() => handleDelete(order)} disabled={deleting === order.id} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
                       {deleting === order.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
                     </button>
+                  )}
+                  </>
                   )}
                 </div>
               </div>
@@ -619,6 +677,16 @@ export default function Orders() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!purgeTarget}
+        variant="danger"
+        title={t('orders.trash.purge')}
+        message={t('orders.trash.purgeConfirm', { number: purgeTarget?.order_number || '' })}
+        confirmLabel={t('orders.trash.purge')}
+        onConfirm={handlePurge}
+        onCancel={() => setPurgeTarget(null)}
+      />
     </div>
   )
 }

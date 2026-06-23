@@ -41,6 +41,10 @@ interface OrderItemsListProps {
   onRemoveItem: (lineId: string) => void
   onChangeUnitType: (lineId: string, unitType: UnitType) => void
   onSetPrice?: (lineId: string, priceInCents: number) => void
+  /** Whether a remembered customer price applies to this product+unit. */
+  isRemembered?: (productId: string, unitType: UnitType) => boolean
+  /** Forget the remembered customer price for this product+unit. */
+  onForgetPrice?: (productId: string, unitType: UnitType) => void
   onSetNotes?: (lineId: string, notes: string) => void
   onSetLineDiscount?: (lineId: string, type: DiscountType, value: number | null) => void
   onSetOrderDiscount?: (type: DiscountType, value: number | null) => void
@@ -319,6 +323,22 @@ function NotesEditorModal({
   )
 }
 
+// Small badge shown when a remembered customer price is applied to a line.
+function RememberedBadge({ onForget }: { onForget?: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/20 text-[11px] font-medium text-amber-700 dark:text-amber-400" title={t('orders.form.rememberedPriceHint')}>
+      {t('orders.form.rememberedPrice')}
+      {onForget && (
+        <button type="button" onClick={onForget} title={t('orders.form.forgetPrice')} aria-label={t('orders.form.forgetPrice')}
+          className="hover:text-amber-900 dark:hover:text-amber-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500">
+          <X className="w-3 h-3" />
+        </button>
+      )}
+    </span>
+  )
+}
+
 export default function OrderItemsList({
   items,
   subtotal,
@@ -333,6 +353,8 @@ export default function OrderItemsList({
   onRemoveItem,
   onChangeUnitType,
   onSetPrice,
+  isRemembered,
+  onForgetPrice,
   onSetNotes,
   onSetLineDiscount,
   onSetOrderDiscount,
@@ -394,6 +416,9 @@ export default function OrderItemsList({
                         <div className="font-medium text-slate-900 dark:text-white truncate" title={item.product.name}>
                           {item.product.name}
                         </div>
+                        {isRemembered?.(item.product.id, item.selectedUnitType) && (
+                          <RememberedBadge onForget={onForgetPrice ? () => onForgetPrice(item.product.id, item.selectedUnitType) : undefined} />
+                        )}
                       </td>
                       <td className="px-2 py-2 align-middle">
                         {item.availableUnitTypes.length > 1 ? (
@@ -507,6 +532,9 @@ export default function OrderItemsList({
                     <span className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{idx + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-slate-900 dark:text-white truncate">{item.product.name}</p>
+                      {isRemembered?.(item.product.id, item.selectedUnitType) && (
+                        <RememberedBadge onForget={onForgetPrice ? () => onForgetPrice(item.product.id, item.selectedUnitType) : undefined} />
+                      )}
                     </div>
                     <button
                       type="button"

@@ -3,11 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
 import { Loader2, FileText, AlertCircle, CheckSquare, Square, Truck, Package, Receipt } from 'lucide-react'
 import Modal from '../ui/Modal'
-import { InvoiceTemplate } from './InvoiceTemplate'
-import CombinedInvoicesTemplate from './CombinedInvoicesTemplate'
 import { buildSoldProductsDocument } from './SoldProductsTemplate'
-import { generateBatchInvoices } from '../../services/batchInvoices'
 import { fetchOrders } from '../../services/orders'
+import { renderInvoicesToFiles } from '../../utils/renderInvoices'
 import { formatPrice } from '../../utils/format'
 
 type SoldProductsDocArgs = Parameters<typeof buildSoldProductsDocument>[0]
@@ -24,6 +22,9 @@ interface Props {
   soldProducts?: SoldProductsDocArgs
   /** Hand off to the route planner (it needs a billed Google optimize). */
   onOpenRoute: () => void
+  /** Order ids in the currently planned delivery-route sequence (if any), so
+   *  invoices can be printed in route order. */
+  routeOrderedIds?: string[]
   onClose: () => void
 }
 
@@ -46,12 +47,22 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-const sleep = (ms: number) => new Promise(res => setTimeout(res, ms))
-
 const BIG_BATCH = 100
 
-export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, onClose }: Props) {
+export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, routeOrderedIds, onClose }: Props) {
   const { t } = useTranslation()
+  const hasRouteOrder = !!routeOrderedIds && routeOrderedIds.length > 0
+  const [useRouteOrder, setUseRouteOrder] = useState(true)
+
+  // Reorder the selected invoice ids to follow the planned delivery route:
+  // route-sequenced ids first (in route order), any remaining ids after.
+  const orderInvoiceIds = (ids: string[]): string[] => {
+    if (!hasRouteOrder || !useRouteOrder) return ids
+    const set = new Set(ids)
+    const inRoute = routeOrderedIds!.filter(id => set.has(id))
+    const seen = new Set(inRoute)
+    return [...inRoute, ...ids.filter(id => !seen.has(id))]
+  }
 
   const [orders, setOrders] = useState<OrderRow[]>([])
   const [loadingOrders, setLoadingOrders] = useState(true)
@@ -118,21 +129,12 @@ export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, on
     try {
       if (doInvoices && selectedIds.length > 0) {
         setProgress({ done: 0, total: selectedIds.length })
-        const results = await generateBatchInvoices(selectedIds, {
+        const orderedIds = orderInvoiceIds(selectedIds)
+        issued = await renderInvoicesToFiles(orderedIds, {
+          mode: invoiceMode,
+          combinedFilename: `dagfacturen-${dateRange.start}`,
           onProgress: (done, total) => { issued = done; setProgress({ done, total }) },
         })
-        if (invoiceMode === 'combined') {
-          const blob = await pdf(<CombinedInvoicesTemplate invoices={results.map(r => r.data)} />).toBlob()
-          downloadBlob(blob, `dagfacturen-${dateRange.start}.pdf`)
-        } else {
-          // Separate files: render one blob per invoice. Browsers throttle many
-          // rapid downloads, so space them out a little.
-          for (const r of results) {
-            const blob = await pdf(<InvoiceTemplate data={r.data} />).toBlob()
-            downloadBlob(blob, `${r.documentNumber}.pdf`)
-            await sleep(400)
-          }
-        }
       }
 
       if (doSoldProducts && soldProducts) {
@@ -210,6 +212,14 @@ export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, on
                 </button>
               ))}
             </div>
+
+            {hasRouteOrder && (
+              <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
+                <input type="checkbox" checked={useRouteOrder} onChange={() => setUseRouteOrder(v => !v)}
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">{t('dayClose.useRouteOrder')}</span>
+              </label>
+            )}
 
             {/* Order list */}
             <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">

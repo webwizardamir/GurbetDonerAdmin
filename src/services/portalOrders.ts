@@ -42,6 +42,7 @@ export async function fetchPortalOrders(customerId: string): Promise<PortalOrder
       )
     `)
     .eq('customer_id', customerId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
   if (error) throw error
@@ -64,6 +65,7 @@ export async function fetchPortalOrder(orderId: string, customerId: string): Pro
     `)
     .eq('id', orderId)
     .eq('customer_id', customerId)
+    .is('deleted_at', null)
     .single()
 
   if (error) {
@@ -103,6 +105,7 @@ export async function fetchPortalStats(customerId: string): Promise<PortalStats>
     .from('orders')
     .select('id, status, total')
     .eq('customer_id', customerId)
+    .is('deleted_at', null)
 
   if (error) throw error
 
@@ -140,6 +143,7 @@ export async function fetchRecentPortalOrders(customerId: string, limit = 5): Pr
       items:order_items(id)
     `)
     .eq('customer_id', customerId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(limit)
 

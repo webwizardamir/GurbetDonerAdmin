@@ -82,6 +82,9 @@ export default function SoldProducts() {
   const [showPDF, setShowPDF] = useState(false)
   const [showRoute, setShowRoute] = useState(false)
   const [showDayClose, setShowDayClose] = useState(false)
+  // Last planned delivery-route order (order ids in sequence), so the day-close
+  // modal can print invoices in route order.
+  const [routeOrderedIds, setRouteOrderedIds] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
   const [showCustomDate, setShowCustomDate] = useState(false)
   const [customStart, setCustomStart] = useState('')
@@ -589,6 +592,7 @@ export default function SoldProducts() {
           endDay={dateRange.end}
           dayLabel={dateRange.label}
           cities={cityFilter.length ? cityFilter : undefined}
+          onRouteOrderChange={setRouteOrderedIds}
           onClose={() => setShowRoute(false)}
         />
       )}
@@ -605,6 +609,7 @@ export default function SoldProducts() {
             groupByLabel: groupBy !== 'none' ? t(`soldProducts.groupBy.${groupBy}`) : undefined,
           } : undefined}
           onOpenRoute={() => setShowRoute(true)}
+          routeOrderedIds={routeOrderedIds}
           onClose={() => setShowDayClose(false)}
         />
       )}

@@ -21,6 +21,8 @@ interface DbOrderRow {
   woo_invoice_number?: number | null
   woo_invoice_date?: string | null
   refund_amount?: number | null
+  deleted_at?: string | null
+  pre_trash_status?: OrderStatus | null
   refunds?: Array<{
     id: string
     woo_refund_id?: number | null
@@ -76,10 +78,14 @@ export interface OrderFilters {
   search?: string
   limit?: number
   offset?: number
+  // When true, return only trashed (soft-deleted) orders; otherwise only live ones.
+  trashed?: boolean
 }
 
 export interface OrderWithItems extends Omit<Order, 'customer'> {
   items: OrderItem[]
+  deleted_at?: string | null
+  pre_trash_status?: OrderStatus | null
   customer: {
     id: string
     company_name: string
@@ -148,6 +154,8 @@ function transformOrderFromDb(dbOrder: DbOrderRow): OrderWithItems | null {
     invoice_date: dbOrder.invoice_date,
     woo_invoice_number: dbOrder.woo_invoice_number ?? null,
     woo_invoice_date: dbOrder.woo_invoice_date ?? null,
+    deleted_at: dbOrder.deleted_at ?? null,
+    pre_trash_status: dbOrder.pre_trash_status ?? null,
     refund_amount: Number(dbOrder.refund_amount) || 0,
     refunds: dbOrder.refunds ?? [],
     delivery_notes: dbOrder.delivery_notes || dbOrder.notes || '',
@@ -190,6 +198,7 @@ export async function fetchOrderCount(filters: OrderFilters = {}): Promise<numbe
     .from('orders')
     .select('id', { count: 'exact', head: true })
 
+  query = filters.trashed ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null)
   if (filters.status) query = query.eq('status', filters.status)
   if (filters.paymentMethod) query = query.eq('payment_method', filters.paymentMethod)
   if (filters.customerId) query = query.eq('customer_id', filters.customerId)
@@ -256,13 +265,15 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
     .select(`
       id, order_number, customer_id, status, payment_method,
       subtotal, discount, discount_type, discount_value, tax, total, order_date, invoice_date,
-      woo_invoice_number, woo_invoice_date, refund_amount,
+      woo_invoice_number, woo_invoice_date, refund_amount, deleted_at, pre_trash_status,
       delivery_notes, internal_notes, created_at, updated_at, created_by,
       customer:customers!customer_id(id, company_name, contact_person, billing_country, vat_number),
       items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, discount_amount, discount_type, discount_value, tax_rate, tax_amount, total, unit_type, notes),
       refunds:order_refunds(id, woo_refund_id, woo_credit_note_number, refund_date, amount, reason)
     `)
     .order('created_at', { ascending: false })
+
+  query = filters.trashed ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null)
 
   if (filters.status) {
     query = query.eq('status', filters.status)
@@ -557,13 +568,22 @@ export async function updateOrderNotes(
   }
 }
 
-// Delete order (and its items - cascade)
+// Move an order to the trash (soft delete). Sets status=cancelled + deleted_at
+// server-side, which restores stock via the existing trigger. Recoverable.
 export async function deleteOrder(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('orders')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.rpc('trash_order', { p_id: id })
+  if (error) throw error
+}
 
+// Restore a trashed order back to its original status (re-deducts stock).
+export async function restoreOrder(id: string): Promise<void> {
+  const { error } = await supabase.rpc('restore_order', { p_id: id })
+  if (error) throw error
+}
+
+// Permanently delete a trashed order (cannot be undone).
+export async function purgeOrder(id: string): Promise<void> {
+  const { error } = await supabase.rpc('purge_order', { p_id: id })
   if (error) throw error
 }
 
@@ -738,16 +758,16 @@ export async function bulkUpdateOrderStatus(
   if (error) throw error
 }
 
-// Bulk delete orders (and their items - cascade)
+// Bulk move orders to the trash. Sequential RPC calls (each restores stock +
+// flips status); a failing one (e.g. wrong status) doesn't block the rest.
 export async function bulkDeleteOrders(ids: string[]): Promise<void> {
   if (ids.length === 0) return
-
-  const { error } = await supabase
-    .from('orders')
-    .delete()
-    .in('id', ids)
-
-  if (error) throw error
+  const errors: string[] = []
+  for (const id of ids) {
+    const { error } = await supabase.rpc('trash_order', { p_id: id })
+    if (error) errors.push(error.message)
+  }
+  if (errors.length) throw new Error(errors[0])
 }
 
 // Get order statistics using server-side RPC to avoid PostgREST 1000-row limit

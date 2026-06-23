@@ -14,6 +14,7 @@ import type { OrderWithItems } from '../../services/orders'
 import { formatPrice } from '../../utils/format'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 import { computeOrderTotals, type DiscountType } from '../../utils/discount'
+import { setCustomerPrice, clearCustomerPrice } from '../../services/pricing'
 
 interface OrderFormProps {
   onCancel: () => void
@@ -31,6 +32,9 @@ interface OrderLineItem {
   notes?: string
   discount_type?: DiscountType | null
   discount_value?: number | null
+  // True when the user manually changed this line's price — drives the
+  // "remember this customer price" auto-save on submit.
+  priceEdited?: boolean
   availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
@@ -336,10 +340,68 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       })
       if (isEditMode && editOrder) { await updateWithItems(editOrder.id, orderData, itemsData) }
       else { await create(orderData, itemsData) }
+
+      // Remember any manually-edited line prices for this customer (per
+      // product + unit_type), so they auto-apply on the next order. Best-effort:
+      // a failure here must not fail the saved order. Skipped for imported (WC)
+      // orders, whose prices are frozen.
+      if (!isImported) {
+        // Only remember a price that genuinely differs from the next tier
+        // (list / product / base) — not one the user typed back to default.
+        // Dedupe by product+unit so duplicate lines don't double-upsert.
+        const seen = new Set<string>()
+        const toSave = items.filter(i => {
+          if (!i.priceEdited) return false
+          const key = `${i.product.id}|${i.selectedUnitType}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          const pl = listItems.get(i.product.id)?.get(i.selectedUnitType)
+          const up = i.product.unit_prices?.find(u => u.unit_type === i.selectedUnitType && u.price != null)
+          const baseline = (typeof pl?.price === 'number') ? pl.price
+            : (typeof up?.price === 'number') ? up.price
+            : i.product.base_price
+          return i.unit_price !== baseline
+        })
+        if (toSave.length > 0) {
+          try {
+            await Promise.all(toSave.map(i =>
+              setCustomerPrice(selectedCustomer.id, i.product.id, i.unit_price, i.selectedUnitType)
+            ))
+          } catch (e) { console.error('Failed to remember customer prices:', e) }
+        }
+      }
       onSuccess()
     } catch (err) {
       setError(err instanceof Error ? err.message : isEditMode ? t('orders.form.updateError') : t('orders.form.createError'))
     } finally { setSaving(false) }
+  }
+
+  // Forget a remembered customer price: delete the customer_prices row, drop it
+  // from the in-memory map, and reprice the affected line(s) to the next tier.
+  const handleForgetPrice = async (productId: string, unitType: UnitType) => {
+    if (!selectedCustomer) return
+    // The applied remembered price may be unit-specific OR the unit-less ('*')
+    // wildcard — clear whichever one actually matched this line.
+    const m0 = customerPrices.get(productId)
+    const keyToClear: UnitType | '*' = m0?.has(unitType) ? unitType : '*'
+    try { await clearCustomerPrice(selectedCustomer.id, productId, keyToClear === '*' ? null : keyToClear) }
+    catch (e) { console.error('Failed to clear customer price:', e); return }
+
+    const nextMap = new Map(customerPrices)
+    const m = nextMap.get(productId)
+    if (m) { m.delete(keyToClear); if (m.size === 0) nextMap.delete(productId) }
+    setCustomerPrices(nextMap)
+
+    // Reprice matching lines using the remaining tiers (list / product / base).
+    setItems(prev => prev.map(i => {
+      if (i.product.id !== productId || i.selectedUnitType !== unitType) return i
+      const pl = listItems.get(productId)?.get(unitType)
+      const up = i.product.unit_prices?.find(u => u.unit_type === unitType && u.price != null)
+      const fallback = (typeof pl?.price === 'number') ? pl.price
+        : (typeof up?.price === 'number') ? up.price
+        : i.product.base_price
+      return { ...i, unit_price: fallback, priceEdited: false }
+    }))
   }
 
   const getUnitTypeLabel = (unitType: UnitType): string => t(`products.form.unitTypes.${unitType}`)
@@ -521,9 +583,16 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
               onChangeUnitType={changeUnitType}
               onSetPrice={(lineId, priceInCents) => {
                 setItems(prev => prev.map(item =>
-                  item.lineId === lineId ? { ...item, unit_price: priceInCents } : item
+                  item.lineId === lineId
+                    ? { ...item, unit_price: priceInCents, priceEdited: item.unit_price !== priceInCents || item.priceEdited }
+                    : item
                 ))
               }}
+              isRemembered={(productId, unitType) => {
+                const cp = customerPrices.get(productId)
+                return !!cp && (cp.has(unitType) || cp.has('*'))
+              }}
+              onForgetPrice={handleForgetPrice}
               onSetNotes={(lineId, notes) => {
                 setItems(prev => prev.map(item =>
                   item.lineId === lineId ? { ...item, notes } : item

@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   X, Loader2, Truck, Route as RouteIcon, Navigation,
-  FileText, Copy, AlertTriangle, RefreshCw, Share2,
+  FileText, Copy, AlertTriangle, RefreshCw, Share2, Receipt,
 } from 'lucide-react'
 import { useDeliveryRoute } from '../../hooks/useDeliveryRoute'
 import { buildGoogleMapsUrl, formatDistance, formatDuration, etaClock } from '../../utils/route'
+import { renderInvoicesToFiles, type InvoiceOutputMode } from '../../utils/renderInvoices'
 import DeliveryStopList from './DeliveryStopList'
 import LoadingOrderList from './LoadingOrderList'
 import DeliveryRoutePDF from '../documents/DeliveryRouteTemplate'
@@ -15,16 +16,56 @@ interface Props {
   endDay?: string
   dayLabel: string
   cities?: string[]
+  /** Fired whenever the (manual or optimized) route order changes, with the
+   *  order ids flattened into exact delivery sequence — so the day-close modal
+   *  can print invoices in route order. */
+  onRouteOrderChange?: (orderedOrderIds: string[]) => void
   onClose: () => void
 }
 
-export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, onClose }: Props) {
+export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, onRouteOrderChange, onClose }: Props) {
   const { t } = useTranslation()
   const r = useDeliveryRoute(day, endDay, cities)
   const cityLabel = cities && cities.length ? cities.join(', ') : ''
   const [view, setView] = useState<'delivery' | 'loading'>('delivery')
   const [showPDF, setShowPDF] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [invoiceMenuOpen, setInvoiceMenuOpen] = useState(false)
+  const [invoiceBusy, setInvoiceBusy] = useState(false)
+  const [invoiceProgress, setInvoiceProgress] = useState<{ done: number; total: number } | null>(null)
+  const [invoiceError, setInvoiceError] = useState<string | null>(null)
+
+  // Order ids flattened into exact delivery sequence (each stop = one customer
+  // whose merged orderIds keep their order). Used for invoice printing + hand-off.
+  const orderedInvoiceIds = useMemo(
+    () => r.effectiveStops.flatMap(s => s.orderIds),
+    [r.effectiveStops],
+  )
+
+  // Keep the parent (SoldProducts) in sync so DayCloseModal can follow this order.
+  useEffect(() => {
+    onRouteOrderChange?.(orderedInvoiceIds)
+  }, [orderedInvoiceIds, onRouteOrderChange])
+
+  const printInvoices = async (mode: InvoiceOutputMode) => {
+    if (orderedInvoiceIds.length === 0) return
+    setInvoiceBusy(true)
+    setInvoiceError(null)
+    setInvoiceProgress({ done: 0, total: orderedInvoiceIds.length })
+    try {
+      await renderInvoicesToFiles(orderedInvoiceIds, {
+        mode,
+        combinedFilename: `bezorgroute-facturen-${day}`,
+        onProgress: (done, total) => setInvoiceProgress({ done, total }),
+      })
+      setInvoiceMenuOpen(false)
+    } catch (e) {
+      setInvoiceError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setInvoiceBusy(false)
+      setInvoiceProgress(null)
+    }
+  }
 
   const allSelected = r.selectedCount === r.candidateCount && r.candidateCount > 0
   // The manual order is authoritative — export stays enabled after a reorder.
@@ -186,8 +227,32 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, onCl
           )}
         </div>
 
+        {/* Invoice print choice (route order) */}
+        {invoiceMenuOpen && (
+          <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700 shrink-0 bg-slate-50 dark:bg-slate-900/40">
+            {invoiceError && (
+              <div className="mb-2 text-sm text-red-600 dark:text-red-400">{invoiceError}</div>
+            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-slate-600 dark:text-slate-400">{t('route.printInvoicesAs')}</span>
+              <button onClick={() => printInvoices('combined')} disabled={invoiceBusy}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg disabled:opacity-50">
+                {invoiceBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Receipt className="w-4 h-4" />}
+                {t('dayClose.combined')}
+              </button>
+              <button onClick={() => printInvoices('separate')} disabled={invoiceBusy}
+                className="inline-flex items-center gap-2 px-3 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50">
+                {t('dayClose.separate')}
+              </button>
+              {invoiceProgress && <span className="text-sm text-slate-500 tabular-nums">{invoiceProgress.done}/{invoiceProgress.total}</span>}
+              <button onClick={() => setInvoiceMenuOpen(false)} disabled={invoiceBusy}
+                className="ml-auto text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">{t('common.cancel')}</button>
+            </div>
+          </div>
+        )}
+
         {/* Action bar */}
-        <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700 shrink-0 flex items-center gap-2">
+        <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700 shrink-0 flex flex-wrap items-center gap-2">
           <button
             onClick={r.optimize}
             disabled={r.planning || r.selectedCount === 0}
@@ -214,6 +279,10 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, onCl
           <button onClick={() => setShowPDF(true)} disabled={!canExport}
             className="p-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50" title={t('route.printPdf')}>
             <FileText className="w-4 h-4" />
+          </button>
+          <button onClick={() => setInvoiceMenuOpen(o => !o)} disabled={!canExport || orderedInvoiceIds.length === 0}
+            className="p-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50" title={t('route.printInvoices')} aria-label={t('route.printInvoices')}>
+            <Receipt className="w-4 h-4" />
           </button>
           <button onClick={handleCopy} disabled={!canExport}
             className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50" title={t('route.copy')}>

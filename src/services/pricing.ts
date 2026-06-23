@@ -272,6 +272,25 @@ export async function deleteCustomerPrice(id: string): Promise<void> {
   if (error) throw error
 }
 
+// Clear a remembered customer price by composite key (customer + product + unit).
+// `unitType = null` clears the unit-less (applies-to-all) row. Reverts that line
+// to the next-tier price (list / product / base).
+export async function clearCustomerPrice(
+  customerId: string,
+  productId: string,
+  unitType: UnitType | null,
+): Promise<void> {
+  let query = supabase
+    .from('customer_prices')
+    .delete()
+    .eq('customer_id', customerId)
+    .eq('product_id', productId)
+  query = unitType === null ? query.is('unit_type', null) : query.eq('unit_type', unitType)
+  const { error } = await query
+
+  if (error) throw error
+}
+
 // Get all products with their effective prices for a customer
 // Uses base price as the effective price for display (customer can have per-unit-type pricing)
 export async function getProductsWithPricesForCustomer(
