@@ -37,7 +37,7 @@ export async function fetchPortalOrders(customerId: string): Promise<PortalOrder
     .select(`
       *,
       items:order_items(
-        id, product_name, product_sku, unit_type, quantity, unit_price, discount_amount, tax_rate, tax_amount, line_total, notes,
+        id, product_name, product_sku, unit_type, quantity, unit_price, discount_amount, tax_rate, tax_amount, line_total_cents:total, notes,
         product:products(id, name, sku, unit_type, base_price, tax_rate, barcode, category_id, description)
       )
     `)
@@ -57,7 +57,7 @@ export async function fetchPortalOrder(orderId: string, customerId: string): Pro
     .select(`
       *,
       items:order_items(
-        id, product_name, product_sku, unit_type, quantity, unit_price, discount_amount, tax_rate, tax_amount, line_total, notes,
+        id, product_name, product_sku, unit_type, quantity, unit_price, discount_amount, tax_rate, tax_amount, line_total_cents:total, notes,
         product:products(id, name, sku, unit_type, base_price, tax_rate, barcode, category_id, description)
       ),
       documents(*)
