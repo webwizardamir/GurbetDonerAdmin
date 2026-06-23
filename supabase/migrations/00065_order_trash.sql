@@ -17,8 +17,8 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS pre_trash_status order_status;
 
 CREATE INDEX IF NOT EXISTS idx_orders_deleted_at ON orders (deleted_at);
 
--- Only these statuses may be trashed (mirrors the UI delete restriction).
--- ('pending' is not in the enum; the deletable set is draft/pending_payment/on_hold.)
+-- Only these statuses may be trashed (mirrors the UI delete restriction):
+-- draft / pending / pending_payment / on_hold.
 
 CREATE OR REPLACE FUNCTION public.trash_order(p_id uuid)
 RETURNS void
@@ -36,7 +36,7 @@ BEGIN
   IF v_status IS NULL THEN
     RAISE EXCEPTION 'Order not found or already trashed';
   END IF;
-  IF v_status NOT IN ('draft','pending_payment','on_hold') THEN
+  IF v_status NOT IN ('draft','pending','pending_payment','on_hold') THEN
     RAISE EXCEPTION 'Only draft / pending / on-hold orders can be trashed';
   END IF;
 
