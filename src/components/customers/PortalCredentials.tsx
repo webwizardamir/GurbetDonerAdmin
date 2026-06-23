@@ -11,13 +11,16 @@ import {
   Mail,
   Lock,
   Send,
+  Link2 as LinkIcon,
 } from 'lucide-react'
 import type { Customer } from '../../types'
 
 interface PortalCredentialsProps {
   customer: Customer
-  credentials: { email: string; password: string }
+  credentials: { email: string; password?: string }
   portalUrl: string
+  /** When set, an invite/reset link is shown instead of a password. */
+  inviteLink?: string
   onDone: () => void
 }
 
@@ -25,10 +28,12 @@ export default function PortalCredentials({
   customer,
   credentials,
   portalUrl,
+  inviteLink,
   onDone,
 }: PortalCredentialsProps) {
   const { t } = useTranslation()
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const isInvite = !!inviteLink
 
   const copyToClipboard = async (text: string, field: string) => {
     try {
@@ -40,10 +45,14 @@ export default function PortalCredentials({
     }
   }
 
+  const secretLine = isInvite
+    ? `${t('portal.access.inviteLink')}: ${inviteLink}`
+    : `${t('portal.access.password')}: ${credentials.password}`
+
   const copyAllCredentials = async () => {
-    const text = `${t('portal.access.portalLink')}: ${portalUrl}
-${t('portal.access.email')}: ${credentials.email}
-${t('portal.access.password')}: ${credentials.password}`
+    const text = isInvite
+      ? `${t('portal.access.email')}: ${credentials.email}\n${secretLine}`
+      : `${t('portal.access.portalLink')}: ${portalUrl}\n${t('portal.access.email')}: ${credentials.email}\n${secretLine}`
     await copyToClipboard(text, 'all')
   }
 
@@ -52,10 +61,12 @@ ${t('portal.access.password')}: ${credentials.password}`
     const body = encodeURIComponent(
       `${t('portal.access.emailGreeting', { name: customer.company_name })}\n\n` +
       `${t('portal.access.emailIntro')}\n\n` +
-      `${t('portal.access.portalLink')}: ${portalUrl}\n` +
-      `${t('portal.access.email')}: ${credentials.email}\n` +
-      `${t('portal.access.password')}: ${credentials.password}\n\n` +
-      `${t('portal.access.emailOutro')}\n\n` +
+      (isInvite
+        ? `${t('portal.access.inviteLink')}: ${inviteLink}\n`
+        : `${t('portal.access.portalLink')}: ${portalUrl}\n` +
+          `${t('portal.access.email')}: ${credentials.email}\n` +
+          `${t('portal.access.password')}: ${credentials.password}\n`) +
+      `\n${t('portal.access.emailOutro')}\n\n` +
       `${t('portal.access.emailSignature')}`
     )
     window.open(`mailto:${credentials.email}?subject=${subject}&body=${body}`, '_blank')
@@ -107,17 +118,31 @@ ${t('portal.access.password')}: ${credentials.password}`
           </div>
         </div>
 
-        {/* Password */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('portal.access.password')}</span>
-            <CopyButton field="password" text={credentials.password} />
+        {/* Password OR invite link */}
+        {isInvite ? (
+          <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('portal.access.inviteLink')}</span>
+              <CopyButton field="invite" text={inviteLink!} />
+            </div>
+            <div className="flex items-center gap-2">
+              <LinkIcon className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-sm text-slate-900 dark:text-white break-all">{inviteLink}</span>
+            </div>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t('portal.access.inviteHint')}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="text-sm text-slate-900 dark:text-white font-mono">{credentials.password}</span>
+        ) : (
+          <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('portal.access.password')}</span>
+              <CopyButton field="password" text={credentials.password!} />
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-sm text-slate-900 dark:text-white font-mono">{credentials.password}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Action Buttons */}

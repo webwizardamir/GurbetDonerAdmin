@@ -1,6 +1,7 @@
 // Action menu dropdown for customer rows (desktop table and mobile cards).
 // Provides view, pricing, edit, and delete actions.
 
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   MoreVertical,
@@ -11,6 +12,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import type { Customer } from '../../types'
+import DropdownMenu from '../ui/DropdownMenu'
 
 interface CustomerActionMenuProps {
   customer: Customer
@@ -39,26 +41,22 @@ export default function CustomerActionMenu({
   onDelete,
 }: CustomerActionMenuProps) {
   const { t } = useTranslation()
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
         className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
       >
         <MoreVertical className="w-5 h-5 text-slate-500 dark:text-slate-400" />
       </button>
-      {isOpen && (
-        <>
-          {/* Invisible overlay to catch outside clicks */}
-          <div
-            className="fixed inset-0 z-[9998]"
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-          />
-          {/* Menu dropdown */}
-          <div className="absolute right-0 top-full mt-1 z-[9999] w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1">
-            <button
+      <DropdownMenu isOpen={isOpen} onClose={onClose} anchorRef={triggerRef} align="right">
+        <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onView(); onClose(); }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
@@ -98,9 +96,7 @@ export default function CustomerActionMenu({
                 </button>
               </>
             )}
-          </div>
-        </>
-      )}
+      </DropdownMenu>
     </div>
   )
 }

@@ -91,6 +91,7 @@
     "users": "Gebruikers",
     "auditLog": "Auditlogboek",
     "documents": "Documenten",
+    "portalManagement": "Portaalbeheer",
     "signOut": "Uitloggen",
     "overdueInvoices": "Herinneringen",
     "sections": {
@@ -1085,6 +1086,40 @@
   },
   "settings": {
     "title": "Instellingen",
+    "portal": {
+      "title": "Portaalbeheer",
+      "subtitle": "Beheer klantportaal-toegang",
+      "searchPlaceholder": "Zoek op bedrijf, contactpersoon of e-mail...",
+      "summary": {
+        "total": "Totaal klanten",
+        "active": "Actief",
+        "disabled": "Gedeactiveerd",
+        "none": "Geen account"
+      },
+      "filter": {
+        "all": "Alle statussen"
+      },
+      "status": {
+        "active": "Actief",
+        "disabled": "Gedeactiveerd",
+        "none": "Geen account"
+      },
+      "col": {
+        "company": "Bedrijf",
+        "portalEmail": "Portaal-e-mail",
+        "status": "Status",
+        "lastLogin": "Laatste login"
+      },
+      "never": "Nooit",
+      "manage": "Beheren",
+      "deleteAccount": "Account verwijderen",
+      "deleteConfirm": "Weet u zeker dat u de portaaltoegang van {{name}} volledig wilt verwijderen? De inloggegevens worden verwijderd.",
+      "deleteError": "Verwijderen van portaalaccount mislukt",
+      "loadError": "Laden van portaalaccounts mislukt",
+      "empty": "Nog geen klanten",
+      "noMatch": "Geen klanten gevonden",
+      "clearFilters": "Filters wissen"
+    },
     "users": {
       "title": "Gebruikers",
       "addUser": "Gebruiker toevoegen",
@@ -1624,6 +1659,16 @@
       "sendResetLink": "Wachtwoord reset link versturen",
       "resetSent": "Reset link verstuurd!",
       "emailAlreadyRegistered": "Dit e-mailadres is al geregistreerd. Gebruik een ander e-mailadres.",
+      "emailIsAdmin": "Dit e-mailadres is al een beheerders-login. Gebruik een ander e-mailadres voor het klantportaal.",
+      "emailInUse": "Dit e-mailadres is al gekoppeld aan een andere klant.",
+      "mode": {
+        "password": "Wachtwoord instellen",
+        "invite": "Uitnodigingslink"
+      },
+      "inviteExplain": "Er wordt een uitnodigingslink gegenereerd die u kunt delen. De klant kiest daarmee zelf een wachtwoord.",
+      "generateInvite": "Uitnodigingslink genereren",
+      "inviteLink": "Uitnodigingslink",
+      "inviteHint": "Deel deze link met de klant. De link is eenmalig te gebruiken om een wachtwoord in te stellen.",
       "emailSubject": "Uw {{company}} Portaal Toegang",
       "emailGreeting": "Beste {{name}},",
       "emailIntro": "Uw klantenportaal account is aangemaakt. U kunt nu uw bestellingen, facturen en documenten online bekijken.",

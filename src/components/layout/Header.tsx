@@ -23,6 +23,7 @@ const PAGE_META: Record<string, { titleKey: string; descKey?: string }> = {
   '/settings/documents': { titleKey: 'settings.documents.title' },
   '/settings/users': { titleKey: 'settings.users.title' },
   '/settings/audit-log': { titleKey: 'settings.auditLog.title' },
+  '/settings/portal': { titleKey: 'settings.portal.title', descKey: 'settings.portal.subtitle' },
 }
 
 // Dynamic-path patterns for routes like /orders/:id/edit

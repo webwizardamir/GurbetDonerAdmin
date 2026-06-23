@@ -22,6 +22,7 @@ import OrderEditor from './pages/OrderEditor'
 import AuditLog from './pages/AuditLog'
 import Users from './pages/Users'
 import DocumentSettings from './pages/DocumentSettings'
+import PortalManagement from './pages/PortalManagement'
 import Invoices from './pages/Invoices'
 import OverdueInvoices from './pages/OverdueInvoices'
 import Outbox from './pages/Outbox'
@@ -239,6 +240,14 @@ function App() {
                   element={
                     <OwnerRoute>
                       <DocumentSettings />
+                    </OwnerRoute>
+                  }
+                />
+                <Route
+                  path="settings/portal"
+                  element={
+                    <OwnerRoute>
+                      <PortalManagement />
                     </OwnerRoute>
                   }
                 />

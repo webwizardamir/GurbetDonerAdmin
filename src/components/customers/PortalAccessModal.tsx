@@ -17,10 +17,13 @@ import {
 } from 'lucide-react'
 import {
   enablePortalAccess,
+  createPortalInvite,
   disablePortalAccess,
   reEnablePortalAccess,
   getPortalAccountStatus,
   sendPortalPasswordReset,
+  PORTAL_EMAIL_IS_ADMIN,
+  PORTAL_EMAIL_IN_USE,
   type CustomerAccount,
 } from '../../services/portalAuth'
 import type { Customer } from '../../types'
@@ -42,7 +45,8 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
   const [error, setError] = useState<string | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null)
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password?: string } | null>(null)
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [sendingReset, setSendingReset] = useState(false)
   const [resetSent, setResetSent] = useState(false)
@@ -60,23 +64,45 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
     finally { setLoading(false) }
   }
 
+  const mapEnableError = (err: any): string => {
+    const msg = err?.message || 'Failed to enable portal access'
+    if (msg === PORTAL_EMAIL_IS_ADMIN) return t('portal.access.emailIsAdmin')
+    if (msg === PORTAL_EMAIL_IN_USE) return t('portal.access.emailInUse')
+    if (msg.toLowerCase?.().includes('already') && msg.toLowerCase().includes('registered')) {
+      return t('portal.access.emailAlreadyRegistered')
+    }
+    return msg
+  }
+
   const handleEnableAccess = async (email: string, password: string) => {
     setError(null)
     setActionLoading(true)
     try {
       await enablePortalAccess(customer.id, email, password)
+      setInviteLink(null)
       setCreatedCredentials({ email, password })
       setShowSuccess(true)
       setShowCreateForm(false)
       await loadAccountStatus()
       onUpdate()
     } catch (err: any) {
-      const errorMsg = err.message || 'Failed to enable portal access'
-      if (errorMsg.toLowerCase().includes('already') && errorMsg.toLowerCase().includes('registered')) {
-        setError(t('portal.access.emailAlreadyRegistered'))
-      } else {
-        setError(errorMsg)
-      }
+      setError(mapEnableError(err))
+    } finally { setActionLoading(false) }
+  }
+
+  const handleInviteAccess = async (email: string) => {
+    setError(null)
+    setActionLoading(true)
+    try {
+      const { actionLink } = await createPortalInvite(customer.id, email)
+      setInviteLink(actionLink)
+      setCreatedCredentials({ email })
+      setShowSuccess(true)
+      setShowCreateForm(false)
+      await loadAccountStatus()
+      onUpdate()
+    } catch (err: any) {
+      setError(mapEnableError(err))
     } finally { setActionLoading(false) }
   }
 
@@ -175,7 +201,8 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
               <PortalCreateForm
                 defaultEmail={customer.email || ''}
                 actionLoading={actionLoading}
-                onSubmit={handleEnableAccess}
+                onSubmitPassword={handleEnableAccess}
+                onSubmitInvite={handleInviteAccess}
                 onCancel={() => setShowCreateForm(false)}
               />
             )}
@@ -186,7 +213,8 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
                 customer={customer}
                 credentials={createdCredentials}
                 portalUrl={portalUrl}
-                onDone={() => { setShowSuccess(false); setCreatedCredentials(null) }}
+                inviteLink={inviteLink || undefined}
+                onDone={() => { setShowSuccess(false); setCreatedCredentials(null); setInviteLink(null) }}
               />
             )}
 

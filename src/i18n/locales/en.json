@@ -91,6 +91,7 @@
     "users": "Users",
     "auditLog": "Audit Log",
     "documents": "Documents",
+    "portalManagement": "Portal Management",
     "signOut": "Sign Out",
     "overdueInvoices": "Reminders",
     "sections": {
@@ -1085,6 +1086,40 @@
   },
   "settings": {
     "title": "Settings",
+    "portal": {
+      "title": "Portal Management",
+      "subtitle": "Manage customer portal access",
+      "searchPlaceholder": "Search by company, contact or email...",
+      "summary": {
+        "total": "Total customers",
+        "active": "Active",
+        "disabled": "Disabled",
+        "none": "No account"
+      },
+      "filter": {
+        "all": "All statuses"
+      },
+      "status": {
+        "active": "Active",
+        "disabled": "Disabled",
+        "none": "No account"
+      },
+      "col": {
+        "company": "Company",
+        "portalEmail": "Portal email",
+        "status": "Status",
+        "lastLogin": "Last login"
+      },
+      "never": "Never",
+      "manage": "Manage",
+      "deleteAccount": "Delete account",
+      "deleteConfirm": "Are you sure you want to completely remove portal access for {{name}}? Their login will be deleted.",
+      "deleteError": "Failed to delete portal account",
+      "loadError": "Failed to load portal accounts",
+      "empty": "No customers yet",
+      "noMatch": "No customers found",
+      "clearFilters": "Clear filters"
+    },
     "users": {
       "title": "Users",
       "addUser": "Add User",
@@ -1624,6 +1659,16 @@
       "sendResetLink": "Send password reset link",
       "resetSent": "Reset link sent!",
       "emailAlreadyRegistered": "This email address is already registered. Please use a different email.",
+      "emailIsAdmin": "This email is already an admin login. Use a different email for the customer portal.",
+      "emailInUse": "This email is already linked to another customer.",
+      "mode": {
+        "password": "Set password",
+        "invite": "Invite link"
+      },
+      "inviteExplain": "An invite link will be generated for you to share. The customer uses it to set their own password.",
+      "generateInvite": "Generate invite link",
+      "inviteLink": "Invite link",
+      "inviteHint": "Share this link with the customer. It can be used once to set a password.",
       "emailSubject": "Your {{company}} Portal Access",
       "emailGreeting": "Dear {{name}},",
       "emailIntro": "Your customer portal account has been created. You can now access your orders, invoices, and documents online.",

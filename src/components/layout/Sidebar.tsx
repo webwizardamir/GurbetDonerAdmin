@@ -18,6 +18,7 @@ import {
   LogOut,
   History,
   ChevronDown,
+  Globe,
   X,
 } from 'lucide-react'
 import logoMelek from '../../assets/images/logo-melek.png'
@@ -84,6 +85,7 @@ const navSections: NavSection[] = [
         ownerOnly: true,
         children: [
           { icon: FileText, labelKey: 'nav.documents', href: '/settings/documents', ownerOnly: true },
+          { icon: Globe, labelKey: 'nav.portalManagement', href: '/settings/portal', ownerOnly: true },
           { icon: UserCog, labelKey: 'nav.users', href: '/settings/users', ownerOnly: true },
           { icon: History, labelKey: 'nav.auditLog', href: '/settings/audit-log', ownerOnly: true },
         ],
@@ -170,10 +172,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-thin">
+      <nav className="flex-1 px-3 py-3 overflow-y-auto scrollbar-thin">
         {visibleSections.map((section) => (
-          <div key={section.titleKey} className="mb-3 last:mb-0">
-            <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <div key={section.titleKey} className="mb-2 last:mb-0">
+            <p className="px-3 pt-1.5 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               {t(section.titleKey)}
             </p>
             <ul className="space-y-0.5">
@@ -190,7 +192,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                       <button
                         onClick={() => toggleExpand(item.href)}
                         className={`
-                          w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm
+                          w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
                           ${isActive
                             ? 'bg-green-50 dark:bg-green-600/10 text-green-700 dark:text-green-400'
                             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -210,7 +212,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 <NavLink
                                   to={child.href}
                                   className={({ isActive }) => `
-                                    flex items-center gap-2.5 px-3 py-2 ml-2 rounded-lg transition-all text-sm
+                                    flex items-center gap-2.5 px-3 py-1.5 ml-2 rounded-lg transition-all text-sm
                                     ${isActive
                                       ? 'bg-green-50 dark:bg-green-600/10 text-green-700 dark:text-green-400'
                                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -235,7 +237,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                       to={item.href}
                       end={item.href === '/'}
                       className={({ isActive }) => `
-                        flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm
+                        flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
                         ${isActive
                           ? 'bg-green-50 dark:bg-green-600/10 text-green-700 dark:text-green-400'
                           : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -254,9 +256,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       </nav>
 
       {/* User Profile Footer */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800">
+      <div className="p-2.5 border-t border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-green-600 flex items-center justify-center text-white font-medium text-sm shrink-0">
+          <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-medium text-sm shrink-0">
             {profile?.full_name ? getInitials(profile.full_name) : 'U'}
           </div>
           <div className="flex-1 min-w-0">

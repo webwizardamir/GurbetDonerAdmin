@@ -50,11 +50,9 @@ export async function portalSignIn(email: string, password: string): Promise<Por
     throw new Error('No active portal account found for this email')
   }
 
-  // Update last login
-  await portalSupabase
-    .from('customer_accounts')
-    .update({ last_login_at: new Date().toISOString() })
-    .eq('id', account.id)
+  // Update last login via SECURITY DEFINER RPC (customers have no UPDATE on the
+  // table — that would be an IDOR vector). The RPC is scoped to auth.uid().
+  await portalSupabase.rpc('touch_portal_last_login')
 
   return {
     id: authData.user.id,
@@ -154,80 +152,166 @@ export async function portalUpdatePassword(newPassword: string): Promise<void> {
 // Admin functions for managing customer portal access
 // =====================================================
 
+/** Error code thrown when an email is already an ADMIN login (cannot be a portal account). */
+export const PORTAL_EMAIL_IS_ADMIN = 'is_admin_account'
+/** Error code thrown when an email already belongs to a different customer. */
+export const PORTAL_EMAIL_IN_USE = 'email_in_use'
+
+interface ManagePortalResponse {
+  success?: boolean
+  user?: { id: string; email: string }
+  actionLink?: string
+  error?: string
+  code?: string
+}
+
 /**
- * Enable portal access for a customer (creates auth user + customer_account)
+ * Call the owner-gated `manage-portal-account` edge function. Throws an Error
+ * whose `.message` is the server `code` (when present) so callers can branch on
+ * PORTAL_EMAIL_IS_ADMIN / PORTAL_EMAIL_IN_USE / 'email_exists'.
+ */
+async function callManagePortal(body: Record<string, unknown>): Promise<ManagePortalResponse> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-portal-account`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify(body),
+    }
+  )
+  const json: ManagePortalResponse = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(json.code || json.error || 'Portal request failed')
+  }
+  return json
+}
+
+async function getCustomerFullName(customerId: string, fallback: string): Promise<string> {
+  const { data } = await supabase
+    .from('customers')
+    .select('company_name, contact_person')
+    .eq('id', customerId)
+    .single()
+  return data?.contact_person || data?.company_name || fallback
+}
+
+/** Upsert the customer_accounts row linking an auth user to a customer (idempotent). */
+async function upsertCustomerAccount(customerId: string, userId: string, email: string): Promise<CustomerAccount> {
+  const { data, error } = await supabase
+    .from('customer_accounts')
+    .upsert(
+      { customer_id: customerId, user_id: userId, email, is_active: true },
+      { onConflict: 'customer_id' }
+    )
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+/**
+ * Enable portal access by setting a password. Idempotent and self-healing:
+ * - reactivates an existing inactive account
+ * - if the email already exists as an ORPHAN auth user, relinks instead of failing
+ * - rejects emails that belong to an admin or another customer (clear error code)
  */
 export async function enablePortalAccess(
   customerId: string,
   email: string,
   password: string
 ): Promise<CustomerAccount> {
-  // First check if customer already has an account
   const { data: existing } = await supabase
     .from('customer_accounts')
-    .select('id')
+    .select('id, is_active')
     .eq('customer_id', customerId)
     .maybeSingle()
 
-  if (existing) {
-    throw new Error('Customer already has portal access')
-  }
+  if (existing?.is_active) throw new Error('Customer already has portal access')
 
-  // Create auth user via Edge Function (same as admin user creation)
-  const { data: { session } } = await supabase.auth.getSession()
+  const fullName = await getCustomerFullName(customerId, email)
 
-  // Get the customer name to use as fullName
-  const { data: customer } = await supabase
-    .from('customers')
-    .select('company_name, contact_person')
-    .eq('id', customerId)
-    .single()
-
-  const fullName = customer?.contact_person || customer?.company_name || email
-
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token}`,
-      },
-      body: JSON.stringify({
-        email,
-        password,
-        fullName, // Use customer name
-        role: 'customer',
-      }),
+  let userId: string
+  try {
+    const res = await callManagePortal({ action: 'create', email, password, fullName, customerId })
+    userId = res.user!.id
+  } catch (err) {
+    // Existing orphan auth user for this email → relink (and set the new password).
+    if (err instanceof Error && err.message === 'email_exists') {
+      const relink = await callManagePortal({ action: 'relink', email, password, customerId })
+      userId = relink.user!.id
+    } else {
+      throw err
     }
-  )
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to create portal user')
   }
 
-  const { user } = await response.json()
+  return upsertCustomerAccount(customerId, userId, email)
+}
 
-  // Create customer_account linking the auth user to the customer
-  const { data: account, error: accountError } = await supabase
+/**
+ * Enable portal access via a shareable invite link (customer sets their own
+ * password). Returns the actionLink to copy/share. Creates/links the auth user
+ * and the customer_accounts row.
+ */
+export async function createPortalInvite(
+  customerId: string,
+  email: string
+): Promise<{ account: CustomerAccount; actionLink: string }> {
+  const { data: existing } = await supabase
     .from('customer_accounts')
-    .insert({
-      customer_id: customerId,
-      user_id: user.id,
-      email: email, // Store the portal email
-      is_active: true,
-    })
-    .select()
-    .single()
+    .select('id, is_active')
+    .eq('customer_id', customerId)
+    .maybeSingle()
+  if (existing?.is_active) throw new Error('Customer already has portal access')
 
-  if (accountError) {
-    // Try to clean up the auth user if account creation fails
-    console.error('Failed to create customer account:', accountError)
-    throw accountError
+  const redirectTo = `${window.location.origin}/portal/reset-password`
+  const res = await callManagePortal({ action: 'invite_link', email, customerId, redirectTo })
+  if (!res.user?.id || !res.actionLink) throw new Error('Invite link could not be generated')
+
+  const account = await upsertCustomerAccount(customerId, res.user.id, email)
+  return { account, actionLink: res.actionLink }
+}
+
+/**
+ * Generate a shareable password-reset link for a customer's portal account.
+ */
+export async function getPortalResetLink(customerId: string): Promise<string> {
+  const { data: account } = await supabase
+    .from('customer_accounts')
+    .select('email')
+    .eq('customer_id', customerId)
+    .maybeSingle()
+  if (!account?.email) throw new Error('No portal account email on file')
+
+  const redirectTo = `${window.location.origin}/portal/reset-password`
+  const res = await callManagePortal({ action: 'reset_link', email: account.email, customerId, redirectTo })
+  if (!res.actionLink) throw new Error('Reset link could not be generated')
+  return res.actionLink
+}
+
+/**
+ * Delete a customer's portal account entirely: removes the orphaned auth user
+ * (server refuses if it's an admin) AND the customer_accounts row.
+ */
+export async function deletePortalAccount(customerId: string): Promise<void> {
+  const { data: account } = await supabase
+    .from('customer_accounts')
+    .select('id, user_id')
+    .eq('customer_id', customerId)
+    .maybeSingle()
+  if (!account) return
+
+  if (account.user_id) {
+    await callManagePortal({ action: 'delete', userId: account.user_id })
   }
-
-  return account
+  const { error } = await supabase
+    .from('customer_accounts')
+    .delete()
+    .eq('customer_id', customerId)
+  if (error) throw error
 }
 
 /**
