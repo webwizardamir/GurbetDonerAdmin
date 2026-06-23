@@ -85,9 +85,11 @@ serve(async (req) => {
     }
 
     // Returns { kind: 'admin' | 'orphan' | 'self' | 'other' } for an auth user id.
+    // NOTE: a trigger (handle_new_user) gives EVERY auth user a profiles row, so
+    // mere existence is not "admin" — only a staff ROLE counts.
     const classify = async (userId: string, customerId?: string) => {
-      const { data: prof } = await admin.from('profiles').select('id').eq('id', userId).maybeSingle()
-      if (prof) return 'admin' as const
+      const { data: prof } = await admin.from('profiles').select('role').eq('id', userId).maybeSingle()
+      if (prof && ['owner', 'shop_manager', 'admin'].includes(prof.role)) return 'admin' as const
       const { data: acct } = await admin
         .from('customer_accounts').select('customer_id').eq('user_id', userId).maybeSingle()
       if (!acct) return 'orphan' as const

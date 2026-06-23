@@ -136,7 +136,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (mounted) setPermissions(userPermissions)
           } else {
             log('No profile found, clearing session')
-            await supabase.auth.signOut()
+            // Local-only: a non-admin (e.g. a portal customer) authenticating here
+            // must not have their tokens revoked globally — that would kill their
+            // legitimate portal session. Just drop the admin-side session.
+            await supabase.auth.signOut({ scope: 'local' })
             setSession(null)
             setUser(null)
           }
@@ -268,25 +271,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userProfile = await fetchProfile(data.user.id)
         log('SignIn: Profile result:', userProfile)
 
+        // Reject paths use scope:'local' so authenticating a non-admin account
+        // here (e.g. a portal customer who entered their credentials on the admin
+        // login) only clears THIS client's session — it must never globally revoke
+        // the user's tokens, which would also kill their valid portal session.
         if (!userProfile) {
           console.error('SignIn: No profile found, signing out')
-          await supabase.auth.signOut()
+          await supabase.auth.signOut({ scope: 'local' })
           setLoading(false)
           return { error: 'Unable to fetch user profile. Please contact support.' }
         }
 
         if (!userProfile.is_active) {
           log('SignIn: User is inactive, signing out')
-          await supabase.auth.signOut()
+          await supabase.auth.signOut({ scope: 'local' })
           setLoading(false)
           return { error: 'Your account has been deactivated' }
         }
 
         if (!['owner', 'shop_manager', 'admin'].includes(userProfile.role)) {
           log('SignIn: User role not allowed:', userProfile.role)
-          await supabase.auth.signOut()
+          await supabase.auth.signOut({ scope: 'local' })
           setLoading(false)
-          return { error: 'You do not have permission to access this application' }
+          return { error: 'You do not have permission to access this application. If you are a customer, please use the customer portal login.' }
         }
 
         log('SignIn: Setting profile and fetching permissions...')
