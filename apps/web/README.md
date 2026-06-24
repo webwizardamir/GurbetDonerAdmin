@@ -1,5 +1,7 @@
 # Melek Halal Food — Frontend
 
+<!-- Deploys from the MelekHalalFood monorepo: Vercel root directory = apps/web -->
+
 Premium halal frozen-food brand site. B2B-led, NL-based, ships across Europe.
 
 Built with **Astro 5 + Tailwind 4 + TypeScript + React 19** for Vercel.
