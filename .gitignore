@@ -31,7 +31,7 @@ dist-ssr
 # Migration data
 csv/
 migration-data/
-scripts/*.cjs
+apps/admin/scripts/*.cjs
 
 # Secrets / API keys (never commit — stored as Supabase function secrets)
 google-map-api.txt

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Melek Halal Food — Go-Live Tasks</title>
+<style>
+  :root {
+    --green:#16a34a; --green-dark:#166534; --blue:#3b82f6; --amber:#f59e0b;
+    --red:#dc2626; --slate:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc;
+  }
+  * { box-sizing:border-box; }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    margin:0; background:var(--bg); color:var(--slate); line-height:1.6; font-size:16px;
+  }
+  .wrap { max-width:860px; margin:0 auto; padding:32px 20px 80px; }
+  header { text-align:center; margin-bottom:32px; }
+  header h1 { font-size:28px; margin:0 0 6px; color:var(--green-dark); }
+  header p { color:var(--muted); margin:0; }
+  .legend {
+    display:flex; gap:16px; justify-content:center; flex-wrap:wrap;
+    margin:20px 0 8px; font-size:13px; color:var(--muted);
+  }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:12px; height:12px; border-radius:50%; display:inline-block; }
+  .dot.you { background:var(--green); }
+  .dot.me  { background:var(--blue); }
+  .dot.wait{ background:var(--amber); }
+
+  .phase {
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:22px 24px; margin:18px 0; box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .phase h2 {
+    margin:0 0 4px; font-size:20px; display:flex; align-items:center; gap:10px;
+  }
+  .badge {
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+    padding:3px 9px; border-radius:999px; color:#fff;
+  }
+  .badge.you { background:var(--green); }
+  .badge.me  { background:var(--blue); }
+  .badge.wait{ background:var(--amber); color:#78350f; }
+  .phase .sub { color:var(--muted); font-size:14px; margin:0 0 14px; }
+
+  ol.steps { margin:0; padding:0; list-style:none; counter-reset:step; }
+  ol.steps > li {
+    position:relative; padding:12px 0 12px 42px; border-top:1px solid var(--line);
+  }
+  ol.steps > li:first-child { border-top:none; }
+  ol.steps > li::before {
+    counter-increment:step; content:counter(step);
+    position:absolute; left:0; top:12px; width:28px; height:28px;
+    background:var(--green); color:#fff; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;
+  }
+  .phase.me ol.steps > li::before { background:var(--blue); }
+  li .t { font-weight:600; }
+  li .d { font-size:14px; color:#334155; margin-top:2px; }
+  code, .kv {
+    font-family:"SF Mono",Consolas,Monaco,monospace; font-size:13px;
+    background:#f1f5f9; padding:2px 6px; border-radius:5px; color:var(--green-dark);
+    word-break:break-all;
+  }
+  .note {
+    border-left:3px solid var(--amber); background:#fffbeb; color:#78350f;
+    padding:8px 12px; border-radius:6px; font-size:13.5px; margin-top:8px;
+  }
+  .ok {
+    border-left:3px solid var(--green); background:#f0fdf4; color:var(--green-dark);
+    padding:8px 12px; border-radius:6px; font-size:13.5px; margin-top:8px;
+  }
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:13.5px; }
+  th,td { text-align:left; padding:8px 10px; border:1px solid var(--line); vertical-align:top; }
+  th { background:#f1f5f9; font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+  .chk { accent-color:var(--green); width:17px; height:17px; margin-right:8px; vertical-align:-3px; }
+  .foot { text-align:center; color:var(--muted); font-size:13px; margin-top:30px; }
+  a { color:var(--blue); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>🚀 Go-Live: Move Everything to melekhalalfood.nl</h1>
+  <p>Monorepo + custom domain checklist · updated 2026-06-24</p>
+  <div class="legend">
+    <span><span class="dot me"></span> Claude does this (in the code)</span>
+    <span><span class="dot you"></span> You do this (dashboards)</span>
+    <span><span class="dot wait"></span> Wait for the step before it</span>
+  </div>
+</header>
+
+<!-- THE PLAN IN ONE LINE -->
+<div class="phase" style="background:#f0fdf4;border-color:#bbf7d0;">
+  <h2>📋 The plan, in plain words</h2>
+  <p class="sub" style="margin-bottom:8px;">One GitHub repo holds both apps. Each deploys separately on Vercel.</p>
+  <table>
+    <tr><th>What</th><th>Lives in repo at</th><th>Will be live at</th></tr>
+    <tr><td>Public website (Astro)</td><td><code>apps/web</code></td><td><code>melekhalalfood.nl</code> + <code>www</code></td></tr>
+    <tr><td>Management app (this one)</td><td><code>apps/admin</code></td><td><code>app.melekhalalfood.nl</code></td></tr>
+    <tr><td>Database / backend</td><td><code>supabase/</code> (shared)</td><td>Supabase (unchanged)</td></tr>
+  </table>
+  <div class="ok">✓ The old <code>melek-halal-food.vercel.app</code> URLs keep working too — nothing gets turned off.</div>
+</div>
+
+<!-- PHASE 0 — CLAUDE -->
+<div class="phase me">
+  <h2><span class="badge me">Claude</span> Phase 0 — Restructure the code</h2>
+  <p class="sub">This is happening now, automatically. You don't need to do anything here — just know it's done before your Phase 1.</p>
+  <ol class="steps">
+    <li><div class="t">Move the admin app into <code>apps/admin/</code></div>
+        <div class="d">All source, scripts, configs, env files and migration data move together so nothing breaks.</div></li>
+    <li><div class="t">Pull the public website into <code>apps/web/</code></div>
+        <div class="d">Brought in with its full git history preserved (not copy-pasted).</div></li>
+    <li><div class="t">Fix the one <code>.gitignore</code> path + add a monorepo README</div></li>
+    <li><div class="t">Commit &amp; push to <code>main</code></div>
+        <div class="d">After this push, the GitHub repo has the new <code>apps/admin</code> + <code>apps/web</code> layout — that's your green light for Phase 1.</div></li>
+  </ol>
+  <div class="ok">✓ Your live admin app stays up the whole time. Vercel keeps serving the last good build until you finish Phase 1 — a temporary "failed build" mark in Vercel is expected and harmless.</div>
+</div>
+
+<!-- PHASE 1 — VERCEL ADMIN -->
+<div class="phase">
+  <h2><span class="badge you">You</span> Phase 1 — Point the ADMIN project at its new folder</h2>
+  <p class="sub">⚠️ Do this first, right after Claude says the push is done. Fixes the "failed build" and gets the admin app green again.</p>
+  <ol class="steps">
+    <li><div class="t">Open your existing admin project in Vercel</div>
+        <div class="d">It's the one serving <code>melek-halal-food.vercel.app</code>.</div></li>
+    <li><div class="t">Settings → Build &amp; Deployment → <b>Root Directory</b></div>
+        <div class="d">Set it to <code>apps/admin</code> and save.</div></li>
+    <li><div class="t">Deployments → … → <b>Redeploy</b></div>
+        <div class="d">The build should now go green. Check <code>melek-halal-food.vercel.app</code> still loads &amp; you can log in.</div></li>
+  </ol>
+  <div class="note">Env vars (VITE_SUPABASE_URL etc.) already live on this project — you do <b>not</b> need to re-add them.</div>
+</div>
+
+<!-- PHASE 2 — VERCEL WEB -->
+<div class="phase">
+  <h2><span class="badge you">You</span> Phase 2 — Point the WEBSITE project at its new folder</h2>
+  <p class="sub">Your Astro site already has a Vercel project. We just re-aim it at the new repo + folder (keeps its settings &amp; env vars).</p>
+  <ol class="steps">
+    <li><div class="t">Open your existing public-site project in Vercel</div>
+        <div class="d">The one currently building the Astro site from the old <code>melek-halal-fontend</code> repo.</div></li>
+    <li><div class="t">Settings → Git → <b>Connected Git Repository</b></div>
+        <div class="d">Change it to <code>webwizardamir/MelekHalalFood</code> (this repo).</div></li>
+    <li><div class="t">Settings → Build &amp; Deployment → <b>Root Directory</b> = <code>apps/web</code></div>
+        <div class="d">Framework should auto-detect as <b>Astro</b>. Save.</div></li>
+    <li><div class="t">Redeploy &amp; verify the site loads</div></li>
+  </ol>
+  <div class="note">Prefer a clean slate instead? You can create a <b>new</b> Vercel project, import <code>MelekHalalFood</code>, set Root Directory to <code>apps/web</code> — but then you must re-add any env vars the site uses. Re-aiming the existing project is easier.</div>
+</div>
+
+<!-- PHASE 3 — DOMAINS -->
+<div class="phase">
+  <h2><span class="badge you">You</span> Phase 3 — Attach the domains in Vercel</h2>
+  <p class="sub">Add the domain names to each project. Vercel will then hand you the exact DNS records for Phase 4.</p>
+  <ol class="steps">
+    <li><div class="t">WEB project → Settings → Domains → Add</div>
+        <div class="d">Add <code>melekhalalfood.nl</code> <b>and</b> <code>www.melekhalalfood.nl</code>. Let Vercel set www → apex redirect.</div></li>
+    <li><div class="t">ADMIN project → Settings → Domains → Add</div>
+        <div class="d">Add <code>app.melekhalalfood.nl</code>.</div></li>
+    <li><div class="t">Copy the DNS values Vercel shows</div>
+        <div class="d">Each domain will show an <b>A record</b> or <b>CNAME</b> with a target value. Keep that screen open for Phase 4.</div></li>
+  </ol>
+</div>
+
+<!-- PHASE 4 — TRANSIP DNS -->
+<div class="phase">
+  <h2><span class="badge you">You</span> Phase 4 — Add the DNS records at TransIP</h2>
+  <p class="sub">In TransIP → your domain <code>melekhalalfood.nl</code> → DNS settings. Use whatever Vercel told you in Phase 3 — the table below is the <i>typical</i> Vercel values as a guide.</p>
+  <table>
+    <tr><th>Name / Host</th><th>Type</th><th>Typical Vercel value</th><th>For</th></tr>
+    <tr><td><code>@</code> (root)</td><td>A</td><td><code>76.76.21.21</code></td><td>melekhalalfood.nl → website</td></tr>
+    <tr><td><code>www</code></td><td>CNAME</td><td><code>cname.vercel-dns.com.</code></td><td>www → website</td></tr>
+    <tr><td><code>app</code></td><td>CNAME</td><td><code>cname.vercel-dns.com.</code></td><td>app → admin app</td></tr>
+  </table>
+  <div class="note">⚠️ Always use the exact value Vercel shows you — it occasionally differs. If TransIP already has a default A record on <code>@</code> pointing elsewhere, replace it. DNS can take a few minutes to a couple hours; Vercel auto-issues the SSL certificate once it sees the records.</div>
+</div>
+
+<!-- PHASE 5 — SUPABASE -->
+<div class="phase">
+  <h2><span class="badge you">You</span> Phase 5 — Tell Supabase about the new addresses</h2>
+  <p class="sub">So portal logins, invite links and password resets work from the new domain. Supabase → Authentication → URL Configuration.</p>
+  <ol class="steps">
+    <li><div class="t">Set <b>Site URL</b></div>
+        <div class="d"><code>https://app.melekhalalfood.nl</code></div></li>
+    <li><div class="t">Add these to <b>Redirect URLs</b></div>
+        <div class="d">
+          <code>https://app.melekhalalfood.nl/**</code><br>
+          <code>https://melek-halal-food.vercel.app/**</code>
+        </div></li>
+    <li><div class="t">Save</div>
+        <div class="d">Then test a portal login + a password-reset link on the new domain.</div></li>
+  </ol>
+  <div class="note">Keep the old <code>.vercel.app</code> entry — it lets you fall back to the Vercel URL if a DNS change ever hiccups.</div>
+</div>
+
+<!-- FINAL CHECK -->
+<div class="phase" style="background:#f0fdf4;border-color:#bbf7d0;">
+  <h2>✅ Final check (tick when done)</h2>
+  <p style="margin:6px 0;"><input type="checkbox" class="chk"> <code>melekhalalfood.nl</code> shows the public website</p>
+  <p style="margin:6px 0;"><input type="checkbox" class="chk"> <code>www.melekhalalfood.nl</code> redirects to it</p>
+  <p style="margin:6px 0;"><input type="checkbox" class="chk"> <code>app.melekhalalfood.nl</code> shows the admin login</p>
+  <p style="margin:6px 0;"><input type="checkbox" class="chk"> Staff login works on the new admin URL</p>
+  <p style="margin:6px 0;"><input type="checkbox" class="chk"> A customer portal login + password reset works on the new URL</p>
+  <p style="margin:6px 0;"><input type="checkbox" class="chk"> Old <code>melek-halal-food.vercel.app</code> still works (sanity)</p>
+</div>
+
+<p class="foot">Questions on any step? Ask Claude in the chat — paste the screen you're stuck on and you'll get exact clicks.</p>
+
+</div>
+</body>
+</html>
