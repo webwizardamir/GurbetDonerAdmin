@@ -42,6 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Single-flight guard for the visibility-driven refresh, so two admin tabs
   // returning to focus simultaneously don't race-rotate the refresh token.
   const refreshInFlightRef = useRef<Promise<Session | null> | null>(null)
+  // Set true while an *intentional* signOut() is in flight so the SIGNED_OUT
+  // listener skips its backgrounded-tab recovery (which would otherwise refresh
+  // the session right back and make Logout appear to do nothing until a reload).
+  const signingOutRef = useRef(false)
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
@@ -168,6 +172,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       log('Auth state changed:', event)
 
       if (event === 'SIGNED_OUT') {
+        // An intentional logout must take effect immediately — don't attempt the
+        // recovery refresh that exists only for incidental SIGNED_OUTs (backgrounded
+        // tabs that missed their refresh window).
+        if (signingOutRef.current) {
+          signingOutRef.current = false
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+          setPermissions([])
+          return
+        }
         const recovered = await tryRefreshSession()
         if (recovered) {
           log('SIGNED_OUT recovered via refresh — keeping session')
@@ -315,14 +330,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Sign out
   const signOut = async () => {
+    // Flag this as a deliberate logout so the SIGNED_OUT listener clears state
+    // instead of recovering the session (see the onAuthStateChange handler).
+    signingOutRef.current = true
     try {
       await supabase.auth.signOut()
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // No SIGNED_OUT will fire to reset the flag — clear it here so a later
+      // incidental SIGNED_OUT can still recover a backgrounded tab.
+      signingOutRef.current = false
+    } finally {
       setUser(null)
       setProfile(null)
       setSession(null)
       setPermissions([])
-    } catch (error) {
-      console.error('Sign out error:', error)
     }
   }
 

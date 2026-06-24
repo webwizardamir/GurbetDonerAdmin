@@ -48,6 +48,14 @@ export default function ResetPassword() {
     return null
   }
 
+  // Clicking the reset link authenticates the user into a temporary recovery
+  // session. If they leave without setting a new password, drop that session
+  // (local scope only) so they don't end up silently signed into the app.
+  const handleBackToSignIn = async () => {
+    await supabase.auth.signOut({ scope: 'local' })
+    navigate('/login')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -265,13 +273,14 @@ export default function ResetPassword() {
           {/* Back to Login */}
           {!success && (
             <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-              <Link
-                to="/login"
-                className="flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+              <button
+                type="button"
+                onClick={handleBackToSignIn}
+                className="w-full flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to sign in
-              </Link>
+              </button>
             </div>
           )}
         </div>
