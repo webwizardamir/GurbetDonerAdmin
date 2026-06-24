@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -18,6 +18,7 @@ import { useOverdueInvoices } from '../hooks/useOverdueInvoices'
 import { formatPrice, formatDate } from '../utils/format'
 import DocumentGenerator from '../components/documents/DocumentGenerator'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import DropdownMenu from '../components/ui/DropdownMenu'
 import type { OverdueInvoice } from '../types'
 
 type Filter = 'active' | 'snoozed' | 'all'
@@ -289,50 +290,14 @@ export default function OverdueInvoices() {
                             {t('overdue.actions.sendReminder')}
                           </button>
                         )}
-                        <button
-                          onClick={() => setMenuFor(menuFor === inv.order_id ? null : inv.order_id)}
-                          aria-label={t('overdue.cols.actions')}
-                          aria-haspopup="menu"
-                          aria-expanded={menuFor === inv.order_id}
-                          title={t('overdue.cols.actions')}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                        {menuFor === inv.order_id && (
-                          <>
-                            <div className="fixed inset-0 z-10" onClick={() => setMenuFor(null)} />
-                            <div role="menu" className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-20 text-left">
-                              <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase">
-                                {t('overdue.actions.snooze')}
-                              </div>
-                              {SNOOZE_PRESETS.map(d => (
-                                <button
-                                  key={d}
-                                  onClick={() => doSnooze(inv.order_id, d)}
-                                  className="w-full px-3 py-1.5 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                >
-                                  {t('overdue.snoozeDays', { count: d })}
-                                </button>
-                              ))}
-                              <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
-                              <button
-                                onClick={() => { setMenuFor(null); setPayFor(inv) }}
-                                className="w-full px-3 py-1.5 text-sm text-left text-green-700 dark:text-green-400 hover:bg-slate-100 dark:hover:bg-slate-700 inline-flex items-center gap-2"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                                {t('overdue.actions.markPaid')}
-                              </button>
-                              <button
-                                onClick={() => doOptOut(inv.order_id)}
-                                className="w-full px-3 py-1.5 text-sm text-left text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 inline-flex items-center gap-2"
-                              >
-                                <BellOff className="w-4 h-4" />
-                                {t('overdue.actions.optOut')}
-                              </button>
-                            </div>
-                          </>
-                        )}
+                        <RowActionsMenu
+                          isOpen={menuFor === inv.order_id}
+                          onToggle={() => setMenuFor(menuFor === inv.order_id ? null : inv.order_id)}
+                          onClose={() => setMenuFor(null)}
+                          onSnooze={(d) => doSnooze(inv.order_id, d)}
+                          onMarkPaid={() => { setMenuFor(null); setPayFor(inv) }}
+                          onOptOut={() => doOptOut(inv.order_id)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -378,6 +343,73 @@ export default function OverdueInvoices() {
         onCancel={() => setPayFor(null)}
       />
     </div>
+  )
+}
+
+// Row overflow menu. Uses the portal-based DropdownMenu so the panel escapes the
+// table/card overflow and stacking context (the old absolute menu was clipped to
+// just the first item) and flips up when near the viewport bottom.
+function RowActionsMenu({
+  isOpen,
+  onToggle,
+  onClose,
+  onSnooze,
+  onMarkPaid,
+  onOptOut,
+}: {
+  isOpen: boolean
+  onToggle: () => void
+  onClose: () => void
+  onSnooze: (days: number) => void
+  onMarkPaid: () => void
+  onOptOut: () => void
+}) {
+  const { t } = useTranslation()
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={onToggle}
+        aria-label={t('overdue.cols.actions')}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        title={t('overdue.cols.actions')}
+        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      <DropdownMenu isOpen={isOpen} onClose={onClose} anchorRef={triggerRef} align="right" width={176}>
+        <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase">
+          {t('overdue.actions.snooze')}
+        </div>
+        {SNOOZE_PRESETS.map(d => (
+          <button
+            key={d}
+            onClick={() => onSnooze(d)}
+            className="w-full px-3 py-1.5 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            {t('overdue.snoozeDays', { count: d })}
+          </button>
+        ))}
+        <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
+        <button
+          onClick={onMarkPaid}
+          className="w-full px-3 py-1.5 text-sm text-left text-green-700 dark:text-green-400 hover:bg-slate-100 dark:hover:bg-slate-700 inline-flex items-center gap-2"
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          {t('overdue.actions.markPaid')}
+        </button>
+        <button
+          onClick={onOptOut}
+          className="w-full px-3 py-1.5 text-sm text-left text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 inline-flex items-center gap-2"
+        >
+          <BellOff className="w-4 h-4" />
+          {t('overdue.actions.optOut')}
+        </button>
+      </DropdownMenu>
+    </>
   )
 }
 
