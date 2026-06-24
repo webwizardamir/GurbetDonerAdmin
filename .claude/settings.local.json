@@ -195,7 +195,9 @@
       "mcp__supabase__deploy_edge_function",
       "Bash(grep -rn \"google-map-api\\\\|process.cwd\\\\|__dirname\\\\|\\\\.\\\\./\\\\.\\\\.\" scripts)",
       "Bash(git ls-remote *)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "Bash(git diff-index *)",
+      "Bash(git subtree *)"
     ],
     "deny": [],
     "ask": []
