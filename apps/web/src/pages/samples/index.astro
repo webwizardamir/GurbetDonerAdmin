@@ -1,0 +1,124 @@
+---
+import Base from "../../layouts/Base.astro";
+
+const presetProduct = (() => {
+  const q = Astro.url.searchParams.get("product");
+  return typeof q === "string" ? q : "";
+})();
+---
+
+<Base
+  title="Request samples"
+  description="Request a sample box from the Melek halal frozen range. We ship to qualified trade buyers across Europe."
+  bodyClass="page-light"
+>
+  <section class="scene samp" data-scene="light">
+    <div class="grain grain--dark" aria-hidden="true"></div>
+    <div class="container-narrow">
+      <h1 class="text-display samp__title">Taste before you commit. That's the whole point.</h1>
+      <p class="text-body-lg samp__lede">
+        Tell us which products interest you and where to ship. We'll send a sample box
+        with cooking guidance, spec sheets and the certificates your buyers will ask for.
+      </p>
+
+      <form class="samp__form" method="post" action="?_form=samples" novalidate>
+        <div class="samp__row">
+          <div>
+            <label class="label" for="s-name">Name</label>
+            <input class="input" id="s-name" name="name" required autocomplete="name" />
+          </div>
+          <div>
+            <label class="label" for="s-company">Company</label>
+            <input class="input" id="s-company" name="company" required autocomplete="organization" />
+          </div>
+        </div>
+
+        <div class="samp__row">
+          <div>
+            <label class="label" for="s-email">Email</label>
+            <input class="input" id="s-email" name="email" type="email" required autocomplete="email" />
+          </div>
+          <div>
+            <label class="label" for="s-country">Country</label>
+            <input class="input" id="s-country" name="country" required autocomplete="country-name" />
+          </div>
+        </div>
+
+        <div>
+          <label class="label" for="s-products">Products of interest</label>
+          <textarea
+            class="textarea"
+            id="s-products"
+            name="products"
+            rows="3"
+            placeholder="e.g. Chicken Kebab, Beef Kebab, Mozzarella Sticks"
+          >{presetProduct}</textarea>
+        </div>
+
+        <div>
+          <label class="label" for="s-address">Shipping address</label>
+          <textarea class="textarea" id="s-address" name="address" rows="3" required></textarea>
+        </div>
+
+        <label class="samp__consent">
+          <input type="checkbox" name="consent" required />
+          <span>I agree to be contacted about this enquiry. We process your details in line with our <a href="/legal/privacy/">privacy policy</a>.</span>
+        </label>
+
+        <button type="submit" class="btn btn-primary samp__submit">
+          Send sample request
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </form>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .samp__title { margin: 0.6rem 0 0; color: var(--scene-title, var(--scene-ink)); max-inline-size: 22ch; }
+  .samp__lede { margin-block-start: 1.25rem; color: var(--scene-ink-dim); max-inline-size: 60ch; }
+
+  /* White form card, lifted off the snow with a soft emerald shadow. */
+  .samp__form {
+    margin-block-start: 2.5rem;
+    background: #fff;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6), 0 30px 60px -48px rgba(0, 48, 12, 0.4);
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    display: flex; flex-direction: column; gap: 1.125rem;
+  }
+  .samp__row { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+  @media (min-width: 600px) { .samp__row { grid-template-columns: 1fr 1fr; } }
+
+  .samp__consent {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.625rem;
+    align-items: flex-start;
+    font-size: 0.8125rem;
+    color: var(--color-slate-700);
+    line-height: 1.5;
+  }
+  .samp__consent a { color: var(--color-emerald); text-decoration: underline; text-underline-offset: 2px; }
+  .samp__submit { margin-block-start: 0.5rem; align-self: flex-start; }
+</style>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("form[action*='samples']");
+  form?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    console.info("[Melek] Sample request submitted:", data);
+    const panel = document.createElement("div");
+    panel.setAttribute("role", "status");
+    panel.style.padding = "1rem 1.25rem";
+    panel.style.border = "1px solid var(--color-emerald)";
+    panel.style.borderRadius = "var(--radius)";
+    panel.style.background = "color-mix(in srgb, var(--color-emerald) 8%, #fff)";
+    panel.style.color = "var(--color-emerald)";
+    panel.style.fontSize = "0.9375rem";
+    panel.innerHTML = "Thanks, your sample request is in. We'll confirm shipping within two business days.";
+    form.replaceWith(panel);
+  });
+</script>

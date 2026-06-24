@@ -1,0 +1,21 @@
+---
+import Base from "../layouts/Base.astro";
+import Hero from "../components/sections/Hero.astro";
+import CertMarquee from "../components/sections/CertMarquee.astro";
+import ProductionStory from "../components/sections/ProductionStory.astro";
+import ProductWorlds from "../components/sections/ProductWorlds.astro";
+import ExportCTA from "../components/sections/ExportCTA.astro";
+---
+
+<Base bodyClass="has-dark-hero">
+  <Hero />
+  <CertMarquee />
+  <ProductionStory scene="light" />
+  <ProductWorlds scene="light" />
+  <ExportCTA />
+</Base>
+
+<script>
+  import { initSmoothScroll } from "../lib/motion";
+  initSmoothScroll();
+</script>

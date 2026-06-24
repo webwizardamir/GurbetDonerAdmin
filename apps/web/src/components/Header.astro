@@ -1,0 +1,272 @@
+---
+import { site } from "../lib/site";
+const path = Astro.url.pathname;
+---
+
+<header class="site-header" data-site-header>
+  <div class="container-x site-header__inner">
+    <a href="/" class="site-header__brand" aria-label={`${site.fullName} home`}>
+      <img src="/logo.png" alt={site.fullName} width="324" height="150" class="site-header__logo" />
+    </a>
+
+    <nav aria-label="Primary" class="site-header__nav">
+      {
+        site.nav.map((item) => {
+          const active = path === item.href || (item.href !== "/" && path.startsWith(item.href));
+          return (
+            <a
+              href={item.href}
+              class:list={["site-header__link", active && "is-active"]}
+              aria-current={active ? "page" : undefined}
+            >
+              {item.label}
+            </a>
+          );
+        })
+      }
+    </nav>
+
+    <div class="site-header__cta">
+      <a href="/samples/" class="btn btn-secondary site-header__cta-secondary">Request samples</a>
+      <a href="/distributors/" class="btn btn-primary site-header__cta-primary">Become a distributor</a>
+    </div>
+
+    <button
+      type="button"
+      class="site-header__toggle"
+      aria-controls="mobile-nav"
+      aria-expanded="false"
+      data-mobile-toggle
+    >
+      <span class="sr-only">Open menu</span>
+      <span class="site-header__bars" aria-hidden="true">
+        <span></span><span></span>
+      </span>
+    </button>
+  </div>
+</header>
+
+<style>
+  /* Default (opaque bone) — used on every route. */
+  .site-header {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-start: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--color-bone) 88%, transparent);
+    -webkit-backdrop-filter: saturate(140%) blur(16px);
+    backdrop-filter: saturate(140%) blur(16px);
+    border-bottom: 1px solid transparent;
+    transition:
+      background-color 0.4s var(--ease-out-expo),
+      border-color 0.35s var(--ease-out-expo),
+      backdrop-filter 0.35s var(--ease-out-expo);
+  }
+  .site-header[data-scrolled="true"] {
+    background: color-mix(in srgb, var(--color-bone) 98%, transparent);
+    border-bottom-color: var(--color-line);
+  }
+
+  /* On routes with a dark hero (homepage), the header floats transparent at the top
+     with light-coloured contents, then fades into the bone blur once the user scrolls
+     past the hero veil. */
+  body.has-dark-hero .site-header:not([data-scrolled="true"]) {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom-color: transparent;
+  }
+  body.has-dark-hero .site-header:not([data-scrolled="true"]) .site-header__logo {
+    filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.35));
+  }
+  body.has-dark-hero .site-header:not([data-scrolled="true"]) .site-header__link {
+    color: var(--color-bone);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+  }
+  body.has-dark-hero .site-header:not([data-scrolled="true"]) .site-header__cta-secondary {
+    color: var(--color-bone);
+    border-color: rgba(251, 248, 240, 0.55);
+  }
+  body.has-dark-hero .site-header:not([data-scrolled="true"]) .site-header__cta-secondary:hover {
+    background: var(--color-bone);
+    color: var(--color-emerald-deep);
+    border-color: var(--color-bone);
+  }
+  body.has-dark-hero .site-header:not([data-scrolled="true"]) .site-header__toggle {
+    color: var(--color-bone);
+  }
+
+  /* Dark homepage: when scrolled the header stays dark (not bone) with light contents. */
+  body.has-dark-hero .site-header[data-scrolled="true"] {
+    background: color-mix(in srgb, var(--color-emerald-black) 86%, transparent);
+    border-bottom-color: var(--color-line-dark);
+  }
+  body.has-dark-hero .site-header[data-scrolled="true"] .site-header__link { color: var(--color-bone); }
+  body.has-dark-hero .site-header[data-scrolled="true"] .site-header__toggle { color: var(--color-bone); }
+  body.has-dark-hero .site-header[data-scrolled="true"] .site-header__cta-secondary {
+    color: var(--color-bone);
+    border-color: rgba(251, 248, 240, 0.4);
+  }
+  body.has-dark-hero .site-header[data-scrolled="true"] .site-header__cta-secondary:hover {
+    background: var(--color-bone);
+    color: var(--color-emerald-deep);
+    border-color: var(--color-bone);
+  }
+
+  /* Light inner pages (page-light) have no dark hero, so the header is the greeny emerald-black
+     bar (like the homepage's scrolled state) at all scroll positions, with light contents. */
+  body.page-light .site-header {
+    background: color-mix(in srgb, var(--color-emerald-black) 86%, transparent);
+    border-bottom-color: var(--color-line-dark);
+  }
+  body.page-light .site-header[data-scrolled="true"] {
+    background: color-mix(in srgb, var(--color-emerald-black) 94%, transparent);
+  }
+  body.page-light .site-header__link,
+  body.page-light .site-header__toggle { color: var(--color-bone); }
+  body.page-light .site-header__link::after { background: var(--color-gold); }
+  body.page-light .site-header__cta-secondary {
+    color: var(--color-bone);
+    border-color: rgba(251, 248, 240, 0.4);
+  }
+  body.page-light .site-header__cta-secondary:hover {
+    background: var(--color-bone);
+    color: var(--color-emerald-deep);
+    border-color: var(--color-bone);
+  }
+
+  /* Smooth colour transitions so the change feels considered, not flicked. */
+  .site-header__logo,
+  .site-header__link,
+  .site-header__cta-secondary,
+  .site-header__toggle,
+  .site-header__bars span {
+    transition:
+      color 0.35s var(--ease-out-expo),
+      border-color 0.35s var(--ease-out-expo),
+      background-color 0.35s var(--ease-out-expo),
+      filter 0.35s var(--ease-out-expo),
+      text-shadow 0.35s var(--ease-out-expo);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    height: 76px;
+  }
+  .site-header__brand { display: inline-flex; align-items: center; line-height: 0; }
+  .site-header__logo { height: 50px; width: auto; display: block; }
+  @media (max-width: 720px) {
+    .site-header__logo { height: 38px; }
+    .site-header__inner { height: 64px; }
+  }
+
+  .site-header__nav { display: none; align-items: center; gap: 2.25rem; }
+  @media (min-width: 1024px) { .site-header__nav { display: inline-flex; } }
+  .site-header__link {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-charcoal);
+    position: relative;
+    padding-block: 0.25rem;
+    letter-spacing: -0.005em;
+    text-decoration: none;
+  }
+  .site-header__link::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -2px;
+    height: 1px;
+    background: var(--color-gold);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.3s var(--ease-out-expo);
+  }
+  .site-header__link:hover::after,
+  .site-header__link.is-active::after { transform: scaleX(1); }
+
+  .site-header__cta { display: none; align-items: center; gap: 0.625rem; }
+  @media (min-width: 1024px) { .site-header__cta { display: inline-flex; } }
+  .site-header__cta-secondary,
+  .site-header__cta-primary { padding: 0.6rem 1rem; font-size: 0.875rem; }
+
+  /* Hamburger with no border */
+  .site-header__toggle {
+    background: transparent;
+    border: 0;
+    padding: 12px 8px;
+    margin-inline-end: -8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-charcoal);
+  }
+  @media (min-width: 1024px) { .site-header__toggle { display: none; } }
+  .site-header__bars {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .site-header__bars span {
+    display: block;
+    width: 26px;
+    height: 1.6px;
+    background: currentColor;
+    border-radius: 2px;
+    transition: transform 0.3s var(--ease-out-expo), opacity 0.2s var(--ease-out-expo);
+  }
+  .site-header__toggle[aria-expanded="true"] .site-header__bars span:first-child {
+    transform: translateY(3.8px) rotate(45deg);
+  }
+  .site-header__toggle[aria-expanded="true"] .site-header__bars span:last-child {
+    transform: translateY(-3.8px) rotate(-45deg);
+  }
+</style>
+
+<script>
+  const header = document.querySelector<HTMLElement>("[data-site-header]");
+  const toggle = document.querySelector<HTMLButtonElement>("[data-mobile-toggle]");
+  const panel = document.querySelector<HTMLElement>("[data-mobile-panel]");
+
+  const setMenu = (open: boolean) => {
+    if (!toggle || !panel) return;
+    toggle.setAttribute("aria-expanded", String(open));
+    panel.dataset.state = open ? "open" : "closed";
+    panel.setAttribute("aria-hidden", String(!open));
+    document.body.classList.toggle("is-menu-open", open);
+  };
+
+  toggle?.addEventListener("click", () => {
+    const open = toggle.getAttribute("aria-expanded") === "true";
+    setMenu(!open);
+  });
+
+  document.querySelectorAll<HTMLElement>("[data-mm-close]").forEach((el) => {
+    el.addEventListener("click", () => setMenu(false));
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && toggle?.getAttribute("aria-expanded") === "true") {
+      setMenu(false);
+    }
+  });
+
+  if (header) {
+    // Threshold has a small hysteresis so the header doesn't flicker right at the top.
+    const ON = 40;
+    const OFF = 12;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const scrolled = header.dataset.scrolled === "true";
+      if (!scrolled && y > ON) header.dataset.scrolled = "true";
+      else if (scrolled && y < OFF) header.dataset.scrolled = "false";
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+  }
+
+  if (window.location.hash === "#menu") setMenu(true);
+</script>

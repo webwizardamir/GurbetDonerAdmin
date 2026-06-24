@@ -1,0 +1,197 @@
+---
+import Base from "../../layouts/Base.astro";
+---
+
+<Base
+  title="Become a distributor"
+  description="Distribute Melek halal frozen ranges in your market. Tell us your channels and volume, we'll come back with an assortment, pricing and certifications."
+  bodyClass="page-light"
+>
+  <section class="scene dist" data-scene="light">
+    <div class="grain grain--dark" aria-hidden="true"></div>
+    <div class="container-x">
+      <div class="dist__grid">
+        <div class="dist__intro">
+          <h1 class="text-display dist__title">Stock the halal range your buyers will defend in a tender.</h1>
+          <p class="text-body-lg dist__lede">
+            Tell us about your market, your channels and the volume you're confident with.
+            We'll come back with a range proposal, indicative pricing and every certificate
+            your buyers will ask for.
+          </p>
+
+          <ul class="dist__pillars">
+            <li>
+              <strong>EU-wide cold chain.</strong>
+              We ship pallets across Europe with documentation, customs and labels prepared in advance.
+            </li>
+            <li>
+              <strong>Audit-ready paperwork.</strong>
+              Halal, HACCP, IFS, BRC, ISO, issued by named authorities, dated, and available before you ask.
+            </li>
+            <li>
+              <strong>Private-label welcome.</strong>
+              For retailers and groups with their own brand, we run a structured private-label programme.
+            </li>
+          </ul>
+        </div>
+
+        <form class="dist__form" method="post" action="?_form=distributor" novalidate>
+          <h2 class="dist__form-title">Open the distributor brief</h2>
+          <p class="dist__form-sub">We reply within two business days.</p>
+
+          <div class="dist__row">
+            <div>
+              <label class="label" for="name">Your name</label>
+              <input class="input" id="name" name="name" required autocomplete="name" />
+            </div>
+            <div>
+              <label class="label" for="company">Company</label>
+              <input class="input" id="company" name="company" required autocomplete="organization" />
+            </div>
+          </div>
+
+          <div class="dist__row">
+            <div>
+              <label class="label" for="country">Country</label>
+              <input class="input" id="country" name="country" required autocomplete="country-name" />
+            </div>
+            <div>
+              <label class="label" for="email">Email</label>
+              <input class="input" id="email" name="email" type="email" required autocomplete="email" />
+            </div>
+          </div>
+
+          <div class="dist__row">
+            <div>
+              <label class="label" for="phone">Phone (optional)</label>
+              <input class="input" id="phone" name="phone" type="tel" autocomplete="tel" />
+            </div>
+            <div>
+              <label class="label" for="volume">Estimated annual volume</label>
+              <select class="select" id="volume" name="volume" required>
+                <option value="">Select a range</option>
+                <option>Up to 10 containers / year</option>
+                <option>10–50 containers / year</option>
+                <option>50–150 containers / year</option>
+                <option>150+ containers / year</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="label" for="channels">Primary channels</label>
+            <select class="select" id="channels" name="channels" required>
+              <option value="">Select a channel</option>
+              <option>Foodservice / HoReCa</option>
+              <option>Retail chains</option>
+              <option>Wholesale / cash &amp; carry</option>
+              <option>Private label for our own brand</option>
+              <option>Mixed / multiple</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="label" for="message">Anything we should know?</label>
+            <textarea class="textarea" id="message" name="message" rows="4" placeholder="Markets you cover, ranges you're most interested in, timelines, etc."></textarea>
+          </div>
+
+          <label class="dist__consent">
+            <input type="checkbox" name="consent" required />
+            <span>I agree to be contacted about this enquiry. We process your details in line with our <a href="/legal/privacy/">privacy policy</a>.</span>
+          </label>
+
+          <button type="submit" class="btn btn-primary dist__submit">
+            Submit distributor brief
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+
+          <p class="dist__note">
+            Your data is logged and emailed to our sales team. We do not share it with third parties.
+          </p>
+        </form>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .dist__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(2.5rem, 5vw, 4rem);
+  }
+  @media (min-width: 1000px) {
+    .dist__grid { grid-template-columns: 5fr 6fr; align-items: start; }
+  }
+  .dist__title { margin: 0.6rem 0 0; color: var(--scene-title, var(--scene-ink)); max-inline-size: 18ch; }
+  .dist__lede { margin-block-start: 1.25rem; color: var(--scene-ink-dim); max-inline-size: 50ch; }
+
+  .dist__pillars {
+    list-style: none;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+  .dist__pillars li {
+    padding-inline-start: 1.25rem;
+    border-inline-start: 2px solid var(--color-emerald);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-slate-700);
+  }
+  .dist__pillars strong {
+    display: block;
+    color: var(--color-charcoal);
+    font-family: var(--font-display);
+    font-size: 1.0625rem;
+    margin-block-end: 0.25rem;
+    font-weight: 600;
+  }
+
+  /* White form card, lifted off the snow with a soft emerald shadow. */
+  .dist__form {
+    background: #fff;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6), 0 30px 60px -48px rgba(0, 48, 12, 0.4);
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .dist__form-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--color-charcoal); letter-spacing: -0.015em; }
+  .dist__form-sub { margin: 0 0 0.5rem; font-size: 0.875rem; color: var(--color-slate-500); }
+  .dist__row { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+  @media (min-width: 600px) { .dist__row { grid-template-columns: 1fr 1fr; } }
+  .dist__consent {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.625rem;
+    align-items: flex-start;
+    font-size: 0.8125rem;
+    color: var(--color-slate-700);
+    line-height: 1.5;
+  }
+  .dist__consent a { color: var(--color-emerald); text-decoration: underline; text-underline-offset: 2px; }
+  .dist__submit { margin-block-start: 0.5rem; align-self: flex-start; }
+  .dist__note { margin: 0; font-size: 0.75rem; color: var(--color-slate-500); }
+</style>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("form[action*='distributor']");
+  form?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    // Resend wiring intentionally deferred — log + thank-you UX per current brief.
+    const data = Object.fromEntries(new FormData(form));
+    console.info("[Melek] Distributor brief submitted:", data);
+    const panel = document.createElement("div");
+    panel.setAttribute("role", "status");
+    panel.style.padding = "1rem 1.25rem";
+    panel.style.border = "1px solid var(--color-emerald)";
+    panel.style.borderRadius = "var(--radius)";
+    panel.style.background = "color-mix(in srgb, var(--color-emerald) 8%, #fff)";
+    panel.style.color = "var(--color-emerald)";
+    panel.style.fontSize = "0.9375rem";
+    panel.innerHTML = "Thanks, we've got your brief. A member of our sales team will be in touch within two business days.";
+    form.replaceWith(panel);
+  });
+</script>

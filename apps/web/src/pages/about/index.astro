@@ -1,0 +1,247 @@
+---
+import Base from "../../layouts/Base.astro";
+import TrustArtifacts from "../../components/sections/TrustArtifacts.astro";
+import ExportCTA from "../../components/sections/ExportCTA.astro";
+
+// Google Street View virtual tour. Location reused with permission from the reference site.
+const VIRTUAL_TOUR_SRC =
+  "https://www.google.com/maps/embed?pb=!1m0!4v1508762781415!6m8!1m7!1sCAoSLEFGMVFpcE12RXNjeXl3SG0wS3hNdFFtdjVYRlBwelZ4TWYtMmJVR2lfMEZi!2m2!1d51.64973803355711!2d17.35716885252691!3f28!4f-6!5f0.7820865974627469";
+
+const principles = [
+  { term: "A focused range.", body: "We make a tight range and make it well." },
+  { term: "Halal certified.", body: "Every product is halal certified." },
+  { term: "Across Europe.", body: "We deliver to distributors and shops across Europe." },
+];
+
+const gallery = [
+  { src: "/images/facility/line-2.jpg", alt: "Production floor in operation", cap: "Production floor" },
+  { src: "/images/facility/exterior-1.jpg", alt: "Facility interior", cap: "Reception" },
+  { src: "/images/facility/exterior-2.jpg", alt: "Facility exterior", cap: "Site" },
+  { src: "/images/facility/line-1.jpg", alt: "Cold-chain fleet", cap: "Dispatch" },
+  { src: "/images/facility/line-3.jpg", alt: "Facility exterior", cap: "Grounds" },
+];
+---
+
+<Base
+  title="About Melek"
+  description="Halal frozen chicken, beef and snacks, shipped across Europe."
+  bodyClass="page-light"
+>
+  <!-- Hero: light editorial statement with the film in a wide feature window (a lighter take than
+       the homepage's full-bleed dark video hero). -->
+  <section class="scene ab-hero" data-scene="light" aria-labelledby="ab-hero-title">
+    <div class="grain grain--dark" aria-hidden="true"></div>
+    <div class="container-x">
+      <h1 id="ab-hero-title" class="ab-hero__title text-mega">About Melek.</h1>
+      <p class="ab-hero__lede ink-dim">
+        We sell halal frozen chicken, beef and snacks for shops, distributors and kitchens across Europe.
+      </p>
+
+      <figure class="ab-hero__media" data-reveal>
+        <video class="ab-hero__video" autoplay muted loop playsinline preload="auto" poster="/images/hero/field.webp">
+          <source src="/videos/about-hero.mp4" type="video/mp4" />
+        </video>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Manifesto -->
+  <section class="scene ab-manifesto" data-scene="light" aria-labelledby="ab-man-title">
+    <div class="grain grain--dark" aria-hidden="true"></div>
+    <div class="container-x ab-manifesto__inner">
+      <h2 id="ab-man-title" class="ab-manifesto__title text-display">
+        We keep it <span class="text-accent">simple.</span>
+      </h2>
+      <div class="ab-manifesto__cols">
+        <p class="ink-dim">
+          Melek sells halal frozen chicken, beef and snacks. A focused range, not a thousand lines.
+        </p>
+        <p class="ink-dim">
+          We know our products well and supply them to shops, distributors and kitchens across Europe.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Principles -->
+  <section class="scene ab-principles" data-scene="light" aria-labelledby="ab-pr-title">
+    <div class="grain grain--dark" aria-hidden="true"></div>
+    <div class="container-x">
+      <h2 id="ab-pr-title" class="ab-principles__head text-display">Good to know.</h2>
+      <div class="ab-principles__cols">
+        {principles.map((p) => (
+          <article class="ab-col" data-reveal>
+            <h3 class="ab-col__term">{p.term}</h3>
+            <p class="ab-col__body ink-dim">{p.body}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Virtual tour -->
+  <section id="virtual-tour" class="scene ab-tour" data-scene="light" aria-labelledby="ab-tour-title">
+    <div class="container-x">
+      <header class="ab-tour__head grid-ed grid-ed--7-5">
+        <div>
+          <h2 id="ab-tour-title" class="ab-tour__title text-display">Walk the facility from where you are.</h2>
+        </div>
+        <p class="ab-tour__lede ink-dim">
+          Drag to look around and step through the site in Google Street View. Drop a pin for a
+          guided visit and our team will host you in person.
+        </p>
+      </header>
+      <div class="ab-tour__frame" data-reveal>
+        <iframe src={VIRTUAL_TOUR_SRC} title="Melek facility virtual tour" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- Facility film-strip -->
+  <section class="scene ab-gallery" data-scene="light" aria-labelledby="ab-gal-title">
+    <div class="grain grain--dark" aria-hidden="true"></div>
+    <div class="container-x ab-gallery__head">
+      <h2 id="ab-gal-title" class="ab-gallery__title text-display">Where it comes together.</h2>
+    </div>
+    <div class="container-x">
+      <ul class="ab-gallery__strip" aria-label="Facility photographs">
+        {gallery.map((g) => (
+          <li class="ab-frame" data-reveal>
+            <img src={g.src} alt={g.alt} loading="lazy" decoding="async" />
+            <span class="op-label ab-frame__cap">{g.cap}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- Video -->
+  <section class="scene ab-video" data-scene="light" aria-labelledby="ab-vid-title">
+    <div class="container-x">
+      <header class="ab-video__head">
+        <h2 id="ab-vid-title" class="ab-video__title text-display">From the line to the loading bay.</h2>
+      </header>
+      <div class="ab-video__frame" data-reveal>
+        <video autoplay muted loop playsinline preload="metadata" poster="/images/hero/field.webp" controls>
+          <source src="/videos/hero.mp4" type="video/mp4" />
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <TrustArtifacts />
+  <ExportCTA />
+</Base>
+
+<script>
+  import { revealOnScroll, initSmoothScroll } from "../../lib/motion";
+  initSmoothScroll();
+  revealOnScroll(document.querySelectorAll("[data-reveal]"), { y: 26, stagger: 0.06 });
+</script>
+
+<style>
+  /* Hero: light scene. main reserves the fixed-header height, so just add breathing room. */
+  .ab-hero { --scene-pad: 0; overflow: clip; padding-block: clamp(1.5rem, 3vw, 2.5rem) clamp(2rem, 4vw, 3rem); }
+  .ab-hero__title { color: var(--scene-title, var(--scene-ink)); margin-block: 0.6rem clamp(1.75rem, 4vw, 2.75rem); max-inline-size: 16ch; font-size: clamp(2.6rem, 7vw, 6rem); line-height: 0.98; }
+  .ab-hero__base { align-items: end; }
+  .ab-hero__lede { max-inline-size: 48ch; font-size: var(--text-body-lg); line-height: 1.6; }
+  .ab-hero__facts { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; }
+  .ab-fact { display: flex; flex-direction: column; gap: 0.25rem; padding-block-start: 0.85rem; border-block-start: 1px solid var(--scene-line); }
+  .ab-fact__v { letter-spacing: 0.04em; }
+
+  /* The film sits in a wide rounded window, lifted off the snow with a soft emerald shadow. */
+  .ab-hero__media {
+    position: relative;
+    margin-block-start: clamp(2rem, 5vw, 3.5rem);
+    aspect-ratio: 16 / 7;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    border: 1px solid var(--scene-line);
+    background: var(--color-panel);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5), 0 36px 70px -50px rgba(0, 48, 12, 0.45);
+  }
+  .ab-hero__video { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; }
+  @media (max-width: 640px) { .ab-hero__media { aspect-ratio: 4 / 3; } }
+
+  /* Manifesto: kicker, full-width statement, two-column editorial deck. */
+  .ab-manifesto { --scene-pad: clamp(2.25rem, 4vw, 3.25rem); }
+  .ab-manifesto__title {
+    color: var(--scene-ink);
+    margin-block: 0.75rem clamp(2rem, 4vw, 3rem);
+    max-inline-size: 26ch;
+    font-size: clamp(2rem, 4.6vw, 3.6rem);
+    line-height: 1.08;
+  }
+  .ab-manifesto__cols { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+  @media (min-width: 760px) { .ab-manifesto__cols { grid-template-columns: 1fr 1fr; gap: clamp(2rem, 4vw, 3.5rem); } }
+  .ab-manifesto__cols p { margin: 0; font-size: var(--text-body-lg); line-height: 1.65; max-inline-size: 46ch; }
+
+  /* Principles: editorial triptych, hairline-divided columns. No ticks, no bullets. */
+  .ab-principles { --scene-pad: clamp(2.25rem, 4vw, 3.25rem); }
+  .ab-principles__head { color: var(--scene-title, var(--scene-ink)); margin-block-end: clamp(2rem, 4vw, 3rem); max-inline-size: 16ch; }
+  .ab-principles__cols { display: grid; grid-template-columns: 1fr; }
+  .ab-col { padding-block: clamp(1.5rem, 3vw, 2rem); border-block-start: 1px solid var(--scene-line); }
+  .ab-col:first-child { padding-block-start: 0; border-block-start: 0; }
+  @media (min-width: 820px) {
+    .ab-principles__cols { grid-template-columns: repeat(3, 1fr); }
+    .ab-col { padding-block: 0; border-block-start: 0; padding-inline-start: clamp(1.5rem, 3vw, 2.5rem); border-inline-start: 1px solid var(--scene-line); }
+    .ab-col:first-child { padding-inline-start: 0; border-inline-start: 0; }
+  }
+  .ab-col__term { font-family: var(--font-display); font-size: clamp(1.5rem, 2.6vw, 2.3rem); font-weight: 600; line-height: 1.1; color: var(--scene-ink); margin: 0; }
+  .ab-col__body { margin: 0.9rem 0 0; line-height: 1.6; }
+
+  /* Tour + video shared frame */
+  .ab-tour, .ab-video { --scene-pad: clamp(2.25rem, 4vw, 3.25rem); }
+  .ab-tour__head, .ab-video__head { align-items: end; margin-block-end: clamp(1.5rem, 3vw, 2.25rem); }
+  .ab-tour__title, .ab-video__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.5rem; }
+  .ab-tour__lede { max-inline-size: 42ch; font-size: var(--text-body-lg); line-height: 1.6; }
+  .ab-video__head { display: block; }
+
+  .ab-tour__frame, .ab-video__frame {
+    position: relative; overflow: hidden; border-radius: var(--radius-lg);
+    border: 1px solid var(--scene-line); background: var(--color-panel);
+    box-shadow: 0 30px 60px -50px rgba(0, 48, 12, 0.4);
+  }
+  .ab-tour__frame { aspect-ratio: 16 / 9; }
+  .ab-tour__frame iframe { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; border: 0; }
+  .ab-video__frame video { display: block; inline-size: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+
+  /* Facility film-strip (horizontal on all viewports, like a contact sheet) */
+  .ab-gallery { --scene-pad: clamp(2.25rem, 4vw, 3.25rem); overflow: clip; }
+  .ab-gallery__head { margin-block-end: clamp(1.5rem, 3vw, 2.25rem); }
+  .ab-gallery__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.5rem; }
+  .ab-gallery__strip {
+    list-style: none; margin: 0; padding: 0 0 1rem;
+    display: flex; gap: clamp(0.9rem, 2vw, 1.5rem);
+    overflow-x: auto; scroll-snap-type: x proximity;
+    scrollbar-width: thin; scrollbar-color: var(--scene-accent) transparent;
+  }
+  .ab-gallery__strip::-webkit-scrollbar { height: 4px; }
+  .ab-gallery__strip::-webkit-scrollbar-thumb { background: var(--scene-line); border-radius: 99px; }
+  /* Mobile: fade the right edge so the peeking frame signals "more to swipe". */
+  @media (max-width: 760px) {
+    .ab-gallery__strip {
+      -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+      mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+    }
+  }
+  .ab-frame {
+    position: relative; flex: 0 0 auto;
+    inline-size: clamp(260px, 60vw, 460px); aspect-ratio: 4 / 3;
+    border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--scene-line);
+    scroll-snap-align: start;
+  }
+  .ab-frame img {
+    inline-size: 100%; block-size: 100%; object-fit: cover;
+    /* Soft duotone: pull the dünya placeholders toward the Melek palette until brand photos exist.
+       Kept lighter than the dark build so the photos do not read murky on snow. */
+    filter: saturate(0.62) contrast(1.02) brightness(0.92);
+    transition: filter 0.5s var(--ease-out-expo), transform 0.6s var(--ease-out-expo);
+  }
+  .ab-frame:hover img { filter: saturate(1) contrast(1.01) brightness(1); transform: scale(1.03); }
+  .ab-frame__cap {
+    position: absolute; inset-block-end: 0; inset-inline: 0;
+    padding: 0.9rem 1rem; color: var(--color-paper);
+    background: linear-gradient(0deg, rgba(5, 26, 16, 0.85), transparent);
+  }
+</style>

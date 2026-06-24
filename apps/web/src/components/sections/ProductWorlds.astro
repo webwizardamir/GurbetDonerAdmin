@@ -1,0 +1,197 @@
+---
+// Scene — Product Worlds. Per-range horizontal lookbook rails of packshots on a dark canvas,
+// with a studio spotlight behind each shot and a cinematic hover zoom. Reads the products
+// collection. Uniform tile size; titles truncate to one line. No SKU counts, no scene numbers.
+import { getCollection } from "astro:content";
+import { site } from "../../lib/site";
+
+interface Props { scene?: string }
+const { scene = "black" } = Astro.props;
+
+type Item = { id: string; name: string; category: string; weight?: string; image?: string; order: number };
+
+let products: Item[] = [];
+try {
+  const all = await getCollection("products");
+  products = all
+    .map((p) => ({
+      id: p.id,
+      name: p.data.name,
+      category: p.data.category,
+      weight: p.data.weight,
+      image: p.data.image,
+      order: p.data.order ?? 100,
+    }))
+    .filter((p) => p.image)
+    .sort((a, b) => a.order - b.order);
+} catch {}
+
+const ranges = site.productCategories.map((cat) => ({
+  name: cat.name,
+  description: cat.description,
+  items: products.filter((p) => p.category === cat.slug),
+}));
+---
+
+<section id="worlds" class="scene worlds" data-scene={scene} aria-label="Product worlds">
+  <div class={`grain${scene === "light" ? " grain--dark" : ""}`} aria-hidden="true"></div>
+  <div class="container-x">
+    <div class="worlds__head grid-ed grid-ed--7-5">
+      <div>
+        <h2 class="worlds__title text-display">What we sell.</h2>
+      </div>
+      <p class="worlds__lede ink-dim">
+        Three halal ranges: chicken, beef and snacks.
+      </p>
+    </div>
+  </div>
+
+  {ranges.map((r) => (
+    <div class="worlds__range">
+      <div class="container-x worlds__range-head">
+        <h3 class="worlds__range-name font-x">{r.name}</h3>
+        <p class="worlds__range-desc ink-dim">{r.description}</p>
+      </div>
+
+      <div class="container-x">
+        <ul class="worlds__rail" aria-label={`${r.name} range`}>
+          {r.items.map((p) => (
+            <li class="worlds__card" data-reveal>
+              <a class="worlds__link" href={`/products/${p.id}/`}>
+                <div class="worlds__media">
+                  <img src={p.image} alt={p.name} loading="lazy" decoding="async" />
+                </div>
+                <div class="worlds__meta">
+                  <span class="op-label ink-dim">{r.name}{p.weight ? ` · ${p.weight}` : ""}</span>
+                  <span class="worlds__name" title={p.name}>{p.name}</span>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  ))}
+
+  <div class="container-x worlds__foot">
+    <a href="/products/" class={`btn ${scene === "light" ? "btn-secondary" : "btn-secondary-light"}`}>View the full catalogue</a>
+  </div>
+</section>
+
+<script>
+  import { revealOnScroll } from "../../lib/motion";
+  revealOnScroll(document.querySelectorAll(".worlds [data-reveal]"), { y: 28, stagger: 0.04 });
+</script>
+
+<style>
+  .worlds { --scene-pad: clamp(2rem, 4vw, 3.25rem); overflow: clip; }
+
+  .worlds__head { align-items: end; margin-block-end: clamp(1.5rem, 3vw, 2.5rem); }
+  .worlds__title { color: var(--scene-title, var(--scene-ink)); margin-block-start: 0.5rem; }
+  .worlds__lede { font-size: var(--text-body-lg); line-height: 1.6; max-inline-size: 44ch; }
+
+  .worlds__range { position: relative; z-index: 1; margin-block-end: clamp(2.5rem, 6vw, 4.5rem); }
+  .worlds__range-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.75rem 2rem;
+    margin-block-end: clamp(1.25rem, 3vw, 2rem);
+  }
+  .worlds__range-name {
+    font-size: clamp(2.25rem, 6vw, 4.5rem);
+    font-weight: 800;
+    line-height: 0.85;
+    color: var(--scene-title, var(--scene-ink));
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+  }
+  .worlds__range-desc { font-size: 0.95rem; line-height: 1.55; max-inline-size: 46ch; }
+
+  /* Horizontal lookbook rail, boxed to the container. Uniform tiles. */
+  .worlds__rail {
+    list-style: none;
+    margin: 0;
+    padding: 0.75rem 0 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: clamp(0.9rem, 2vw, 1.6rem);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scene-accent) transparent;
+  }
+  .worlds__rail::-webkit-scrollbar { height: 4px; }
+  .worlds__rail::-webkit-scrollbar-thumb { background: var(--scene-line); border-radius: 99px; }
+
+  .worlds__card { flex: 0 0 auto; inline-size: clamp(186px, 21vw, 240px); scroll-snap-align: start; }
+  /* Mobile: size cards to the viewport (like the /products/ carousel) so a partial next card always
+     peeks. The fixed 186px floor let ~2 whole cards fit on larger phones, hiding the scroll cue. */
+  @media (max-width: 760px) {
+    .worlds__card { inline-size: clamp(150px, 52vw, 240px); }
+    /* Fade the right edge so the peeking card visibly trails off = "there is more to swipe". */
+    .worlds__rail {
+      -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 56px), transparent);
+      mask-image: linear-gradient(90deg, #000 calc(100% - 56px), transparent);
+    }
+  }
+  /* One gentle nudge on load so the rail visibly moves = it is swipeable (motion-safe only). */
+  @media (max-width: 760px) and (prefers-reduced-motion: no-preference) {
+    @keyframes worlds-swipe-hint {
+      0%, 14% { transform: translateX(0); }
+      42% { transform: translateX(-28px); }
+      72%, 100% { transform: translateX(0); }
+    }
+    .worlds__rail { animation: worlds-swipe-hint 2.1s var(--ease-out-expo) 0.8s 1 both; }
+  }
+  .worlds__link { text-decoration: none; color: inherit; display: block; }
+
+  .worlds__media {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--scene-line);
+    /* Studio spotlight behind the packshot, like product lighting. */
+    background:
+      radial-gradient(80% 60% at 50% 38%, rgba(169, 221, 114, 0.22), transparent 70%),
+      var(--color-char-900);
+  }
+  /* Light scene: white tile with a soft shadow + faint emerald wash, instead of the dark tile. */
+  .worlds[data-scene="light"] .worlds__media {
+    background:
+      radial-gradient(75% 60% at 50% 32%, rgba(0, 48, 12, 0.06), transparent 70%),
+      #ffffff;
+    box-shadow: 0 1px 0 rgba(22, 19, 17, 0.03), 0 16px 30px -22px rgba(22, 19, 17, 0.22);
+  }
+  .worlds__media img {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+    padding: clamp(1rem, 2vw, 1.5rem);
+    transition: transform 0.6s var(--ease-out-expo);
+  }
+  .worlds__link:hover .worlds__media img,
+  .worlds__link:focus-visible .worlds__media img { transform: scale(1.07); }
+  .worlds__link:focus-visible .worlds__media { outline: 2px solid var(--scene-accent); outline-offset: 3px; }
+
+  .worlds__meta { padding-block-start: 0.85rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .worlds__name {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--scene-ink);
+    /* One line, ellipsis if longer than the tile. */
+    display: block;
+    max-inline-size: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .worlds__foot { margin-block-start: clamp(1rem, 3vw, 2rem); }
+</style>

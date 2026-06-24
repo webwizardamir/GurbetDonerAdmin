@@ -1,0 +1,264 @@
+---
+// Scene — The Production Story. An interactive walk-through: pick a step on the left and the
+// facility still on the right cross-dissolves to match. The active step auto-fills a progress bar
+// and hands over to the next step, so the column reads as a live sequence rather than a static
+// list; clicking, arrow keys or autoplay all drive it. Pauses while hovered or off-screen.
+// Facility stills are dunya placeholders (cleared for use) until brand footage exists. No step numbers.
+interface Props { scene?: string }
+const { scene = "black" } = Astro.props;
+const beats = [
+  { title: "Sourced", img: "/images/facility/line-3.jpg", body: "We work with trusted halal suppliers." },
+  { title: "Selected", img: "/images/facility/line-2.jpg", body: "We pick the products that meet our standard." },
+  { title: "Checked", img: "/images/facility/exterior-1.jpg", body: "Quality-checked before it ships." },
+  { title: "Delivered", img: "/images/facility/line-1.jpg", body: "Frozen and shipped across Europe." },
+];
+---
+
+<section class="scene story" data-scene={scene} id="story" aria-label="The production story">
+  <div class={`grain${scene === "light" ? " grain--dark" : ""}`} aria-hidden="true"></div>
+  <div class="container-x">
+    <header class="story__head grid-ed grid-ed--7-5" data-reveal>
+      <h2 class="story__title text-display">From source to freezer.</h2>
+      <p class="story__lede ink-dim">
+        From our suppliers to your freezer, in four steps.
+      </p>
+    </header>
+
+    <div class="story__cols">
+      <ol class="story__steps" role="tablist" aria-label="From source to freezer" data-story-steps data-reveal>
+        {beats.map((b, i) => (
+          <li class="story__step-item" role="presentation">
+            <button
+              type="button"
+              role="tab"
+              id={`story-tab-${i}`}
+              class={`story__step${i === 0 ? " is-active" : ""}`}
+              aria-selected={i === 0 ? "true" : "false"}
+              aria-controls="story-panel"
+              tabindex={i === 0 ? "0" : "-1"}
+              data-story-step
+            >
+              <span class="story__step-text">
+                <span class="story__step-title">{b.title}</span>
+                <span class="story__step-body ink-dim">{b.body}</span>
+              </span>
+              <span class="story__step-bar" aria-hidden="true"><span class="story__step-fill"></span></span>
+            </button>
+          </li>
+        ))}
+      </ol>
+
+      <div class="story__media" id="story-panel" role="tabpanel" aria-labelledby="story-tab-0" tabindex="0" data-reveal>
+        <div class="story__frame">
+          {beats.map((b, i) => (
+            <img src={b.img} alt="" class={`story__img${i === 0 ? " is-active" : ""}`} loading="lazy" decoding="async" />
+          ))}
+          <span class="story__media-label" data-story-label aria-live="polite">{beats[0].title}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { revealOnScroll, prefersReducedMotion } from "../../lib/motion";
+
+  const story = document.querySelector<HTMLElement>(".story");
+  if (story) {
+    revealOnScroll(story.querySelectorAll("[data-reveal]"), { y: 24, stagger: 0.08 });
+
+    const stepsWrap = story.querySelector<HTMLElement>("[data-story-steps]");
+    const steps = Array.from(story.querySelectorAll<HTMLButtonElement>("[data-story-step]"));
+    const imgs = Array.from(story.querySelectorAll<HTMLElement>(".story__img"));
+    const label = story.querySelector<HTMLElement>("[data-story-label]");
+    const panel = story.querySelector<HTMLElement>("#story-panel");
+    const titles = steps.map((s) => s.querySelector(".story__step-title")?.textContent ?? "");
+    const reduce = prefersReducedMotion();
+    let current = 0;
+
+    const setActive = (raw: number, focus = false) => {
+      const i = ((raw % steps.length) + steps.length) % steps.length;
+      current = i;
+      steps.forEach((s, k) => {
+        const on = k === i;
+        s.classList.toggle("is-active", on);
+        s.setAttribute("aria-selected", on ? "true" : "false");
+        s.tabIndex = on ? 0 : -1;
+        if (on && focus) s.focus();
+      });
+      imgs.forEach((im, k) => im.classList.toggle("is-active", k === i));
+      if (label) label.textContent = titles[i];
+      panel?.setAttribute("aria-labelledby", steps[i].id);
+    };
+
+    // Re-trigger the fill keyframe when the already-active step is clicked again.
+    const restartFill = () => {
+      const fill = steps[current].querySelector<HTMLElement>(".story__step-fill");
+      if (!fill) return;
+      fill.style.animation = "none";
+      void fill.offsetWidth;
+      fill.style.animation = "";
+    };
+
+    steps.forEach((s, i) => {
+      s.addEventListener("click", () => (i === current ? restartFill() : setActive(i)));
+    });
+
+    // Arrow / Home / End move focus and activate, per the tablist pattern.
+    stepsWrap?.addEventListener("keydown", (e) => {
+      const k = (e as KeyboardEvent).key;
+      if (k === "ArrowRight" || k === "ArrowDown") { e.preventDefault(); setActive(current + 1, true); }
+      else if (k === "ArrowLeft" || k === "ArrowUp") { e.preventDefault(); setActive(current - 1, true); }
+      else if (k === "Home") { e.preventDefault(); setActive(0, true); }
+      else if (k === "End") { e.preventDefault(); setActive(steps.length - 1, true); }
+    });
+
+    if (!reduce) {
+      // Hand over to the next step when the active progress bar fills.
+      story.classList.add("is-paused");
+      stepsWrap?.addEventListener("animationend", (e) => {
+        if ((e as AnimationEvent).animationName === "storyFill") setActive(current + 1);
+      });
+
+      // Only autoplay while the scene is on screen.
+      new IntersectionObserver(
+        (entries) => entries.forEach((en) => story.classList.toggle("is-paused", !en.isIntersecting)),
+        { threshold: 0.25 },
+      ).observe(story);
+
+      // Let pointer users dwell on a step without it sliding away.
+      if (window.matchMedia("(hover: hover)").matches) {
+        const cols = story.querySelector<HTMLElement>(".story__cols");
+        cols?.addEventListener("pointerenter", () => story.classList.add("is-hover-paused"));
+        cols?.addEventListener("pointerleave", () => story.classList.remove("is-hover-paused"));
+      }
+    }
+  }
+</script>
+
+<style>
+  .story { --scene-pad: clamp(2rem, 4vw, 3.25rem); --dwell: 5.5s; overflow: clip; }
+
+  .story__head { align-items: end; margin-block-end: clamp(2rem, 4vw, 3.25rem); }
+  .story__title { color: var(--scene-title, var(--scene-ink)); max-inline-size: 18ch; }
+  .story__lede { font-size: var(--text-body-lg); line-height: 1.6; max-inline-size: 40ch; }
+
+  .story__cols { display: grid; gap: clamp(1.5rem, 4vw, 2.5rem); }
+  /* Mobile: the image leads, the steps sit below it as a tappable list. */
+  @media (max-width: 879px) { .story__media { order: -1; } }
+  @media (min-width: 880px) {
+    .story__cols { grid-template-columns: 5fr 7fr; align-items: center; column-gap: clamp(2rem, 4vw, 4rem); }
+  }
+
+  /* Steps — a clickable list with a left accent rail tracking the active beat. */
+  .story__steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+
+  .story__step {
+    appearance: none;
+    -webkit-appearance: none;
+    inline-size: 100%;
+    text-align: start;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    background: none;
+    border: 0;
+    border-inline-start: 2px solid var(--scene-line);
+    padding-block: clamp(0.9rem, 2.4vw, 1.3rem);
+    padding-inline: clamp(1rem, 3vw, 1.5rem) 0;
+    opacity: 0.55;
+    transition: opacity 0.4s var(--ease-out-expo), border-color 0.4s var(--ease-out-expo);
+  }
+  .story__step:hover { opacity: 0.82; }
+  .story__step.is-active { opacity: 1; border-inline-start-color: var(--scene-accent); }
+  .story__step.is-active:hover { opacity: 1; }
+  .story__step:focus-visible { outline: 2px solid var(--scene-accent); outline-offset: 3px; opacity: 1; }
+
+  .story__step-text { flex: 1 1 auto; }
+  .story__step-title {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3.4vw, 2rem);
+    font-weight: 600;
+    line-height: 1.12;
+    color: var(--scene-ink);
+    transition: color 0.4s var(--ease-out-expo);
+  }
+  .story__step.is-active .story__step-title { color: var(--scene-title, var(--scene-ink)); }
+  .story__step-body {
+    display: block;
+    margin-block-start: 0.4rem;
+    font-size: 0.98rem;
+    line-height: 1.55;
+    max-inline-size: 44ch;
+  }
+
+  /* Progress bar — shown only on the active step; auto-fills, then hands over. */
+  .story__step-bar {
+    display: none;
+    margin-block-start: 0.9rem;
+    block-size: 3px;
+    border-radius: 99px;
+    background: var(--scene-line);
+    overflow: hidden;
+  }
+  .story__step.is-active .story__step-bar { display: block; }
+  .story__step-fill {
+    display: block;
+    block-size: 100%;
+    inline-size: 100%;
+    border-radius: inherit;
+    background: var(--scene-accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+  @keyframes storyFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @media (prefers-reduced-motion: no-preference) {
+    .story__step.is-active .story__step-fill { animation: storyFill var(--dwell) linear forwards; }
+    .story.is-paused .story__step.is-active .story__step-fill,
+    .story.is-hover-paused .story__step.is-active .story__step-fill { animation-play-state: paused; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .story__step.is-active .story__step-fill { transform: scaleX(1); }
+  }
+
+  /* Media — cross-dissolving still that settles out of a slight zoom on activation. */
+  .story__frame {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--scene-line);
+    background: color-mix(in srgb, var(--scene-ink) 6%, var(--scene-bg));
+    box-shadow: 0 30px 60px -50px rgba(0, 48, 12, 0.4);
+  }
+  .story__img {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transform: scale(1.04);
+    transition: opacity 0.7s var(--ease-out-expo), transform 1.2s var(--ease-out-expo);
+    /* Lighter duotone so the footage reads crisp on the light scene. */
+    filter: saturate(0.76) contrast(1.03) brightness(0.94);
+  }
+  .story__img.is-active { opacity: 1; transform: scale(1); }
+
+  .story__media-label {
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline: 0;
+    z-index: 1;
+    padding: clamp(1rem, 2vw, 1.5rem);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.3rem, 2.2vw, 2rem);
+    line-height: 1.05;
+    color: var(--color-bone);
+    background: linear-gradient(0deg, rgba(5, 26, 16, 0.8), rgba(5, 26, 16, 0.25) 55%, transparent);
+  }
+</style>

@@ -1,0 +1,194 @@
+---
+// topBg matches the section above so the empty top of the wave SVG has no seam. Defaults to
+// cream (About page). The cinematic homepage passes a dark token (ProductWorlds sits above).
+// dividers=false turns the wave dividers off so the section abuts its neighbours as a flat dark
+// cut (cinematic homepage). Default true keeps them for the About page's bone/cream context.
+interface Props { topBg?: string; dividers?: boolean; }
+const { topBg = "var(--color-cream)", dividers = true } = Astro.props;
+const pillars = [
+  {
+    title: "Certified, not claimed.",
+    body: "Every range carries a current halal certificate from an accredited authority. We name the body, the audit cadence and the standards on every product page.",
+  },
+  {
+    title: "Traceable to the source.",
+    body: "Lot-level traceability through the supply chain, from approved suppliers to the cabinet your buyer opens. No grey zones, no exceptions.",
+  },
+  {
+    title: "Audited continuously.",
+    body: "HACCP, IFS, BRC and ISO frameworks are not badges. They are the operating system of our factory floor.",
+  },
+];
+---
+
+{dividers && (
+  <div class="halal-divider-top" style={`background:${topBg}`} aria-hidden="true">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,80 L0,30 C240,72 480,72 720,42 C960,12 1200,12 1440,50 L1440,80 Z" fill="var(--color-emerald-deep)"/>
+    </svg>
+  </div>
+)}
+
+<section id="halal" class="halal" aria-labelledby="halal-title">
+  <div class="halal__bg" aria-hidden="true"><div class="halal__grain"></div></div>
+  <div class="container-x section">
+    <div class="halal__grid">
+      <div class="halal__intro reveal">
+        <p class="eyebrow eyebrow--bone">The Melek halal promise</p>
+        <h2 id="halal-title" class="text-display halal__title">
+          A halal standard buyers can defend in a tender.
+        </h2>
+        <p class="halal__lede">
+          We do not ask anyone to take our word for it. Our halal commitment is documentary,
+          auditable and present on every label.
+        </p>
+        <div class="halal__cta">
+          <a href="/about/#certifications" class="btn btn-secondary-light">See our certifications</a>
+        </div>
+
+        <!-- decorative crescent + star -->
+        <svg class="halal__mark" viewBox="0 0 200 200" aria-hidden="true">
+          <defs>
+            <linearGradient id="gx1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#c9a24b" stop-opacity="0.85"/>
+              <stop offset="100%" stop-color="#c9a24b" stop-opacity="0.25"/>
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="86" fill="none" stroke="url(#gx1)" stroke-width="1" />
+          <circle cx="100" cy="100" r="70" fill="none" stroke="url(#gx1)" stroke-width="1" stroke-dasharray="3 6"/>
+          <path d="M120 60 A50 50 0 1 0 120 140 A40 40 0 1 1 120 60 Z" fill="url(#gx1)"/>
+          <path d="M150 92 L156 105 L170 107 L160 117 L162 131 L150 124 L138 131 L140 117 L130 107 L144 105 Z" fill="#e3c781" opacity="0.85"/>
+        </svg>
+      </div>
+
+      <ol class="halal__pillars">
+        {pillars.map((p, i) => (
+          <li class="halal__pillar reveal" style={`--i:${i};`}>
+            <span class="halal__num font-display">{String(i + 1).padStart(2, "0")}</span>
+            <h3 class="halal__pname font-display">{p.title}</h3>
+            <p class="halal__pbody">{p.body}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
+</section>
+
+{dividers && (
+  <div class="halal-divider-bottom" aria-hidden="true">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,0 L0,30 C240,72 480,72 720,42 C960,12 1200,12 1440,50 L1440,0 Z" fill="var(--color-emerald-deep)"/>
+    </svg>
+  </div>
+)}
+
+<style>
+  .halal-divider-top,
+  .halal-divider-bottom { line-height: 0; }
+  .halal-divider-top { background: var(--color-cream); }    /* matches FeaturedProducts above */
+  .halal-divider-bottom { background: var(--color-bone); }  /* matches Process below */
+  .halal-divider-top svg,
+  .halal-divider-bottom svg {
+    display: block;
+    inline-size: 100%;
+    block-size: clamp(40px, 5vw, 80px);
+  }
+  .halal-divider-top svg { margin-block-end: -1px; }
+  .halal-divider-bottom svg { margin-block-start: -1px; }
+
+  .halal {
+    position: relative;
+    color: var(--color-bone);
+    background: var(--color-emerald-deep);
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .halal__bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    /* Flat emerald-deep so the SVG wave dividers (same flat color) match perfectly. */
+    background: var(--color-emerald-deep);
+  }
+  .halal__grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  .halal__grid {
+    display: grid;
+    gap: clamp(2rem, 4vw, 3.5rem);
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 960px) {
+    .halal__grid { grid-template-columns: 5fr 7fr; align-items: start; }
+  }
+
+  .halal__intro { position: relative; }
+  .halal__title {
+    margin: 0.75rem 0 0;
+    color: var(--color-bone);
+    max-inline-size: 18ch;
+  }
+  .halal__lede {
+    color: rgba(251, 248, 240, 0.78);
+    margin-block-start: 1.125rem;
+    max-inline-size: 44ch;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+  .halal__cta { margin-block-start: 1.75rem; }
+  .halal__mark {
+    margin-block-start: 2.5rem;
+    inline-size: 140px;
+    block-size: 140px;
+    color: var(--color-gold-soft);
+    opacity: 0.85;
+  }
+  @media (max-width: 960px) { .halal__mark { display: none; } }
+
+  .halal__pillars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+  .halal__pillar {
+    background: rgba(251, 248, 240, 0.04);
+    border: 1px solid rgba(251, 248, 240, 0.10);
+    border-radius: var(--radius-lg);
+    padding: clamp(1.25rem, 2.5vw, 1.75rem);
+    transition: background 0.3s var(--ease-out-expo), border-color 0.3s var(--ease-out-expo);
+    transition-delay: calc(var(--i, 0) * 80ms);
+  }
+  .halal__pillar:hover {
+    background: rgba(251, 248, 240, 0.06);
+    border-color: rgba(201, 162, 75, 0.4);
+  }
+  .halal__num {
+    display: inline-block;
+    font-size: 0.875rem;
+    color: var(--color-gold-soft);
+    letter-spacing: 0.12em;
+    font-weight: 500;
+  }
+  .halal__pname {
+    margin: 0.4rem 0 0.5rem;
+    font-size: 1.375rem;
+    line-height: 1.18;
+    letter-spacing: -0.018em;
+    color: var(--color-bone);
+    font-weight: 500;
+    font-variation-settings: "opsz" 36;
+  }
+  .halal__pbody {
+    margin: 0;
+    color: rgba(251, 248, 240, 0.74);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+</style>

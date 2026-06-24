@@ -1,0 +1,218 @@
+---
+import { getCollection } from "astro:content";
+
+type Item = {
+  id: string;
+  name: string;
+  category: string;
+  weight?: string;
+  tagline?: string;
+  image?: string;
+};
+
+let featured: Item[] = [];
+try {
+  const all = await getCollection("products");
+  featured = all
+    .filter((p) => p.data.featured)
+    .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
+    .slice(0, 6)
+    .map((p) => ({
+      id: p.id,
+      name: p.data.name,
+      category: p.data.category,
+      weight: p.data.weight,
+      tagline: p.data.tagline,
+      image: p.data.image,
+    }));
+} catch {}
+
+if (featured.length === 0) {
+  // Fallback: top 6 by order from collection regardless of `featured`
+  try {
+    const all = await getCollection("products");
+    featured = all
+      .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
+      .slice(0, 6)
+      .map((p) => ({
+        id: p.id,
+        name: p.data.name,
+        category: p.data.category,
+        weight: p.data.weight,
+        tagline: p.data.tagline,
+        image: p.data.image,
+      }));
+  } catch {}
+}
+
+const labelMap: Record<string, string> = {
+  chicken: "Chicken",
+  beef: "Beef",
+  snacks: "Snacks",
+};
+---
+
+<section class="feat" aria-labelledby="feat-title">
+  <div class="container-x feat__pad">
+    <header class="feat__head reveal">
+      <div>
+        <p class="eyebrow">Featured products</p>
+        <h2 id="feat-title" class="text-display feat__title">A taste of the catalogue.</h2>
+      </div>
+      <a href="/products/" class="btn btn-ghost feat__view-all">View the full range →</a>
+    </header>
+
+    <ul class="feat__grid">
+      {
+        featured.map((p, i) => (
+          <li class="feat__item reveal" style={`--i:${i};`}>
+            <a class="feat__card" href={`/products/${p.id}/`}>
+              <figure class="feat__media">
+                {p.image ? (
+                  <img src={p.image} alt={p.name} loading="lazy" />
+                ) : (
+                  <span class="feat__monogram" aria-hidden="true">
+                    {p.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+                  </span>
+                )}
+              </figure>
+              <div class="feat__body">
+                <span class="feat__chip">{labelMap[p.category] ?? p.category}</span>
+                <h3 class="feat__name font-display">{p.name}</h3>
+                <div class="feat__meta">
+                  {p.weight && <span class="feat__weight">{p.weight}</span>}
+                  <span class="feat__arrow" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .feat {
+    background: var(--color-cream);
+    position: relative;
+  }
+  .feat__pad {
+    padding-block: clamp(48px, 7vw, 88px);
+  }
+  .feat__head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-block-end: clamp(1.5rem, 3vw, 2.5rem);
+  }
+  .feat__title { margin: 0.5rem 0 0; color: var(--color-charcoal); }
+  .feat__view-all { font-size: 0.9375rem; }
+
+  .feat__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+    gap: 1rem;
+  }
+  .feat__item { transition-delay: calc(var(--i, 0) * 50ms); }
+
+  .feat__card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    background: var(--color-bone);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    transition:
+      transform 0.3s var(--ease-out-expo),
+      box-shadow 0.3s var(--ease-out-expo),
+      border-color 0.3s var(--ease-out-expo);
+  }
+  .feat__card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--color-emerald) 20%, var(--color-line));
+    box-shadow: 0 1px 0 rgba(22,19,17,0.04), 0 18px 32px -22px rgba(22,19,17,0.22);
+  }
+  .feat__media {
+    aspect-ratio: 5 / 4;
+    background:
+      radial-gradient(360px 240px at 70% 30%, rgba(201, 162, 75, 0.20), transparent 65%),
+      linear-gradient(135deg, var(--color-cream), color-mix(in srgb, var(--color-cream) 70%, white));
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .feat__media img {
+    width: 86%;
+    height: 86%;
+    object-fit: contain;
+    transition: transform 0.5s var(--ease-out-expo);
+  }
+  .feat__card:hover .feat__media img { transform: scale(1.04); }
+  .feat__monogram {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 6vw, 3.5rem);
+    font-weight: 600;
+    color: rgba(15, 81, 50, 0.22);
+    letter-spacing: -0.04em;
+  }
+
+  .feat__body {
+    padding: 1.125rem 1.25rem 1.375rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1 1 auto;
+  }
+  .feat__chip {
+    align-self: flex-start;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-emerald);
+    background: rgba(15, 81, 50, 0.08);
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-weight: 600;
+  }
+  .feat__name {
+    font-size: 1.1875rem;
+    line-height: 1.18;
+    letter-spacing: -0.015em;
+    color: var(--color-charcoal);
+    margin: 0.125rem 0 0;
+    font-weight: 500;
+    font-variation-settings: "opsz" 36;
+  }
+  .feat__meta {
+    margin-block-start: auto;
+    padding-block-start: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-block-start: 1px dashed var(--color-line);
+  }
+  .feat__weight {
+    font-size: 0.8125rem;
+    color: var(--color-slate-500);
+    letter-spacing: 0.04em;
+  }
+  .feat__arrow {
+    color: var(--color-emerald);
+    transition: transform 0.25s var(--ease-out-expo);
+  }
+  .feat__card:hover .feat__arrow { transform: translateX(3px); }
+</style>

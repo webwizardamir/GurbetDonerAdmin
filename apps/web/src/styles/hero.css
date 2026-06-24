@@ -1,0 +1,210 @@
+/* ----------------------------------------------------------------
+   Cinematic film-title hero (v6 redesign).
+   Replaces the old .hero/.hero__* block entirely.
+----------------------------------------------------------------- */
+
+.cine-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  color: var(--color-bone);
+  background: var(--color-emerald-black);
+}
+
+/* Media layer ------------------------------------------------------ */
+.cine-hero__media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+}
+.cine-hero__video {
+  position: absolute;
+  inset: -8% 0;
+  inline-size: 100%;
+  block-size: 116%;
+  object-fit: cover;
+  object-position: center 38%;
+  pointer-events: none;
+  filter: saturate(104%) contrast(106%) brightness(0.6);
+}
+.cine-hero__veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Veil background removed (owner): the dark gradient made the lighter site's hero read heavy.
+     The vignette below still carries enough edge darkening to keep the headline legible. */
+}
+/* Cinematic edge-darkening. (Hero is exempt from the flat-dark-section rule.) */
+.cine-hero__vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(125% 105% at 50% 32%, transparent 44%, rgba(3, 17, 10, 0.72) 100%);
+}
+
+/* Vertical edge microcopy ----------------------------------------- */
+.cine-hero__edge {
+  position: absolute;
+  z-index: 1;
+  inset-inline-end: clamp(14px, 2vw, 26px);
+  inset-block-start: 50%;
+  transform: translateY(-50%) rotate(180deg);
+  writing-mode: vertical-rl;
+  color: var(--color-silver-dim);
+  opacity: 0.7;
+}
+@media (max-width: 1024px) {
+  .cine-hero__edge { display: none; }
+}
+
+/* Inner grid ------------------------------------------------------- */
+.cine-hero__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-block-size: 100svh;
+  display: flex;
+  flex-direction: column;
+  /* Headline block is vertically centred now that the top coords + bottom ledger are gone;
+     the scroll cue is pinned separately at the bottom. */
+  justify-content: center;
+  padding-block: calc(var(--header-h) + clamp(1.5rem, 4vh, 3rem)) clamp(4rem, 9vh, 6rem);
+}
+
+/* Top coordinates strip ------------------------------------------- */
+.cine-hero__coords {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 1.4rem);
+  flex-wrap: wrap;
+}
+.cine-hero__coords .op-label { color: var(--color-silver-dim); }
+.cine-hero__coords-rule {
+  flex: 0 0 clamp(28px, 6vw, 84px);
+  block-size: 1px;
+  background: rgba(199, 207, 202, 0.4);
+}
+.cine-hero__coords-end { margin-inline-start: auto; }
+
+/* Headline block --------------------------------------------------- */
+.cine-hero__headline { position: relative; }
+
+.cine-hero__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--color-brass);
+  margin-block-end: clamp(1rem, 2.4vw, 1.6rem);
+}
+.cine-hero__beacon {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 999px;
+  background: var(--color-brass);
+  box-shadow: 0 0 0 0 rgba(169, 134, 63, 0.55);
+  animation: cine-beacon 2.6s var(--ease-in-out) infinite;
+}
+@keyframes cine-beacon {
+  0% { box-shadow: 0 0 0 0 rgba(169, 134, 63, 0.55); }
+  70% { box-shadow: 0 0 0 9px rgba(169, 134, 63, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(169, 134, 63, 0); }
+}
+
+/* Two fixed lines ("Everybody loves" / "Melek Halal Food."). Sized so the longer line fits on
+   one line at every width (nowrap) without the headline growing unnecessarily tall. */
+.cine-hero__title {
+  margin: 0;
+  color: var(--color-bone);
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 8vw, 6.25rem);
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+.cine-hero__line { display: block; overflow: hidden; padding-block-end: 0.06em; white-space: nowrap; }
+.cine-hero__line > span { display: block; will-change: transform; }
+
+.cine-hero__lede {
+  margin-block-start: clamp(1.25rem, 2.6vw, 1.9rem);
+  max-inline-size: 52ch;
+  color: rgba(251, 248, 240, 0.82);
+  font-size: var(--text-body-lg);
+  line-height: 1.6;
+}
+
+.cine-hero__cta {
+  margin-block-start: clamp(1.5rem, 3vw, 2.25rem);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.cine-hero__btn { padding: 1rem 1.6rem; }
+
+/* Scroll cue — centred at the bottom of the hero (no longer a footer row with a ledger). */
+.cine-hero__base {
+  position: absolute;
+  inset-block-end: clamp(1.25rem, 3vh, 2rem);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+}
+
+.cine-hero__scroll {
+  display: inline-flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--color-silver-dim);
+  text-decoration: none;
+  transition: color 0.25s var(--ease-out-expo);
+}
+.cine-hero__scroll:hover { color: var(--color-brass); }
+.cine-hero__scroll-rail {
+  position: relative;
+  inline-size: 1px;
+  block-size: 34px;
+  background: rgba(199, 207, 202, 0.3);
+  overflow: hidden;
+  display: inline-block;
+}
+.cine-hero__scroll-bead {
+  position: absolute;
+  inset-inline: -0.5px;
+  inset-block-start: -45%;
+  block-size: 45%;
+  background: var(--color-brass);
+  animation: cine-scrollbead 2.2s var(--ease-in-out) infinite;
+}
+@keyframes cine-scrollbead {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(260%); }
+}
+
+.cine-hero__ledger {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: clamp(0.9rem, 2vw, 1.5rem) clamp(1.5rem, 4vw, 3rem);
+}
+@media (min-width: 880px) {
+  .cine-hero__ledger { grid-template-columns: repeat(4, auto); }
+}
+.cine-hero__ledger-item { display: flex; flex-direction: column; gap: 0.3rem; }
+.cine-hero__ledger-item dt { color: var(--color-silver-dim); }
+.cine-hero__ledger-val {
+  font-family: var(--font-sans);
+  font-size: clamp(1rem, 1.35vw, 1.18rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-bone);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-hero__beacon,
+  .cine-hero__scroll-bead { animation: none; }
+}
