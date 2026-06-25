@@ -38,6 +38,13 @@ interface OrderLineItem {
   availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
+// Per-line cost of goods: the unit-type's own cost if set, else the product's
+// base cost, else 0. Single source used both for the owner-only COG display and
+// the persisted order_items.cost_cents snapshot.
+function resolveLineCostCents(product: Product, unitType: UnitType): number {
+  return product.unit_prices?.find(up => up.unit_type === unitType)?.cost_cents ?? product.cost_cents ?? 0
+}
+
 export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormProps) {
   const { t } = useTranslation()
   // Large pageSize so the customer picker sees ALL customers, not just page 1
@@ -189,7 +196,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
           product: product || {
             id: item.product_id, name: item.product_name, sku: item.product_sku || '', barcode: '',
             category_id: undefined, unit_type: item.unit_type as UnitType, base_price: item.unit_price,
-            cost_cents: 0, tax_rate: item.tax_rate, stock_quantity: 0, track_stock: false,
+            cost_cents: item.cost_cents ?? 0, tax_rate: item.tax_rate, stock_quantity: 0, track_stock: false,
             description: '', is_active: true, created_by: '', created_at: '', updated_at: '',
           },
           selectedUnitType: item.unit_type as UnitType,
@@ -328,16 +335,13 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
         delivery_notes: deliveryNotes || undefined, internal_notes: internalNotes || undefined,
         discount_type: orderDiscountType, discount_value: orderDiscountValue,
       }
-      const itemsData = items.map(i => {
-        const unitPriceCost = i.product.unit_prices?.find(up => up.unit_type === i.selectedUnitType)?.cost_cents
-        return {
-          product_id: i.product.id, product_name: i.product.name, product_sku: i.product.sku,
-          unit_type: i.selectedUnitType, quantity: i.quantity, unit_price: i.unit_price,
-          cost_cents: unitPriceCost ?? i.product.cost_cents ?? 0, tax_rate: effectiveTaxRate(i.tax_rate),
-          discount_type: i.discount_type ?? null, discount_value: i.discount_value ?? null,
-          notes: i.notes?.trim() || undefined,
-        }
-      })
+      const itemsData = items.map(i => ({
+        product_id: i.product.id, product_name: i.product.name, product_sku: i.product.sku,
+        unit_type: i.selectedUnitType, quantity: i.quantity, unit_price: i.unit_price,
+        cost_cents: resolveLineCostCents(i.product, i.selectedUnitType), tax_rate: effectiveTaxRate(i.tax_rate),
+        discount_type: i.discount_type ?? null, discount_value: i.discount_value ?? null,
+        notes: i.notes?.trim() || undefined,
+      }))
       if (isEditMode && editOrder) { await updateWithItems(editOrder.id, orderData, itemsData) }
       else { await create(orderData, itemsData) }
 
@@ -569,7 +573,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
             </div>
 
             <OrderItemsList
-              items={items}
+              items={items.map(i => ({ ...i, cost_cents: resolveLineCostCents(i.product, i.selectedUnitType) }))}
               subtotal={subtotal}
               discountTotal={discountTotal}
               taxTotal={taxTotal}

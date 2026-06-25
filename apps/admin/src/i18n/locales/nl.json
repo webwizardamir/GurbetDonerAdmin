@@ -457,7 +457,8 @@
       "price": "Prijs",
       "qty": "Aantal",
       "discount": "Korting",
-      "total": "Totaal"
+      "total": "Totaal",
+      "cogShort": "Inkoop"
     },
     "backToOrders": "Terug naar bestellingen",
     "saveOrder": "Bestelling opslaan",

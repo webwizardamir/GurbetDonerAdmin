@@ -457,7 +457,8 @@
       "price": "Price",
       "qty": "Qty",
       "discount": "Discount",
-      "total": "Total"
+      "total": "Total",
+      "cogShort": "Cost"
     },
     "backToOrders": "Back to Orders",
     "saveOrder": "Save Order",

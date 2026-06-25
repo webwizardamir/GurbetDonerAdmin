@@ -28,6 +28,7 @@ import StatusBadge from '../ui/StatusBadge'
 import { formatQuantity, formatPrice, formatDateTime } from '../../utils/format'
 import Modal from '../ui/Modal'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
+import { useAuth } from '../../context/AuthContext'
 
 interface OrderDetailProps {
   order: OrderWithItems
@@ -74,6 +75,7 @@ function formatUnitDutch(unitType: string, quantity: number, t?: (key: string) =
 
 export default function OrderDetail({ order, onClose, onStatusChange }: OrderDetailProps) {
   const { t } = useTranslation()
+  const { isOwner } = useAuth()
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generatingDoc, setGeneratingDoc] = useState<DocumentType | null>(null)
@@ -279,6 +281,11 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       {formatPrice(item.unit_price)} × {formatQuantity(item.quantity)} {formatUnitDutch(item.unit_type, item.quantity, t)}
                     </p>
+                    {isOwner && (item.cost_cents ?? 0) > 0 && (
+                      <p className="text-[11px] leading-tight text-slate-500 dark:text-slate-400">
+                        {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)} × {formatQuantity(item.quantity)}
+                      </p>
+                    )}
                     {item.notes?.trim() && (
                       <p className="mt-1 flex items-start gap-1 text-xs text-slate-500 dark:text-slate-400">
                         <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-slate-400" />
