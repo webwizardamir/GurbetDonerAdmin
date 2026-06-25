@@ -1,7 +1,7 @@
 export const site = {
-  // Set to true only for the production launch. While false the whole site emits
-  // noindex,nofollow and robots.txt disallows crawling (test deploy).
-  indexable: false,
+  // Live since 2026-06-25: site is public and indexable. When false the whole
+  // site emits noindex,nofollow and robots.txt disallows crawling (test deploy).
+  indexable: true,
   name: "Melek",
   fullName: "Melek Halal Food",
   domain: "melekhalalfood.nl",

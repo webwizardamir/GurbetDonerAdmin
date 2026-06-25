@@ -1,0 +1,3 @@
+# Internal management app — never index.
+User-agent: *
+Disallow: /

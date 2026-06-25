@@ -1,4 +1,5 @@
-# Test deploy: block all crawling until launch.
-# For production, replace with an allow rule + sitemap reference.
+# Production: allow crawling.
 User-agent: *
-Disallow: /
+Allow: /
+
+Sitemap: https://melekhalalfood.nl/sitemap-index.xml
