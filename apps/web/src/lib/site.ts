@@ -53,6 +53,21 @@ export const site = {
       description: "Mozzarella sticks, kipcorn, frikandel, falafel and more.",
     },
   ],
+  // Visible product categories (the menu axis). Within each, items are sorted by
+  // meat (productCategories order) as a hidden secondary key.
+  productFormats: [
+    {
+      slug: "packaging",
+      name: "Packaging",
+      description: "Retail packs for shops and supermarket shelves.",
+    },
+    {
+      slug: "box",
+      name: "Box",
+      description: "Bulk cases for foodservice and wholesale.",
+    },
+  ],
 } as const;
 
 export type ProductCategorySlug = (typeof site.productCategories)[number]["slug"];
+export type ProductFormatSlug = (typeof site.productFormats)[number]["slug"];

@@ -2,35 +2,13 @@
 // Scene — Product Worlds. Per-range horizontal lookbook rails of packshots on a dark canvas,
 // with a studio spotlight behind each shot and a cinematic hover zoom. Reads the products
 // collection. Uniform tile size; titles truncate to one line. No SKU counts, no scene numbers.
-import { getCollection } from "astro:content";
-import { site } from "../../lib/site";
+import { getProductsByFormat } from "../../lib/products";
 
 interface Props { scene?: string }
 const { scene = "black" } = Astro.props;
 
-type Item = { id: string; name: string; category: string; weight?: string; image?: string; order: number };
-
-let products: Item[] = [];
-try {
-  const all = await getCollection("products");
-  products = all
-    .map((p) => ({
-      id: p.id,
-      name: p.data.name,
-      category: p.data.category,
-      weight: p.data.weight,
-      image: p.data.image,
-      order: p.data.order ?? 100,
-    }))
-    .filter((p) => p.image)
-    .sort((a, b) => a.order - b.order);
-} catch {}
-
-const ranges = site.productCategories.map((cat) => ({
-  name: cat.name,
-  description: cat.description,
-  items: products.filter((p) => p.category === cat.slug),
-}));
+// Packaging + Box rails; items pre-sorted by meat then order (no meat labels).
+const ranges = await getProductsByFormat();
 ---
 
 <section id="worlds" class="scene worlds" data-scene={scene} aria-label="Product worlds">
@@ -41,7 +19,7 @@ const ranges = site.productCategories.map((cat) => ({
         <h2 class="worlds__title text-display">What we sell.</h2>
       </div>
       <p class="worlds__lede ink-dim">
-        Three halal ranges: chicken, beef and snacks.
+        Two ranges: retail packaging and foodservice boxes.
       </p>
     </div>
   </div>
@@ -62,7 +40,7 @@ const ranges = site.productCategories.map((cat) => ({
                   <img src={p.image} alt={p.name} loading="lazy" decoding="async" />
                 </div>
                 <div class="worlds__meta">
-                  <span class="op-label ink-dim">{r.name}{p.weight ? ` · ${p.weight}` : ""}</span>
+                  <span class="op-label ink-dim">{p.weight ?? r.name}</span>
                   <span class="worlds__name" title={p.name}>{p.name}</span>
                 </div>
               </a>

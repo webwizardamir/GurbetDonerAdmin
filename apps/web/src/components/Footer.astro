@@ -28,8 +28,8 @@ const year = new Date().getFullYear();
       <div class="footer__col">
         <p class="footer__heading">Range</p>
         <ul class="footer__list">
-          {site.productCategories.map((c) => (
-            <li><a href={`/products/${c.slug}/`}>{c.name}</a></li>
+          {site.productFormats.map((c) => (
+            <li><a href={`/products/#${c.slug}`}>{c.name}</a></li>
           ))}
           <li><a href="/products/">All products</a></li>
         </ul>

@@ -2,30 +2,10 @@
 import Base from "../../layouts/Base.astro";
 import ExportCTA from "../../components/sections/ExportCTA.astro";
 import { site } from "../../lib/site";
-import { getCollection } from "astro:content";
+import { getProductsByFormat } from "../../lib/products";
 
-type Item = { id: string; name: string; category: string; weight?: string; image?: string; order: number };
-
-let products: Item[] = [];
-try {
-  const all = await getCollection("products");
-  products = all
-    .map((p) => ({
-      id: p.id,
-      name: p.data.name,
-      category: p.data.category,
-      weight: p.data.weight,
-      image: p.data.image,
-      order: p.data.order ?? 100,
-    }))
-    .filter((p) => p.image)
-    .sort((a, b) => a.order - b.order);
-} catch {}
-
-const grouped = site.productCategories.map((c) => ({
-  ...c,
-  items: products.filter((p) => p.category === c.slug),
-}));
+// One section per visible format (Packaging, Box); items pre-sorted by meat then order.
+const grouped = await getProductsByFormat();
 ---
 
 <Base
@@ -44,7 +24,7 @@ const grouped = site.productCategories.map((c) => ({
         </p>
         <nav class="cat-hero__filter" aria-label="Jump to range">
           <a href="#all" class="cat-filter is-active" data-filter="all">All</a>
-          {site.productCategories.map((c) => (
+          {site.productFormats.map((c) => (
             <a href={`#${c.slug}`} class="cat-filter" data-filter={c.slug}>{c.name}</a>
           ))}
         </nav>
@@ -90,7 +70,7 @@ const grouped = site.productCategories.map((c) => ({
                     <img src={p.image} alt={p.name} loading="lazy" decoding="async" />
                   </div>
                   <div class="cat-card__meta">
-                    <span class="op-label ink-dim">{g.name}{p.weight ? ` · ${p.weight}` : ""}</span>
+                    <span class="op-label ink-dim">{p.weight ?? g.name}</span>
                     <span class="cat-card__name" title={p.name}>{p.name}</span>
                   </div>
                 </a>

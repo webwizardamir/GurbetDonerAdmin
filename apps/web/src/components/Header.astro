@@ -13,14 +13,37 @@ const path = Astro.url.pathname;
       {
         site.nav.map((item) => {
           const active = path === item.href || (item.href !== "/" && path.startsWith(item.href));
+          if (item.href !== "/products/") {
+            return (
+              <a
+                href={item.href}
+                class:list={["site-header__link", active && "is-active"]}
+                aria-current={active ? "page" : undefined}
+              >
+                {item.label}
+              </a>
+            );
+          }
+          // Products gets a Packaging/Box dropdown (hover + keyboard focus-within).
           return (
-            <a
-              href={item.href}
-              class:list={["site-header__link", active && "is-active"]}
-              aria-current={active ? "page" : undefined}
-            >
-              {item.label}
-            </a>
+            <div class="site-header__item">
+              <a
+                href={item.href}
+                class:list={["site-header__link", "site-header__link--menu", active && "is-active"]}
+                aria-current={active ? "page" : undefined}
+                aria-haspopup="true"
+              >
+                {item.label}
+                <svg class="site-header__chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+              </a>
+              <div class="site-header__dropdown">
+                <div class="site-header__dropdown-panel" role="menu">
+                  {site.productFormats.map((f) => (
+                    <a class="site-header__dropdown-link" role="menuitem" href={`/products/#${f.slug}`}>{f.name}</a>
+                  ))}
+                </div>
+              </div>
+            </div>
           );
         })
       }
@@ -186,6 +209,63 @@ const path = Astro.url.pathname;
   }
   .site-header__link:hover::after,
   .site-header__link.is-active::after { transform: scaleX(1); }
+
+  /* Products dropdown (Packaging / Box) — hover + keyboard focus-within. */
+  .site-header__item { position: relative; display: inline-flex; align-items: center; }
+  .site-header__link--menu { display: inline-flex; align-items: center; gap: 0.3rem; }
+  .site-header__chev { opacity: 0.65; transition: transform 0.3s var(--ease-out-expo); }
+  .site-header__item:hover .site-header__chev,
+  .site-header__item:focus-within .site-header__chev { transform: rotate(180deg); }
+
+  .site-header__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    /* Transparent bridge clears the rest of the bar so hover stays continuous (no flicker). */
+    padding-top: 1.6rem;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(-6px);
+    transition:
+      opacity 0.25s var(--ease-out-expo),
+      transform 0.25s var(--ease-out-expo),
+      visibility 0.25s;
+  }
+  .site-header__item:hover .site-header__dropdown,
+  .site-header__item:focus-within .site-header__dropdown {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+  }
+  .site-header__dropdown-panel {
+    min-width: 210px;
+    background: var(--color-snow);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    box-shadow: 0 18px 38px -20px rgba(0, 48, 12, 0.4);
+    padding: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .site-header__dropdown-link {
+    display: block;
+    padding: 0.6rem 0.85rem;
+    border-radius: calc(var(--radius) - 3px);
+    color: var(--color-charcoal);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background 0.2s var(--ease-out-expo), color 0.2s var(--ease-out-expo);
+  }
+  .site-header__dropdown-link:hover,
+  .site-header__dropdown-link:focus-visible {
+    background: rgba(0, 48, 12, 0.07);
+    color: var(--color-emerald);
+  }
 
   .site-header__cta { display: none; align-items: center; gap: 0.625rem; }
   @media (min-width: 1024px) { .site-header__cta { display: inline-flex; } }

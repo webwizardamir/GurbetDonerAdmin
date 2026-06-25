@@ -23,6 +23,17 @@ const links = [...site.nav];
               <span class="mobile-menu__label">{item.label}</span>
               <svg class="mobile-menu__arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </a>
+            {item.href === "/products/" && (
+              <ul class="mobile-menu__sublist">
+                {site.productFormats.map((f) => (
+                  <li>
+                    <a href={`/products/#${f.slug}`} data-mm-close>
+                      <span class="mobile-menu__sublabel">{f.name}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>
@@ -129,6 +140,27 @@ const links = [...site.nav];
     font-weight: 600;
   }
   .mobile-menu__arrow { color: var(--color-emerald); opacity: 0.7; flex-shrink: 0; }
+
+  /* Packaging / Box sub-links under Products. */
+  .mobile-menu__sublist { list-style: none; margin: 0; padding: 0 0 0.5rem; }
+  .mobile-menu__sublist a {
+    display: flex;
+    align-items: center;
+    padding: 0.55rem 0;
+    padding-inline-start: 1rem;
+    border-bottom: 1px solid rgba(0, 48, 12, 0.08);
+    color: var(--color-slate-700);
+    text-decoration: none;
+    transition: color 0.2s var(--ease-out-expo), padding-inline-start 0.25s var(--ease-out-expo);
+  }
+  .mobile-menu__sublist a:hover,
+  .mobile-menu__sublist a:focus-visible { color: var(--color-emerald); padding-inline-start: 1.35rem; }
+  .mobile-menu__sublabel {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
 
   .mobile-menu__cta {
     margin-block-start: 2rem;
