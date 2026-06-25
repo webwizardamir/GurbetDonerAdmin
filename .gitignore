@@ -36,3 +36,6 @@ apps/admin/scripts/*.cjs
 # Secrets / API keys (never commit — stored as Supabase function secrets)
 google-map-api.txt
 *-api.txt
+
+# Business price spreadsheets — keep local, never commit
+*.xlsx
