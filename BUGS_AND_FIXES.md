@@ -563,3 +563,30 @@ The PostgREST `.or()` filter in `fetchProducts`/`fetchProductCount` (`services/p
 ### Note: clipped row-action dropdowns
 
 Table row menus positioned with `absolute` get clipped by the table wrapper's `overflow-hidden`/`overflow-x-auto`. Use `components/ui/DropdownMenu.tsx` (React-portal to `document.body` + `position: fixed` from the trigger rect, flips up near the viewport bottom). This is the standard fix for any future table action menu.
+
+---
+
+## Monorepo + go-live era (2026-06-24/25)
+
+### Bug: Logout did not take effect until a page reload
+**Cause:** `AuthContext`'s `onAuthStateChange` handler, on *any* `SIGNED_OUT` event, first tries to recover the session via a token refresh (a mitigation for backgrounded tabs that miss their refresh window). It couldn't tell a deliberate logout from an incidental `SIGNED_OUT`, so clicking Logout was immediately undone by the recovery refresh.
+**Solution:** Added a `signingOutRef` flag set in `signOut()`; the `SIGNED_OUT` handler skips recovery and clears state when the flag is set, then resets it. Logout is immediate.
+**Prevention:** Any "keep the session alive across `SIGNED_OUT`" logic must exempt deliberate sign-outs via an explicit flag.
+
+### Bug: Abandoning a password reset left the user signed in
+**Cause:** Clicking a Supabase recovery link establishes a real (recovery) session. `ResetPassword.tsx`'s "Back to sign in" was a plain `<Link to="/login">`, so leaving without setting a password dropped the user into the app already authenticated (and the old password still worked).
+**Solution:** "Back to sign in" now calls `supabase.auth.signOut({ scope: 'local' })` before navigating, dropping the recovery session.
+**Prevention:** Treat the recovery session as provisional — any exit from the reset page that isn't a successful password update must sign out (local scope).
+
+### Bug: Overdue-invoice row menu clipped to just the snooze item
+**Cause:** `OverdueInvoices.tsx` used a hand-rolled `absolute z-20` dropdown that got clipped by the table's stacking/overflow.
+**Solution:** Switched to the portal-based `ui/DropdownMenu` (the standard fix noted above), matching `CustomerActionMenu`. Mobile cards already use inline buttons, so they were unaffected.
+
+### Bug: App selling prices didn't match WooCommerce for 5 products
+**Cause:** `products` has two price columns — `base_price` (what the pricing engine charges, via the resolution chain) and a legacy `price` mirror. The WC import sets both equal, but the app's product editor (`ProductForm` → `updateProduct`) writes **only** `base_price`. A prior in-app price import wrote wrong values into `base_price` while the correct WC values survived in `price`.
+**Solution:** For the 5 drifted products, set `base_price = price` (verified against live WC via the REST API). 0/162 mismatched afterwards.
+**Prevention:** The legacy `price` column is vestigial and can silently drift from `base_price`. Long-term: retire it, or keep it in sync on edit. Don't trust `price` for anything live — the app reads `base_price`.
+
+### Bug: Editing an order whose product is missing dropped the cost snapshot
+**Cause:** `OrderForm` reconstructs a placeholder product for edit-loaded lines whose live product isn't found, hardcoding `cost_cents: 0` — losing the immutable `order_items.cost_cents` snapshot.
+**Solution:** Reconstruct with `cost_cents: item.cost_cents ?? 0`. (Found while adding the owner-only per-line COG display.)

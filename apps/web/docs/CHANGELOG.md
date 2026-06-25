@@ -4,6 +4,16 @@ One-line entries per ship. Most recent at the top. "v" is an iteration label, no
 
 ---
 
+## v10 — Packaging/Box categories + real contact info + go-live (2026-06-25)
+
+Site moved into the **`MelekHalalFood` monorepo** at `apps/web` and went live on **melekhalalfood.nl** (+ www); admin app on `app.melekhalalfood.nl`. `site.ts` `indexable` is still `false` (noindex) — flip to `true` when ready for Google.
+
+- **Products recategorized by format: Packaging (retail) / Box (bulk).** Replaces the visible meat categories (chicken/beef/snacks) in the header dropdown, catalogue (`/products/`), homepage "What we sell" rails, footer and product-detail breadcrumb. Meat type is kept **only as a hidden secondary sort**, so each grid clusters chicken → beef → snacks with no meat labels. New `format` field on products (`content.config.ts`, default `packaging`); 8 products tagged `box`. New shared `lib/products.ts` `getProductsByFormat()` (used by catalogue + homepage). Header gains a Products dropdown; mobile menu + footer updated.
+- **Real contact info** (was an Amsterdam placeholder): **Weversbaan 8a, De Baanderij, 2352 BZ Leiden · 071 200 1287 · "Closes at 17:00 (CET)"**. Updated `site.ts`, footer, contact page (now shows phone + hours), mobile menu/CTAs, and the Organization JSON-LD (added `telephone`).
+- **"HoReCa" → "Horeca"** everywhere (Dutch convention).
+
+---
+
 ## v9 — Lighter, friendlier homepage + Clash Display (2026-05-26, IN PROGRESS)
 
 Owner feedback after v8: the Bodoni headings read too formal/AI, and the all-dark site felt too heavy for a food brand. Two changes, homepage first so the owner can confirm before rollout.

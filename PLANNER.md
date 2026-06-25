@@ -1248,3 +1248,16 @@ The in-app queue + manual reminders work without this. To turn on automatic clie
 2. Then apply migration `00061_reminders_cron.sql` (needs `pg_cron` + `pg_net` extensions + Vault secrets `project_url` and `reminder_cron_secret` = the function's `REMINDER_CRON_SECRET`). Can be applied via Supabase MCP once the secret value exists.
 3. Finally toggle **auto_send_enabled** on in Settings → Reminders (it defaults OFF).
 - Files staged for this: `supabase/functions/process-invoice-reminders/index.ts`, `supabase/migrations/00061_reminders_cron.sql`.
+
+---
+
+## Post-launch — Monorepo + go-live (2026-06-24/25)
+
+- **Monorepo restructure.** Admin app moved to `apps/admin/`; public Astro site brought in via `git subtree` at `apps/web/` (history preserved). `supabase/`, `CLAUDE.md` and project docs stay at root. New monorepo `README.md`; `.gitignore` updated (`apps/admin/scripts/*.cjs`, `*.xlsx`). One repo, two Vercel projects (per-folder root dir), one Supabase backend. See `memory/monorepo_restructure.md`.
+- **Go-live on `melekhalalfood.nl`.** Public site → apex + `www`; admin → `app.melekhalalfood.nl` (the `.nl` domain's nameservers are at Vercel, so subdomains auto-verify — no TransIP DNS step needed). Old `*.vercel.app` URLs still work. Supabase Auth redirect URLs include the new domain. The `.com` WooCommerce shop is untouched. The public site's `site.ts` `indexable` is still **false** (noindex) — flip to `true` when ready for Google.
+- **Public site — Packaging/Box categories.** Products recategorized by packaging *format* (Packaging = retail / Box = bulk) instead of meat type; meat kept as a hidden sort. New `format` field + `apps/web/src/lib/products.ts`. See `apps/web/docs/CHANGELOG.md` (v10).
+- **Public site — real contact info** (Leiden HQ, phone, hours) + "Horeca" spelling fix; Organization JSON-LD gained `telephone`.
+- **Orders — per-line cost of goods (owner-only).** Muted COG line under each line's price in the order edit page (`OrderItemsList`, desktop + mobile) and the order detail modal (`OrderDetail`), gated on `isOwner`. Shared `resolveLineCostCents` helper in `OrderForm` (also feeds the persisted `cost_cents` snapshot). No backend change. NOTE/possible hardening: `order_items.cost_cents` is still sent to the client for all admins (UI-gated only) — true server gating (RLS/RPC) is a separate task.
+- **Admin favicon.** Added `apps/admin/public/favicon.png` (brand favicon) + `index.html` links; replaced the default `/vite.svg`.
+- **Price reconciliation.** 5 products had a stale `base_price` ≠ legacy `price` (the WC-correct value); reset to WC. Root cause: the product editor writes only `base_price`, so the legacy `price` mirror can silently drift (see `BUGS_AND_FIXES.md`).
+- **Auth fixes.** Logout now takes effect immediately; abandoning a password reset signs the user out (see `BUGS_AND_FIXES.md`).

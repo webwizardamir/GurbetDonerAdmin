@@ -8,6 +8,22 @@
 
 ---
 
+## Monorepo Layout (since 2026-06-24)
+
+This repo is a **monorepo**. This document — and every `src/...` path in it — refers to the **admin app** at `apps/admin/`. Two independently-deployed Vercel apps share one Supabase backend:
+
+| App | Path | Live URL |
+|-----|------|----------|
+| Admin / management UI (this doc) | `apps/admin` | `app.melekhalalfood.nl` |
+| Public website (Astro) | `apps/web` | `melekhalalfood.nl` + `www` |
+
+- `supabase/` (migrations + edge functions) and the project docs stay at the **repo root**.
+- Run admin scripts from **inside `apps/admin`** (their paths are cwd-relative). See the root `README.md`.
+- The public site has its own `apps/web/CLAUDE.md` and `apps/web/docs/`.
+- One push; Vercel rebuilds only the app whose folder changed.
+
+---
+
 ## Project Overview
 
 A comprehensive B2B wholesale management platform for halal food distribution. The system handles customer management, inventory with batch/expiry tracking, order processing, document generation, and analytics.
