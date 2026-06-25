@@ -17,7 +17,7 @@ const year = new Date().getFullYear();
       <div class="footer__brand">
         <img src="/logo.png" alt={site.fullName} width="324" height="150" class="footer__logo" />
         <p class="footer__intro">
-          Halal frozen chicken, beef and snacks for distributors, retailers and HoReCa partners across Europe.
+          Halal frozen chicken, beef and snacks for distributors, retailers and Horeca partners across Europe.
         </p>
         <div class="footer__cta">
           <a href="/distributors/" class="btn btn-primary footer__btn">Become a distributor</a>
@@ -49,12 +49,14 @@ const year = new Date().getFullYear();
         <p class="footer__heading">Contact</p>
         <address class="footer__addr">
           {site.address.line1}<br />
+          {site.address.area}<br />
           {site.address.postal} {site.address.city}<br />
           {site.address.country}
         </address>
         <div class="footer__lines">
           <a href={`mailto:${site.email}`}>{site.email}</a>
           <a href={`tel:${site.phone.replace(/\s+/g, "")}`}>{site.phone}</a>
+          <span class="footer__hours">{site.hours}</span>
         </div>
         <div class="footer__social">
           <a href={site.social.linkedin} aria-label="LinkedIn" rel="noopener" target="_blank">
@@ -181,6 +183,7 @@ const year = new Date().getFullYear();
   .footer__lines { display: flex; flex-direction: column; gap: 0.25rem; margin-block-start: 0.875rem; }
   .footer__lines a { color: rgba(251, 248, 240, 0.78); text-decoration: none; font-size: 0.9375rem; transition: color 0.2s var(--ease-out-expo); }
   .footer__lines a:hover { color: var(--color-gold-soft); }
+  .footer__hours { color: rgba(251, 248, 240, 0.55); font-size: 0.875rem; }
 
   .footer__social { display: flex; align-items: center; gap: 0.625rem; margin-block-start: 1rem; }
   .footer__social a {
@@ -240,6 +243,7 @@ const year = new Date().getFullYear();
   body:is(.has-dark-hero, .page-light) .footer__list a,
   body:is(.has-dark-hero, .page-light) .footer__lines a,
   body:is(.has-dark-hero, .page-light) .footer__addr { color: var(--color-slate-700); }
+  body:is(.has-dark-hero, .page-light) .footer__hours { color: var(--color-slate-500); }
   body:is(.has-dark-hero, .page-light) .footer__list a:hover,
   body:is(.has-dark-hero, .page-light) .footer__lines a:hover { color: var(--color-emerald); }
   body:is(.has-dark-hero, .page-light) .footer__social a {
