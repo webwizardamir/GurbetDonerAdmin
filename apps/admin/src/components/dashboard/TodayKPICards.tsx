@@ -6,8 +6,8 @@
  */
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, Clock, AlertTriangle, TrendingUp, Truck } from 'lucide-react'
-import { formatPrice } from '../../utils/format'
+import { ShoppingCart, Clock, AlertTriangle, Coins, Truck } from 'lucide-react'
+import { formatPrice, profitClass } from '../../utils/format'
 
 export interface TodayStats {
   ordersToday: number
@@ -45,7 +45,20 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
     deliveriesToday: 0,
   }
 
-  const cards = [
+  interface KpiCard {
+    label: string
+    value: string
+    valueClass?: string
+    subValue?: string
+    icon: typeof ShoppingCart
+    iconColor: string
+    iconBg: string
+    accent: string
+    pulse: boolean
+    onClick: () => void
+  }
+
+  const cards: KpiCard[] = [
     {
       label: t('dashboard.kpi.ordersToday'),
       value: stats.ordersToday.toString(),
@@ -78,11 +91,13 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
     },
     isOwner
       ? {
-          label: t('dashboard.kpi.yesterdayRevenue'),
-          value: formatPrice(stats.yesterdayRevenue || 0),
-          icon: TrendingUp,
-          iconColor: 'text-green-600 dark:text-green-400',
-          iconBg: 'bg-green-50 dark:bg-green-900/30',
+          label: t('dashboard.kpi.profitToday'),
+          value: formatPrice(stats.profitToday || 0),
+          valueClass: profitClass(stats.profitToday || 0),
+          subValue: `${t('analytics.revenue')} ${formatPrice(stats.revenueToday || 0)}`,
+          icon: Coins,
+          iconColor: 'text-emerald-600 dark:text-emerald-400',
+          iconBg: 'bg-emerald-50 dark:bg-emerald-900/30',
           accent: 'green',
           pulse: false,
           onClick: () => navigate('/analytics'),
@@ -123,12 +138,17 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
               <card.icon className={`w-5 h-5 ${card.iconColor}`} />
             </div>
 
-            <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight truncate">
+            <p className={`text-2xl sm:text-3xl font-bold leading-tight tracking-tight truncate ${card.valueClass || 'text-slate-900 dark:text-white'}`}>
               {todayStats ? card.value : '-'}
             </p>
             <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
               {card.label}
             </p>
+            {todayStats && card.subValue && (
+              <p className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate tabular-nums">
+                {card.subValue}
+              </p>
+            )}
           </div>
         </button>
       ))}

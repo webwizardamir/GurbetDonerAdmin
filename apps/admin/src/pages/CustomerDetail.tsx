@@ -32,7 +32,7 @@ import CustomerForm from '../components/customers/CustomerForm'
 import CustomerProductsTab from '../components/customers/CustomerProductsTab'
 import PortalAccessModal from '../components/customers/PortalAccessModal'
 import { updateCustomer, type CustomerFormData } from '../services/customers'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatPercent, profitClass } from '../utils/format'
 import { isReverseChargeCountry } from '../utils/vat'
 import type { Customer } from '../types'
 
@@ -577,6 +577,41 @@ export default function CustomerDetail() {
               </select>
             </div>
           </div>
+
+          {/* Range summary — owner sees profit/margin; derived from the visible (filtered)
+              orders, excluding cancelled/refunded so they don't inflate revenue or dilute
+              margin (their RPC profit is null → would count as 0). Margin is on the ex-VAT
+              subtotal base (correct net margin); revenue is shown incl. VAT like the top card. */}
+          {(() => {
+            const summaryOrders = filteredOrders.filter(o => o.status !== 'cancelled' && o.status !== 'refunded')
+            if (summaryOrders.length === 0) return null
+            let revenue = 0, profit = 0, base = 0
+            for (const o of summaryOrders) {
+              revenue += o.total
+              base += o.subtotal
+              profit += o.profit ?? 0
+            }
+            const margin = base > 0 ? (profit / base) * 100 : 0
+            return (
+              <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-3`}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('customerDetail.ordersSummary.revenue')}</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white tabular-nums">{formatPrice(revenue)}</p>
+                </div>
+                {isOwner && (
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('customerDetail.ordersSummary.profit')}</p>
+                    <p className={`text-lg font-bold tabular-nums ${profitClass(profit)}`}>{formatPrice(profit)}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">{t('customerDetail.ordersSummary.margin')} {formatPercent(margin)}</p>
+                  </div>
+                )}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('customerDetail.ordersSummary.orders')}</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white tabular-nums">{summaryOrders.length}</p>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Orders List */}
           <div className="space-y-3">

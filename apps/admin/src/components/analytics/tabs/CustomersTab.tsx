@@ -12,6 +12,7 @@ import {
   ChevronUp,
   ChevronDown,
   Search,
+  Filter,
 } from 'lucide-react'
 import {
   Bar,
@@ -24,6 +25,7 @@ import {
 } from 'recharts'
 import { useCustomerAnalytics } from '../../../hooks/useCustomerAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
+import type { AnalyticsFilters } from '../../../services/analyticsHelpers'
 import StatCard from '../../StatCard'
 import { formatChartCurrency, formatChartCompactCurrency, useChartColors } from '../ChartColors'
 import { formatDate, formatPercent, formatCount } from '../../../utils/format'
@@ -32,14 +34,16 @@ import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '..
 interface CustomersTabProps {
   dateRange: DateRange
   statuses?: string[]
+  filters?: AnalyticsFilters
+  onSelectCustomer?: (customerId: string) => void
 }
 
 type SortKey = 'companyName' | 'totalRevenue' | 'totalProfit' | 'profitMargin' | 'orderCount' | 'avgOrderValue' | 'totalTax' | 'lastOrderDate'
 type SortDir = 'asc' | 'desc'
 
-export default function CustomersTab({ dateRange, statuses = [] }: CustomersTabProps) {
+export default function CustomersTab({ dateRange, statuses = [], filters = {}, onSelectCustomer }: CustomersTabProps) {
   const { t } = useTranslation()
-  const { loading, error, customers } = useCustomerAnalytics(dateRange, statuses)
+  const { loading, error, customers } = useCustomerAnalytics(dateRange, statuses, filters)
   const { colors } = useChartColors()
   const [sortKey, setSortKey] = useState<SortKey>('totalRevenue')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -230,12 +234,24 @@ export default function CustomersTab({ dateRange, statuses = [] }: CustomersTabP
                   <tr key={row.customerId} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm font-medium">
-                      <Link
-                        to={`/customers/${row.customerId}`}
-                        className="text-slate-900 dark:text-white hover:text-green-600 dark:hover:text-green-400 hover:underline"
-                      >
-                        {row.companyName}
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        <Link
+                          to={`/customers/${row.customerId}`}
+                          className="text-slate-900 dark:text-white hover:text-green-600 dark:hover:text-green-400 hover:underline"
+                        >
+                          {row.companyName}
+                        </Link>
+                        {onSelectCustomer && (
+                          <button
+                            type="button"
+                            onClick={() => onSelectCustomer(row.customerId)}
+                            title={t('analytics.filters.customer')}
+                            className="p-0.5 text-slate-300 hover:text-green-600 dark:text-slate-600 dark:hover:text-green-400"
+                          >
+                            <Filter className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">{formatChartCurrency(row.totalRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{formatChartCurrency(row.totalProfit)}</td>

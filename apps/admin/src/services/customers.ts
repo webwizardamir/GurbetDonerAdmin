@@ -270,6 +270,37 @@ export async function fetchCustomerItemsSummary(
   return (data as CustomerItemSummary[]) ?? []
 }
 
+export interface CustomerOrderProfit {
+  order_id: string
+  order_number: string
+  order_date: string
+  status: string
+  subtotal: number          // cents, ex-VAT, net of refunds
+  total_cost: number        // cents
+  profit: number | null     // cents (NULL for non-owners)
+  profit_margin: number | null
+}
+
+/**
+ * Per-order profit for one customer in a date range. Backed by the
+ * get_customer_orders RPC (migration 00069). Refund-correct and owner-gated:
+ * profit/profit_margin come back NULL for non-owner roles, so cost never
+ * reaches a Shop Manager. Callers should only invoke this for owners.
+ */
+export async function fetchCustomerOrders(
+  customerId: string,
+  startDate: string,
+  endDate: string,
+): Promise<CustomerOrderProfit[]> {
+  const { data, error } = await supabase.rpc('get_customer_orders', {
+    p_customer_id: customerId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+  })
+  if (error) throw error
+  return (data as CustomerOrderProfit[]) ?? []
+}
+
 // Check if email is already used by another customer
 export async function checkEmailExists(email: string, excludeCustomerId?: string): Promise<boolean> {
   if (!email || email.trim() === '') return false

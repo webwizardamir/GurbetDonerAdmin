@@ -25,7 +25,8 @@ import RefundModal from './RefundModal'
 import OrderNotesModal from './OrderNotesModal'
 import PaymentMethodModal from './PaymentMethodModal'
 import StatusBadge from '../ui/StatusBadge'
-import { formatQuantity, formatPrice, formatDateTime } from '../../utils/format'
+import { formatQuantity, formatPrice, formatDateTime, formatPercent, profitClass } from '../../utils/format'
+import { computeOrderProfit } from '../../utils/orderProfit'
 import Modal from '../ui/Modal'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 import { useAuth } from '../../context/AuthContext'
@@ -82,6 +83,9 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showRefundModal, setShowRefundModal] = useState(false)
   const [showNotesModal, setShowNotesModal] = useState(false)
+
+  // Owner-only per-order profit (revenue = subtotal, ex-VAT; cost = Σ cost_cents×qty).
+  const orderProfit = computeOrderProfit(order)
 
   const refundAmount = order.refund_amount ?? 0
   // A refund is possible while the order isn't cancelled and something is still
@@ -300,6 +304,15 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       BTW {item.tax_rate}%
                     </p>
+                    {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
+                      const lp = item.line_total - (item.cost_cents ?? 0) * item.quantity
+                      const lm = item.line_total > 0 ? (lp / item.line_total) * 100 : 0
+                      return (
+                        <p className={`text-[11px] font-medium tabular-nums ${profitClass(lp)}`}>
+                          {t('orders.profit.label')} {formatPrice(lp)} · {formatPercent(lm)}
+                        </p>
+                      )
+                    })()}
                   </div>
                 </div>
               ))}
@@ -375,6 +388,17 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
               <span className="text-slate-900 dark:text-white">{t('orders.total')}</span>
               <span className="text-green-600 dark:text-green-400">{formatPrice(order.total)}</span>
             </div>
+            {isOwner && orderProfit.totalCost > 0 && (
+              <div className="flex justify-between items-center text-sm pt-2 mt-1 border-t border-slate-200 dark:border-slate-600">
+                <span className="font-medium text-slate-600 dark:text-slate-400">{t('orders.profit.label')}</span>
+                <span className={`font-semibold tabular-nums ${profitClass(orderProfit.profit)}`}>
+                  {formatPrice(orderProfit.profit)}
+                  <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
+                    {t('orders.profit.marginShort', { pct: formatPercent(orderProfit.margin).replace('%', '') })}
+                  </span>
+                </span>
+              </div>
+            )}
             {(order.refund_amount ?? 0) > 0 && (
               <>
                 <div className="flex justify-between text-sm">

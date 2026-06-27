@@ -3,6 +3,7 @@ import {
   getCustomerPerformance,
   type CustomerPerformanceRow,
 } from '../services/analytics'
+import { filtersKey, type AnalyticsFilters } from '../services/analyticsHelpers'
 import type { DateRange } from './useDateRange'
 
 interface CustomerAnalyticsState {
@@ -11,8 +12,9 @@ interface CustomerAnalyticsState {
   customers: CustomerPerformanceRow[]
 }
 
-export function useCustomerAnalytics(dateRange: DateRange, statuses: string[] = []) {
+export function useCustomerAnalytics(dateRange: DateRange, statuses: string[] = [], filters: AnalyticsFilters = {}) {
   const statusKey = statuses.join(',')
+  const filterKey = filtersKey(filters)
   const [state, setState] = useState<CustomerAnalyticsState>({
     loading: true,
     error: null,
@@ -23,7 +25,7 @@ export function useCustomerAnalytics(dateRange: DateRange, statuses: string[] = 
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const customers = await getCustomerPerformance(dateRange.start, dateRange.end, statuses)
+      const customers = await getCustomerPerformance(dateRange.start, dateRange.end, statuses, filters)
 
       setState({
         loading: false,
@@ -38,7 +40,7 @@ export function useCustomerAnalytics(dateRange: DateRange, statuses: string[] = 
       }))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange.start, dateRange.end, statusKey])
+  }, [dateRange.start, dateRange.end, statusKey, filterKey])
 
   useEffect(() => {
     fetchData()

@@ -7,6 +7,7 @@ import {
   type MonthlyRow,
   type CategoryRevenueRow,
 } from '../services/analytics'
+import { filtersKey, type AnalyticsFilters } from '../services/analyticsHelpers'
 import type { DateRange } from './useDateRange'
 
 interface FinancialAnalyticsState {
@@ -18,8 +19,9 @@ interface FinancialAnalyticsState {
   selectedYear: number
 }
 
-export function useFinancialAnalytics(dateRange: DateRange, statuses: string[] = []) {
+export function useFinancialAnalytics(dateRange: DateRange, statuses: string[] = [], filters: AnalyticsFilters = {}) {
   const statusKey = statuses.join(',')
+  const filterKey = filtersKey(filters)
   const currentYear = new Date().getFullYear()
   const [state, setState] = useState<FinancialAnalyticsState>({
     loading: true,
@@ -37,7 +39,7 @@ export function useFinancialAnalytics(dateRange: DateRange, statuses: string[] =
       const { start, end } = dateRange
 
       const [summary, monthly, categories] = await Promise.all([
-        getFinancialSummary(start, end, statuses),
+        getFinancialSummary(start, end, statuses, filters),
         getMonthlyComparison(state.selectedYear, statuses),
         getRevenueByCategoryFlat(start, end, statuses),
       ])
@@ -58,7 +60,7 @@ export function useFinancialAnalytics(dateRange: DateRange, statuses: string[] =
       }))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange.start, dateRange.end, state.selectedYear, statusKey])
+  }, [dateRange.start, dateRange.end, state.selectedYear, statusKey, filterKey])
 
   useEffect(() => {
     fetchData()

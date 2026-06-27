@@ -13,6 +13,7 @@ import {
   type TopProduct,
   type KPIData,
 } from '../services/analytics'
+import { filtersKey, type AnalyticsFilters } from '../services/analyticsHelpers'
 import type { DateRange } from './useDateRange'
 
 // Re-export for backwards compatibility
@@ -30,8 +31,9 @@ interface OverviewData {
   kpis: KPIData | null
 }
 
-export function useOverviewAnalytics(dateRange: DateRange, statuses: string[] = []) {
+export function useOverviewAnalytics(dateRange: DateRange, statuses: string[] = [], filters: AnalyticsFilters = {}) {
   const statusKey = statuses.join(',')
+  const filterKey = filtersKey(filters)
   const [state, setState] = useState<OverviewData>({
     loading: true,
     error: null,
@@ -50,12 +52,12 @@ export function useOverviewAnalytics(dateRange: DateRange, statuses: string[] = 
       const { start, end } = dateRange
 
       const [revenueData, ordersByStatus, paymentBreakdown, topCustomers, topProducts, kpis] = await Promise.all([
-        getRevenueByDay(start, end, statuses),
+        getRevenueByDay(start, end, statuses, filters),
         getOrdersByStatus(start, end, statuses),
         getRevenueByPaymentMethod(start, end, statuses),
         getTopCustomers(start, end, 10, statuses),
-        getTopProducts(start, end, 10, statuses),
-        getKPIs(start, end, statuses),
+        getTopProducts(start, end, 10, statuses, filters),
+        getKPIs(start, end, statuses, filters),
       ])
 
       setState({
@@ -76,7 +78,7 @@ export function useOverviewAnalytics(dateRange: DateRange, statuses: string[] = 
       }))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange.start, dateRange.end, statusKey])
+  }, [dateRange.start, dateRange.end, statusKey, filterKey])
 
   useEffect(() => {
     fetchData()

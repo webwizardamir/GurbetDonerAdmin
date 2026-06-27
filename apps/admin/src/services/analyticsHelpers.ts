@@ -15,6 +15,49 @@ export function statusArg(statuses?: string[] | null): { p_statuses?: string[] }
 }
 
 /**
+ * Optional entity filters for the analytics RPCs. Each dimension is independent
+ * and nullable — an unset dimension means "all". Order-grained RPCs read
+ * customerId/paymentMethod; item-grained RPCs additionally read productId/unitType.
+ */
+export interface AnalyticsFilters {
+  customerId?: string | null
+  productId?: string | null
+  paymentMethod?: string | null   // 'cash' | 'bank'
+  unitType?: string | null        // 'kg' | 'piece' | 'zak' | 'doos'
+}
+
+/**
+ * Build the optional entity-filter args for an analytics RPC. Like `statusArg`,
+ * we OMIT keys that aren't set so the call still resolves against a DB that
+ * predates these params (migration 00069). `pass` limits which keys are emitted
+ * so order-grained RPCs don't get product/unit args they don't accept.
+ */
+export function entityArg(
+  f?: AnalyticsFilters | null,
+  pass: Array<keyof AnalyticsFilters> = ['customerId', 'productId', 'paymentMethod', 'unitType'],
+): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!f) return out
+  const map: Record<keyof AnalyticsFilters, string> = {
+    customerId: 'p_customer_id',
+    productId: 'p_product_id',
+    paymentMethod: 'p_payment_method',
+    unitType: 'p_unit_type',
+  }
+  for (const key of pass) {
+    const v = f[key]
+    if (v) out[map[key]] = v
+  }
+  return out
+}
+
+// Stable string key for an AnalyticsFilters object — for hook effect deps.
+export function filtersKey(f?: AnalyticsFilters | null): string {
+  if (!f) return ''
+  return `${f.customerId ?? ''}|${f.productId ?? ''}|${f.paymentMethod ?? ''}|${f.unitType ?? ''}`
+}
+
+/**
  * Process an array in chunks to avoid Supabase `.in()` limits.
  * Supabase/PostgREST can struggle with very large IN lists,
  * so we cap each batch at 500 IDs.

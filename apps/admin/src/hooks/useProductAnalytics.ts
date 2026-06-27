@@ -7,6 +7,7 @@ import {
   type SlowMoverRow,
   type CategoryRevenueRow,
 } from '../services/analytics'
+import { filtersKey, type AnalyticsFilters } from '../services/analyticsHelpers'
 import type { DateRange } from './useDateRange'
 
 interface ProductAnalyticsState {
@@ -17,8 +18,9 @@ interface ProductAnalyticsState {
   categories: CategoryRevenueRow[]
 }
 
-export function useProductAnalytics(dateRange: DateRange, statuses: string[] = []) {
+export function useProductAnalytics(dateRange: DateRange, statuses: string[] = [], filters: AnalyticsFilters = {}) {
   const statusKey = statuses.join(',')
+  const filterKey = filtersKey(filters)
   const [state, setState] = useState<ProductAnalyticsState>({
     loading: true,
     error: null,
@@ -34,7 +36,7 @@ export function useProductAnalytics(dateRange: DateRange, statuses: string[] = [
       const { start, end } = dateRange
 
       const [products, slowMovers, categories] = await Promise.all([
-        getProductPerformance(start, end, statuses),
+        getProductPerformance(start, end, statuses, filters),
         getSlowMovers(60),
         getRevenueByCategoryFlat(start, end, statuses),
       ])
@@ -54,7 +56,7 @@ export function useProductAnalytics(dateRange: DateRange, statuses: string[] = [
       }))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange.start, dateRange.end, statusKey])
+  }, [dateRange.start, dateRange.end, statusKey, filterKey])
 
   useEffect(() => {
     fetchData()

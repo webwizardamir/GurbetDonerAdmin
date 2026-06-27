@@ -1,5 +1,9 @@
 {
   "common": {
+    "filters": {
+      "active": "Active filters",
+      "clearAll": "Clear all"
+    },
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -166,7 +170,9 @@
       "awaitingPayment": "Awaiting Payment",
       "stockAlerts": "Stock Alerts",
       "yesterdayRevenue": "Yesterday's Revenue",
-      "deliveriesToday": "Deliveries Today"
+      "deliveriesToday": "Deliveries Today",
+      "profitToday": "Profit Today",
+      "profitYesterday": "Profit Yesterday"
     },
     "action": {
       "title": "Action Required",
@@ -297,6 +303,16 @@
       "last30": "Last 30 Days",
       "last90": "Last 90 Days",
       "thisYear": "This Year"
+    },
+    "ordersSummary": {
+      "revenue": "Revenue",
+      "profit": "Profit",
+      "margin": "Margin",
+      "orders": "Orders"
+    },
+    "orderProfit": {
+      "label": "Profit",
+      "margin": "Margin"
     },
     "products": {
       "tab": "Products",
@@ -459,6 +475,12 @@
       "discount": "Discount",
       "total": "Total",
       "cogShort": "Cost"
+    },
+    "profit": {
+      "label": "Profit",
+      "margin": "Margin",
+      "marginShort": "({{pct}}% margin)",
+      "lineLabel": "Line profit"
     },
     "backToOrders": "Back to Orders",
     "saveOrder": "Save Order",
@@ -671,6 +693,21 @@
   },
   "analytics": {
     "title": "Analytics",
+    "filters": {
+      "customer": "Customer",
+      "allCustomers": "All customers",
+      "product": "Product",
+      "allProducts": "All products",
+      "payment": "Payment",
+      "allPayments": "All payment methods",
+      "cash": "Cash",
+      "bank": "Bank",
+      "unitType": "Unit",
+      "allUnits": "All units",
+      "searchCustomer": "Search customer…",
+      "searchProduct": "Search product…",
+      "noResults": "No results for these filters"
+    },
     "revenue": "Revenue",
     "orders": "Orders",
     "averageOrder": "Avg. Order",

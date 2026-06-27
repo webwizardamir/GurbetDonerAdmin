@@ -3,6 +3,7 @@ import {
   getOrderPerformance,
   type OrderPerformanceRow,
 } from '../services/analytics'
+import { filtersKey, type AnalyticsFilters } from '../services/analyticsHelpers'
 import type { DateRange } from './useDateRange'
 
 interface OrderAnalyticsState {
@@ -11,8 +12,9 @@ interface OrderAnalyticsState {
   orders: OrderPerformanceRow[]
 }
 
-export function useOrderAnalytics(dateRange: DateRange, statuses: string[] = []) {
+export function useOrderAnalytics(dateRange: DateRange, statuses: string[] = [], filters: AnalyticsFilters = {}) {
   const statusKey = statuses.join(',')
+  const filterKey = filtersKey(filters)
   const [state, setState] = useState<OrderAnalyticsState>({
     loading: true,
     error: null,
@@ -24,7 +26,7 @@ export function useOrderAnalytics(dateRange: DateRange, statuses: string[] = [])
 
     try {
       const { start, end } = dateRange
-      const orders = await getOrderPerformance(start, end, statuses)
+      const orders = await getOrderPerformance(start, end, statuses, filters)
 
       setState({
         loading: false,
@@ -39,7 +41,7 @@ export function useOrderAnalytics(dateRange: DateRange, statuses: string[] = [])
       }))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange.start, dateRange.end, statusKey])
+  }, [dateRange.start, dateRange.end, statusKey, filterKey])
 
   useEffect(() => {
     fetchData()

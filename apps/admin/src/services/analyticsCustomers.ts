@@ -2,7 +2,7 @@
 // Uses server-side RPC functions to avoid PostgREST 1000-row limit
 
 import { supabase } from './supabase'
-import { statusArg } from './analyticsHelpers'
+import { statusArg, entityArg, type AnalyticsFilters } from './analyticsHelpers'
 
 export interface TopCustomer {
   id: string
@@ -76,12 +76,14 @@ export async function getTopCustomers(
 export async function getCustomerPerformance(
   startDate?: string,
   endDate?: string,
-  statuses?: string[] | null
+  statuses?: string[] | null,
+  filters?: AnalyticsFilters | null
 ): Promise<CustomerPerformanceRow[]> {
   const { data, error } = await supabase.rpc('get_customer_performance', {
     p_start_date: startDate || null,
     p_end_date: endDate || null,
     ...statusArg(statuses),
+    ...entityArg(filters, ['customerId', 'paymentMethod']),
   })
 
   if (error) throw error

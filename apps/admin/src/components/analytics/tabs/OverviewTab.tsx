@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useOverviewAnalytics } from '../../../hooks/useAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
+import type { AnalyticsFilters } from '../../../services/analyticsHelpers'
 import StatCard from '../../StatCard'
 import RevenueChart from '../RevenueChart'
 import OrdersChart from '../OrdersChart'
@@ -34,9 +35,10 @@ const marginPct = (revenue: number, profit: number) => (revenue > 0 ? Math.round
 interface OverviewTabProps {
   dateRange: DateRange
   statuses?: string[]
+  filters?: AnalyticsFilters
 }
 
-export default function OverviewTab({ dateRange, statuses = [] }: OverviewTabProps) {
+export default function OverviewTab({ dateRange, statuses = [], filters = {} }: OverviewTabProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const {
@@ -48,7 +50,7 @@ export default function OverviewTab({ dateRange, statuses = [] }: OverviewTabPro
     topCustomers,
     topProducts,
     kpis,
-  } = useOverviewAnalytics(dateRange, statuses)
+  } = useOverviewAnalytics(dateRange, statuses, filters)
 
   // The DOM region captured for the "whole page" PDF (excludes the export bar).
   const captureRef = useRef<HTMLDivElement>(null)

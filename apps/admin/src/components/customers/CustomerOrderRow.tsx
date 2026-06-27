@@ -15,7 +15,8 @@ import {
 import type { DocumentType, PaymentMethod } from '../../types'
 import type { CustomerOrder } from '../../hooks/useCustomerDetail'
 import DocumentGenerator from '../documents/DocumentGenerator'
-import { formatPrice, formatDate } from '../../utils/format'
+import { formatPrice, formatDate, formatPercent, profitClass } from '../../utils/format'
+import { useAuth } from '../../context/AuthContext'
 
 interface CustomerOrderRowProps {
   order: CustomerOrder
@@ -136,6 +137,7 @@ export default function CustomerOrderRow({
   hasDocument,
   onDocumentGenerated,
 }: CustomerOrderRowProps) {
+  const { isOwner } = useAuth()
   const [expanded, setExpanded] = useState(false)
   const [selectedDocType, setSelectedDocType] = useState<DocumentType | null>(null)
 
@@ -201,12 +203,30 @@ export default function CustomerOrderRow({
             <p className="font-semibold text-slate-900 dark:text-white">
               {formatPrice(order.total)}
             </p>
+            {isOwner && order.profit != null && (
+              <p className={`hidden sm:block text-[11px] font-medium tabular-nums ${profitClass(order.profit)}`}>
+                {formatPrice(order.profit)}
+                {order.margin != null && <> · {formatPercent(order.margin)}</>}
+              </p>
+            )}
           </div>
         </button>
 
         {/* Expanded Content */}
         {expanded && (
           <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-4">
+            {/* Owner-only per-order profit */}
+            {isOwner && order.profit != null && (
+              <div className="mb-4 flex items-center justify-between rounded-lg bg-white dark:bg-slate-800 px-3 py-2">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Winst</span>
+                <span className={`text-sm font-semibold tabular-nums ${profitClass(order.profit)}`}>
+                  {formatPrice(order.profit)}
+                  {order.margin != null && (
+                    <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">{formatPercent(order.margin)}</span>
+                  )}
+                </span>
+              </div>
+            )}
             {/* Document Buttons */}
             <div className="mb-4">
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">

@@ -1,7 +1,7 @@
 // Dashboard KPIs, today's orders, and summary statistics
 
 import { supabase } from './supabase'
-import { statusArg } from './analyticsHelpers'
+import { statusArg, entityArg, type AnalyticsFilters } from './analyticsHelpers'
 
 // --- New dashboard interfaces (today-focused) ---
 
@@ -113,12 +113,14 @@ export interface DashboardStats {
 export async function getKPIs(
   startDate: string,
   endDate: string,
-  statuses?: string[] | null
+  statuses?: string[] | null,
+  filters?: AnalyticsFilters | null
 ): Promise<KPIData> {
   const { data, error } = await supabase.rpc('get_kpis', {
     p_start: startDate,
     p_end: endDate,
     ...statusArg(statuses),
+    ...entityArg(filters, ['customerId', 'paymentMethod']),
   })
 
   if (error) throw error

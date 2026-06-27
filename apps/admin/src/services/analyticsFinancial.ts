@@ -2,7 +2,7 @@
 // Uses server-side RPC functions for accurate aggregation (no row-limit issues).
 
 import { supabase } from './supabase'
-import { statusArg } from './analyticsHelpers'
+import { statusArg, entityArg, type AnalyticsFilters } from './analyticsHelpers'
 import type { PaymentMethod } from '../types'
 
 export interface RevenueDataPoint {
@@ -48,12 +48,14 @@ export interface MonthlyRow {
 export async function getRevenueByDay(
   startDate: string,
   endDate: string,
-  statuses?: string[] | null
+  statuses?: string[] | null,
+  filters?: AnalyticsFilters | null
 ): Promise<RevenueDataPoint[]> {
   const { data, error } = await supabase.rpc('get_revenue_by_day', {
     p_start: startDate,
     p_end: endDate,
     ...statusArg(statuses),
+    ...entityArg(filters, ['customerId', 'paymentMethod']),
   })
 
   if (error) throw error
@@ -96,12 +98,14 @@ export async function getRevenueByPaymentMethod(
 export async function getFinancialSummary(
   startDate: string,
   endDate: string,
-  statuses?: string[] | null
+  statuses?: string[] | null,
+  filters?: AnalyticsFilters | null
 ): Promise<FinancialSummary> {
   const { data, error } = await supabase.rpc('get_financial_summary', {
     p_start: startDate,
     p_end: endDate,
     ...statusArg(statuses),
+    ...entityArg(filters, ['customerId', 'paymentMethod']),
   })
 
   if (error) throw error

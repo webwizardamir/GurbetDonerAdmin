@@ -1,5 +1,9 @@
 {
   "common": {
+    "filters": {
+      "active": "Actieve filters",
+      "clearAll": "Alles wissen"
+    },
     "loading": "Laden...",
     "save": "Opslaan",
     "cancel": "Annuleren",
@@ -166,7 +170,9 @@
       "awaitingPayment": "Wacht op betaling",
       "stockAlerts": "Voorraadwaarschuwingen",
       "yesterdayRevenue": "Omzet gisteren",
-      "deliveriesToday": "Leveringen vandaag"
+      "deliveriesToday": "Leveringen vandaag",
+      "profitToday": "Winst vandaag",
+      "profitYesterday": "Winst gisteren"
     },
     "action": {
       "title": "Actie vereist",
@@ -297,6 +303,16 @@
       "last30": "Laatste 30 dagen",
       "last90": "Laatste 90 dagen",
       "thisYear": "Dit jaar"
+    },
+    "ordersSummary": {
+      "revenue": "Omzet",
+      "profit": "Winst",
+      "margin": "Marge",
+      "orders": "Bestellingen"
+    },
+    "orderProfit": {
+      "label": "Winst",
+      "margin": "Marge"
     },
     "products": {
       "tab": "Producten",
@@ -459,6 +475,12 @@
       "discount": "Korting",
       "total": "Totaal",
       "cogShort": "Inkoop"
+    },
+    "profit": {
+      "label": "Winst",
+      "margin": "Marge",
+      "marginShort": "({{pct}}% marge)",
+      "lineLabel": "Regelwinst"
     },
     "backToOrders": "Terug naar bestellingen",
     "saveOrder": "Bestelling opslaan",
@@ -671,6 +693,21 @@
   },
   "analytics": {
     "title": "Analyses",
+    "filters": {
+      "customer": "Klant",
+      "allCustomers": "Alle klanten",
+      "product": "Product",
+      "allProducts": "Alle producten",
+      "payment": "Betaling",
+      "allPayments": "Alle betaalwijzen",
+      "cash": "Contant",
+      "bank": "Bank",
+      "unitType": "Eenheid",
+      "allUnits": "Alle eenheden",
+      "searchCustomer": "Klant zoeken…",
+      "searchProduct": "Product zoeken…",
+      "noResults": "Geen resultaten voor deze filters"
+    },
     "revenue": "Omzet",
     "orders": "Bestellingen",
     "averageOrder": "Gem. bestelling",

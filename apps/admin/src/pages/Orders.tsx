@@ -39,10 +39,13 @@ import BulkActionsBar from '../components/orders/BulkActionsBar'
 import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
 import { orderExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
-import { formatPrice, formatDateShort } from '../utils/format'
+import { formatPrice, formatDateShort, formatPercent, profitClass } from '../utils/format'
+import { computeOrderProfit } from '../utils/orderProfit'
+import { useAuth } from '../context/AuthContext'
 
 export default function Orders() {
   const { t } = useTranslation()
+  const { isOwner } = useAuth()
   const navigate = useNavigate()
   const { canCreate, canEdit, canDelete } = usePermission('orders')
   const { orders, loading, error, filters, setFilters, refresh, remove, page, setPage, totalPages, totalCount } = useOrders()
@@ -434,7 +437,18 @@ export default function Orders() {
                           )
                         })()}
                       </td>
-                      <td className="px-4 py-4 text-right"><span className="font-semibold text-slate-900 dark:text-white">{formatPrice(order.total)}</span></td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-semibold text-slate-900 dark:text-white">{formatPrice(order.total)}</span>
+                        {isOwner && (() => {
+                          const op = computeOrderProfit(order)
+                          if (op.totalCost <= 0) return null
+                          return (
+                            <span className={`block text-[11px] font-medium tabular-nums ${profitClass(op.profit)}`}>
+                              {formatPrice(op.profit)} · {formatPercent(op.margin)}
+                            </span>
+                          )
+                        })()}
+                      </td>
                       <td className="px-4 py-4 text-right" onClick={e => e.stopPropagation()}>
                         {trashed ? (
                           <div className="flex items-center justify-end gap-1">
@@ -542,6 +556,15 @@ export default function Orders() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-semibold text-green-600 dark:text-green-400">{formatPrice(order.total)}</p>
+                    {isOwner && (() => {
+                      const op = computeOrderProfit(order)
+                      if (op.totalCost <= 0) return null
+                      return (
+                        <p className={`text-[11px] font-medium tabular-nums ${profitClass(op.profit)}`}>
+                          {formatPrice(op.profit)} · {formatPercent(op.margin)}
+                        </p>
+                      )
+                    })()}
                     <StatusBadge status={trashed ? (order.pre_trash_status || order.status) : order.status} />
                     {(order.refund_amount ?? 0) > 0 && (order.refund_amount ?? 0) < order.total && (
                       <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 whitespace-nowrap">

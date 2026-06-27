@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useProductAnalytics } from '../../../hooks/useProductAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
+import type { AnalyticsFilters } from '../../../services/analyticsHelpers'
 import type { ProductPerformanceRow } from '../../../services/analytics'
 import StatCard from '../../StatCard'
 import { formatChartCurrency } from '../ChartColors'
@@ -23,14 +24,15 @@ import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '..
 interface ProductsTabProps {
   dateRange: DateRange
   statuses?: string[]
+  filters?: AnalyticsFilters
 }
 
 type SortKey = 'productName' | 'totalRevenue' | 'totalCogs' | 'totalProfit' | 'profitMargin' | 'totalQuantity' | 'orderCount' | 'abcClass'
 type SortDir = 'asc' | 'desc'
 
-export default function ProductsTab({ dateRange, statuses = [] }: ProductsTabProps) {
+export default function ProductsTab({ dateRange, statuses = [], filters = {} }: ProductsTabProps) {
   const { t } = useTranslation()
-  const { loading, error, products, slowMovers } = useProductAnalytics(dateRange, statuses)
+  const { loading, error, products, slowMovers } = useProductAnalytics(dateRange, statuses, filters)
   const [sortKey, setSortKey] = useState<SortKey>('totalRevenue')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [search, setSearch] = useState('')

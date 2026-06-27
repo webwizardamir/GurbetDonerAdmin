@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useOrderAnalytics } from '../../../hooks/useOrderAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
+import type { AnalyticsFilters } from '../../../services/analyticsHelpers'
 import StatCard from '../../StatCard'
 import { formatChartCurrency } from '../ChartColors'
 import { formatDate, formatPercent } from '../../../utils/format'
@@ -22,14 +23,15 @@ import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '..
 interface OrdersTabProps {
   dateRange: DateRange
   statuses?: string[]
+  filters?: AnalyticsFilters
 }
 
 type SortKey = 'orderNumber' | 'orderDate' | 'customerName' | 'status' | 'paymentMethod' | 'subtotal' | 'total' | 'totalCost' | 'profit' | 'profitMargin' | 'taxAmount'
 type SortDir = 'asc' | 'desc'
 
-export default function OrdersTab({ dateRange, statuses = [] }: OrdersTabProps) {
+export default function OrdersTab({ dateRange, statuses = [], filters = {} }: OrdersTabProps) {
   const { t } = useTranslation()
-  const { loading, error, orders } = useOrderAnalytics(dateRange, statuses)
+  const { loading, error, orders } = useOrderAnalytics(dateRange, statuses, filters)
   const [sortKey, setSortKey] = useState<SortKey>('orderDate')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [paymentFilter, setPaymentFilter] = useState('')

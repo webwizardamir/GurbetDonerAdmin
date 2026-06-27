@@ -15,6 +15,8 @@ import { useAuth } from '../context/AuthContext'
 import { useDateRange } from '../hooks/useDateRange'
 import DateRangePicker from '../components/analytics/DateRangePicker'
 import StatusFilter from '../components/analytics/StatusFilter'
+import EntityFilter from '../components/analytics/EntityFilter'
+import type { AnalyticsFilters } from '../services/analyticsHelpers'
 import OverviewTab from '../components/analytics/tabs/OverviewTab'
 
 const ProductsTab = lazy(() => import('../components/analytics/tabs/ProductsTab'))
@@ -42,6 +44,7 @@ export default function Analytics() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
   const [refreshKey, setRefreshKey] = useState(0)
   const [statuses, setStatuses] = useState<string[]>([])
+  const [filters, setFilters] = useState<AnalyticsFilters>({})
 
   // Redirect non-owners
   useEffect(() => {
@@ -112,6 +115,22 @@ export default function Analytics() {
         </div>
       </div>
 
+      {/* Granular entity filters (slice profit by customer / product / payment / unit).
+          Inventory tab has no order dimension, so it's hidden there. Order-grained tabs
+          (Orders/Customers/Financial) only honour customer + payment server-side, so the
+          product/unit pickers are hidden there to avoid a misleading no-op. */}
+      {activeTab !== 'inventory' && (
+        <EntityFilter
+          value={filters}
+          onChange={setFilters}
+          dims={
+            activeTab === 'overview' || activeTab === 'products'
+              ? ['customer', 'product', 'payment', 'unit']
+              : ['customer', 'payment']
+          }
+        />
+      )}
+
       {/* Tab Content */}
       <Suspense
         fallback={
@@ -120,11 +139,11 @@ export default function Analytics() {
           </div>
         }
       >
-        {activeTab === 'overview' && <OverviewTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
-        {activeTab === 'products' && <ProductsTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
-        {activeTab === 'customers' && <CustomersTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
-        {activeTab === 'orders' && <OrdersTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
-        {activeTab === 'financial' && <FinancialTab key={refreshKey} dateRange={dateRange} statuses={statuses} />}
+        {activeTab === 'overview' && <OverviewTab key={refreshKey} dateRange={dateRange} statuses={statuses} filters={filters} />}
+        {activeTab === 'products' && <ProductsTab key={refreshKey} dateRange={dateRange} statuses={statuses} filters={filters} />}
+        {activeTab === 'customers' && <CustomersTab key={refreshKey} dateRange={dateRange} statuses={statuses} filters={filters} onSelectCustomer={cid => setFilters(f => ({ ...f, customerId: cid }))} />}
+        {activeTab === 'orders' && <OrdersTab key={refreshKey} dateRange={dateRange} statuses={statuses} filters={filters} />}
+        {activeTab === 'financial' && <FinancialTab key={refreshKey} dateRange={dateRange} statuses={statuses} filters={filters} />}
         {activeTab === 'inventory' && <InventoryTab key={refreshKey} dateRange={dateRange} />}
       </Suspense>
     </div>

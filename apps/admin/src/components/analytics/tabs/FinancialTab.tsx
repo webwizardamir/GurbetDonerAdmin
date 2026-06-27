@@ -11,6 +11,7 @@ import {
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { useFinancialAnalytics } from '../../../hooks/useFinancialAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
+import type { AnalyticsFilters } from '../../../services/analyticsHelpers'
 import StatCard from '../../StatCard'
 import { formatChartCurrency, formatChartCompactCurrency, useChartColors } from '../ChartColors'
 import { formatPercent, formatCount } from '../../../utils/format'
@@ -18,11 +19,12 @@ import { formatPercent, formatCount } from '../../../utils/format'
 interface FinancialTabProps {
   dateRange: DateRange
   statuses?: string[]
+  filters?: AnalyticsFilters
 }
 
-export default function FinancialTab({ dateRange, statuses = [] }: FinancialTabProps) {
+export default function FinancialTab({ dateRange, statuses = [], filters = {} }: FinancialTabProps) {
   const { t } = useTranslation()
-  const { loading, error, summary, monthly, selectedYear, setYear } = useFinancialAnalytics(dateRange, statuses)
+  const { loading, error, summary, monthly, selectedYear, setYear } = useFinancialAnalytics(dateRange, statuses, filters)
   const { colors } = useChartColors()
 
   const currentYear = new Date().getFullYear()

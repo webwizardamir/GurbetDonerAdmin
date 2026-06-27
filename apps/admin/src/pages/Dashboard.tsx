@@ -119,7 +119,8 @@ export default function Dashboard() {
         ordersToday: 'orders_today' in rawTodayStats ? rawTodayStats.orders_today : 0,
         pendingCount: 'pending_count' in rawTodayStats ? rawTodayStats.pending_count : 0,
         lowStockCount: lowStockProducts.length,
-        yesterdayRevenue: isOwner && 'yesterday_revenue' in rawTodayStats ? rawTodayStats.yesterday_revenue : undefined,
+        revenueToday: isOwner && 'revenue_today' in rawTodayStats ? rawTodayStats.revenue_today : undefined,
+        profitToday: isOwner && 'profit_today' in rawTodayStats ? rawTodayStats.profit_today : undefined,
         deliveriesToday: !isOwner && 'deliveries_today' in rawTodayStats ? rawTodayStats.deliveries_today : undefined,
       }
     : null

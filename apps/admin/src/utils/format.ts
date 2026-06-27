@@ -106,6 +106,15 @@ export function formatRatio(value: number, decimals = 2): string {
   return getDecimalFormatter(decimals).format(value)
 }
 
+// Tailwind text-color classes for a profit/margin figure: emerald when
+// positive/zero, red when negative. Single source for the convention used
+// across orders, customer detail and analytics.
+export function profitClass(n: number): string {
+  return n >= 0
+    ? 'text-emerald-700 dark:text-emerald-400'
+    : 'text-red-700 dark:text-red-400'
+}
+
 /**
  * Format a quantity with smart decimal handling.
  * - Integers shown without decimals (5 not 5,00)

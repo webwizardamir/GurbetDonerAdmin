@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../services/supabase'
-import { fetchCustomerItemsSummary, type CustomerItemSummary } from '../services/customers'
+import { fetchCustomerItemsSummary, fetchCustomerOrders, type CustomerItemSummary, type CustomerOrderProfit } from '../services/customers'
 import { useAuth } from '../context/AuthContext'
 import type { Customer, Document, DocumentType, PaymentMethod } from '../types'
 
@@ -16,6 +16,10 @@ export interface CustomerOrder {
   total: number
   refund_amount: number
   created_at: string
+  // Owner-only per-order profit/margin (cents / %), from the server-gated
+  // get_customer_orders RPC. NULL/undefined for non-owners so cost never leaks.
+  profit?: number | null
+  margin?: number | null
   items: Array<{
     id: string
     product_name: string
@@ -88,7 +92,7 @@ export function useCustomerDetail(customerId: string | undefined) {
       // profit for non-owners, so we only bother calling it for owners.
       const allTimeStart = '2000-01-01'
       const allTimeEnd = new Date().toISOString().split('T')[0]
-      const [customerResult, ordersResult, itemsSummary] = await Promise.all([
+      const [customerResult, ordersResult, itemsSummary, orderProfits] = await Promise.all([
         supabase
           .from('customers')
           .select('*, price_list:price_lists(id, name, is_active)')
@@ -117,6 +121,11 @@ export function useCustomerDetail(customerId: string | undefined) {
           // back to an empty set (profit shows as €0,00).
           ? fetchCustomerItemsSummary(customerId, allTimeStart, allTimeEnd).catch(() => [] as CustomerItemSummary[])
           : Promise.resolve([] as CustomerItemSummary[]),
+        // Owner-only: per-order profit (refund-correct, server-gated). Non-owners
+        // skip the call entirely so cost never reaches their browser.
+        isOwner
+          ? fetchCustomerOrders(customerId, allTimeStart, allTimeEnd).catch(() => [] as CustomerOrderProfit[])
+          : Promise.resolve([] as CustomerOrderProfit[]),
       ])
 
       if (customerResult.error) throw customerResult.error
@@ -124,6 +133,10 @@ export function useCustomerDetail(customerId: string | undefined) {
 
       const customer = customerResult.data
       const rawOrders = ordersResult.data || []
+
+      // Per-order profit lookup (owner-only; empty for non-owners).
+      const profitByOrder = new Map<string, CustomerOrderProfit>()
+      for (const p of orderProfits) profitByOrder.set(p.order_id, p)
 
       // Fetch documents for all orders
       const orderIds = rawOrders.map(o => o.id)
@@ -161,6 +174,8 @@ export function useCustomerDetail(customerId: string | undefined) {
         total: Number(order.total) || 0,
         refund_amount: Number(order.refund_amount) || 0,
         created_at: order.created_at,
+        profit: profitByOrder.get(order.id)?.profit ?? null,
+        margin: profitByOrder.get(order.id)?.profit_margin ?? null,
         items: (order.items || []).map((item: Record<string, unknown>) => ({
           id: item.id as string,
           product_name: item.product_name as string,
