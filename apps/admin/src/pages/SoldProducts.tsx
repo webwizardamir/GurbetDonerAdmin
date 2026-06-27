@@ -391,7 +391,7 @@ export default function SoldProducts() {
               <>
                 {/* Desktop Table — body scrolls, header stays pinned */}
                 <div className="hidden md:block max-h-[70vh] overflow-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[800px]">
                     <thead className="sticky top-0 z-10">
                       <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700">
                         <SortableTh sortKey="product"  current={sortKey} dir={sortDir} onToggle={toggleSort} className={stickyTh}>{t('soldProducts.table.product')}</SortableTh>

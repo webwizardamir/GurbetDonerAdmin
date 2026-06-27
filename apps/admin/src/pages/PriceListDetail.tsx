@@ -233,7 +233,7 @@ export default function PriceListDetail() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+          <table className="w-full min-w-[700px] divide-y divide-slate-200 dark:divide-slate-700">
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
                 <SortableTh sortKey="product_code" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.detail.columns.productId')}</SortableTh>

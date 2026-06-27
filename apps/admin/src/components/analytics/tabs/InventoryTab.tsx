@@ -70,7 +70,7 @@ export default function InventoryTab({ dateRange }: InventoryTabProps) {
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('analytics.inventory.turnoverNote')}</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+            <table className="w-full min-w-[700px] divide-y divide-slate-200 dark:divide-slate-700">
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.inventory.product')}</th>

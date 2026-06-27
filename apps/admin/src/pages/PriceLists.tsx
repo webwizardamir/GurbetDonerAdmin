@@ -144,7 +144,8 @@ export default function PriceLists() {
             </button>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px] divide-y divide-slate-200 dark:divide-slate-700">
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
                 <SortableTh sortKey="name"        current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('priceLists.columns.name')}</SortableTh>
@@ -218,6 +219,7 @@ export default function PriceLists() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

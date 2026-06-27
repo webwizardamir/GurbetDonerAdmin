@@ -207,8 +207,9 @@ export default function OverdueInvoices() {
         </div>
 
         {/* Desktop table */}
-        <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-visible">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+        <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] divide-y divide-slate-200 dark:divide-slate-700">
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
                 <Th>{t('overdue.cols.invoice')}</Th>
@@ -305,6 +306,7 @@ export default function OverdueInvoices() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
         </>
       )}

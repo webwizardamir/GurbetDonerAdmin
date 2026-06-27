@@ -144,7 +144,7 @@ export default function FinancialTab({ dateRange, statuses = [] }: FinancialTabP
             <h3 className="font-semibold text-slate-900 dark:text-white">{t('analytics.financial.periodComparison')}</h3>
           </div>
           <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+          <table className="w-full min-w-[700px] divide-y divide-slate-200 dark:divide-slate-700">
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('analytics.financial.metric')}</th>

@@ -233,7 +233,7 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+            <table className="w-full min-w-[900px] divide-y divide-slate-200 dark:divide-slate-700">
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
                   <th className="px-2 py-3 w-8" />
@@ -344,8 +344,8 @@ function ExpandedOrders({
     return <p className="text-sm text-slate-500 dark:text-slate-400 italic">{t('customerDetail.products.noOrdersForLine')}</p>
   }
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <table className="min-w-full text-xs">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto">
+      <table className="w-full min-w-[500px] text-xs">
         <thead className="bg-slate-100 dark:bg-slate-800">
           <tr>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('customerDetail.products.expanded.orderNumber')}</th>
