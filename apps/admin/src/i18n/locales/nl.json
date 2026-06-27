@@ -463,6 +463,7 @@
     "orderDetails": "Bestelgegevens",
     "orderNumber": "Bestelnummer",
     "orderColumn": "Klant / Bestelling",
+    "createdColumn": "Aangemaakt",
     "orderDate": "Besteldatum",
     "customer": "Klant",
     "selectCustomer": "Selecteer klant",

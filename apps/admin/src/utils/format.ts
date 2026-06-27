@@ -25,6 +25,16 @@ const dateShortFormatter = new Intl.DateTimeFormat('nl-NL', {
   year: 'numeric',
 })
 
+const dayMonthFormatter = new Intl.DateTimeFormat('nl-NL', {
+  day: '2-digit',
+  month: '2-digit',
+})
+
+const timeShortFormatter = new Intl.DateTimeFormat('nl-NL', {
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
 const countFormatter = new Intl.NumberFormat('nl-NL', {
   maximumFractionDigits: 0,
 })
@@ -83,6 +93,16 @@ export function formatDateTime(dateString: string): string {
 // Format date for display (e.g., "15 jan 2024")
 export function formatDateShort(dateString: string): string {
   return dateShortFormatter.format(new Date(dateString))
+}
+
+// Year-less day/month for dense columns (e.g. "27-06"). Full date lives in a title/tooltip.
+export function formatDayMonth(dateString: string): string {
+  return dayMonthFormatter.format(new Date(dateString))
+}
+
+// Local time only (e.g. "14:32").
+export function formatTimeShort(dateString: string): string {
+  return timeShortFormatter.format(new Date(dateString))
 }
 
 // Integer count with thousand separator (e.g., "1.234").

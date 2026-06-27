@@ -39,9 +39,14 @@ import BulkActionsBar from '../components/orders/BulkActionsBar'
 import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
 import { orderExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
-import { formatPrice, formatDateShort, formatPercent, profitClass } from '../utils/format'
+import { formatPrice, formatDateShort, formatDateTime, formatDayMonth, formatTimeShort, formatPercent, profitClass } from '../utils/format'
 import { computeOrderProfit } from '../utils/orderProfit'
 import { useAuth } from '../context/AuthContext'
+
+// Canonical status order for the filter dropdown. MUST include every status the DB can hold
+// (incl. `pending`, the value new in-app orders get) so a real status never shows count 0 by
+// being absent from the list. Any other status present in the counts is appended dynamically.
+const STATUS_FILTER_ORDER = ['draft', 'pending', 'pending_payment', 'on_hold', 'completed', 'cancelled', 'refunded']
 
 export default function Orders() {
   const { t } = useTranslation()
@@ -126,13 +131,16 @@ export default function Orders() {
   }, [orders, searchQuery, documentInfo])
 
   // Phase 6: sortable columns. Default = order_date desc (newest first)
-  type OrderSortKey = 'order_number' | 'customer' | 'order_date' | 'status' | 'invoice' | 'total'
-  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<OrderSortKey>('order_date', 'desc')
+  type OrderSortKey = 'order_number' | 'customer' | 'order_date' | 'created_at' | 'status' | 'invoice' | 'total'
+  // Default: newest-created first (matches the server's created_at-desc fetch), so the order
+  // you just entered sits at the top even if its order_date is back/forward-dated.
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<OrderSortKey>('created_at', 'desc')
 
   const filteredOrders = useMemo(() => sortBy(filteredOrdersUnsorted, {
     order_number: o => o.order_number,
     customer:     o => o.customer?.company_name ?? '',
     order_date:   o => o.order_date ?? o.created_at ?? '',
+    created_at:   o => o.created_at ?? '',
     status:       o => o.status,
     invoice:      o => documentInfo.get(o.id)?.invoiceNumber ?? (o.woo_invoice_number ? String(o.woo_invoice_number) : ''),
     total:        o => o.total ?? 0,
@@ -279,12 +287,14 @@ export default function Orders() {
             <select value={filters.status || ''} onChange={e => handleStatusFilter(e.target.value as OrderStatus | '')}
               className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
               <option value="">{t('orders.allStatus')} ({statusCounts.total})</option>
-              <option value="draft">{t('orders.status.draft')} ({statusCounts.draft ?? 0})</option>
-              <option value="pending_payment">{t('orders.status.pending_payment')} ({statusCounts.pending_payment ?? 0})</option>
-              <option value="on_hold">{t('orders.status.on_hold')} ({statusCounts.on_hold ?? 0})</option>
-              <option value="completed">{t('orders.status.completed')} ({statusCounts.completed ?? 0})</option>
-              <option value="cancelled">{t('orders.status.cancelled')} ({statusCounts.cancelled ?? 0})</option>
-              <option value="refunded">{t('orders.status.refunded')} ({statusCounts.refunded ?? 0})</option>
+              {STATUS_FILTER_ORDER.map(s => (
+                <option key={s} value={s}>{t(`orders.status.${s}`)} ({statusCounts[s] ?? 0})</option>
+              ))}
+              {Object.keys(statusCounts)
+                .filter(s => s !== 'total' && !STATUS_FILTER_ORDER.includes(s) && (statusCounts[s] ?? 0) > 0)
+                .map(s => (
+                  <option key={s} value={s}>{t(`orders.status.${s}`, { defaultValue: s })} ({statusCounts[s]})</option>
+                ))}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
@@ -371,7 +381,7 @@ export default function Orders() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[930px] lg:min-w-[1040px]">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
                   <th className="pl-4 pr-2 py-3 w-10">
@@ -380,8 +390,9 @@ export default function Orders() {
                   </th>
                   <SortableTh sortKey="order_number" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.orderColumn')}</SortableTh>
                   <SortableTh sortKey="order_date"   current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('common.date')}</SortableTh>
+                  <SortableTh sortKey="created_at"   current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.createdColumn')}</SortableTh>
                   <SortableTh sortKey="status"       current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('common.status')}</SortableTh>
-                  <SortableTh sortKey="invoice"      current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.invoice')}</SortableTh>
+                  <SortableTh sortKey="invoice"      current={sortKey} dir={sortDir} onToggle={toggleSort} className="hidden lg:table-cell">{t('orders.invoice')}</SortableTh>
                   <SortableTh sortKey="total"        current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('common.total')}</SortableTh>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('common.actions')}</th>
                 </tr>
@@ -414,8 +425,14 @@ export default function Orders() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400"><Calendar className="w-4 h-4" />{formatDateShort(order.order_date)}</div>
                       </td>
+                      <td className="px-4 py-4 w-[104px] whitespace-nowrap">
+                        <div className="flex flex-col leading-tight tabular-nums" title={formatDateTime(order.created_at)}>
+                          <span className="text-sm text-slate-600 dark:text-slate-400">{formatDayMonth(order.created_at)}</span>
+                          <span className="text-xs text-slate-400 dark:text-slate-500">{formatTimeShort(order.created_at)}</span>
+                        </div>
+                      </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex flex-col items-start gap-1">
                           <StatusBadge status={trashed ? (order.pre_trash_status || order.status) : order.status} />
                           <PaymentBadge method={order.payment_method} />
                           {(order.refund_amount ?? 0) > 0 && (order.refund_amount ?? 0) < order.total && (
@@ -425,7 +442,7 @@ export default function Orders() {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4 hidden lg:table-cell">
                         {(() => {
                           const invoice = docInfo.invoiceNumber || (order.woo_invoice_number ? String(order.woo_invoice_number) : null)
                           if (!invoice) return <span className="text-sm text-slate-400 dark:text-slate-500">-</span>
@@ -463,9 +480,9 @@ export default function Orders() {
                             </button>
                           </div>
                         ) : (
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-0.5">
                           {docInfo.count > 1 && (
-                            <div className="relative p-2" title={`${docInfo.count} documents generated`}>
+                            <div className="relative p-1.5" title={`${docInfo.count} documents generated`}>
                               <FileText className="w-4 h-4 text-violet-500" />
                               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-violet-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{docInfo.count}</span>
                             </div>
@@ -476,7 +493,7 @@ export default function Orders() {
                             const allOk = s.failed === 0
                             return (
                               <div
-                                className="relative p-2"
+                                className="relative p-1.5"
                                 title={`${s.sent}/${s.total} ${allOk ? 'sent' : `sent (${s.failed} failed)`}`}
                               >
                                 <Mail className={`w-4 h-4 ${allOk ? 'text-emerald-500' : 'text-red-500'}`} />
@@ -553,6 +570,7 @@ export default function Orders() {
                       )}
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">#{order.order_number} · {formatDateShort(order.order_date)} · {order.items?.length || 0} items</p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 tabular-nums">{t('orders.createdColumn')} {formatDayMonth(order.created_at)} {formatTimeShort(order.created_at)}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-semibold text-green-600 dark:text-green-400">{formatPrice(order.total)}</p>

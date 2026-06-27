@@ -27,6 +27,8 @@
 | 2026-06-27 | Granular analytics filters | Slice every Analytics tab by customer / product / payment / unit; 2 empty tabs (slow movers, inventory turnover) implemented. Migrations 00069–00070 |
 | 2026-06-27 | Analytics RPC owner-gating | Migration 00070 gates all cost/profit columns behind `is_owner()`; SECURITY DEFINER RPCs revoked from anon/PUBLIC (security-review fix) |
 | 2026-06-27 | Reusable OrdersTable + order-form drawer | Customer & Analytics Orders tabs reuse the Orders table; order-form left panel collapses to a customer rail so the items table fits iPad |
+| 2026-06-27 | Orders: sortable "Aangemaakt" column | Created date+time column (default sort = newest first) so just-entered orders stay on top; status badges stacked + Factuur hidden <lg to make room |
+| 2026-06-27 | Orders: status filter count fix | Dropdown was missing the `pending` option (all live orders are `pending`), so per-status counts read 0; now rendered from a canonical list + catch-all |
 
 ---
 

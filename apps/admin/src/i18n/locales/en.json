@@ -463,6 +463,7 @@
     "orderDetails": "Order Details",
     "orderNumber": "Order Number",
     "orderColumn": "Customer / Order",
+    "createdColumn": "Created",
     "orderDate": "Order Date",
     "customer": "Customer",
     "selectCustomer": "Select Customer",
