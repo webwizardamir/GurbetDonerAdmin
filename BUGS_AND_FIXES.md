@@ -607,3 +607,21 @@ Table row menus positioned with `absolute` get clipped by the table wrapper's `o
 
 ### Note: COGS still readable by Shop Manager at the data layer (pre-existing, accepted)
 `price_list_items.cost_cents` (like `products.cost_cents` / `product_unit_prices.cost_cents`) is selectable by any `is_admin_user()` role via RLS, and `OrderForm` reads it for all roles to write the snapshot. The UI hides cost behind `isOwner`, but a Shop Manager with DevTools/API access can read it. This is **pre-existing** (not introduced by 00068) and accepted for now (trusted-insider threat). The proper fix is holistic: a server-side `order_items.cost_cents` resolution trigger/RPC (also makes the snapshot non-forgeable) **plus** column-level `REVOKE SELECT (cost_cents)` from the shop_manager role across all three tables. Logged as debt.
+
+---
+
+## Profit-everywhere + granular analytics era (2026-06-27)
+
+### Bug (caught in review): analytics RPCs leaked COGS/profit to anon + Shop Manager
+**Cause:** The Analytics *route* is owner-only, but the analytics RPCs were not — they returned `total_cogs`/`profit`/`grossProfit` etc. to any caller. `get_product_performance` / `get_top_products` / `get_revenue_by_category` are `SECURITY DEFINER` **and** were granted to `anon`, so anyone holding the public anon key (shipped in the JS bundle) could read business-wide cost-of-goods and profit. The order-grained RPCs (`get_order_performance`, `get_kpis`, `get_financial_summary`, `get_customer_performance`, `get_revenue_by_day`, `get_top_customers`) returned profit to any authenticated Shop Manager. Gating was UI-only — exactly what the project rule forbids ("gate cost in the RPC, not just the UI").
+**Solution (migration 00070):** Wrapped every cost/profit/margin column in `CASE WHEN is_owner() THEN … ELSE NULL END` (revenue/qty/count unchanged), and `REVOKE EXECUTE … FROM PUBLIC, anon` on the three SECURITY DEFINER RPCs (re-`GRANT … TO authenticated`). Gotcha caught in testing: a plain `REVOKE … FROM anon` did **nothing** because `CREATE FUNCTION` grants `EXECUTE` to `PUBLIC` by default — must also revoke from `PUBLIC`. Verified: anon can't call them; non-owner gets NULL profit with revenue intact; owner unaffected.
+**Prevention:** Any RPC returning cost/profit must gate the columns with `is_owner()` and must not be granted to `anon`; remember the implicit `PUBLIC` EXECUTE grant when locking down a function.
+
+### Bug (caught in review): customer summary strip mixed cancelled orders into revenue/margin
+**Cause:** The new customer-page Orders-tab summary strip summed `o.total`/`o.subtotal` over *all* filtered orders (incl. cancelled/refunded, whose per-order profit is null → counted as 0), inflating revenue and diluting margin.
+**Solution:** Exclude `cancelled`/`refunded` from the strip's sums (consistent with the per-order profit, which already drops them).
+
+### Fix: tables clipped instead of scrolling on iPad/phone
+**Cause:** Several tables had their `<table>`'s direct parent set to `overflow-hidden` (or no wrapper) and used bare `min-w-full`, so columns squeezed/clipped rather than scrolling — most visibly the new-order items table cut off after the "Korting" column on iPad. The interactive items table also swapped to mobile cards at `md`, so iPad portrait (768px) landed on the cramped desktop table.
+**Solution:** Standardised every table: direct table parent is `overflow-x-auto` + a concrete `min-w-[Npx]` floor; interactive-row tables swap to cards at `lg`, not `md`. Fixed `OrderItemsList`, `PriceLists`, `CustomerProductsTab`, `ProductForm`, and the analytics tables.
+**Prevention:** Never put `overflow-hidden` on a table's direct parent; never rely on `min-w-full` alone (it means "≥100% of parent", which squeezes instead of scrolling).

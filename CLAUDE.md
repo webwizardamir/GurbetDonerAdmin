@@ -765,6 +765,68 @@ Migrating from WooCommerce:
 
 ---
 
+## Profit visibility everywhere + granular analytics (migrations 00069–00070, 2026-06-27)
+
+Owner-only profit is now surfaced on every order surface, and Analytics can be sliced by any
+dimension. Profit convention (unchanged): **revenue = `orders.subtotal` (ex-VAT, post-discount);
+profit = subtotal − Σ(`order_items.cost_cents` × qty); margin = profit/revenue.** Positive = emerald,
+negative = red (`profitClass` in `utils/format.ts`; one definition `computeOrderProfit` in
+`utils/orderProfit.ts`).
+
+- **Where profit shows (all gated by `useAuth().isOwner`):** order detail panel (per-line badge +
+  order Winst/Marge row), Orders list (under each total), customer page Orders tab (per-order +
+  range summary strip), Dashboard (**Winst vandaag** tile via `get_today_stats`).
+- **Granular analytics filter bar** (`components/analytics/EntityFilter.tsx` + `components/ui/ComboPicker.tsx`):
+  slice every tab by **customer / product / payment method / unit type** (category intentionally
+  omitted). Order-grained tabs only honour customer+payment; product/unit pickers are hidden there.
+  Plumbing: `AnalyticsFilters` / `entityArg` / `filtersKey` in `services/analyticsHelpers.ts` (mirrors
+  `statusArg` omit-when-absent), threaded through `services/analytics*.ts` + the `use*Analytics`
+  hooks (`filterKey` in every effect dep). Drill-down: clicking a customer's filter icon in the
+  Customers tab sets the global filter.
+- **Migration 00069** — covering indexes; new owner-gated RPC `get_customer_orders` (per-order,
+  refund-correct); implements the two stub RPCs the UI already called (`get_slow_movers`,
+  `get_inventory_turnover` — the previously-empty Products→slow-movers and Inventory→turnover tabs);
+  adds nullable filter params to the analytics RPCs (trailing `DEFAULT NULL`, so old calls are unchanged).
+- **Migration 00070 (security)** — gates **every** cost/profit/margin column in the analytics RPCs
+  behind `is_owner()` (was UI-only) and locks the SECURITY DEFINER product/category RPCs to
+  `authenticated` (revoking the default `PUBLIC` grant that also covered `anon`). Matches the project
+  invariant "gate cost in the RPC, not just the UI". **Both migrations are applied to the live DB.**
+- **Deferred (documented in 00069 header):** folding partial-refund subtraction into the *global*
+  00054 RPCs (would shift every dashboard total at once); and `fetchOrders` still ships `cost_cents`
+  to all roles (pre-existing UI-gating model; renders are isOwner-gated).
+
+## Shared OrdersTable + order-form details drawer (2026-06-27)
+
+- **`components/orders/OrdersTable.tsx`** — the Orders-page table (desktop table + mobile cards) as a
+  prop-driven shared component (selection / sort / `getDocInfo` / pluggable `getProfit` / view-edit-
+  delete / trash all opt-in). The **customer page Orders tab** uses it: `useCustomerDetail` now loads
+  full `OrderWithItems` via `fetchOrders({customerId, limit:1000})` (so line-item profit works) and
+  returns a refund-correct `profitByOrder` map fed to `OrdersTable.getProfit`; eye→`OrderDetail`
+  (per-line profit + all document generation live there), edit→editor/notes-modal, delete→trash.
+  **`CustomerOrderRow.tsx` was deleted** (its inline doc buttons moved into the order view). The tab's
+  date filter gained **Vandaag** + a **custom** from/to range. NOTE: `Orders.tsx` keeps its own inline
+  copy of the table for now (not yet deduped onto `OrdersTable`, to avoid regression risk) — the markup
+  lives in two places and can drift; dedup is a deferred follow-up.
+- **Analytics → Orders tab** gained a view (eye) action that lazy-loads the order (`fetchOrderById`)
+  into the shared `OrderDetail` panel (read-only; keeps the server-side aggregated/sortable rows).
+- **Order form (`OrderForm.tsx`) details drawer:** the left "Orderdetails" column collapses at `lg+`
+  to a slim vertical **customer rail** (company + price-list always visible) via a `width` transition
+  (`lg:w-[340px]` ↔ `lg:w-[60px]`); the right items column is `flex-1 lg:min-w-0` so the table reflows
+  wider. Default: new order open (forced open until a customer is picked), edit order collapsed;
+  remembered in `localStorage` `orderForm.detailsCollapsed`. `OrderItemsList` table min-width trimmed
+  `760→640px` so a collapsed 1024px iPad needs no horizontal scroll.
+
+## Responsive tables (2026-06-27)
+
+App-wide rule applied so tables never clip on iPad/phone: the **direct parent of every `<table>` is
+`overflow-x-auto`** (never `overflow-hidden`) with a concrete **`min-w-[Npx]` floor** (never bare
+`min-w-full`). Interactive-row tables (e.g. the order items list) swap to the mobile card layout at
+`lg` (not `md`) so iPad portrait (768px) gets the touch-friendly cards. The app shell was already
+responsive (drawer sidebar below `lg`); this fixed the clipping in `OrderItemsList`, `PriceLists`,
+`CustomerProductsTab`, `ProductForm`, analytics tabs, and others.
+
+---
+
 ## Custom Agents
 
 The project has specialized agents defined in `.claude/agents.md`. Use these for focused reviews and tasks:

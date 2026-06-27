@@ -18,6 +18,18 @@
 
 ---
 
+## Post-launch enhancements (see CLAUDE.md for detail)
+
+| Date | Change | Notes |
+|------|--------|-------|
+| 2026-06-27 | Responsive tables | App-wide `overflow-x-auto` + `min-w` fix; no more horizontal clipping on iPad/phone |
+| 2026-06-27 | Profit visibility everywhere | Per-line + per-order profit on order detail, Orders list, customer Orders tab, Dashboard tile (owner-only) |
+| 2026-06-27 | Granular analytics filters | Slice every Analytics tab by customer / product / payment / unit; 2 empty tabs (slow movers, inventory turnover) implemented. Migrations 00069–00070 |
+| 2026-06-27 | Analytics RPC owner-gating | Migration 00070 gates all cost/profit columns behind `is_owner()`; SECURITY DEFINER RPCs revoked from anon/PUBLIC (security-review fix) |
+| 2026-06-27 | Reusable OrdersTable + order-form drawer | Customer & Analytics Orders tabs reuse the Orders table; order-form left panel collapses to a customer rail so the items table fits iPad |
+
+---
+
 ## Phase 0: Core Platform
 
 ### 0.1 Authentication System
