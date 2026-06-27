@@ -19,11 +19,13 @@ import PriceListCustomers from '../components/priceLists/PriceListCustomers'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
+import { useAuth } from '../context/AuthContext'
 import type { PriceList } from '../types'
 import { formatPrice } from '../utils/format'
 
 export default function PriceListDetail() {
   const { t } = useTranslation()
+  const { isOwner } = useAuth()
   const { id } = useParams<{ id: string }>()
   const [list, setList] = useState<PriceList | null>(null)
   const [items, setItems] = useState<PriceListItemWithProduct[]>([])
@@ -258,8 +260,19 @@ export default function PriceListDetail() {
                       {g.items.map(it => (
                         <span key={it.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                           <span className="text-slate-500 dark:text-slate-400">{t(`products.form.unitTypes.${it.unit_type as UnitType}`)}</span>
-                          <span className="font-medium tabular-nums">{formatPrice(it.price_cents)}</span>
+                          {it.price_cents != null
+                            ? <span className="font-medium tabular-nums">{formatPrice(it.price_cents)}</span>
+                            : <span className="italic text-slate-400 dark:text-slate-500">{t('priceLists.detail.inheritPrice')}</span>}
                           {it.tax_rate != null && <span className="text-slate-400 dark:text-slate-500">· {it.tax_rate}%</span>}
+                          {isOwner && it.cost_cents != null && (
+                            <span
+                              className="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-400"
+                              title={t('priceLists.detail.costOverride')}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              {t('priceLists.detail.costOverrideShort')}
+                            </span>
+                          )}
                         </span>
                       ))}
                     </div>

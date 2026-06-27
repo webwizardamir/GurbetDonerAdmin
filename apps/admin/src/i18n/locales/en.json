@@ -887,6 +887,9 @@
       "addProducts": "Add products",
       "noItems": "No prices on this list yet",
       "deletedProduct": "Deleted product",
+      "inheritPrice": "default",
+      "costOverride": "Custom cost price on this list",
+      "costOverrideShort": "cost",
       "inheritTax": "from product",
       "invalidPrice": "Invalid price",
       "invalidTax": "VAT must be 0, 9 or 21",
@@ -912,8 +915,10 @@
       "cost": "Cost",
       "price": "Price",
       "margin": "Margin",
-      "hint": "Leave a price empty to keep that unit off the list.",
-      "nothingToSave": "Enter at least one price."
+      "overridden": "custom",
+      "standard": "default",
+      "hint": "Leave a field empty to use the product default. A custom cost price feeds into profit and margin.",
+      "nothingToSave": "Enter at least one price or cost."
     },
     "picker": {
       "title": "Add products to price list",

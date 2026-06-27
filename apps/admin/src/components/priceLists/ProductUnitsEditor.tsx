@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Save, AlertCircle } from 'lucide-react'
 import Modal from '../ui/Modal'
-import { upsertPriceListItems, deletePriceListItem, type PriceListItemWithProduct } from '../../services/priceLists'
+import { upsertPriceListItems, deletePriceListItem, type PriceListItemWithProduct, type ImportPriceListItemInput } from '../../services/priceLists'
+import { useAuth } from '../../context/AuthContext'
 import type { UnitType } from '../../types'
-import { formatPrice } from '../../utils/format'
 
 const ALL_UNITS: UnitType[] = ['kg', 'piece', 'zak', 'doos']
 
@@ -27,32 +27,43 @@ interface Props {
  * Per-product unit editor for a price list. Shows ALL four unit types so the
  * owner can add prices for units that were never set, and edit the ones that
  * are. Prefills from the price list's own values (not product defaults) so
- * re-saving never clobbers an existing custom price. Margin shown per unit.
+ * re-saving never clobbers an existing custom price/cost. Both price and the
+ * cost-of-goods override are editable and independent — a blank field inherits
+ * the product default. Cost + margin are owner-only.
  */
 export default function ProductUnitsEditor({ priceListId, productItems, onClose, onSaved }: Props) {
   const { t } = useTranslation()
+  const { isOwner } = useAuth()
   const product = productItems[0]?.product
   const productId = productItems[0]?.product_id
 
-  // Cost per unit: the product's matching unit cost, else the product cost.
-  const costFor = (unit: UnitType): number =>
+  // Product default cost per unit: the unit-type's own cost, else the product cost.
+  const defaultCostFor = (unit: UnitType): number =>
     product?.unit_prices?.find(u => u.unit_type === unit)?.cost_cents ?? product?.cost_cents ?? 0
 
-  // Existing price-list value per unit (cents) and the shared tax (first item).
+  // Existing price-list values per unit (cents), the cost override, and the item id.
   const existingByUnit = useMemo(() => {
-    const m = new Map<UnitType, number>()
-    for (const it of productItems) m.set(it.unit_type, it.price_cents)
+    const m = new Map<UnitType, { price: number | null; cost: number | null; id: string }>()
+    for (const it of productItems) m.set(it.unit_type, { price: it.price_cents, cost: it.cost_cents ?? null, id: it.id })
     return m
   }, [productItems])
 
   const initialTax = productItems.find(it => it.tax_rate != null)?.tax_rate
   const [tax, setTax] = useState<string>(initialTax != null ? String(initialTax) : '')
 
-  // Per-unit euro-string draft. Prefilled from the price list when set, else blank.
+  // Per-unit euro-string drafts. Prefilled from the price list when set, else blank.
   const [prices, setPrices] = useState<Record<UnitType, string>>(() => {
     const out = {} as Record<UnitType, string>
     for (const u of ALL_UNITS) {
-      const cents = existingByUnit.get(u)
+      const cents = existingByUnit.get(u)?.price
+      out[u] = cents != null ? centsToEuroStr(cents) : ''
+    }
+    return out
+  })
+  const [costs, setCosts] = useState<Record<UnitType, string>>(() => {
+    const out = {} as Record<UnitType, string>
+    for (const u of ALL_UNITS) {
+      const cents = existingByUnit.get(u)?.cost
       out[u] = cents != null ? centsToEuroStr(cents) : ''
     }
     return out
@@ -61,27 +72,31 @@ export default function ProductUnitsEditor({ priceListId, productItems, onClose,
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Existing price-list item id per unit, so a cleared unit can be deleted.
-  const existingItemByUnit = useMemo(() => {
-    const m = new Map<UnitType, string>()
-    for (const it of productItems) m.set(it.unit_type, it.id)
-    return m
-  }, [productItems])
-
   const handleSave = async () => {
     if (!productId) return
     const taxRate = tax === '' ? null : Number(tax)
-    const rows = ALL_UNITS.flatMap(u => {
-      const cents = euroStrToCents(prices[u] ?? '')
-      if (cents == null || cents <= 0) return []
-      return [{ product_id: productId, unit_type: u, price_cents: cents, tax_rate: taxRate }]
-    })
-    // Units that were on the list but are now cleared → remove them.
-    const toDelete = ALL_UNITS.flatMap(u => {
-      const cents = euroStrToCents(prices[u] ?? '')
-      const existingId = existingItemByUnit.get(u)
-      return existingId && (cents == null || cents <= 0) ? [existingId] : []
-    })
+    const rows: ImportPriceListItemInput[] = []
+    const toDelete: string[] = []
+    for (const u of ALL_UNITS) {
+      const priceCents = euroStrToCents(prices[u] ?? '')
+      // Cost is owner-only; a non-owner never edits it, so keep the existing value.
+      const costCents = isOwner ? euroStrToCents(costs[u] ?? '') : (existingByUnit.get(u)?.cost ?? null)
+      const hasPrice = priceCents != null && priceCents > 0
+      const hasCost = costCents != null && costCents > 0
+      const existingId = existingByUnit.get(u)?.id
+      if (!hasPrice && !hasCost) {
+        // Nothing set for this unit → drop it from the list if it was there.
+        if (existingId) toDelete.push(existingId)
+        continue
+      }
+      rows.push({
+        product_id: productId,
+        unit_type: u,
+        price_cents: hasPrice ? priceCents : null,
+        cost_cents: hasCost ? costCents : null,
+        tax_rate: taxRate,
+      })
+    }
     if (rows.length === 0 && toDelete.length === 0) {
       setError(t('priceLists.units.nothingToSave'))
       return
@@ -107,6 +122,9 @@ export default function ProductUnitsEditor({ priceListId, productItems, onClose,
       setSaving(false)
     }
   }
+
+  // Grid template differs by role: owner gets a cost + margin column.
+  const gridCols = isOwner ? 'grid-cols-[1fr_auto_auto_auto]' : 'grid-cols-[1fr_auto]'
 
   return (
     <Modal isOpen onClose={onClose} title={product?.name ?? t('priceLists.units.title')} maxWidth="max-w-lg">
@@ -135,26 +153,55 @@ export default function ProductUnitsEditor({ priceListId, productItems, onClose,
 
         {/* Unit rows */}
         <div className="space-y-1.5">
-          <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-3 px-1 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <div className={`hidden sm:grid ${gridCols} gap-3 px-1 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500`}>
             <span>{t('priceLists.units.unit')}</span>
-            <span className="text-right w-20">{t('priceLists.units.cost')}</span>
+            {isOwner && <span className="text-right w-28">{t('priceLists.units.cost')}</span>}
             <span className="text-right w-28">{t('priceLists.units.price')}</span>
-            <span className="text-right w-16">{t('priceLists.units.margin')}</span>
+            {isOwner && <span className="text-right w-16">{t('priceLists.units.margin')}</span>}
           </div>
           {ALL_UNITS.map(u => {
-            const cost = costFor(u)
-            const cents = euroStrToCents(prices[u] ?? '')
-            const margin = cents != null && cents > 0 && cost > 0
-              ? Math.round(((cents - cost) / cents) * 100)
+            const defaultCost = defaultCostFor(u)
+            const costOverride = euroStrToCents(costs[u] ?? '')
+            const hasCostOverride = costOverride != null && costOverride > 0
+            const effectiveCost = hasCostOverride ? costOverride : defaultCost
+            const priceCents = euroStrToCents(prices[u] ?? '')
+            const margin = priceCents != null && priceCents > 0 && effectiveCost > 0
+              ? Math.round(((priceCents - effectiveCost) / priceCents) * 100)
               : null
             return (
-              <div key={u} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2 sm:gap-3 px-1">
-                <span className="text-sm text-slate-700 dark:text-slate-300">
+              <div key={u} className={`grid ${gridCols} items-center gap-2 sm:gap-3 px-1`}>
+                <span className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300">
                   {t(`products.form.unitTypes.${u}`)}
+                  {isOwner && (
+                    hasCostOverride ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium uppercase tracking-wide bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                        {t('priceLists.units.overridden')}
+                      </span>
+                    ) : defaultCost > 0 ? (
+                      <span className="text-[9px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                        {t('priceLists.units.standard')}
+                      </span>
+                    ) : null
+                  )}
                 </span>
-                <span className="text-right w-14 sm:w-20 text-sm text-slate-500 dark:text-slate-400 tabular-nums">
-                  {cost > 0 ? formatPrice(cost) : '—'}
-                </span>
+
+                {/* Cost (owner-only, editable). Blank inherits the product default. */}
+                {isOwner && (
+                  <div className="w-20 sm:w-28 relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      aria-label={`${t('priceLists.units.cost')} ${t(`products.form.unitTypes.${u}`)}`}
+                      value={costs[u] ?? ''}
+                      placeholder={defaultCost > 0 ? centsToEuroStr(defaultCost) : ''}
+                      onChange={e => setCosts(prev => ({ ...prev, [u]: e.target.value }))}
+                      className="w-full pl-6 pr-2 py-1 text-right text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                )}
+
+                {/* Price */}
                 <div className="w-20 sm:w-28 relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
                   <input
@@ -166,11 +213,15 @@ export default function ProductUnitsEditor({ priceListId, productItems, onClose,
                     className="w-full pl-6 pr-2 py-1 text-right text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
-                <span className={`text-right w-12 sm:w-16 text-sm tabular-nums ${
-                  margin == null ? 'text-slate-400' : margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {margin == null ? '—' : `${margin}%`}
-                </span>
+
+                {/* Margin (owner-only) */}
+                {isOwner && (
+                  <span className={`text-right w-12 sm:w-16 text-sm tabular-nums ${
+                    margin == null ? 'text-slate-400' : margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {margin == null ? '—' : `${margin}%`}
+                  </span>
+                )}
               </div>
             )
           })}

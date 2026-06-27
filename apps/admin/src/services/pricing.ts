@@ -178,8 +178,9 @@ export async function getAvailableUnitPricesForCustomer(
       .eq('price_list_id', priceListId)
       .eq('product_id', productId)
     if (listItems) {
-      for (const it of listItems as { unit_type: UnitType; price_cents: number }[]) {
-        priceListMap.set(it.unit_type, it.price_cents)
+      for (const it of listItems as { unit_type: UnitType; price_cents: number | null }[]) {
+        // Cost-only rows have a null price — skip so they don't blank the price.
+        if (it.price_cents != null) priceListMap.set(it.unit_type, it.price_cents)
       }
     }
   }

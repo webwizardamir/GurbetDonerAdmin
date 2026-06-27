@@ -99,11 +99,13 @@ export async function fetchPriceListItems(priceListId: string): Promise<PriceLis
 }
 
 /**
- * Resolve the per-unit cost (cents) for a price-list item, mirroring the
- * picker's logic: the matching unit's cost_cents, falling back to the product
- * cost. Returns 0 when unknown (cost 0 = unknown, not a 100% margin).
+ * Resolve the per-unit cost (cents) for a price-list item. The list's own
+ * cost override wins; otherwise it falls back to the matching unit's cost_cents,
+ * then the product cost. Returns 0 when unknown (cost 0 = unknown, not a 100%
+ * margin).
  */
 export function resolveItemCostCents(item: PriceListItemWithProduct): number {
+  if (item.cost_cents != null) return item.cost_cents
   const unit = item.product?.unit_prices?.find(u => u.unit_type === item.unit_type)
   return unit?.cost_cents ?? item.product?.cost_cents ?? 0
 }
@@ -189,7 +191,9 @@ export async function removeCustomerFromPriceList(customerId: string): Promise<v
 export interface ImportPriceListItemInput {
   product_id: string
   unit_type: UnitType
-  price_cents: number
+  // At least one of price/cost must be set. null = inherit the product default.
+  price_cents?: number | null
+  cost_cents?: number | null
   tax_rate?: number | null
 }
 
@@ -231,21 +235,36 @@ export async function upsertPriceListItems(
     }
   }
 
-  // Build upsert payload
-  const payload = rows.map(r => ({
-    price_list_id: priceListId,
-    product_id: r.product_id,
-    unit_type: r.unit_type,
-    price_cents: r.price_cents,
-    tax_rate: r.tax_rate ?? null,
-  }))
+  // cost_cents is written ONLY for rows whose caller actually manages cost — i.e.
+  // a row that explicitly carries the key (the unit editor / picker-with-typed-cost
+  // always do, even to clear it via null). A row that omits the key (Excel import,
+  // or a picker row left blank) must NOT touch the column, so an existing override
+  // is preserved. PostgREST takes the union of keys across an upsert batch and
+  // nulls the missing ones, so cost-managed and cost-agnostic rows must go in
+  // SEPARATE upserts — a single mixed batch would null the override on blank rows.
+  const buildPayload = (rs: ImportPriceListItemInput[], includeCost: boolean) =>
+    rs.map(r => ({
+      price_list_id: priceListId,
+      product_id: r.product_id,
+      unit_type: r.unit_type,
+      price_cents: r.price_cents ?? null,
+      ...(includeCost ? { cost_cents: r.cost_cents ?? null } : {}),
+      tax_rate: r.tax_rate ?? null,
+    }))
 
-  const { error } = await supabase
-    .from('price_list_items')
-    .upsert(payload, { onConflict: 'price_list_id,product_id,unit_type' })
-  if (error) {
-    result.errors.push(error.message)
-    return result
+  const groups: { rows: ImportPriceListItemInput[]; includeCost: boolean }[] = [
+    { rows: rows.filter(r => r.cost_cents !== undefined), includeCost: true },
+    { rows: rows.filter(r => r.cost_cents === undefined), includeCost: false },
+  ]
+  for (const g of groups) {
+    if (g.rows.length === 0) continue
+    const { error } = await supabase
+      .from('price_list_items')
+      .upsert(buildPayload(g.rows, g.includeCost), { onConflict: 'price_list_id,product_id,unit_type' })
+    if (error) {
+      result.errors.push(error.message)
+      return result
+    }
   }
 
   for (const r of rows) {
@@ -261,7 +280,8 @@ export async function deletePriceListItem(id: string): Promise<void> {
 }
 
 export interface UpdatePriceListItemInput {
-  price_cents: number
+  price_cents: number | null
+  cost_cents?: number | null
   tax_rate: number | null
 }
 
@@ -270,6 +290,7 @@ export async function updatePriceListItem(id: string, patch: UpdatePriceListItem
     .from('price_list_items')
     .update({
       price_cents: patch.price_cents,
+      cost_cents: patch.cost_cents ?? null,
       tax_rate: patch.tax_rate,
     })
     .eq('id', id)

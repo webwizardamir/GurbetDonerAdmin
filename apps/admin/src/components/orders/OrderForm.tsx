@@ -38,13 +38,6 @@ interface OrderLineItem {
   availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
 }
 
-// Per-line cost of goods: the unit-type's own cost if set, else the product's
-// base cost, else 0. Single source used both for the owner-only COG display and
-// the persisted order_items.cost_cents snapshot.
-function resolveLineCostCents(product: Product, unitType: UnitType): number {
-  return product.unit_prices?.find(up => up.unit_type === unitType)?.cost_cents ?? product.cost_cents ?? 0
-}
-
 export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormProps) {
   const { t } = useTranslation()
   // Large pageSize so the customer picker sees ALL customers, not just page 1
@@ -81,7 +74,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   // products to the order is instant (no per-click round-trips). Keys are
   // product_id; values are unit-type → price/tax maps.
   const [customerPrices, setCustomerPrices] = useState<Map<string, Map<UnitType | '*', number>>>(new Map())
-  const [listItems, setListItems] = useState<Map<string, Map<UnitType, { price: number; tax: number | null }>>>(new Map())
+  const [listItems, setListItems] = useState<Map<string, Map<UnitType, { price: number | null; tax: number | null; cost: number | null }>>>(new Map())
 
   // Pre-fetch all custom-pricing context for the selected customer in one trip.
   useEffect(() => {
@@ -103,9 +96,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
         (selectedCustomer.price_list_id && selectedCustomer.price_list?.is_active !== false)
           ? supabase
               .from('price_list_items')
-              .select('product_id, unit_type, price_cents, tax_rate')
+              .select('product_id, unit_type, price_cents, cost_cents, tax_rate')
               .eq('price_list_id', selectedCustomer.price_list_id)
-          : Promise.resolve({ data: [] as Array<{ product_id: string; unit_type: UnitType; price_cents: number; tax_rate: number | null }>, error: null }),
+          : Promise.resolve({ data: [] as Array<{ product_id: string; unit_type: UnitType; price_cents: number | null; cost_cents: number | null; tax_rate: number | null }>, error: null }),
       ])
       if (cancelled) return
 
@@ -116,10 +109,10 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       }
       setCustomerPrices(cpMap)
 
-      const plMap = new Map<string, Map<UnitType, { price: number; tax: number | null }>>()
-      for (const row of (plRes.data as Array<{ product_id: string; unit_type: UnitType; price_cents: number; tax_rate: number | null }>) ?? []) {
+      const plMap = new Map<string, Map<UnitType, { price: number | null; tax: number | null; cost: number | null }>>()
+      for (const row of (plRes.data as Array<{ product_id: string; unit_type: UnitType; price_cents: number | null; cost_cents: number | null; tax_rate: number | null }>) ?? []) {
         if (!plMap.has(row.product_id)) plMap.set(row.product_id, new Map())
-        plMap.get(row.product_id)!.set(row.unit_type, { price: row.price_cents, tax: row.tax_rate })
+        plMap.get(row.product_id)!.set(row.unit_type, { price: row.price_cents, tax: row.tax_rate, cost: row.cost_cents })
       }
       setListItems(plMap)
     })()
@@ -138,6 +131,17 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     if (typeof up?.price === 'number') return up.price
     return product.base_price
   }, [customerPrices, listItems])
+
+  // Per-line cost of goods snapshot. The customer's price-list cost override (if
+  // set for this unit) wins; otherwise the unit-type's own cost, then the product
+  // base cost, else 0. Single source for both the owner-only COG display and the
+  // persisted order_items.cost_cents snapshot — so analytics reflect negotiated
+  // bulk-deal costs with no RPC changes.
+  const resolveLineCostCents = useCallback((product: Product, unitType: UnitType): number => {
+    const listCost = listItems.get(product.id)?.get(unitType)?.cost
+    if (typeof listCost === 'number') return listCost
+    return product.unit_prices?.find(up => up.unit_type === unitType)?.cost_cents ?? product.cost_cents ?? 0
+  }, [listItems])
 
   // Union of all unit types available for a product (product entries +
   // anything the customer's price list adds).

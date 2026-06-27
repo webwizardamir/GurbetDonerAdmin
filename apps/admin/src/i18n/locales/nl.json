@@ -887,6 +887,9 @@
       "addProducts": "Producten toevoegen",
       "noItems": "Nog geen prijzen op deze lijst",
       "deletedProduct": "Verwijderd product",
+      "inheritPrice": "standaard",
+      "costOverride": "Aangepaste inkoopprijs op deze lijst",
+      "costOverrideShort": "inkoop",
       "inheritTax": "BTW van product",
       "invalidPrice": "Ongeldige prijs",
       "invalidTax": "BTW moet 0, 9 of 21 zijn",
@@ -912,8 +915,10 @@
       "cost": "Kostprijs",
       "price": "Prijs",
       "margin": "Marge",
-      "hint": "Laat een prijs leeg om die eenheid niet op de lijst te zetten.",
-      "nothingToSave": "Vul minstens één prijs in."
+      "overridden": "aangepast",
+      "standard": "standaard",
+      "hint": "Laat een veld leeg om de standaardwaarde van het product te gebruiken. Een aangepaste kostprijs telt mee in winst en marge.",
+      "nothingToSave": "Vul minstens één prijs of kostprijs in."
     },
     "picker": {
       "title": "Producten toevoegen aan prijslijst",

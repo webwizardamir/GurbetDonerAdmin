@@ -148,7 +148,8 @@ export interface PriceListItem {
   price_list_id: string
   product_id: string
   unit_type: UnitType
-  price_cents: number
+  price_cents: number | null // cents, null = inherit the product default price
+  cost_cents?: number | null // cents, null = inherit the product default cost (Owner only)
   tax_rate?: number | null
   created_at: string
   updated_at: string

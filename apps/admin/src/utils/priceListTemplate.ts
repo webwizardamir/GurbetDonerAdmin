@@ -41,8 +41,11 @@ export async function downloadCurrentPriceList(
   const prices = new Map<string, Map<UnitType, number>>()
   const tax = new Map<string, number>()
   for (const it of items) {
-    if (!prices.has(it.product_id)) prices.set(it.product_id, new Map())
-    prices.get(it.product_id)!.set(it.unit_type, it.price_cents)
+    // Cost-only rows (null price) carry no price to export — skip them.
+    if (it.price_cents != null) {
+      if (!prices.has(it.product_id)) prices.set(it.product_id, new Map())
+      prices.get(it.product_id)!.set(it.unit_type, it.price_cents)
+    }
     if (it.tax_rate != null && !tax.has(it.product_id)) {
       tax.set(it.product_id, it.tax_rate)
     }

@@ -4,8 +4,8 @@ import { Search, Loader2, Plus, Check, AlertCircle, ChevronDown } from 'lucide-r
 import Modal from '../ui/Modal'
 import { fetchProducts } from '../../services/products'
 import { upsertPriceListItems, type ImportPriceListItemInput } from '../../services/priceLists'
+import { useAuth } from '../../context/AuthContext'
 import type { Product, UnitType } from '../../types'
-import { formatPrice } from '../../utils/format'
 
 const ALL_UNITS: UnitType[] = ['kg', 'piece', 'zak', 'doos']
 const SEARCH_LIMIT = 50
@@ -29,12 +29,14 @@ interface UnitRow {
   costCents: number
 }
 
-// Per-product editable state. `prices` holds the euro-string draft per unit so
-// partial input ("12,") survives re-renders; parsed to cents on Add.
+// Per-product editable state. `prices`/`costs` hold the euro-string draft per
+// unit so partial input ("12,") survives re-renders; parsed to cents on Add.
+// A blank cost inherits the product default (owner-only field).
 interface Draft {
   selected: boolean
   tax: '' | '0' | '9' | '21'
   prices: Partial<Record<UnitType, string>>
+  costs: Partial<Record<UnitType, string>>
 }
 
 // Always return all four unit types so a price can be set for the list even when
@@ -73,6 +75,7 @@ export default function PriceListProductPicker({
   onAdded,
 }: PriceListProductPickerProps) {
   const { t } = useTranslation()
+  const { isOwner } = useAuth()
   const [search, setSearch] = useState('')
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,7 +119,8 @@ export default function PriceListProductPicker({
         if (next.has(p.id)) continue
         const prices: Partial<Record<UnitType, string>> = {}
         for (const r of unitRowsFor(p)) prices[r.unitType] = r.priceCents != null ? centsToEuroStr(r.priceCents) : ''
-        next.set(p.id, { selected: false, tax: '', prices })
+        // Costs start blank — a blank cost inherits the product default.
+        next.set(p.id, { selected: false, tax: '', prices, costs: {} })
         changed = true
       }
       return changed ? next : prev
@@ -131,7 +135,7 @@ export default function PriceListProductPicker({
   const updateDraft = (productId: string, patch: Partial<Draft>) => {
     setDrafts(prev => {
       const next = new Map(prev)
-      const cur = next.get(productId) ?? { selected: false, tax: '' as const, prices: {} }
+      const cur = next.get(productId) ?? { selected: false, tax: '' as const, prices: {}, costs: {} }
       next.set(productId, { ...cur, ...patch })
       return next
     })
@@ -140,8 +144,17 @@ export default function PriceListProductPicker({
   const setUnitPrice = (productId: string, unit: UnitType, value: string) => {
     setDrafts(prev => {
       const next = new Map(prev)
-      const cur = next.get(productId) ?? { selected: false, tax: '' as const, prices: {} }
+      const cur = next.get(productId) ?? { selected: false, tax: '' as const, prices: {}, costs: {} }
       next.set(productId, { ...cur, prices: { ...cur.prices, [unit]: value } })
+      return next
+    })
+  }
+
+  const setUnitCost = (productId: string, unit: UnitType, value: string) => {
+    setDrafts(prev => {
+      const next = new Map(prev)
+      const cur = next.get(productId) ?? { selected: false, tax: '' as const, prices: {}, costs: {} }
+      next.set(productId, { ...cur, costs: { ...cur.costs, [unit]: value } })
       return next
     })
   }
@@ -156,9 +169,22 @@ export default function PriceListProductPicker({
       if (!p) continue
       const taxRate = draft.tax === '' ? null : Number(draft.tax)
       for (const r of unitRowsFor(p)) {
-        const cents = euroStrToCents(draft.prices[r.unitType] ?? '')
-        if (cents == null || cents <= 0) continue
-        rows.push({ product_id: p.id, unit_type: r.unitType, price_cents: cents, tax_rate: taxRate })
+        const priceCents = euroStrToCents(draft.prices[r.unitType] ?? '')
+        const costCents = isOwner ? euroStrToCents(draft.costs[r.unitType] ?? '') : null
+        const hasPrice = priceCents != null && priceCents > 0
+        const hasCost = costCents != null && costCents > 0
+        // A row needs at least a price or a cost override; a lone cost still adds
+        // the unit to the list (price then inherits the product default). Omit
+        // cost_cents entirely when blank so re-adding a product never wipes a
+        // cost override set earlier in the unit editor (see upsertPriceListItems).
+        if (!hasPrice && !hasCost) continue
+        rows.push({
+          product_id: p.id,
+          unit_type: r.unitType,
+          price_cents: hasPrice ? priceCents : null,
+          ...(hasCost ? { cost_cents: costCents } : {}),
+          tax_rate: taxRate,
+        })
       }
     }
     if (rows.length === 0) {
@@ -272,30 +298,44 @@ export default function PriceListProductPicker({
                         <option value="21">21%</option>
                       </select>
                     </div>
-                    {/* Per-unit price rows */}
+                    {/* Per-unit price rows. Owner also gets an editable cost + margin. */}
                     <div className="space-y-1.5">
-                      <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-3 px-1 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      <div className={`hidden sm:grid ${isOwner ? 'grid-cols-[1fr_auto_auto_auto]' : 'grid-cols-[1fr_auto]'} gap-3 px-1 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500`}>
                         <span>{t('priceLists.picker.unit')}</span>
-                        <span className="text-right w-20">{t('priceLists.picker.cost')}</span>
+                        {isOwner && <span className="text-right w-28">{t('priceLists.picker.cost')}</span>}
                         <span className="text-right w-28">{t('priceLists.picker.price')}</span>
-                        <span className="text-right w-16">{t('priceLists.picker.margin')}</span>
+                        {isOwner && <span className="text-right w-16">{t('priceLists.picker.margin')}</span>}
                       </div>
                       {rows.map(r => {
                         const draftStr = draft.prices[r.unitType] ?? ''
                         const priceCents = euroStrToCents(draftStr)
-                        // No margin when the price is empty or the product has no
-                        // recorded cost (cost 0 = unknown, not a 100% margin).
-                        const margin = priceCents != null && priceCents > 0 && r.costCents > 0
-                          ? Math.round(((priceCents - r.costCents) / priceCents) * 100)
+                        const costOverride = euroStrToCents(draft.costs[r.unitType] ?? '')
+                        const hasCostOverride = costOverride != null && costOverride > 0
+                        const effectiveCost = hasCostOverride ? costOverride : r.costCents
+                        // No margin when the price is empty or there is no known
+                        // cost (cost 0 = unknown, not a 100% margin).
+                        const margin = priceCents != null && priceCents > 0 && effectiveCost > 0
+                          ? Math.round(((priceCents - effectiveCost) / priceCents) * 100)
                           : null
                         return (
-                          <div key={r.unitType} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2 sm:gap-3 px-1">
+                          <div key={r.unitType} className={`grid ${isOwner ? 'grid-cols-[1fr_auto_auto_auto]' : 'grid-cols-[1fr_auto]'} items-center gap-2 sm:gap-3 px-1`}>
                             <span className="text-sm text-slate-700 dark:text-slate-300">
                               {t(`products.form.unitTypes.${r.unitType}`)}
                             </span>
-                            <span className="text-right w-14 sm:w-20 text-sm text-slate-500 dark:text-slate-400 tabular-nums">
-                              {r.costCents > 0 ? formatPrice(r.costCents) : '—'}
-                            </span>
+                            {isOwner && (
+                              <div className="w-20 sm:w-28 relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  aria-label={`${t('priceLists.picker.cost')} ${t(`products.form.unitTypes.${r.unitType}`)}`}
+                                  value={draft.costs[r.unitType] ?? ''}
+                                  placeholder={r.costCents > 0 ? centsToEuroStr(r.costCents) : ''}
+                                  onChange={e => setUnitCost(p.id, r.unitType, e.target.value)}
+                                  className="w-full pl-6 pr-2 py-1 text-right text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                />
+                              </div>
+                            )}
                             <div className="w-20 sm:w-28 relative">
                               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
                               <input
@@ -307,11 +347,13 @@ export default function PriceListProductPicker({
                                 className="w-full pl-6 pr-2 py-1 text-right text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                               />
                             </div>
-                            <span className={`text-right w-12 sm:w-16 text-sm tabular-nums ${
-                              margin == null ? 'text-slate-400' : margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                            }`}>
-                              {margin == null ? '—' : `${margin}%`}
-                            </span>
+                            {isOwner && (
+                              <span className={`text-right w-12 sm:w-16 text-sm tabular-nums ${
+                                margin == null ? 'text-slate-400' : margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                              }`}>
+                                {margin == null ? '—' : `${margin}%`}
+                              </span>
+                            )}
                           </div>
                         )
                       })}
