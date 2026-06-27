@@ -590,3 +590,20 @@ Table row menus positioned with `absolute` get clipped by the table wrapper's `o
 ### Bug: Editing an order whose product is missing dropped the cost snapshot
 **Cause:** `OrderForm` reconstructs a placeholder product for edit-loaded lines whose live product isn't found, hardcoding `cost_cents: 0` — losing the immutable `order_items.cost_cents` snapshot.
 **Solution:** Reconstruct with `cost_cents: item.cost_cents ?? 0`. (Found while adding the owner-only per-line COG display.)
+
+---
+
+## Per-price-list COG override era (2026-06-27)
+
+### Bug (caught in review): re-adding a product could silently wipe a cost override
+**Cause:** When per-list `cost_cents` overrides were added, `upsertPriceListItems` decided whether to write the `cost_cents` column with a **batch-level** flag (`rows.some(r => cost defined)`). PostgREST takes the union of keys across an upsert batch and nulls the missing ones, so any batch that contained *one* cost-bearing row would write `cost_cents = null` for every cost-blank row — wiping an override set earlier in `ProductUnitsEditor` whenever a product was re-added via `PriceListProductPicker` (or added alongside another product that had a typed cost). The exact negotiated-cost loss the feature exists to prevent, and invisible (the picker shows cost blank).
+**Solution:** Make cost inclusion **per-row**: the picker omits the `cost_cents` key entirely when blank, and `upsertPriceListItems` splits rows into cost-managed (key present) vs cost-agnostic (key absent) and upserts them in **separate** calls. The editor always sends `cost_cents` (value or explicit null) so it still fully controls clearing.
+**Prevention:** Never decide a per-row column's presence with a batch-level flag in a PostgREST upsert — split the batch by which columns each row manages. A price-only Excel re-import (no cost key) must leave existing overrides untouched.
+
+### Bug (caught in review): paged DB scan without a stable order can skip rows
+**Cause:** `scripts/wc-reconcile/sync-order-item-costs.mjs`'s `pageAll` helper paginated with `.range(from, from+PAGE-1)` and **no `ORDER BY`**. Postgres/PostgREST don't guarantee a stable row order across separate requests, so rows on the large `order_items` scan could be skipped (a skipped item = stale cost = silent profit drift) or duplicated.
+**Solution:** Add `.order('id', { ascending: true })` to every paged query.
+**Prevention:** Any `.range()`-based pagination needs a deterministic `ORDER BY` (a unique column) or it can skip/duplicate rows.
+
+### Note: COGS still readable by Shop Manager at the data layer (pre-existing, accepted)
+`price_list_items.cost_cents` (like `products.cost_cents` / `product_unit_prices.cost_cents`) is selectable by any `is_admin_user()` role via RLS, and `OrderForm` reads it for all roles to write the snapshot. The UI hides cost behind `isOwner`, but a Shop Manager with DevTools/API access can read it. This is **pre-existing** (not introduced by 00068) and accepted for now (trusted-insider threat). The proper fix is holistic: a server-side `order_items.cost_cents` resolution trigger/RPC (also makes the snapshot non-forgeable) **plus** column-level `REVOKE SELECT (cost_cents)` from the shop_manager role across all three tables. Logged as debt.

@@ -1217,12 +1217,39 @@ Goal: build and manage price lists without Excel, and manage which customers use
   - Server-side debounced search (`fetchProducts`, limit 50) by **name and product ID** (SKU/barcode too). To support product-ID search, `product_code` was added to the `fetchProducts`/`fetchProductCount` `.or()` filters (and those filters were hardened — see Security note below).
   - Select products, then expand to edit a **selling price per unit type**. The picker always shows **all four unit types** (kg/piece/zak/doos): units the product already prices are prefilled from its defaults, the rest start **blank** so a list price can be set even for units the product itself doesn't sell. Shows **read-only cost + live gross-margin %** (owner-only page; unknown cost renders `—` with no margin) and a per-product VAT override (inherit / 0 / 9 / 21). Blank/zero units are skipped on Add.
   - "Add (n)" reuses the existing `upsertPriceListItems()` (upsert on `price_list_id,product_id,unit_type`) — one `price_list_items` row per unit priced; re-adding updates instead of duplicating. Selections persist across searches via a `seenProducts` ref.
-  - Note: price lists store **selling price + VAT only** (no per-list cost); cost stays a product property and is shown read-only for margin insight — the picker never mutates the product.
+  - Note: at this point price lists stored **selling price + VAT only** (no per-list cost); cost stayed a product property, shown read-only for margin insight. **Superseded 2026-06-27** — a per-list cost-of-goods override was added (migration 00068; see "Per-Price-List Cost Override" below). The picker still never mutates the *product*.
 - **Customer assignment** (`components/priceLists/PriceListCustomers.tsx`): a card on the detail page lists customers currently on the list (names link to `/customers/:id`), each removable; an "Add customers" modal (searchable, multi-select) assigns them. A customer can only have one list, so adding one already on another list **moves** them, shown with an amber "will be moved" warning before commit.
   - New service fns in `services/priceLists.ts`: `fetchCustomersByPriceList` (capped `.limit(1000)`), `assignCustomersToPriceList`, `removeCustomerFromPriceList`.
 - **Reviewed** by the UI/UX, Security, Performance and Code-Review agents; actionable findings applied (mobile grid widths, touch targets/focus rings, `.or()` injection hardening, customer-fetch cap).
 - **Files Added**: `components/priceLists/PriceListProductPicker.tsx`, `components/priceLists/PriceListCustomers.tsx`.
 - **Files Modified**: `pages/PriceLists.tsx`, `pages/PriceListDetail.tsx`, `services/priceLists.ts`, `services/products.ts`, `i18n/locales/nl.json`, `en.json` (`priceLists.picker.*`, `priceLists.customers.*`, `priceLists.detail.addProducts`).
+
+### Per-Price-List Cost Override (COG) ✅ — 2026-06-27 (migration 00068)
+Goal: when the owner lands a bulk deal and buys a product **below its default cost**, let a price list
+record that cheaper cost per product/unit so profit/margin analytics are correct for those customers.
+
+- **Data model:** `price_list_items.cost_cents` nullable (`NULL` = inherit product default
+  `product_unit_prices.cost_cents` → `products.cost_cents`); `price_cents` made nullable so a row can
+  override cost only; `CHECK` that at least one of price/cost is set. RLS unchanged.
+- **Flows into analytics for free:** `OrderForm`'s `resolveLineCostCents` is now price-list aware
+  (`list cost → unit cost → product cost → 0`) and feeds the **immutable `order_items.cost_cents`
+  snapshot** captured at order create. Every analytics RPC reads that snapshot, so **no RPC/SQL changes**
+  were needed. Historical orders are never recalculated.
+- **UI (owner-only):** editable cost + live margin in `ProductUnitsEditor` and `PriceListProductPicker`,
+  with **"aangepast"/"standaard"** labels; `PriceListDetail` shows an amber **"inkoop"** marker on
+  override units. Gated on `useAuth().isOwner` — Shop Manager sees price only.
+- **Safety:** `upsertPriceListItems` writes `cost_cents` **per-row** (splits cost-managed vs
+  cost-agnostic batches) so a price-only Excel re-import or a product re-add can't wipe a UI override.
+  `scripts/wc-reconcile/sync-order-item-costs.mjs` now refreshes **imported (WC) orders only**, so it
+  can't clobber negotiated in-app costs.
+- **Scope:** price-list level only (no per-customer cost — a different deal = a new list). Reviewed by
+  Code-Review + Security agents (no Critical/High); the picker cost-wipe and sync paging bugs they
+  caught were fixed before commit. Known accepted debt: cost columns are readable by Shop Manager at
+  the data layer (pre-existing) — see `BUGS_AND_FIXES.md`.
+- **Files:** migration `00068_price_list_item_cost.sql`; `components/orders/OrderForm.tsx`,
+  `components/priceLists/ProductUnitsEditor.tsx`, `PriceListProductPicker.tsx`, `pages/PriceListDetail.tsx`,
+  `services/priceLists.ts`, `services/pricing.ts`, `types/index.ts`, `utils/priceListTemplate.ts`,
+  `scripts/wc-reconcile/sync-order-item-costs.mjs`, `i18n/locales/{nl,en}.json`.
 
 ---
 

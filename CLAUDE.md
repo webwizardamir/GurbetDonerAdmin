@@ -551,13 +551,35 @@ The **Overview** tab (`components/analytics/tabs/OverviewTab.tsx`) has a single 
 
 `pages/PriceListDetail.tsx` shows **one row per product** (not one row per unit), even when a product
 is priced in several unit types (kg/piece/zak/doos). Clicking a row (or the pencil) opens
-`components/priceLists/ProductUnitsEditor.tsx` — a modal listing **all four unit types** with cost +
-live **margin**, prefilled from the list's own values (never product defaults, so re-saving can't
-clobber a custom price). Entering a price for a blank unit adds it; clearing a set unit removes it;
-the row's trash deletes the whole product. Adding products still goes through
-`PriceListProductPicker` (one `price_list_items` row per unit, upserted on
+`components/priceLists/ProductUnitsEditor.tsx` — a modal listing **all four unit types** with an
+**editable cost** + live **margin**, prefilled from the list's own values (never product defaults, so
+re-saving can't clobber a custom price/cost). Entering a price **or** cost for a blank unit adds it;
+clearing **both** removes it; the row's trash deletes the whole product. Adding products still goes
+through `PriceListProductPicker` (one `price_list_items` row per unit, upserted on
 `price_list_id,product_id,unit_type`). `fetchPriceListItems` now also selects `cost_cents` +
 `product_unit_prices` for the margin (see `resolveItemCostCents`).
+
+### Per-list cost-of-goods (COG) override — migration 00068
+For bulk deals where the owner buys a product **cheaper than its default cost**, a price list can carry
+a **cost override** per product/unit alongside the sell-price override.
+- **Schema:** `price_list_items.cost_cents` is **nullable** (`NULL` = inherit the product default:
+  `product_unit_prices.cost_cents` → `products.cost_cents`). `price_cents` is **also nullable** so a row
+  can override cost only (price then inherits the default); a `CHECK` requires at least one of the two.
+- **Resolution:** `resolveItemCostCents` (list view) prefers the override. In orders, `OrderForm`'s
+  `resolveLineCostCents` is **price-list aware** (`list cost → unit cost → product cost → 0`) and feeds
+  both the owner COG display and the **immutable `order_items.cost_cents` snapshot** — so every
+  analytics RPC reflects the negotiated cost with **no SQL/RPC change** (they read the snapshot).
+  Mirrors the price chain in [[pricing_resolution_chain]]; cost stays a separate dimension.
+- **Owner-only:** the cost + margin columns/badges are gated behind `useAuth().isOwner` in the editor,
+  picker, and detail (Shop Manager sees price only). UI labels show **"aangepast"** (override set) vs
+  **"standaard"** (inheriting default); the detail page marks override units with an amber **"inkoop"** dot.
+- **Do not break:** `upsertPriceListItems` writes `cost_cents` **per-row** (only for rows that supply
+  the key), splitting the upsert into cost-managed vs cost-agnostic batches. This is why a **price-only
+  Excel re-import** or a **product re-add via the picker** never wipes a UI-set override — never collapse
+  it back to a single mixed batch (PostgREST nulls missing keys across a batch).
+- **Sync script:** `scripts/wc-reconcile/sync-order-item-costs.mjs` now refreshes **imported (WC) orders
+  only** — blanket-refreshing all rows from current product cost would clobber negotiated in-app costs.
+  See [[cost_sync_requirement]]. Scope: price-list level only (no per-customer cost; different deal = new list).
 
 ---
 
@@ -620,6 +642,11 @@ a `profiles` row (role defaults to `customer`), so classify checks the **role**,
    badge in `OrderItemsList` with a forget × (`clearCustomerPrice`, handles unit-less `*` rows too).
    No global promotion — overrides stay per-customer until cleared. Tracked via a per-line
    `priceEdited` flag.
+7. **Per-price-list cost override (COG):** a price list can set a custom **cost** per product/unit
+   (`price_list_items.cost_cents`, migration 00068) for bulk deals bought below the default cost. It's
+   snapshotted into `order_items.cost_cents` at order time like the sold price, so profit/margin
+   analytics reflect it and **historical orders are never recalculated**. Owner-only; price-list scoped.
+   See **Price lists — detail UI → Per-list cost-of-goods (COG) override**.
 
 ### VAT (BTW) — Reverse charge for non-NL customers
 1. NL customer → product's `tax_rate` (9% food / 21% non-food / 0%) — unchanged
