@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Mail, Lock, Building2, AlertCircle, Sun, Moon } from 'lucide-react'
+import { Loader2, Mail, Lock, Building2, AlertCircle, Sun, Moon, Eye, EyeOff } from 'lucide-react'
 import { usePortalAuth } from '../context/PortalAuthContext'
 import LanguageSelector from '../components/LanguageSelector'
 
@@ -12,6 +12,7 @@ export default function PortalLogin() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains('dark')
   )
@@ -110,7 +111,7 @@ export default function PortalLogin() {
 
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {t('portal.login.title')}
+                {t('portal.login.heading')}
               </h2>
               <p className="text-slate-500 dark:text-slate-400 mt-2">
                 {t('portal.login.subtitle')}
@@ -139,6 +140,9 @@ export default function PortalLogin() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={t('portal.login.emailPlaceholder')}
                     required
+                    autoComplete="email"
+                    inputMode="email"
+                    autoFocus
                     className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
@@ -152,24 +156,23 @@ export default function PortalLogin() {
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t('portal.login.passwordPlaceholder')}
                     required
-                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    autoComplete="current-password"
+                    className="w-full pl-12 pr-12 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={t(showPassword ? 'portal.login.hidePassword' : 'portal.login.showPassword')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
-              </div>
-
-              {/* Forgot Password */}
-              <div className="text-right">
-                <Link
-                  to="/portal/forgot-password"
-                  className="text-sm text-green-600 dark:text-green-400 hover:underline"
-                >
-                  {t('portal.login.forgotPassword')}
-                </Link>
               </div>
 
               {/* Submit Button */}
@@ -189,8 +192,19 @@ export default function PortalLogin() {
               </button>
             </form>
 
+            {/* No account / forgot password → contact us */}
+            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-400">
+              <p className="font-medium text-slate-700 dark:text-slate-300">{t('portal.login.noAccount')}</p>
+              <p className="mt-1">
+                {t('portal.login.noAccountHelp')}{' '}
+                <a href="mailto:info@melekhalalfood.nl" className="text-green-600 dark:text-green-400 hover:underline">info@melekhalalfood.nl</a>
+                {' · '}
+                <a href="tel:+31712001287" className="text-green-600 dark:text-green-400 hover:underline">071 200 1287</a>
+              </p>
+            </div>
+
             {/* Admin Link */}
-            <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+            <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
               {t('portal.login.adminLink')}{' '}
               <Link to="/login" className="text-green-600 dark:text-green-400 hover:underline">
                 {t('portal.login.adminLoginLink')}

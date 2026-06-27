@@ -51,7 +51,7 @@ const path = Astro.url.pathname;
 
     <div class="site-header__cta">
       <a href="/samples/" class="btn btn-secondary site-header__cta-secondary">Request samples</a>
-      <a href="/distributors/" class="btn btn-primary site-header__cta-primary">Become a distributor</a>
+      <a href={site.portalUrl} class="btn btn-primary site-header__cta-primary" rel="noopener">Inloggen</a>
     </div>
 
     <button

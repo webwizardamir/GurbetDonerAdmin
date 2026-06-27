@@ -6,7 +6,6 @@ import {
   Loader2,
   Package,
   FileText,
-  Download,
   Calendar,
   CreditCard,
   Truck,
@@ -14,11 +13,13 @@ import {
 import { usePortalAuth } from '../context/PortalAuthContext'
 import { fetchPortalOrder, type PortalOrder } from '../services/portalOrders'
 import { formatQuantityWithUnit, formatPrice } from '../utils/format'
+import PortalDocumentActions from './components/PortalDocumentActions'
 interface PortalDocument {
   id: string
   document_number: string
   document_type: string
   pdf_url?: string
+  snapshot?: Record<string, unknown>
   created_at: string
   generated_at: string
 }
@@ -338,17 +339,7 @@ export default function PortalOrderDetail() {
                       </div>
                     </div>
                   </div>
-                  {doc.pdf_url && (
-                    <a
-                      href={doc.pdf_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      {t('portal.documents.download')}
-                    </a>
-                  )}
+                  <PortalDocumentActions doc={doc} />
                 </div>
               ))}
             </div>

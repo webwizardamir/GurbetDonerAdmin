@@ -6,6 +6,9 @@ export const site = {
   fullName: "Melek Halal Food",
   domain: "melekhalalfood.nl",
   url: "https://melekhalalfood.nl",
+  // Customer portal (separate admin app on the app subdomain). Used by the header
+  // "Inloggen" link so existing customers can reach their portal login.
+  portalUrl: "https://app.melekhalalfood.nl/portal/login",
   tagline: "Halal, perfected. Crafted in Europe.",
   description:
     "Halal frozen chicken, beef and snacks for distributors, retailers and Horeca partners across Europe.",

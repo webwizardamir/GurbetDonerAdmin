@@ -11,12 +11,7 @@ import {
   Send,
 } from 'lucide-react'
 import SendDocumentModal from './SendDocumentModal'
-import { InvoiceTemplate } from './InvoiceTemplate'
-import { ProformaTemplate } from './ProformaTemplate'
-import { OrderConfirmationTemplate } from './OrderConfirmationTemplate'
-import { PaymentReminderTemplate } from './PaymentReminderTemplate'
-import { CreditNoteTemplate } from './CreditNoteTemplate'
-import { PackingSlipTemplate } from './PackingSlipTemplate'
+import { getDocumentTemplate } from './getDocumentTemplate'
 import {
   buildInvoiceData,
   getNextDocumentNumber,
@@ -26,26 +21,6 @@ import {
 } from '../../services/documents'
 import type { DocumentType } from '../../types'
 import { formatPrice } from '../../utils/format'
-
-// Get the appropriate template component based on document type
-function getDocumentTemplate(documentType: DocumentType, data: InvoiceData) {
-  switch (documentType) {
-    case 'invoice':
-      return <InvoiceTemplate data={data} />
-    case 'proforma':
-      return <ProformaTemplate data={data} />
-    case 'order_confirmation':
-      return <OrderConfirmationTemplate data={data} />
-    case 'payment_reminder':
-      return <PaymentReminderTemplate data={data} />
-    case 'credit_note':
-      return <CreditNoteTemplate data={data} />
-    case 'packing_slip':
-      return <PackingSlipTemplate data={data} />
-    default:
-      return <InvoiceTemplate data={data} />
-  }
-}
 
 interface DocumentGeneratorProps {
   orderId: string

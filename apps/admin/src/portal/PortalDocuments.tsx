@@ -5,13 +5,21 @@ import {
   Search,
   FileText,
   Loader2,
-  Download,
   Filter,
   ExternalLink,
 } from 'lucide-react'
 import { usePortalAuth } from '../context/PortalAuthContext'
 import { fetchPortalDocuments } from '../services/portalOrders'
 import { formatPrice } from '../utils/format'
+import PortalDocumentActions from './components/PortalDocumentActions'
+
+// The document's own amount lives in the immutable snapshot (grandTotal, cents) —
+// use it instead of the order total (a credit note's amount ≠ the order total).
+function documentAmount(doc: any): number {
+  const snap = doc?.snapshot
+  if (snap && typeof snap.grandTotal === 'number') return snap.grandTotal
+  return Number(doc?.order?.total) || 0
+}
 
 const documentTypeColors: Record<string, string> = {
   invoice: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -194,23 +202,11 @@ export default function PortalDocuments() {
                           <ExternalLink className="w-3 h-3" />
                         </Link>
                       </td>
-                      <td className="px-4 py-4 text-right font-medium text-slate-900 dark:text-white">
-                        {formatPrice(doc.order?.total || 0)}
+                      <td className={`px-4 py-4 text-right font-medium ${doc.document_type === 'credit_note' ? 'text-purple-700 dark:text-purple-400' : 'text-slate-900 dark:text-white'}`}>
+                        {doc.document_type === 'credit_note' ? '-' : ''}{formatPrice(documentAmount(doc))}
                       </td>
                       <td className="px-4 py-4 text-right">
-                        {doc.pdf_url ? (
-                          <a
-                            href={doc.pdf_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-                          >
-                            <Download className="w-4 h-4" />
-                            {t('portal.documents.download')}
-                          </a>
-                        ) : (
-                          <span className="text-slate-400 text-sm">-</span>
-                        )}
+                        <PortalDocumentActions doc={doc} />
                       </td>
                     </tr>
                   ))}
@@ -251,21 +247,11 @@ export default function PortalDocuments() {
                     {doc.order?.order_number}
                     <ExternalLink className="w-3 h-3" />
                   </Link>
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {formatPrice(doc.order?.total || 0)}
+                  <span className={`font-semibold ${doc.document_type === 'credit_note' ? 'text-purple-700 dark:text-purple-400' : 'text-slate-900 dark:text-white'}`}>
+                    {doc.document_type === 'credit_note' ? '-' : ''}{formatPrice(documentAmount(doc))}
                   </span>
                 </div>
-                {doc.pdf_url && (
-                  <a
-                    href={doc.pdf_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    {t('portal.documents.download')}
-                  </a>
-                )}
+                <PortalDocumentActions doc={doc} fullWidth />
               </div>
             ))}
           </div>

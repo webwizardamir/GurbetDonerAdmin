@@ -29,6 +29,9 @@
 | 2026-06-27 | Reusable OrdersTable + order-form drawer | Customer & Analytics Orders tabs reuse the Orders table; order-form left panel collapses to a customer rail so the items table fits iPad |
 | 2026-06-27 | Orders: sortable "Aangemaakt" column | Created date+time column (default sort = newest first) so just-entered orders stay on top; status badges stacked + Factuur hidden <lg to make room |
 | 2026-06-27 | Orders: status filter count fix | Dropdown was missing the `pending` option (all live orders are `pending`), so per-status counts read 0; now rendered from a canonical list + catch-all |
+| 2026-06-28 | Portal: document downloads | Portal re-renders PDFs on demand from `documents.snapshot` (none were ever stored); per-row Download + desktop Preview; amount uses the document's own total |
+| 2026-06-28 | Portal: login discoverability | Public site header CTA → "Inloggen" (portal); login page "Klantenportaal" heading + contact block + password reveal |
+| 2026-06-28 | Portal: RLS lockdown (migration 00071) | Closed broad `USING(true)` SELECT policies (cross-customer + COGS/internal_notes leak); portal reads now via column-safe `get_portal_*` SECURITY DEFINER RPCs; base tables admin-only |
 
 ---
 

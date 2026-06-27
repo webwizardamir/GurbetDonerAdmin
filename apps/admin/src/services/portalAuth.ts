@@ -33,31 +33,34 @@ export async function portalSignIn(email: string, password: string): Promise<Por
   if (authError) throw authError
   if (!authData.user) throw new Error('Login failed')
 
-  // Check if this user has a customer account
+  // Check if this user has an active customer account (the access gate).
   const { data: account, error: accountError } = await portalSupabase
     .from('customer_accounts')
-    .select(`
-      *,
-      customer:customers(*)
-    `)
+    .select('*')
     .eq('user_id', authData.user.id)
     .eq('is_active', true)
     .single()
 
   if (accountError || !account) {
-    // Sign out if not a valid customer
-    await portalSupabase.auth.signOut()
+    // Not a valid customer (e.g. a staff member mistyped here) — sign out the
+    // PORTAL session only (scope:'local'), never globally revoke their admin session.
+    await portalSupabase.auth.signOut({ scope: 'local' })
     throw new Error('No active portal account found for this email')
   }
 
-  // Update last login via SECURITY DEFINER RPC (customers have no UPDATE on the
-  // table — that would be an IDOR vector). The RPC is scoped to auth.uid().
   await portalSupabase.rpc('touch_portal_last_login')
+
+  // Safe customer profile (no cost/internal columns) via the portal RPC.
+  const { data: customer, error: customerError } = await portalSupabase.rpc('get_portal_customer')
+  if (customerError || !customer) {
+    await portalSupabase.auth.signOut({ scope: 'local' })
+    throw new Error('No active portal account found for this email')
+  }
 
   return {
     id: authData.user.id,
     email: authData.user.email || '',
-    customer: account.customer,
+    customer: customer as Customer,
     account: account,
   }
 }
@@ -92,14 +95,10 @@ export async function getPortalUser(): Promise<PortalUser | null> {
 
     if (import.meta.env.DEV) console.log('[Portal] Session found for user:', session.user.id, 'checking customer account...')
 
-    // Check if this user has a customer account
-    // Use maybeSingle() instead of single() to avoid errors when no rows match
+    // Check if this user has an active customer account (own row; the access gate).
     const { data: account, error } = await portalSupabase
       .from('customer_accounts')
-      .select(`
-        *,
-        customer:customers(*)
-      `)
+      .select('*')
       .eq('user_id', session.user.id)
       .eq('is_active', true)
       .maybeSingle()
@@ -114,12 +113,17 @@ export async function getPortalUser(): Promise<PortalUser | null> {
       return null
     }
 
-    if (import.meta.env.DEV) console.log('[Portal] Customer account found:', account.customer?.company_name)
+    // Safe customer profile via the portal RPC (no cost/internal columns).
+    const { data: customer, error: customerError } = await portalSupabase.rpc('get_portal_customer')
+    if (customerError || !customer) {
+      console.error('[Portal] Error fetching portal customer:', customerError)
+      return null
+    }
 
     return {
       id: session.user.id,
       email: session.user.email || '',
-      customer: account.customer,
+      customer: customer as Customer,
       account: account,
     }
   } catch (err) {

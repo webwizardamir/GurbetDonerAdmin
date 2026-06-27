@@ -28,125 +28,51 @@ export interface PortalStats {
   totalSpent: number
 }
 
+// All portal reads go through SECURITY DEFINER RPCs (migration 00071) that return
+// only safe columns (no cost_cents / internal_notes) scoped to the logged-in customer
+// server-side. The `customerId` args are kept for call-site compatibility but the RPCs
+// resolve the customer from the session — they're not trusted from the client.
+
 /**
  * Fetch orders for the current portal customer
  */
-export async function fetchPortalOrders(customerId: string): Promise<PortalOrder[]> {
-  const { data, error } = await portalSupabase
-    .from('orders')
-    .select(`
-      *,
-      items:order_items(
-        id, product_name, product_sku, unit_type, quantity, unit_price, discount_amount, tax_rate, tax_amount, line_total_cents:total, notes,
-        product:products(id, name, sku, unit_type, base_price, tax_rate, barcode, category_id, description)
-      )
-    `)
-    .eq('customer_id', customerId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-
+export async function fetchPortalOrders(_customerId?: string): Promise<PortalOrder[]> {
+  const { data, error } = await portalSupabase.rpc('get_portal_orders')
   if (error) throw error
-  return data || []
+  return (data as PortalOrder[]) || []
 }
 
 /**
  * Fetch a single order with items and documents
  */
-export async function fetchPortalOrder(orderId: string, customerId: string): Promise<PortalOrder | null> {
-  const { data, error } = await portalSupabase
-    .from('orders')
-    .select(`
-      *,
-      items:order_items(
-        id, product_name, product_sku, unit_type, quantity, unit_price, discount_amount, tax_rate, tax_amount, line_total_cents:total, notes,
-        product:products(id, name, sku, unit_type, base_price, tax_rate, barcode, category_id, description)
-      ),
-      documents(*)
-    `)
-    .eq('id', orderId)
-    .eq('customer_id', customerId)
-    .is('deleted_at', null)
-    .single()
-
-  if (error) {
-    if (error.code === 'PGRST116') return null // Not found
-    throw error
-  }
-  return data
+export async function fetchPortalOrder(orderId: string, _customerId?: string): Promise<PortalOrder | null> {
+  const { data, error } = await portalSupabase.rpc('get_portal_order', { p_id: orderId })
+  if (error) throw error
+  return (data as PortalOrder) || null
 }
 
 /**
  * Fetch all documents for the current portal customer
  */
-export async function fetchPortalDocuments(customerId: string): Promise<Document[]> {
-  const { data, error } = await portalSupabase
-    .from('documents')
-    .select(`
-      *,
-      order:orders!inner(
-        id,
-        order_number,
-        customer_id,
-        total
-      )
-    `)
-    .eq('order.customer_id', customerId)
-    .order('generated_at', { ascending: false })
-
+export async function fetchPortalDocuments(_customerId?: string): Promise<Document[]> {
+  const { data, error } = await portalSupabase.rpc('get_portal_documents')
   if (error) throw error
-  return data || []
+  return (data as Document[]) || []
 }
 
 /**
  * Get stats for the portal dashboard
  */
-export async function fetchPortalStats(customerId: string): Promise<PortalStats> {
-  const { data: orders, error } = await portalSupabase
-    .from('orders')
-    .select('id, status, total')
-    .eq('customer_id', customerId)
-    .is('deleted_at', null)
-
+export async function fetchPortalStats(_customerId?: string): Promise<PortalStats> {
+  const { data, error } = await portalSupabase.rpc('get_portal_stats')
   if (error) throw error
-
-  const stats: PortalStats = {
-    totalOrders: 0,
-    pendingOrders: 0,
-    completedOrders: 0,
-    totalSpent: 0,
-  }
-
-  if (!orders) return stats
-
-  stats.totalOrders = orders.length
-
-  for (const order of orders) {
-    if (order.status === 'completed' || order.status === 'delivered') {
-      stats.completedOrders++
-      stats.totalSpent += Number(order.total) || 0
-    } else if (order.status === 'pending' || order.status === 'processing') {
-      stats.pendingOrders++
-    }
-  }
-
-  return stats
+  return (data as PortalStats) || { totalOrders: 0, pendingOrders: 0, completedOrders: 0, totalSpent: 0 }
 }
 
 /**
  * Fetch recent orders (limited) for dashboard
  */
-export async function fetchRecentPortalOrders(customerId: string, limit = 5): Promise<PortalOrder[]> {
-  const { data, error } = await portalSupabase
-    .from('orders')
-    .select(`
-      *,
-      items:order_items(id)
-    `)
-    .eq('customer_id', customerId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-
-  if (error) throw error
-  return data || []
+export async function fetchRecentPortalOrders(_customerId?: string, limit = 5): Promise<PortalOrder[]> {
+  const orders = await fetchPortalOrders()
+  return orders.slice(0, limit)
 }
