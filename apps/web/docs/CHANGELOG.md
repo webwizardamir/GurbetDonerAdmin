@@ -4,6 +4,12 @@ One-line entries per ship. Most recent at the top. "v" is an iteration label, no
 
 ---
 
+## v11 — Header "Inloggen" (customer portal link) (2026-06-28)
+
+- **Replaced the "Become a distributor" header CTA with "Inloggen"** so existing wholesale customers can reach their portal login. Links to `site.portalUrl` (`https://app.melekhalalfood.nl/portal/login`, new field in `site.ts`). Updated `Header.astro` (desktop CTA) and `MobileMenu.astro` (mobile CTA); "Request samples" stays, the nav "Distributors" page link stays. (The portal itself — a separate admin app — got document downloads + a security fix the same day.)
+
+---
+
 ## v10 — Packaging/Box categories + real contact info + go-live (2026-06-25)
 
 Site moved into the **`MelekHalalFood` monorepo** at `apps/web` and went live on **melekhalalfood.nl** (+ www); admin app on `app.melekhalalfood.nl`. `site.ts` `indexable` is still `false` (noindex) — flip to `true` when ready for Google.

@@ -827,6 +827,35 @@ responsive (drawer sidebar below `lg`); this fixed the clipping in `OrderItemsLi
 
 ---
 
+## Customer portal: document downloads + RLS hardening (migration 00071, 2026-06-28)
+
+- **Document download (was broken):** PDFs are **never stored** (`DocumentGenerator` passes `undefined`
+  for `pdf_url`), so `documents.pdf_url` is always NULL. The portal now **re-renders the PDF on demand
+  from `documents.snapshot`** (the immutable `InvoiceData` the admin renders from — security-confirmed to
+  contain **no cost/profit**). `getDocumentTemplate` is extracted to
+  `components/documents/getDocumentTemplate.tsx`; `portal/utils/renderDocument.ts` lazy-imports
+  `@react-pdf` (kept out of the portal's initial bundle); `portal/components/PortalDocumentActions.tsx`
+  is the per-row **Download** + desktop **Preview** (idle/rendering/error). Used on `PortalDocuments.tsx`
+  and `PortalOrderDetail.tsx`. The listed amount now uses `snapshot.grandTotal` (the document's own total),
+  not the order total (credit notes were wrong).
+- **Public site login link:** `apps/web` header CTA "Become a distributor" → **"Inloggen"** →
+  `site.portalUrl` (`https://app.melekhalalfood.nl/portal/login`) in `Header.astro` + `MobileMenu.astro`.
+  Portal `PortalLogin.tsx` gained a "Klantenportaal" heading, a no-account/forgot → contact block,
+  password reveal, and autocomplete.
+- **RLS lockdown (migration 00071, applied to live):** the base tables had broad `USING (true)` SELECT
+  policies, so **any authenticated user — including a portal customer — could read every customer's
+  orders/order_items/documents** (cross-customer leak) plus `cost_cents`/`internal_notes`. Now portal
+  customers have **no direct SELECT** on those tables; they read their own data only through the
+  **SECURITY DEFINER `get_portal_*` RPCs** (`get_portal_orders/_order/_documents/_customer/_stats`) which
+  return column-whitelisted JSON (no cost/internal), scoped to `get_portal_customer_id()` +
+  `deleted_at IS NULL`. The base-table SELECT policies are now **`is_admin_user()`-only** (admin unaffected).
+  `portalOrders.ts` + `portalAuth.ts` switched to the RPCs; the reject-path `signOut` uses `scope:'local'`.
+  **Do not re-add a broad `USING(true)` SELECT policy on these tables** — it reopens the cross-customer leak.
+- **Deferred (full portal pass):** forgot/reset-password pages (email works, so quick), customer self-edit
+  of account (needs a column-scoped write path), UX polish (skeletons, mobile tab bar, orders pagination).
+
+---
+
 ## Custom Agents
 
 The project has specialized agents defined in `.claude/agents.md`. Use these for focused reviews and tasks:
