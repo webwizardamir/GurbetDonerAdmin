@@ -299,10 +299,12 @@
     "noAddress": "No address on file",
     "dateRanges": {
       "all": "All Time",
+      "today": "Today",
       "last7": "Last 7 Days",
       "last30": "Last 30 Days",
       "last90": "Last 90 Days",
-      "thisYear": "This Year"
+      "thisYear": "This Year",
+      "custom": "Custom range"
     },
     "ordersSummary": {
       "revenue": "Revenue",
@@ -493,6 +495,7 @@
     "noOrders": "No orders yet",
     "noOrdersMatch": "No orders match your filters",
     "createFirstOrder": "Create your first order!",
+    "deleteConfirm": "Move order {{number}} to trash?",
     "searchPlaceholder": "Search by order, customer, or invoice...",
     "allStatus": "All Status",
     "allPayment": "All Payment",
@@ -589,6 +592,8 @@
       "deliveryPlaceholder": "Delivery instructions...",
       "internalNotes": "Internal Notes",
       "internalPlaceholder": "Internal notes...",
+      "showDetails": "Show order details",
+      "hideDetails": "Hide order details",
       "lineNote": "Note",
       "linePlaceholder": "Note (shown on invoice)",
       "rememberedPrice": "Remembered price",

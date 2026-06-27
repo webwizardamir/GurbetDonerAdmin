@@ -394,7 +394,7 @@ export default function OrderItemsList({
           {/* Desktop: dense table */}
           <div className="hidden lg:block bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="px-2 py-2 text-left w-8">#</th>

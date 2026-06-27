@@ -299,10 +299,12 @@
     "noAddress": "Geen adres geregistreerd",
     "dateRanges": {
       "all": "Alle tijd",
+      "today": "Vandaag",
       "last7": "Laatste 7 dagen",
       "last30": "Laatste 30 dagen",
       "last90": "Laatste 90 dagen",
-      "thisYear": "Dit jaar"
+      "thisYear": "Dit jaar",
+      "custom": "Aangepast bereik"
     },
     "ordersSummary": {
       "revenue": "Omzet",
@@ -493,6 +495,7 @@
     "noOrders": "Nog geen bestellingen",
     "noOrdersMatch": "Geen bestellingen gevonden",
     "createFirstOrder": "Maak uw eerste bestelling!",
+    "deleteConfirm": "Bestelling {{number}} naar de prullenbak verplaatsen?",
     "searchPlaceholder": "Zoeken op bestelling, klant of factuur...",
     "allStatus": "Alle statussen",
     "allPayment": "Alle betaling",
@@ -589,6 +592,8 @@
       "deliveryPlaceholder": "Bezorginstructies...",
       "internalNotes": "Interne notities",
       "internalPlaceholder": "Interne notities...",
+      "showDetails": "Orderdetails tonen",
+      "hideDetails": "Orderdetails verbergen",
       "lineNote": "Notitie",
       "linePlaceholder": "Notitie (verschijnt op factuur)",
       "rememberedPrice": "Onthouden prijs",

@@ -27,7 +27,12 @@ import {
 import { useCustomerDetail } from '../hooks/useCustomerDetail'
 import { useDocumentSettings } from '../hooks/useDocumentSettings'
 import { useAuth } from '../context/AuthContext'
-import CustomerOrderRow from '../components/customers/CustomerOrderRow'
+import { usePermission } from '../hooks/usePermission'
+import OrdersTable from '../components/orders/OrdersTable'
+import OrderDetail from '../components/orders/OrderDetail'
+import OrderNotesModal from '../components/orders/OrderNotesModal'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { deleteOrder, type OrderWithItems } from '../services/orders'
 import CustomerForm from '../components/customers/CustomerForm'
 import CustomerProductsTab from '../components/customers/CustomerProductsTab'
 import PortalAccessModal from '../components/customers/PortalAccessModal'
@@ -37,7 +42,7 @@ import { isReverseChargeCountry } from '../utils/vat'
 import type { Customer } from '../types'
 
 type TabType = 'orders' | 'products' | 'details'
-type DateRangeKey = 'all' | 'last7' | 'last30' | 'last90' | 'thisYear'
+type DateRangeKey = 'all' | 'today' | 'last7' | 'last30' | 'last90' | 'thisYear' | 'custom'
 
 // Renders one label + value row. Empty values fall back to "—" so the field is
 // visibly present rather than silently missing — that's the bug this view used
@@ -253,20 +258,41 @@ export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isOwner } = useAuth()
-  const { loading, error, customer, orders, stats, refresh, hasDocument } = useCustomerDetail(id)
+  const { canEdit, canDelete } = usePermission('orders')
+  const { loading, error, customer, orders, profitByOrder, stats, refresh } = useCustomerDetail(id)
 
   const DATE_RANGES: Record<DateRangeKey, { labelKey: string; days: number | null }> = {
     all: { labelKey: 'customerDetail.dateRanges.all', days: null },
+    today: { labelKey: 'customerDetail.dateRanges.today', days: 0 },
     last7: { labelKey: 'customerDetail.dateRanges.last7', days: 7 },
     last30: { labelKey: 'customerDetail.dateRanges.last30', days: 30 },
     last90: { labelKey: 'customerDetail.dateRanges.last90', days: 90 },
     thisYear: { labelKey: 'customerDetail.dateRanges.thisYear', days: 365 },
+    custom: { labelKey: 'customerDetail.dateRanges.custom', days: null },
   }
   const [activeTab, setActiveTab] = useState<TabType>('orders')
   const [searchQuery, setSearchQuery] = useState('')
   const [dateRange, setDateRange] = useState<DateRangeKey>('all')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
   const [showPortalModal, setShowPortalModal] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
+  const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
+  const [notesOrder, setNotesOrder] = useState<OrderWithItems | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<OrderWithItems | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeletingId(deleteTarget.id)
+    try {
+      await deleteOrder(deleteTarget.id)
+      refresh()
+    } finally {
+      setDeletingId(null)
+      setDeleteTarget(null)
+    }
+  }
 
   const handleEditSubmit = async (data: CustomerFormData) => {
     if (!customer) return
@@ -277,18 +303,25 @@ export default function CustomerDetail() {
 
   // Filter orders based on search and date range
   const filteredOrders = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
     return orders.filter(order => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
         const matchesSearch =
           order.order_number.toLowerCase().includes(query) ||
-          order.items.some(item => item.product_name.toLowerCase().includes(query))
+          (order.items || []).some(item => item.product_name.toLowerCase().includes(query))
         if (!matchesSearch) return false
       }
 
       // Date range filter
-      if (dateRange !== 'all') {
+      const day = (order.order_date || '').split('T')[0]
+      if (dateRange === 'today') {
+        if (day !== today) return false
+      } else if (dateRange === 'custom') {
+        if (customFrom && day < customFrom) return false
+        if (customTo && day > customTo) return false
+      } else if (dateRange !== 'all') {
         const range = DATE_RANGES[dateRange]
         if (range.days) {
           const orderDate = new Date(order.order_date)
@@ -300,7 +333,8 @@ export default function CustomerDetail() {
 
       return true
     })
-  }, [orders, searchQuery, dateRange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, searchQuery, dateRange, customFrom, customTo])
 
   if (loading) {
     return (
@@ -576,6 +610,25 @@ export default function CustomerDetail() {
                 ))}
               </select>
             </div>
+
+            {/* Custom from/to (only when 'custom' is selected) */}
+            {dateRange === 'custom' && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <span className="text-slate-400">–</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            )}
           </div>
 
           {/* Range summary — owner sees profit/margin; derived from the visible (filtered)
@@ -589,7 +642,7 @@ export default function CustomerDetail() {
             for (const o of summaryOrders) {
               revenue += o.total
               base += o.subtotal
-              profit += o.profit ?? 0
+              profit += profitByOrder.get(o.id)?.profit ?? 0
             }
             const margin = base > 0 ? (profit / base) * 100 : 0
             return (
@@ -613,44 +666,51 @@ export default function CustomerDetail() {
             )
           })()}
 
-          {/* Orders List */}
-          <div className="space-y-3">
-            {orders.length === 0 ? (
-              <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                <ShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-500 dark:text-slate-400">
-                  {t('customerDetail.noOrdersYet')}
-                </p>
-              </div>
-            ) : filteredOrders.length === 0 ? (
-              <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                <Search className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-500 dark:text-slate-400">
-                  {t('customerDetail.noOrdersMatch')}
-                </p>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {t('customerDetail.showingOrders', { showing: filteredOrders.length, total: orders.length })}
-                </p>
-                {filteredOrders.map(order => (
-                  <CustomerOrderRow
-                    key={order.id}
-                    order={order}
-                    hasDocument={hasDocument}
-                    onDocumentGenerated={refresh}
-                  />
-                ))}
-              </>
-            )}
-          </div>
+          {/* Orders table (reuses the Orders-page table: eye opens the order — line-item
+              profit + document generation live in that panel; edit/delete inline). */}
+          {filteredOrders.length > 0 && (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t('customerDetail.showingOrders', { showing: filteredOrders.length, total: orders.length })}
+            </p>
+          )}
+          <OrdersTable
+            orders={filteredOrders}
+            showCustomerColumn={false}
+            getProfit={(o) => profitByOrder.get(o.id) ?? null}
+            onView={setViewingOrder}
+            onEdit={(o) => ['cancelled', 'refunded'].includes(o.status) ? setNotesOrder(o) : navigate(`/orders/${o.id}/edit`)}
+            onDelete={setDeleteTarget}
+            deletingId={deletingId}
+            canEdit={canEdit}
+            canDelete={canDelete}
+            emptyMessage={orders.length === 0 ? t('customerDetail.noOrdersYet') : t('customerDetail.noOrdersMatch')}
+          />
         </div>
       ) : activeTab === 'products' ? (
         <CustomerProductsTab customerId={customer.id} customerName={customer.company_name} />
       ) : (
         <CustomerDetailsTab customer={customer} />
       )}
+
+      {viewingOrder && <OrderDetail order={viewingOrder} onClose={() => setViewingOrder(null)} onStatusChange={() => { setViewingOrder(null); refresh() }} />}
+
+      {notesOrder && (
+        <OrderNotesModal
+          order={notesOrder}
+          onClose={() => setNotesOrder(null)}
+          onSaved={() => { setNotesOrder(null); refresh() }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        variant="danger"
+        title={t('orders.actions.delete')}
+        message={t('orders.deleteConfirm', { number: deleteTarget?.order_number || '' })}
+        confirmLabel={t('orders.actions.delete')}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

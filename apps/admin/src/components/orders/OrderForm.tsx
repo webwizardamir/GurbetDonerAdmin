@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X, Tags } from 'lucide-react'
+import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X, Tags, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
 import { useOrders } from '../../hooks/useOrders'
@@ -47,6 +47,17 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const { create, updateWithItems } = useOrders()
 
   const isEditMode = !!editOrder
+
+  // Left "Order Details" panel collapse (lg+ only). Edit orders start collapsed
+  // (you're usually tweaking lines); new orders start open. A manual toggle is
+  // remembered in localStorage; while no customer is picked we force it open so
+  // the customer picker is always reachable.
+  const [detailsCollapsed, setDetailsCollapsed] = useState<boolean>(() => {
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('orderForm.detailsCollapsed') : null
+    if (stored === '1') return true
+    if (stored === '0') return false
+    return isEditMode
+  })
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [items, setItems] = useState<OrderLineItem[]>([])
@@ -421,6 +432,14 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     if (selectedCustomer.vat_number) customerSummaryLines.push(`BTW ${selectedCustomer.vat_number}`)
   }
 
+  // Only actually collapse when a customer is selected (otherwise the picker must stay visible).
+  const detailsActuallyCollapsed = detailsCollapsed && !!selectedCustomer
+  const toggleDetails = () => {
+    const next = !detailsActuallyCollapsed
+    setDetailsCollapsed(next)
+    try { localStorage.setItem('orderForm.detailsCollapsed', next ? '1' : '0') } catch { /* ignore */ }
+  }
+
   return (
     <div className="space-y-4">
       {/* Action row — inline like other pages' filter rows. No bar chrome. */}
@@ -488,11 +507,45 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
           )
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left column: details */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4">
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{t('orders.details')}</h3>
+        <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
+          {/* Left column: details — collapsible to a slim customer rail at lg+ */}
+          <div className={`w-full shrink-0 space-y-4 ${detailsActuallyCollapsed ? 'lg:w-[60px]' : 'lg:w-[340px]'} lg:transition-[width] lg:duration-300 lg:ease-in-out motion-reduce:lg:transition-none`}>
+            {detailsActuallyCollapsed && (
+              <button
+                type="button"
+                onClick={toggleDetails}
+                aria-expanded={false}
+                aria-controls="order-details-panel"
+                aria-label={t('orders.form.showDetails')}
+                title={t('orders.form.showDetails')}
+                className="hidden lg:flex w-[60px] flex-col items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 text-slate-500" />
+                {selectedCustomer && (
+                  <>
+                    <Building2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+                    <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-medium text-slate-700 dark:text-slate-300 max-h-44 truncate">{selectedCustomer.company_name}</span>
+                    {selectedCustomer.price_list && <Tags className="w-4 h-4 text-purple-500 shrink-0" />}
+                  </>
+                )}
+              </button>
+            )}
+            <div id="order-details-panel" className={detailsActuallyCollapsed ? 'lg:hidden' : ''}>
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{t('orders.details')}</h3>
+                  <button
+                    type="button"
+                    onClick={toggleDetails}
+                    aria-expanded={true}
+                    aria-controls="order-details-panel"
+                    aria-label={t('orders.form.hideDetails')}
+                    title={t('orders.form.hideDetails')}
+                    className="hidden lg:inline-flex p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                </div>
 
               {selectedCustomer && !editingCustomer ? (
                 <div className="flex items-start justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-700/40 rounded-lg">
@@ -545,11 +598,12 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
                   placeholder={t('orders.form.internalPlaceholder')} />
               </div>
+              </div>
             </div>
           </div>
 
-          {/* Right column: items */}
-          <div className="lg:col-span-8 space-y-4">
+          {/* Right column: items — flexes wider when the details panel collapses */}
+          <div className="flex-1 lg:min-w-0 space-y-4">
             <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
               <ProductSearch
                 products={products}

@@ -11,10 +11,13 @@ import {
   ChevronUp,
   ChevronDown,
   Search,
+  Eye,
 } from 'lucide-react'
 import { useOrderAnalytics } from '../../../hooks/useOrderAnalytics'
 import type { DateRange } from '../../../hooks/useDateRange'
 import type { AnalyticsFilters } from '../../../services/analyticsHelpers'
+import { fetchOrderById, type OrderWithItems } from '../../../services/orders'
+import OrderDetail from '../../orders/OrderDetail'
 import StatCard from '../../StatCard'
 import { formatChartCurrency } from '../ChartColors'
 import { formatDate, formatPercent } from '../../../utils/format'
@@ -36,6 +39,20 @@ export default function OrdersTab({ dateRange, statuses = [], filters = {} }: Or
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [paymentFilter, setPaymentFilter] = useState('')
   const [search, setSearch] = useState('')
+  const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
+  const [openingId, setOpeningId] = useState<string | null>(null)
+
+  // Eye → lazy-load the full order (the analytics rows are flat aggregates) and
+  // open it read-only in the shared OrderDetail panel (with line-item profit).
+  const openOrder = async (orderId: string) => {
+    setOpeningId(orderId)
+    try {
+      const full = await fetchOrderById(orderId)
+      if (full) setViewingOrder(full)
+    } finally {
+      setOpeningId(null)
+    }
+  }
 
   const filteredOrders = useMemo(() => {
     let result = orders
@@ -213,12 +230,13 @@ export default function OrdersTab({ dateRange, statuses = [], filters = {} }: Or
                     </span>
                   </th>
                 ))}
+                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {sortedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={12} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     {t('common.noResults')}
                   </td>
                 </tr>
@@ -241,6 +259,17 @@ export default function OrdersTab({ dateRange, statuses = [], filters = {} }: Or
                     <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{formatChartCurrency(row.profit)}</td>
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{formatPercent(row.profitMargin)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatChartCurrency(row.taxAmount)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => openOrder(row.orderId)}
+                        disabled={openingId === row.orderId}
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                        title={t('orders.actions.view')}
+                        aria-label={t('orders.actions.view')}
+                      >
+                        {openingId === row.orderId ? <Loader2 className="w-4 h-4 text-slate-500 animate-spin" /> : <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -248,6 +277,8 @@ export default function OrdersTab({ dateRange, statuses = [], filters = {} }: Or
           </table>
         </div>
       </div>
+
+      {viewingOrder && <OrderDetail order={viewingOrder} onClose={() => setViewingOrder(null)} onStatusChange={() => setViewingOrder(null)} />}
     </div>
   )
 }
