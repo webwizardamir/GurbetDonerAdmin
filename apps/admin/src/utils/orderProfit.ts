@@ -27,7 +27,9 @@ export function lineCost(line: ProfitLine): number {
   return (line.cost_cents ?? 0) * line.quantity
 }
 
-// Per-line profit (cents) against a line revenue base (e.g. line_total).
+// Per-line profit (cents) against a line revenue base. Pass the EX-VAT revenue
+// (e.g. line_total − tax_amount) — never the VAT-inclusive line_total, or profit
+// is inflated by the line's BTW (cost_cents is ex-VAT).
 export function lineProfit(revenueCents: number, line: ProfitLine): number {
   return revenueCents - lineCost(line)
 }

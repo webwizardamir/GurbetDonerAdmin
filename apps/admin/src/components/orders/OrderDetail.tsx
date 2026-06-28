@@ -305,8 +305,10 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                       BTW {item.tax_rate}%
                     </p>
                     {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
-                      const lp = item.line_total - (item.cost_cents ?? 0) * item.quantity
-                      const lm = item.line_total > 0 ? (lp / item.line_total) * 100 : 0
+                      // Revenue base is ex-VAT (line_total includes BTW; cost_cents is ex-VAT).
+                      const revenueExVat = item.line_total - item.tax_amount
+                      const lp = revenueExVat - (item.cost_cents ?? 0) * item.quantity
+                      const lm = revenueExVat > 0 ? (lp / revenueExVat) * 100 : 0
                       return (
                         <p className={`text-[11px] font-medium tabular-nums ${profitClass(lp)}`}>
                           {t('orders.profit.label')} {formatPrice(lp)} · {formatPercent(lm)}
