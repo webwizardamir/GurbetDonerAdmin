@@ -1,7 +1,7 @@
 /**
  * ActionRequiredBanner - Alert strip for items needing immediate attention.
- * Only renders when there are action items. Shows overdue payments,
- * zero-stock products, and orders on hold as clickable items.
+ * Only renders when there are action items. Shows overdue payments
+ * and orders on hold as clickable items.
  */
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -9,7 +9,6 @@ import { AlertCircle, ChevronRight } from 'lucide-react'
 
 export interface ActionRequired {
   overduePayments: number
-  zeroStockCount: number
   ordersOnHold: number
 }
 
@@ -23,8 +22,8 @@ export default function ActionRequiredBanner({ actionRequired }: ActionRequiredB
 
   if (!actionRequired) return null
 
-  const { overduePayments, zeroStockCount, ordersOnHold } = actionRequired
-  const hasActions = overduePayments > 0 || zeroStockCount > 0 || ordersOnHold > 0
+  const { overduePayments, ordersOnHold } = actionRequired
+  const hasActions = overduePayments > 0 || ordersOnHold > 0
   if (!hasActions) return null
 
   const items: { label: string; count: number; onClick: () => void; urgent: boolean }[] = []
@@ -34,14 +33,6 @@ export default function ActionRequiredBanner({ actionRequired }: ActionRequiredB
       label: t('dashboard.action.overduePayments', { count: overduePayments }),
       count: overduePayments,
       onClick: () => navigate('/orders?status=pending_payment'),
-      urgent: true,
-    })
-  }
-  if (zeroStockCount > 0) {
-    items.push({
-      label: t('dashboard.action.zeroStock', { count: zeroStockCount }),
-      count: zeroStockCount,
-      onClick: () => navigate('/products'),
       urgent: true,
     })
   }

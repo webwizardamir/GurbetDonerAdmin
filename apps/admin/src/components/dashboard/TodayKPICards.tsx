@@ -1,18 +1,17 @@
 /**
  * TodayKPICards - Compact KPI stat cards for the dashboard.
- * Shows 4 cards in a 2x2 (mobile) or 4-column (desktop) grid.
- * Owner sees: Orders Today, Awaiting Payment, Stock Alerts, Yesterday's Revenue.
- * Shop Manager sees: Orders Today, Awaiting Payment, Stock Alerts, To Deliver Today.
+ * Shows 3 cards in a responsive grid.
+ * Owner sees: Orders Today, Awaiting Payment, Profit Today.
+ * Shop Manager sees: Orders Today, Awaiting Payment, To Deliver Today.
  */
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, Clock, AlertTriangle, Coins, Truck } from 'lucide-react'
+import { ShoppingCart, Clock, Coins, Truck } from 'lucide-react'
 import { formatPrice, profitClass } from '../../utils/format'
 
 export interface TodayStats {
   ordersToday: number
   pendingCount: number
-  lowStockCount: number
   revenueToday?: number
   profitToday?: number
   yesterdayRevenue?: number
@@ -40,7 +39,6 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
   const stats = todayStats || {
     ordersToday: 0,
     pendingCount: 0,
-    lowStockCount: 0,
     yesterdayRevenue: 0,
     deliveriesToday: 0,
   }
@@ -79,16 +77,6 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
       pulse: stats.pendingCount > 0,
       onClick: () => navigate('/orders?status=pending_payment'),
     },
-    {
-      label: t('dashboard.kpi.stockAlerts'),
-      value: stats.lowStockCount.toString(),
-      icon: AlertTriangle,
-      iconColor: stats.lowStockCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500',
-      iconBg: stats.lowStockCount > 0 ? 'bg-red-50 dark:bg-red-900/30' : 'bg-slate-100 dark:bg-slate-700',
-      accent: 'red',
-      pulse: false,
-      onClick: () => navigate('/products'),
-    },
     isOwner
       ? {
           label: t('dashboard.kpi.profitToday'),
@@ -115,7 +103,7 @@ export default function TodayKPICards({ todayStats, isOwner }: TodayKPICardsProp
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
       {cards.map((card) => (
         <button
           key={card.label}

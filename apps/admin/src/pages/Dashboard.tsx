@@ -1,7 +1,7 @@
 /**
  * Dashboard - Main dashboard page composing all dashboard components.
  * Layout: Greeting, KPI cards, action banner, then 2-column grid
- * with orders list on left and chart + stock alerts on right.
+ * with orders list on left and the weekly chart on right.
  */
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -15,7 +15,6 @@ import ActionRequiredBanner from '../components/dashboard/ActionRequiredBanner'
 import type { ActionRequired } from '../components/dashboard/ActionRequiredBanner'
 import OverdueWidget from '../components/dashboard/OverdueWidget'
 import TodayOrdersList from '../components/dashboard/TodayOrdersList'
-import StockAlerts from '../components/dashboard/StockAlerts'
 import WeeklyMiniChart from '../components/dashboard/WeeklyMiniChart'
 import type { WeeklyStats } from '../components/dashboard/WeeklyMiniChart'
 
@@ -75,7 +74,6 @@ export default function Dashboard() {
     weeklyStats: rawWeeklyStats,
     actionRequired: rawAction,
     todaysOrders,
-    lowStockProducts,
     loading,
     error,
     refresh,
@@ -118,7 +116,6 @@ export default function Dashboard() {
     ? {
         ordersToday: 'orders_today' in rawTodayStats ? rawTodayStats.orders_today : 0,
         pendingCount: 'pending_count' in rawTodayStats ? rawTodayStats.pending_count : 0,
-        lowStockCount: lowStockProducts.length,
         revenueToday: isOwner && 'revenue_today' in rawTodayStats ? rawTodayStats.revenue_today : undefined,
         profitToday: isOwner && 'profit_today' in rawTodayStats ? rawTodayStats.profit_today : undefined,
         deliveriesToday: !isOwner && 'deliveries_today' in rawTodayStats ? rawTodayStats.deliveries_today : undefined,
@@ -128,7 +125,6 @@ export default function Dashboard() {
   const actionRequired: ActionRequired | null = rawAction
     ? {
         overduePayments: rawAction.overdue_payments,
-        zeroStockCount: rawAction.zero_stock_count,
         ordersOnHold: rawAction.orders_on_hold,
       }
     : null
@@ -153,13 +149,6 @@ export default function Dashboard() {
     total: o.total,
   }))
 
-  const stockAlertProducts = lowStockProducts.map((p) => ({
-    id: p.id,
-    name: p.name,
-    currentStock: p.stockQuantity,
-    unitType: p.unitType || 'kg',
-  }))
-
   return (
     <div className="space-y-6">
       <DashboardGreeting
@@ -176,10 +165,9 @@ export default function Dashboard() {
         {/* Left column - Orders */}
         <TodayOrdersList orders={todayOrders} isOwner={isOwner} />
 
-        {/* Right column - Chart & Stock */}
+        {/* Right column - Weekly chart */}
         <div className="space-y-6">
           <WeeklyMiniChart weeklyStats={weeklyStats} isOwner={isOwner} />
-          <StockAlerts lowStockProducts={stockAlertProducts} isOwner={isOwner} />
         </div>
       </div>
     </div>
