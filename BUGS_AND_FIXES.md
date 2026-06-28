@@ -639,3 +639,16 @@ Table row menus positioned with `absolute` get clipped by the table wrapper's `o
 **Cause:** PDFs are generated client-side on demand and **never persisted** — `DocumentGenerator` calls `createDocument(..., undefined /* pdf_url */, ...)` ("No storage URL for now"). The portal's download button only rendered when `doc.pdf_url` was set, so it never appeared.
 **Solution:** The `documents` row already stores the full `snapshot` (the `InvoiceData` the admin renders from). The portal now re-renders the PDF on demand from the snapshot via the shared `getDocumentTemplate` + `@react-pdf` (lazy-loaded) — works for every existing document with no storage/backfill. Security-confirmed the snapshot has no cost/profit fields. Also fixed the listed amount to use the document's own `snapshot.grandTotal` (was showing the order total, wrong for credit notes).
 **Prevention:** Don't gate a portal action on a column that's never populated; prefer rendering from the immutable snapshot the app already stores.
+
+---
+
+## Profit shown VAT-inclusive era (2026-06-28)
+
+### Bug (reported by client): per-line + Dashboard profit overstated by the line's BTW
+**Symptom:** Client flagged order 26, line CEVAPCICI (0.75kg): 360 × €7,30, 9% BTW, inkoop €6,50 × 360. App showed **winst €524,52 (18,3%)** but the real profit is `360 × (7,30 − 6,50) = €288,00`. The €236,52 overstatement was exactly the 9% BTW on the line (€2.628 × 0,09).
+**Cause:** Profit subtracted an **ex-VAT** cost from a **VAT-inclusive** revenue. `order_items.total` (mapped to `line_total`) and `orders.total` **include BTW**, but `cost_cents` is ex-VAT, so `line_total − cost×qty` inflates profit by the line's BTW. Two surfaces had it (both added in the 2026-06-27 profit-everywhere work):
+- `OrderDetail.tsx` per-line "Winst" badge used `item.line_total`.
+- `get_today_stats` RPC (Dashboard "Winst vandaag" / "Omzet") summed `orders.total` (incl. BTW) and subtracted **gross** refunds (`order_refunds.amount`).
+The misleading doc on the unused `lineProfit` helper ("…a line revenue base (e.g. line_total)") actively invited the mistake. It went unnoticed because a **0% BTW** order looks correct (line_total == ex-VAT), and the test order with a remembered price happened to be 0% BTW — so the remembered price was a red herring, not the cause.
+**Solution (migration 00072, applied):** Use an **ex-VAT revenue base** everywhere. Per-line: `line_total − tax_amount`. `get_today_stats`: `SUM(orders.subtotal)` for revenue and ex-VAT refunds via `order_refund_items.amount` (mirrors the established refund-as-revenue-reduction convention in `get_customer_orders` / `get_order_performance`). The NL "Omzet" tile is now ex-BTW (was incorrectly incl. BTW). Verified against orders 26/27/28: e.g. order 26 CEVAPCICI now €288,00. Order-level `computeOrderProfit` and the customer/analytics RPCs were already ex-VAT and unchanged.
+**Prevention:** Per-line profit revenue base is **`line_total − tax_amount`**, never `line_total`/`total` (both include BTW); order-level base is `orders.subtotal` (ex-VAT). Cost (`cost_cents`) is always ex-VAT — keep both sides of the subtraction ex-VAT. When a money figure is "incl. VAT" vs "ex-VAT", check the column comment (`discount.ts`: line `total` = "incl. VAT"; `finalBase` = ex-VAT).

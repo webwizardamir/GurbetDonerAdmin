@@ -773,6 +773,14 @@ profit = subtotal − Σ(`order_items.cost_cents` × qty); margin = profit/reven
 negative = red (`profitClass` in `utils/format.ts`; one definition `computeOrderProfit` in
 `utils/orderProfit.ts`).
 
+> **Profit revenue base is ALWAYS ex-VAT** (migration 00072, 2026-06-28 — fixed a client-reported
+> bug). `order_items.total` (= `line_total`) and `orders.total` **include BTW**; `cost_cents` is
+> ex-VAT. The **per-line** profit base must therefore be **`line_total − tax_amount`**, never
+> `line_total` (subtracting ex-VAT cost from a VAT-inclusive revenue overstates profit by exactly the
+> line's BTW). The **order-level** base is `orders.subtotal`. `get_today_stats` (Dashboard "Winst/Omzet")
+> uses `SUM(orders.subtotal)` + ex-VAT refunds (`order_refund_items.amount`); the NL "Omzet" tile is
+> ex-BTW. A 0% BTW order looks correct either way — that masked the bug. See `BUGS_AND_FIXES.md`.
+
 - **Where profit shows (all gated by `useAuth().isOwner`):** order detail panel (per-line badge +
   order Winst/Marge row), Orders list (under each total), customer page Orders tab (per-order +
   range summary strip), Dashboard (**Winst vandaag** tile via `get_today_stats`).
