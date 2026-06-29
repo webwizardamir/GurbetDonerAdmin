@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import {
   FileText,
   Search,
@@ -25,6 +24,8 @@ import { CreditNoteTemplate } from '../components/documents/CreditNoteTemplate'
 import { PackingSlipTemplate } from '../components/documents/PackingSlipTemplate'
 import InvoiceStats from '../components/documents/InvoiceStats'
 import { InvoiceTableRow, InvoiceMobileCard } from '../components/documents/InvoiceRow'
+import OrderDetail from '../components/orders/OrderDetail'
+import { fetchOrderById, type OrderWithItems } from '../services/orders'
 import { documentExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 
@@ -112,8 +113,8 @@ function getDateBounds(preset: DatePreset, customStart: string, customEnd: strin
 
 export default function Invoices() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { canDelete } = usePermission('documents')
+  const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -321,6 +322,18 @@ export default function Invoices() {
     setTypeFilter(prev => (prev === type ? '' : type))
   }
 
+  // Open the order's detail panel in-place (no navigation, so the user keeps
+  // their place on the Invoices page).
+  const handleOpenOrder = async (orderId: string) => {
+    if (!orderId) return
+    try {
+      const order = await fetchOrderById(orderId)
+      if (order) setViewingOrder(order)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const hasFilters = searchQuery || typeFilter || customerFilter || dateRangePreset !== 'all'
 
   // ─── Render ───────────────────────────────────────────
@@ -493,7 +506,7 @@ export default function Invoices() {
                       onDownload={() => handleDownload(doc)}
                       onDelete={() => handleDelete(doc)}
                       onTypeFilter={() => handleTypeFilterClick(doc.document_type)}
-                      onNavigateOrder={() => navigate(`/orders?order=${data.orderId}`)}
+                      onNavigateOrder={() => handleOpenOrder(data.orderId)}
                     />
                   )
                 })}
@@ -532,7 +545,7 @@ export default function Invoices() {
                 onDownload={() => handleDownload(doc)}
                 onDelete={() => handleDelete(doc)}
                 onTypeFilter={() => handleTypeFilterClick(doc.document_type)}
-                onNavigateOrder={() => navigate(`/orders?order=${data.orderId}`)}
+                onNavigateOrder={() => handleOpenOrder(data.orderId)}
               />
             )
           })
@@ -543,6 +556,14 @@ export default function Invoices() {
       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
         <p className="text-sm text-blue-700 dark:text-blue-300">{t('documents.generateFromOrder')}</p>
       </div>
+
+      {viewingOrder && (
+        <OrderDetail
+          order={viewingOrder}
+          onClose={() => setViewingOrder(null)}
+          onStatusChange={() => { setViewingOrder(null); loadDocuments() }}
+        />
+      )}
     </div>
   )
 }
