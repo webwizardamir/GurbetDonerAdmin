@@ -197,9 +197,34 @@
   <div class="note">Keep the old <code>.vercel.app</code> entry — it lets you fall back to the Vercel URL if a DNS change ever hiccups.</div>
 </div>
 
+<!-- PHASE 6 — SECURITY (added 2026-06-29) -->
+<div class="phase" style="border-color:#fecaca;background:#fff5f5;">
+  <h2><span class="badge you">You</span> Phase 6 — Security actions before launch</h2>
+  <p class="sub">From the 2026-06-29 pre-launch audit. The code/DB fixes are already done &amp;
+  deployed (migrations 00074/00075). These remaining items can only be done in the dashboards.</p>
+  <ol class="steps">
+    <li><div class="t">🔴 Rotate the Supabase API key <b>(critical)</b></div>
+        <div class="d">A full-access <code>service_role</code> key was committed to git history. Supabase →
+        <b>Settings → API</b> → rotate the JWT secret (or migrate to new API keys).
+        ⚠️ This also changes the <b>anon key</b>, so right after: update <code>VITE_SUPABASE_ANON_KEY</code>
+        in Vercel (admin project) and redeploy, or the live app breaks. Edge functions update automatically.</div></li>
+    <li><div class="t">🟠 Enable leaked-password protection</div>
+        <div class="d">Supabase → <b>Authentication → Policies</b> → turn on the HaveIBeenPwned check (one toggle).</div></li>
+    <li><div class="t">🟠 Lock the edge-function CORS origin</div>
+        <div class="d">Set function secret <code>ALLOWED_ORIGIN = https://app.melekhalalfood.nl</code>
+        (functions default to <code>*</code>; the code already reads this var).</div></li>
+    <li><div class="t">🟠 Confirm Auth min password length ≥ 8</div>
+        <div class="d">Supabase → Authentication → password policy.</div></li>
+  </ol>
+  <div class="ok">✓ Already fixed in code/DB: removed an anon-callable function that could wipe the
+  whole database, closed a portal-customer write hole, revoked anonymous access to sensitive RPCs,
+  and server-gated dashboard profit. No action needed on those.</div>
+</div>
+
 <!-- FINAL CHECK -->
 <div class="phase" style="background:#f0fdf4;border-color:#bbf7d0;">
   <h2>✅ Final check (tick when done)</h2>
+  <p style="margin:6px 0;"><input type="checkbox" class="chk"> Supabase API key rotated + anon key updated in Vercel</p>
   <p style="margin:6px 0;"><input type="checkbox" class="chk"> <code>melekhalalfood.nl</code> shows the public website</p>
   <p style="margin:6px 0;"><input type="checkbox" class="chk"> <code>www.melekhalalfood.nl</code> redirects to it</p>
   <p style="margin:6px 0;"><input type="checkbox" class="chk"> <code>app.melekhalalfood.nl</code> shows the admin login</p>
