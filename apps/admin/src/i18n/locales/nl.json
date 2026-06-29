@@ -1204,7 +1204,7 @@
       "noUsers": "Geen gebruikers gevonden",
       "confirmDeactivate": "Weet u zeker dat u deze gebruiker wilt deactiveren?",
       "password": "Wachtwoord",
-      "minChars": "Minimaal 6 tekens",
+      "minChars": "Minimaal 8 tekens",
       "emailCannotChange": "E-mail kan niet gewijzigd worden",
       "cannotChangeOwnRole": "U kunt uw eigen rol niet wijzigen",
       "loadError": "Kan gebruikers niet laden. Probeer opnieuw.",

@@ -60,7 +60,20 @@ export async function inviteUser(data: CreateUserData): Promise<{ success: boole
 
     if (error) {
       console.error('Edge function error:', error)
-      return { success: false, error: error.message }
+      // supabase-js wraps non-2xx responses in a FunctionsHttpError whose
+      // .message is the generic "Edge Function returned a non-2xx status code".
+      // The real reason lives in the response body — read it so the user sees it.
+      let message = error.message
+      const context = (error as { context?: Response }).context
+      if (context && typeof context.json === 'function') {
+        try {
+          const body = await context.json()
+          if (body?.error) message = body.error
+        } catch {
+          // body wasn't JSON — keep the generic message
+        }
+      }
+      return { success: false, error: message }
     }
 
     if (result?.error) {

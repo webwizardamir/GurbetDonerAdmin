@@ -1204,7 +1204,7 @@
       "noUsers": "No users found",
       "confirmDeactivate": "Are you sure you want to deactivate this user?",
       "password": "Password",
-      "minChars": "Minimum 6 characters",
+      "minChars": "Minimum 8 characters",
       "emailCannotChange": "Email cannot be changed",
       "cannotChangeOwnRole": "You cannot change your own role",
       "loadError": "Failed to load users. Please try again.",
