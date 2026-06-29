@@ -39,6 +39,22 @@ export async function updateUserProfile(
   return true
 }
 
+// supabase-js wraps a non-2xx Edge Function response in a FunctionsHttpError
+// whose .message is the generic "Edge Function returned a non-2xx status code".
+// The real reason lives in the response body — read it so the user sees it.
+async function functionErrorMessage(error: { message: string; context?: Response }): Promise<string> {
+  const context = error.context
+  if (context && typeof context.json === 'function') {
+    try {
+      const body = await context.json()
+      if (body?.error) return body.error
+    } catch {
+      // body wasn't JSON — fall back to the generic message
+    }
+  }
+  return error.message
+}
+
 // Create user via Edge Function (has admin privileges to create auth users)
 export async function inviteUser(data: CreateUserData): Promise<{ success: boolean; error?: string }> {
   try {
@@ -60,20 +76,7 @@ export async function inviteUser(data: CreateUserData): Promise<{ success: boole
 
     if (error) {
       console.error('Edge function error:', error)
-      // supabase-js wraps non-2xx responses in a FunctionsHttpError whose
-      // .message is the generic "Edge Function returned a non-2xx status code".
-      // The real reason lives in the response body — read it so the user sees it.
-      let message = error.message
-      const context = (error as { context?: Response }).context
-      if (context && typeof context.json === 'function') {
-        try {
-          const body = await context.json()
-          if (body?.error) message = body.error
-        } catch {
-          // body wasn't JSON — keep the generic message
-        }
-      }
-      return { success: false, error: message }
+      return { success: false, error: await functionErrorMessage(error) }
     }
 
     if (result?.error) {
@@ -86,6 +89,38 @@ export async function inviteUser(data: CreateUserData): Promise<{ success: boole
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create user'
+    }
+  }
+}
+
+// Permanently delete a staff user via Edge Function (owner-gated, service_role).
+// Returns a friendly error (e.g. "user created records — deactivate instead").
+export async function deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    const { data: result, error } = await supabase.functions.invoke('delete-user', {
+      body: { userId },
+    })
+
+    if (error) {
+      console.error('Edge function error:', error)
+      return { success: false, error: await functionErrorMessage(error) }
+    }
+
+    if (result?.error) {
+      return { success: false, error: result.error }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error deleting user:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete user'
     }
   }
 }

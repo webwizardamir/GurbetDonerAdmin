@@ -1213,7 +1213,11 @@
       "never": "Nooit",
       "editTooltip": "Gebruiker bewerken",
       "deactivateTooltip": "Gebruiker deactiveren",
-      "reactivateTooltip": "Gebruiker heractiveren"
+      "reactivateTooltip": "Gebruiker heractiveren",
+      "deleteTooltip": "Gebruiker verwijderen",
+      "deleteTitle": "Gebruiker verwijderen",
+      "deleteConfirm": "Weet u zeker dat u {{name}} permanent wilt verwijderen? Dit kan niet ongedaan worden gemaakt. Deactiveer de gebruiker in plaats daarvan om de geschiedenis te behouden.",
+      "deleteError": "Kan gebruiker niet verwijderen"
     },
     "documents": {
       "title": "Documentinstellingen",

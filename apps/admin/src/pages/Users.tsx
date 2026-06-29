@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Edit2, UserX, UserCheck, X, Users as UsersIcon, Shield, ShieldCheck, Plus, Eye, EyeOff } from 'lucide-react'
+import { Edit2, UserX, UserCheck, X, Users as UsersIcon, Shield, ShieldCheck, Plus, Eye, EyeOff, Trash2 } from 'lucide-react'
 import { UserProfile } from '../types'
-import { fetchStaffProfiles, updateUserProfile, inviteUser } from '../services/users'
+import { fetchStaffProfiles, updateUserProfile, inviteUser, deleteUser } from '../services/users'
 import { useAuth } from '../context/AuthContext'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 
 type UserRole = 'owner' | 'shop_manager'
 
@@ -21,6 +22,7 @@ export default function Users() {
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null)
 
   useEffect(() => {
     loadUsers()
@@ -111,6 +113,24 @@ export default function Users() {
       setFormError(t('settings.users.createError'))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDeleteUser = async () => {
+    const target = userToDelete
+    if (!target) return
+    setUserToDelete(null)
+    setError(null)
+    try {
+      const result = await deleteUser(target.id)
+      if (!result.success) {
+        setError(result.error || t('settings.users.deleteError'))
+        return
+      }
+      loadUsers()
+    } catch (err) {
+      console.error('Failed to delete user:', err)
+      setError(t('settings.users.deleteError'))
     }
   }
 
@@ -264,6 +284,15 @@ export default function Users() {
                             {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                           </button>
                         )}
+                        {user.id !== currentUser?.id && (
+                          <button
+                            onClick={() => setUserToDelete(user)}
+                            className="p-2 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors"
+                            title={t('settings.users.deleteTooltip')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -307,6 +336,16 @@ export default function Users() {
                       }`}
                     >
                       {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                    </button>
+                  )}
+                  {user.id !== currentUser?.id && (
+                    <button
+                      onClick={() => setUserToDelete(user)}
+                      className="p-2 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-xl transition-colors"
+                      title={t('settings.users.deleteTooltip')}
+                      aria-label={t('settings.users.deleteTooltip')}
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -419,6 +458,17 @@ export default function Users() {
           </div>
         </div>
       )}
+
+      {/* Delete User Confirmation */}
+      <ConfirmDialog
+        open={!!userToDelete}
+        variant="danger"
+        title={t('settings.users.deleteTitle')}
+        message={userToDelete ? t('settings.users.deleteConfirm', { name: userToDelete.full_name || userToDelete.email }) : ''}
+        confirmLabel={t('common.delete')}
+        onConfirm={handleDeleteUser}
+        onCancel={() => setUserToDelete(null)}
+      />
     </div>
   )
 }

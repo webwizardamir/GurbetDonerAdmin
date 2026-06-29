@@ -1213,7 +1213,11 @@
       "never": "Never",
       "editTooltip": "Edit user",
       "deactivateTooltip": "Deactivate user",
-      "reactivateTooltip": "Reactivate user"
+      "reactivateTooltip": "Reactivate user",
+      "deleteTooltip": "Delete user",
+      "deleteTitle": "Delete user",
+      "deleteConfirm": "Are you sure you want to permanently delete {{name}}? This cannot be undone. Deactivate the user instead to preserve history.",
+      "deleteError": "Failed to delete user"
     },
     "documents": {
       "title": "Document Settings",
