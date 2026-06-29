@@ -25,7 +25,7 @@ import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
 import type { OrderStatus, PaymentMethod } from '../types'
 import type { OrderWithItems } from '../services/orders'
-import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders, getOrderStatusCounts, restoreOrder, purgeOrder, emptyOrderTrash } from '../services/orders'
+import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders, fetchOrderById, getOrderStatusCounts, restoreOrder, purgeOrder, emptyOrderTrash } from '../services/orders'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
 import { fetchSendCountsByOrder } from '../services/documentEmail'
@@ -82,6 +82,15 @@ export default function Orders() {
     const urlStatus = searchParams.get('status')
     if (urlStatus) {
       setFilters({ status: urlStatus as OrderStatus })
+    }
+    // Open a specific order's detail panel when linked via ?order=<id>
+    // (e.g. clicking the order number on the Invoices page). The order may not
+    // be in the current paginated list, so fetch it directly.
+    const urlOrderId = searchParams.get('order')
+    if (urlOrderId) {
+      fetchOrderById(urlOrderId).then(order => {
+        if (order) setViewingOrder(order)
+      }).catch(console.error)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

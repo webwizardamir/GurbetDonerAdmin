@@ -493,7 +493,7 @@ export default function Invoices() {
                       onDownload={() => handleDownload(doc)}
                       onDelete={() => handleDelete(doc)}
                       onTypeFilter={() => handleTypeFilterClick(doc.document_type)}
-                      onNavigateOrder={() => navigate(`/orders/${data.orderId}`)}
+                      onNavigateOrder={() => navigate(`/orders?order=${data.orderId}`)}
                     />
                   )
                 })}
@@ -532,7 +532,7 @@ export default function Invoices() {
                 onDownload={() => handleDownload(doc)}
                 onDelete={() => handleDelete(doc)}
                 onTypeFilter={() => handleTypeFilterClick(doc.document_type)}
-                onNavigateOrder={() => navigate(`/orders/${data.orderId}`)}
+                onNavigateOrder={() => navigate(`/orders?order=${data.orderId}`)}
               />
             )
           })
