@@ -39,3 +39,9 @@ google-map-api.txt
 
 # Business price spreadsheets — keep local, never commit
 *.xlsx
+
+# Local credentials / secrets — never commit
+temp-file.txt
+
+# Claude Code local settings (can embed secrets in allow-listed commands)
+.claude/settings.local.json

@@ -28,7 +28,6 @@ import OverdueInvoices from './pages/OverdueInvoices'
 import Outbox from './pages/Outbox'
 import Analytics from './pages/Analytics'
 import SoldProducts from './pages/SoldProducts'
-import TestConnection from './pages/TestConnection'
 
 // Portal Pages
 import PortalLogin from './portal/PortalLogin'
@@ -160,16 +159,6 @@ function App() {
               >
                 {/* Dashboard */}
                 <Route index element={<Dashboard />} />
-
-                {/* Test Connection (temporary, owner only) */}
-                <Route
-                  path="test-connection"
-                  element={
-                    <OwnerRoute>
-                      <TestConnection />
-                    </OwnerRoute>
-                  }
-                />
 
                 {/* Customers */}
                 <Route path="customers" element={<Customers />} />
