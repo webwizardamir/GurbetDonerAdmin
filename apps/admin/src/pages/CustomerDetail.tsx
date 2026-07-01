@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -336,6 +336,18 @@ export default function CustomerDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, searchQuery, dateRange, customFrom, customTo])
 
+  // Client-side windowing: a long-standing customer can have hundreds of orders
+  // (each with nested items + several SVG icons per row). Rendering them all at
+  // once janks iPad/mobile Safari, so we render 50 and let the user load more.
+  // The profit summary strip above still uses the FULL filtered set.
+  const ORDERS_PAGE = 50
+  const [visibleCount, setVisibleCount] = useState(ORDERS_PAGE)
+  useEffect(() => { setVisibleCount(ORDERS_PAGE) }, [searchQuery, dateRange, customFrom, customTo])
+  const visibleOrders = useMemo(
+    () => filteredOrders.slice(0, visibleCount),
+    [filteredOrders, visibleCount],
+  )
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -670,11 +682,11 @@ export default function CustomerDetail() {
               profit + document generation live in that panel; edit/delete inline). */}
           {filteredOrders.length > 0 && (
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {t('customerDetail.showingOrders', { showing: filteredOrders.length, total: orders.length })}
+              {t('customerDetail.showingOrders', { showing: visibleOrders.length, total: orders.length })}
             </p>
           )}
           <OrdersTable
-            orders={filteredOrders}
+            orders={visibleOrders}
             showCustomerColumn={false}
             getProfit={(o) => profitByOrder.get(o.id) ?? null}
             onView={setViewingOrder}
@@ -685,6 +697,16 @@ export default function CustomerDetail() {
             canDelete={canDelete}
             emptyMessage={orders.length === 0 ? t('customerDetail.noOrdersYet') : t('customerDetail.noOrdersMatch')}
           />
+          {visibleOrders.length < filteredOrders.length && (
+            <div className="flex justify-center">
+              <button
+                onClick={() => setVisibleCount(c => c + ORDERS_PAGE)}
+                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
+              >
+                {t('common.loadMore')}
+              </button>
+            </div>
+          )}
         </div>
       ) : activeTab === 'products' ? (
         <CustomerProductsTab customerId={customer.id} customerName={customer.company_name} />

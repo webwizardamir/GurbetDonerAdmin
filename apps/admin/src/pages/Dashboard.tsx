@@ -3,6 +3,7 @@
  * Layout: Greeting, KPI cards, action banner, then 2-column grid
  * with orders list on left and the weekly chart on right.
  */
+import { lazy, Suspense } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -15,7 +16,8 @@ import ActionRequiredBanner from '../components/dashboard/ActionRequiredBanner'
 import type { ActionRequired } from '../components/dashboard/ActionRequiredBanner'
 import OverdueWidget from '../components/dashboard/OverdueWidget'
 import TodayOrdersList from '../components/dashboard/TodayOrdersList'
-import WeeklyMiniChart from '../components/dashboard/WeeklyMiniChart'
+// Lazy — pulls in recharts (~400 KB) only after the dashboard shell paints.
+const WeeklyMiniChart = lazy(() => import('../components/dashboard/WeeklyMiniChart'))
 import type { WeeklyStats } from '../components/dashboard/WeeklyMiniChart'
 
 function SkeletonCard({ className = '' }: { className?: string }) {
@@ -167,7 +169,9 @@ export default function Dashboard() {
 
         {/* Right column - Weekly chart */}
         <div className="space-y-6">
-          <WeeklyMiniChart weeklyStats={weeklyStats} isOwner={isOwner} />
+          <Suspense fallback={<SkeletonCard className="h-64" />}>
+            <WeeklyMiniChart weeklyStats={weeklyStats} isOwner={isOwner} />
+          </Suspense>
         </div>
       </div>
     </div>

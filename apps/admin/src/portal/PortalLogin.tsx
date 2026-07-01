@@ -13,6 +13,7 @@ export default function PortalLogin() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains('dark')
   )
@@ -28,7 +29,7 @@ export default function PortalLogin() {
     clearError()
 
     try {
-      await signIn(email, password)
+      await signIn(email, password, rememberMe)
       navigate('/portal')
     } catch {
       // Error is handled by context
@@ -174,6 +175,19 @@ export default function PortalLogin() {
                   </button>
                 </div>
               </div>
+
+              {/* Remember me */}
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-2 focus:ring-green-500 cursor-pointer"
+                />
+                <span className="text-sm text-slate-600 dark:text-slate-400">
+                  {t('portal.login.rememberMe')}
+                </span>
+              </label>
 
               {/* Submit Button */}
               <button

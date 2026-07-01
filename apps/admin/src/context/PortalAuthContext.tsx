@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo, type ReactNode } from 'react'
 import { portalSupabase } from '../services/supabase'
 import { getPortalUser, portalSignIn, portalSignOut, type PortalUser } from '../services/portalAuth'
 
@@ -10,7 +10,7 @@ interface PortalAuthContextType {
   user: PortalUser | null
   loading: boolean
   error: string | null
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string, remember?: boolean) => Promise<void>
   signOut: () => Promise<void>
   clearError: () => void
 }
@@ -125,11 +125,11 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, remember = true) => {
     setLoading(true)
     setError(null)
     try {
-      const portalUser = await portalSignIn(email, password)
+      const portalUser = await portalSignIn(email, password, remember)
       setUser(portalUser)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed')
@@ -137,9 +137,9 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     setLoading(true)
     try {
       await portalSignOut()
@@ -149,12 +149,17 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const clearError = () => setError(null)
+  const clearError = useCallback(() => setError(null), [])
+
+  const value = useMemo(
+    () => ({ user, loading, error, signIn, signOut, clearError }),
+    [user, loading, error, signIn, signOut, clearError],
+  )
 
   return (
-    <PortalAuthContext.Provider value={{ user, loading, error, signIn, signOut, clearError }}>
+    <PortalAuthContext.Provider value={value}>
       {children}
     </PortalAuthContext.Provider>
   )

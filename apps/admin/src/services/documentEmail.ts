@@ -132,13 +132,15 @@ export async function fetchDocumentSends(opts: {
 
 /**
  * Per-order send counts — used by the envelope-icon indicator on the Orders
- * list page. One query returns counts for every order rather than one query
- * per order.
+ * list page. Scoped to the given order IDs (the current page, ~50) so it stays
+ * a bounded query instead of scanning the whole document_sends table.
  */
-export async function fetchSendCountsByOrder(): Promise<Record<string, { total: number; sent: number; failed: number }>> {
+export async function fetchSendCountsByOrder(orderIds: string[]): Promise<Record<string, { total: number; sent: number; failed: number }>> {
+  if (orderIds.length === 0) return {}
   const { data, error } = await supabase
     .from('document_sends')
     .select('order_id, status')
+    .in('order_id', orderIds)
   if (error) throw error
 
   const out: Record<string, { total: number; sent: number; failed: number }> = {}

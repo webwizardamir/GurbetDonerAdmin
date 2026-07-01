@@ -1,5 +1,6 @@
 {
   "common": {
+    "loadMore": "Load more",
     "filters": {
       "active": "Active filters",
       "clearAll": "Clear all"
@@ -1588,6 +1589,7 @@
       "passwordPlaceholder": "Enter your password",
       "showPassword": "Show password",
       "hidePassword": "Hide password",
+      "rememberMe": "Remember me",
       "signIn": "Sign In",
       "signingIn": "Signing in...",
       "forgotPassword": "Forgot password?",

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext'
@@ -6,37 +7,51 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import Layout from './components/layout/Layout'
 import ReminderAlert from './components/ReminderAlert'
 
-// Admin Pages
-import Login from './pages/Login'
-import ForgotPassword from './pages/ForgotPassword'
-import ResetPassword from './pages/ResetPassword'
-import Unauthorized from './pages/Unauthorized'
-import Dashboard from './pages/Dashboard'
-import Customers from './pages/Customers'
-import CustomerDetail from './pages/CustomerDetail'
-import Products from './pages/Products'
-import PriceLists from './pages/PriceLists'
-import PriceListDetail from './pages/PriceListDetail'
-import Orders from './pages/Orders'
-import OrderEditor from './pages/OrderEditor'
-import AuditLog from './pages/AuditLog'
-import Users from './pages/Users'
-import DocumentSettings from './pages/DocumentSettings'
-import PortalManagement from './pages/PortalManagement'
-import Invoices from './pages/Invoices'
-import OverdueInvoices from './pages/OverdueInvoices'
-import Outbox from './pages/Outbox'
-import Analytics from './pages/Analytics'
-import SoldProducts from './pages/SoldProducts'
+// Pages are lazy-loaded so each becomes its own chunk. This keeps the initial
+// load (and especially the /login and /portal/login screens) tiny — the heavy
+// admin pages, PDF engine, Excel and charts are only fetched when their route
+// is actually visited. Do NOT convert these back to static imports.
 
-// Portal Pages
-import PortalLogin from './portal/PortalLogin'
-import PortalLayout from './portal/PortalLayout'
-import PortalHome from './portal/PortalHome'
-import PortalOrders from './portal/PortalOrders'
-import PortalOrderDetail from './portal/PortalOrderDetail'
-import PortalDocuments from './portal/PortalDocuments'
-import PortalAccount from './portal/PortalAccount'
+// Admin Pages
+const Login = lazy(() => import('./pages/Login'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const Unauthorized = lazy(() => import('./pages/Unauthorized'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Customers = lazy(() => import('./pages/Customers'))
+const CustomerDetail = lazy(() => import('./pages/CustomerDetail'))
+const Products = lazy(() => import('./pages/Products'))
+const PriceLists = lazy(() => import('./pages/PriceLists'))
+const PriceListDetail = lazy(() => import('./pages/PriceListDetail'))
+const Orders = lazy(() => import('./pages/Orders'))
+const OrderEditor = lazy(() => import('./pages/OrderEditor'))
+const AuditLog = lazy(() => import('./pages/AuditLog'))
+const Users = lazy(() => import('./pages/Users'))
+const DocumentSettings = lazy(() => import('./pages/DocumentSettings'))
+const PortalManagement = lazy(() => import('./pages/PortalManagement'))
+const Invoices = lazy(() => import('./pages/Invoices'))
+const OverdueInvoices = lazy(() => import('./pages/OverdueInvoices'))
+const Outbox = lazy(() => import('./pages/Outbox'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const SoldProducts = lazy(() => import('./pages/SoldProducts'))
+
+// Portal Pages (their own chunks — a customer never downloads the admin app)
+const PortalLogin = lazy(() => import('./portal/PortalLogin'))
+const PortalLayout = lazy(() => import('./portal/PortalLayout'))
+const PortalHome = lazy(() => import('./portal/PortalHome'))
+const PortalOrders = lazy(() => import('./portal/PortalOrders'))
+const PortalOrderDetail = lazy(() => import('./portal/PortalOrderDetail'))
+const PortalDocuments = lazy(() => import('./portal/PortalDocuments'))
+const PortalAccount = lazy(() => import('./portal/PortalAccount'))
+
+// Full-screen fallback while a lazy route chunk loads.
+function ScreenLoader() {
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
 
 // Portal Protected Route
 function PortalProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -80,6 +95,7 @@ function PortalPublicRoute({ children }: { children: React.ReactNode }) {
 function PortalRoutes() {
   return (
     <PortalAuthProvider>
+      <Suspense fallback={<ScreenLoader />}>
       <Routes>
         <Route
           path="login"
@@ -104,6 +120,7 @@ function PortalRoutes() {
           <Route path="account" element={<PortalAccount />} />
         </Route>
       </Routes>
+      </Suspense>
     </PortalAuthProvider>
   )
 }
@@ -114,6 +131,7 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
             <ReminderAlert />
+            <Suspense fallback={<ScreenLoader />}>
             <Routes>
               {/* ======================== */}
               {/* CUSTOMER PORTAL ROUTES */}
@@ -245,6 +263,7 @@ function App() {
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

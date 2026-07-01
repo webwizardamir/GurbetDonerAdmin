@@ -1,4 +1,4 @@
-import { supabase, portalSupabase } from './supabase'
+import { supabase, portalSupabase, setPortalRemember } from './supabase'
 import type { Customer } from '../types'
 
 export interface CustomerAccount {
@@ -23,7 +23,11 @@ export interface PortalUser {
 /**
  * Sign in a customer to the portal
  */
-export async function portalSignIn(email: string, password: string): Promise<PortalUser> {
+export async function portalSignIn(email: string, password: string, remember = true): Promise<PortalUser> {
+  // Decide where the session token is stored BEFORE signing in (local vs session
+  // storage) so "remember me" takes effect on this very login.
+  setPortalRemember(remember)
+
   // Sign in with Portal Supabase client (separate session from admin)
   const { data: authData, error: authError } = await portalSupabase.auth.signInWithPassword({
     email,
@@ -48,10 +52,12 @@ export async function portalSignIn(email: string, password: string): Promise<Por
     throw new Error('No active portal account found for this email')
   }
 
-  await portalSupabase.rpc('touch_portal_last_login')
-
-  // Safe customer profile (no cost/internal columns) via the portal RPC.
-  const { data: customer, error: customerError } = await portalSupabase.rpc('get_portal_customer')
+  // These two are independent — run them together to save a mobile round-trip.
+  // Safe customer profile (no cost/internal columns) comes via the portal RPC.
+  const [, { data: customer, error: customerError }] = await Promise.all([
+    portalSupabase.rpc('touch_portal_last_login'),
+    portalSupabase.rpc('get_portal_customer'),
+  ])
   if (customerError || !customer) {
     await portalSupabase.auth.signOut({ scope: 'local' })
     throw new Error('No active portal account found for this email')

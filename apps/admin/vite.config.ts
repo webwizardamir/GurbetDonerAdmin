@@ -20,4 +20,22 @@ export default defineConfig({
   optimizeDeps: {
     include: ['buffer'],
   },
+  build: {
+    // Modern browsers only — avoids over-transpiling and shrinks output.
+    target: 'es2020',
+    rollupOptions: {
+      output: {
+        // Keep heavy, lazily-used libraries in their own cacheable chunks so
+        // they never weigh down the initial load. Route-level React.lazy already
+        // keeps them off the login/portal paths; this isolates them further and
+        // lets the browser cache vendor code across app deploys.
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'pdf': ['@react-pdf/renderer'],
+          'exceljs': ['exceljs'],
+          'charts': ['recharts'],
+        },
+      },
+    },
+  },
 })

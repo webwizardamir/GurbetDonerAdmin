@@ -160,8 +160,9 @@ export default function Orders() {
     if (orderIds.length > 0) {
       fetchDocumentInfoByOrder(orderIds).then(info => setDocumentInfo(info)).catch(console.error)
     }
-    // Phase 5: one query for every order's send-status indicator
-    fetchSendCountsByOrder().then(setSendInfo).catch(console.error)
+    // Send-status indicator for the current page's orders (scoped to these IDs,
+    // not a full-table scan).
+    fetchSendCountsByOrder(orderIds).then(setSendInfo).catch(console.error)
     // WC-style per-status counts for the status filter dropdown. Refetched when
     // the orders list changes so they stay fresh after completing/cancelling.
     getOrderStatusCounts().then(setStatusCounts).catch(console.error)

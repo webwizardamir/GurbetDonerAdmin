@@ -16,6 +16,41 @@ export const supabase = createClient(
   supabaseAnonKey || 'placeholder-key'
 )
 
+// Portal "remember me" storage.
+// When remember = true (default) the portal session is persisted in
+// localStorage, so it survives a browser restart. When false it lives in
+// sessionStorage and is cleared when the tab/window closes. The choice itself
+// is a small preference kept in localStorage and read by the storage adapter on
+// every token write. Call setPortalRemember() BEFORE signInWithPassword so the
+// token lands in the right store.
+const PORTAL_REMEMBER_KEY = 'sb-portal-remember'
+
+export function setPortalRemember(remember: boolean): void {
+  try {
+    window.localStorage.setItem(PORTAL_REMEMBER_KEY, remember ? 'true' : 'false')
+  } catch { /* storage unavailable — ignore */ }
+}
+
+const portalAuthStorage = {
+  getItem: (key: string): string | null =>
+    // The token may live in either store depending on the last remember choice.
+    window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key),
+  setItem: (key: string, value: string): void => {
+    const remember = window.localStorage.getItem(PORTAL_REMEMBER_KEY) !== 'false'
+    if (remember) {
+      window.localStorage.setItem(key, value)
+      window.sessionStorage.removeItem(key)
+    } else {
+      window.sessionStorage.setItem(key, value)
+      window.localStorage.removeItem(key)
+    }
+  },
+  removeItem: (key: string): void => {
+    window.localStorage.removeItem(key)
+    window.sessionStorage.removeItem(key)
+  },
+}
+
 // Portal client - uses separate storage key to avoid session conflicts
 export const portalSupabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
@@ -25,6 +60,7 @@ export const portalSupabase = createClient(
       storageKey: 'sb-portal-auth-token', // Different key than admin
       autoRefreshToken: true,
       persistSession: true,
+      storage: portalAuthStorage,
     }
   }
 )

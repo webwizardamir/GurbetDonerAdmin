@@ -1,9 +1,9 @@
 // Analytics overview export: the whole tab as a PDF (charts included, captured
 // from the rendered DOM) and a data-only Excel workbook.
-
-import { toPng } from 'html-to-image'
-import { jsPDF } from 'jspdf'
-import ExcelJS from 'exceljs'
+//
+// html-to-image, jspdf and exceljs are all heavy and only needed the moment the
+// user clicks export, so they are imported dynamically inside the functions —
+// never in the initial bundle.
 
 /**
  * Capture a DOM node (the rendered overview, charts and all) and save it as a
@@ -16,6 +16,8 @@ export async function exportOverviewPdf(
   filename: string,
   opts: { backgroundColor?: string } = {},
 ): Promise<void> {
+  const { toPng } = await import('html-to-image')
+  const { jsPDF } = await import('jspdf')
   const dataUrl = await toPng(node, {
     pixelRatio: 2,
     cacheBust: true,
@@ -64,6 +66,7 @@ export async function exportOverviewExcel(
   sheetName: string,
   sections: OverviewExcelSection[],
 ): Promise<void> {
+  const ExcelJS = (await import('exceljs')).default
   const workbook = new ExcelJS.Workbook()
   const sheet = workbook.addWorksheet(sheetName)
   let maxCols = 1

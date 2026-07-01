@@ -1,7 +1,8 @@
 // Excel Export utility using exceljs
 // Produces styled .xlsx files with green headers, auto-width columns, alternating rows
-
-import ExcelJS from 'exceljs'
+//
+// exceljs (~270 KB gzip) is imported dynamically inside the export function so it
+// only loads when the user actually exports — it must never sit in the initial bundle.
 
 interface ExcelColumn<T> {
   header: string
@@ -16,6 +17,7 @@ export async function exportToExcel<T>(
   columns: ExcelColumn<T>[],
   data: T[]
 ): Promise<void> {
+  const ExcelJS = (await import('exceljs')).default
   const workbook = new ExcelJS.Workbook()
   const sheet = workbook.addWorksheet('Data')
 

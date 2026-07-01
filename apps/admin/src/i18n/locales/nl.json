@@ -1,5 +1,6 @@
 {
   "common": {
+    "loadMore": "Meer laden",
     "filters": {
       "active": "Actieve filters",
       "clearAll": "Alles wissen"
@@ -1588,6 +1589,7 @@
       "passwordPlaceholder": "Voer uw wachtwoord in",
       "showPassword": "Wachtwoord tonen",
       "hidePassword": "Wachtwoord verbergen",
+      "rememberMe": "Onthoud mij",
       "signIn": "Inloggen",
       "signingIn": "Bezig met inloggen...",
       "forgotPassword": "Wachtwoord vergeten?",

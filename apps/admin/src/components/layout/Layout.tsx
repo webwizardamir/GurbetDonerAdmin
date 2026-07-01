@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
@@ -38,7 +38,14 @@ export default function Layout() {
       <div className="flex-1 lg:ml-64 min-w-0 overflow-x-hidden">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="mt-16 px-4 py-4 lg:px-6 overflow-x-hidden">
-          <Outlet />
+          {/* Lazy-loaded pages resolve here; the sidebar/header stay put. */}
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+            </div>
+          }>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

@@ -64,6 +64,16 @@ export default function PortalOrders() {
     })
   }, [orders, search, statusFilter])
 
+  // Render 50 rows at a time (with "load more"). This is the customer's first
+  // screen after login; rendering a whole order history at once janks mobile.
+  const ORDERS_PAGE = 50
+  const [visibleCount, setVisibleCount] = useState(ORDERS_PAGE)
+  useEffect(() => { setVisibleCount(ORDERS_PAGE) }, [search, statusFilter])
+  const visibleOrders = useMemo(
+    () => filteredOrders.slice(0, visibleCount),
+    [filteredOrders, visibleCount],
+  )
+
   const formatPrice = (cents: number) => {
     return new Intl.NumberFormat('nl-NL', {
       style: 'currency',
@@ -168,7 +178,7 @@ export default function PortalOrders() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {filteredOrders.map((order) => (
+                  {visibleOrders.map((order) => (
                     <tr
                       key={order.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
@@ -214,7 +224,7 @@ export default function PortalOrders() {
 
           {/* Mobile Cards */}
           <div className="md:hidden space-y-3">
-            {filteredOrders.map((order) => (
+            {visibleOrders.map((order) => (
               <Link
                 key={order.id}
                 to={`/portal/orders/${order.id}`}
@@ -248,6 +258,17 @@ export default function PortalOrders() {
               </Link>
             ))}
           </div>
+
+          {visibleOrders.length < filteredOrders.length && (
+            <div className="flex justify-center">
+              <button
+                onClick={() => setVisibleCount((c) => c + ORDERS_PAGE)}
+                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
+              >
+                {t('common.loadMore')}
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
