@@ -84,7 +84,7 @@ INSERT INTO permissions (role, resource, action, allowed) VALUES
     ('shop_manager', 'orders', 'view', true),
     ('shop_manager', 'orders', 'create', true),
     ('shop_manager', 'orders', 'edit', true),
-    ('shop_manager', 'orders', 'delete', false),
+    ('shop_manager', 'orders', 'delete', true),
     ('shop_manager', 'orders', 'refund', true),
     ('shop_manager', 'documents', 'view', true),
     ('shop_manager', 'documents', 'generate', true),

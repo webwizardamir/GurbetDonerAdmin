@@ -202,7 +202,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                 {t('orders.refund.partiallyRefunded')}
               </span>
             )}
-            {order.status !== 'cancelled' && order.status !== 'refunded' && (
+            {order.status !== 'refunded' && (
               <div className="flex flex-wrap gap-2">
                 {statusActions
                   .filter(a => a.status !== order.status)

@@ -171,7 +171,7 @@ export default function Orders() {
 
   const selectedOrders = filteredOrders.filter(o => selectedIds.has(o.id))
   const completableSelected = selectedOrders.filter(o => ['draft', 'pending_payment', 'on_hold'].includes(o.status))
-  const deletableSelected = selectedOrders.filter(o => ['draft', 'pending', 'pending_payment', 'on_hold'].includes(o.status))
+  const deletableSelected = selectedOrders.filter(o => ['draft', 'pending', 'pending_payment', 'on_hold', 'cancelled'].includes(o.status))
 
   const handleDelete = async (order: OrderWithItems) => {
     if (!confirm(t('orders.confirmTrash', { number: order.order_number }))) return
@@ -533,7 +533,7 @@ export default function Orders() {
                           <button onClick={() => setViewingOrder(order)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.view')}>
                             <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                           </button>
-                          {canDelete && ['draft', 'pending', 'pending_payment', 'on_hold'].includes(order.status) && (
+                          {canDelete && ['draft', 'pending', 'pending_payment', 'on_hold', 'cancelled'].includes(order.status) && (
                             <button onClick={() => handleDelete(order)} disabled={deleting === order.id} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.delete')}>
                               {deleting === order.id ? <Loader2 className="w-4 h-4 text-red-500 animate-spin" /> : <Trash2 className="w-4 h-4 text-red-500" />}
                             </button>
@@ -636,7 +636,7 @@ export default function Orders() {
                   <button onClick={() => setViewingOrder(order)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium whitespace-nowrap">
                     <Eye className="w-4 h-4 flex-shrink-0" />{t('orders.actions.view')}
                   </button>
-                  {canDelete && ['draft', 'pending', 'pending_payment', 'on_hold'].includes(order.status) && (
+                  {canDelete && ['draft', 'pending', 'pending_payment', 'on_hold', 'cancelled'].includes(order.status) && (
                     <button onClick={() => handleDelete(order)} disabled={deleting === order.id} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
                       {deleting === order.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
                     </button>

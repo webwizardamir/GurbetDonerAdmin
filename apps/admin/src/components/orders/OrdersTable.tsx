@@ -20,6 +20,9 @@ import { useAuth } from '../../context/AuthContext'
 
 // Statuses whose orders may be (soft-)deleted. Single source of truth.
 export const DELETABLE_STATUSES = ['draft', 'pending', 'pending_payment', 'on_hold']
+// Statuses whose orders may be trashed. Cancelled orders are also trashable
+// (trash keeps their status 'cancelled' — a stock no-op — see trash_order).
+export const TRASHABLE_STATUSES = [...DELETABLE_STATUSES, 'cancelled']
 
 interface SendInfo { sent: number; failed: number; total: number }
 
@@ -169,7 +172,7 @@ export default function OrdersTable({
             <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
           </button>
         )}
-        {onDelete && canDelete && DELETABLE_STATUSES.includes(order.status) && (
+        {onDelete && canDelete && TRASHABLE_STATUSES.includes(order.status) && (
           <button onClick={() => onDelete(order)} disabled={deletingId === order.id} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.delete')}>
             {deletingId === order.id ? <Loader2 className="w-4 h-4 text-red-500 animate-spin" /> : <Trash2 className="w-4 h-4 text-red-500" />}
           </button>
@@ -344,7 +347,7 @@ export default function OrdersTable({
                           <Eye className="w-4 h-4 flex-shrink-0" />{t('orders.actions.view')}
                         </button>
                       )}
-                      {onDelete && canDelete && DELETABLE_STATUSES.includes(order.status) && (
+                      {onDelete && canDelete && TRASHABLE_STATUSES.includes(order.status) && (
                         <button onClick={() => onDelete(order)} disabled={deletingId === order.id} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
                           {deletingId === order.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
                         </button>

@@ -18,8 +18,8 @@ interface DateRange {
 export function useSoldProducts() {
   const presets = getDateRangePresets()
 
-  const [dateRange, setDateRangeState] = useState<DateRange>(presets.yesterday)
-  const [dateRangeKey, setDateRangeKey] = useState<DateRangeKey>('yesterday')
+  const [dateRange, setDateRangeState] = useState<DateRange>(presets.today)
+  const [dateRangeKey, setDateRangeKey] = useState<DateRangeKey>('today')
   const [breakdown, setBreakdown] = useState<SoldProductBreakdownRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

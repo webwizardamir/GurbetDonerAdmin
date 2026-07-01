@@ -60,7 +60,12 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [locks, setLocks] = useState<Map<string, LockPosition>>(new Map())
   const [manualOrder, setManualOrder] = useState<string[]>([])
-  const [departureHHmm, setDepartureHHmm] = useState('06:00')
+  // Default to the current local time (rounded to the minute); the user can
+  // still override via the time input in the panel.
+  const [departureHHmm, setDepartureHHmm] = useState(() => {
+    const d = new Date()
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  })
   const [returnToDepot, setReturnToDepot] = useState(true)
 
   const [route, setRoute] = useState<PlannedRoute | null>(null)
