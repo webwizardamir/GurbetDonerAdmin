@@ -29,9 +29,11 @@
 -- ============================================================================
 
 -- (1) Shop Manager can trash orders -------------------------------------------
-UPDATE permissions
-SET allowed = true
-WHERE role = 'shop_manager' AND resource = 'orders' AND action = 'delete';
+-- Upsert, not UPDATE: on the live DB the ('shop_manager','orders','delete') row
+-- was never seeded (only allowed=true rows exist), so an UPDATE would no-op.
+INSERT INTO permissions (role, resource, action, allowed)
+VALUES ('shop_manager', 'orders', 'delete', true)
+ON CONFLICT (role, resource, action) DO UPDATE SET allowed = true;
 
 -- (2a) trash_order also accepts 'cancelled' -----------------------------------
 CREATE OR REPLACE FUNCTION public.trash_order(p_id uuid)
