@@ -79,6 +79,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const [unitTypeSelector, setUnitTypeSelector] = useState<{
     product: Product
     availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
+    merge: boolean
   } | null>(null)
 
   // Customer pricing context — pre-fetched once per customer-change so adding
@@ -229,33 +230,45 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     setInitialized(true)
   }, [editOrder, customers, products, customersLoading, productsLoading, initialized])
 
-  // Add product with specific unit type
+  // Add product with specific unit type.
+  // `merge` = scanner behaviour: re-scanning a barcode increments the most
+  // recent matching line instead of spawning a duplicate. `merge=false` =
+  // manual picker: every add is a brand-new separate line, even if the same
+  // product+unit already exists (a customer can need the same item split
+  // across several lines, e.g. separate storages at one address).
   const addProductWithUnitType = (
     product: Product, unitType: UnitType, price: number,
-    availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
+    availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[],
+    merge = false
   ) => {
-    const existingIndex = items.findIndex(i => i.product.id === product.id && i.selectedUnitType === unitType)
-    if (existingIndex >= 0) {
-      setItems(items.map((i, idx) => idx === existingIndex ? { ...i, quantity: i.quantity + 1 } : i))
-    } else {
-      setItems([...items, { lineId: generateLineId(), product, selectedUnitType: unitType, quantity: 1, unit_price: price, tax_rate: product.tax_rate, availableUnitTypes }])
+    if (merge) {
+      // Increment the LATEST matching line (there may be several duplicates).
+      let existingIndex = -1
+      for (let idx = items.length - 1; idx >= 0; idx--) {
+        if (items[idx].product.id === product.id && items[idx].selectedUnitType === unitType) { existingIndex = idx; break }
+      }
+      if (existingIndex >= 0) {
+        setItems(items.map((i, idx) => idx === existingIndex ? { ...i, quantity: i.quantity + 1 } : i))
+        return
+      }
     }
+    setItems([...items, { lineId: generateLineId(), product, selectedUnitType: unitType, quantity: 1, unit_price: price, tax_rate: product.tax_rate, availableUnitTypes }])
   }
 
-  const addProduct = (product: Product) => {
+  const addProduct = (product: Product, merge = false) => {
     const availableUnitTypes = selectedCustomer
       ? enumerateUnitTypes(product)
       : getProductUnitTypes(product)
-    if (availableUnitTypes.length > 1) { setUnitTypeSelector({ product, availableUnitTypes }); return }
+    if (availableUnitTypes.length > 1) { setUnitTypeSelector({ product, availableUnitTypes, merge }); return }
     const defaultUnit = availableUnitTypes[0]
-    addProductWithUnitType(product, defaultUnit.unitType, defaultUnit.price, availableUnitTypes)
+    addProductWithUnitType(product, defaultUnit.unitType, defaultUnit.price, availableUnitTypes, merge)
   }
 
   const handleUnitTypeSelect = (unitType: UnitType) => {
     if (!unitTypeSelector) return
-    const { product, availableUnitTypes } = unitTypeSelector
+    const { product, availableUnitTypes, merge } = unitTypeSelector
     const selectedUnit = availableUnitTypes.find(ut => ut.unitType === unitType)
-    if (selectedUnit) addProductWithUnitType(product, selectedUnit.unitType, selectedUnit.price, availableUnitTypes)
+    if (selectedUnit) addProductWithUnitType(product, selectedUnit.unitType, selectedUnit.price, availableUnitTypes, merge)
     setUnitTypeSelector(null)
   }
 
@@ -264,12 +277,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     if (!item) return
     const unitTypeInfo = item.availableUnitTypes.find(ut => ut.unitType === newUnitType)
     if (!unitTypeInfo) return
-    const existingLine = items.find(i => i.lineId !== lineId && i.product.id === item.product.id && i.selectedUnitType === newUnitType)
-    if (existingLine) {
-      setItems(items.map(i => i.lineId === existingLine.lineId ? { ...i, quantity: i.quantity + item.quantity } : i).filter(i => i.lineId !== lineId))
-    } else {
-      setItems(items.map(i => i.lineId === lineId ? { ...i, selectedUnitType: newUnitType, unit_price: unitTypeInfo.price } : i))
-    }
+    // Duplicate product+unit lines are allowed to coexist, so just switch this
+    // line's unit type — never merge it into another matching line.
+    setItems(items.map(i => i.lineId === lineId ? { ...i, selectedUnitType: newUnitType, unit_price: unitTypeInfo.price } : i))
   }
 
   const updateQuantity = (lineId: string, delta: number) => {
@@ -304,16 +314,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       const defaultUnit = available.find(ut => ut.isDefault) || available[0]
       return { ...item, selectedUnitType: defaultUnit.unitType, unit_price: defaultUnit.price, availableUnitTypes: available }
     })
-    const mergedItems: OrderLineItem[] = []
-    for (const item of updatedItems) {
-      const existingIdx = mergedItems.findIndex(i => i.product.id === item.product.id && i.selectedUnitType === item.selectedUnitType)
-      if (existingIdx >= 0) {
-        mergedItems[existingIdx] = { ...mergedItems[existingIdx], quantity: mergedItems[existingIdx].quantity + item.quantity }
-      } else {
-        mergedItems.push(item)
-      }
-    }
-    setItems(mergedItems)
+    // Re-price in place (1:1) — never merge duplicate product+unit lines; the
+    // customer may deliberately keep the same item on several separate lines.
+    setItems(updatedItems)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerPrices, listItems])
 
@@ -609,7 +612,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
                 products={products}
                 productsLoading={productsLoading}
                 loadingPrices={loadingPrices}
-                onAddProduct={addProduct}
+                onAddProduct={(p) => addProduct(p, false)}
                 onOpenScanner={() => setShowScanner(true)}
                 getDisplayPrice={selectedCustomer
                   ? (p) => resolveEffectivePrice(p, p.unit_type)
@@ -674,7 +677,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
         </div>
       </div>
 
-      <BarcodeScanner isOpen={showScanner} onClose={() => setShowScanner(false)} onProductFound={addProduct} />
+      <BarcodeScanner isOpen={showScanner} onClose={() => setShowScanner(false)} onProductFound={(p) => addProduct(p, true)} />
 
       {/* Unit Type Selector Modal */}
       {unitTypeSelector && (
