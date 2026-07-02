@@ -37,7 +37,7 @@ A comprehensive B2B wholesale management platform for halal food distribution. T
 - Exact profit calculation from batch costs
 - Customer-specific pricing
 - Multi-unit type products (kg, piece, zak, doos) with separate pricing per unit
-- Same product can be added multiple times to an order with different unit types
+- Same product can be added multiple times to an order — any number of separate line items, same **or** different unit type (each line is independent)
 - Mobile-first design with barcode scanning
 - Dutch/EU legal compliance for invoicing
 
@@ -631,7 +631,13 @@ a `profiles` row (role defaults to `customer`), so classify checks the **role**,
 ### Pricing
 1. Products support multiple unit types (kg, piece, zak, doos) with independent pricing
 2. Customer-specific prices can override any unit type price
-3. Same product can appear multiple times in an order with different unit types
+3. Same product can appear multiple times in an order as **separate coexisting line items** — same
+   **or** different unit type (a customer may need the same item split across lines, e.g. separate
+   storages at one delivery address). Each line has its own qty / unit / price / discount / note and
+   becomes its own `order_items` row. No DB constraint enforces uniqueness on `(order_id, product_id,
+   unit_type)` — this works with **zero** changes to save/stock/invoice/analytics because they all
+   operate per `order_items` row (stock sums `quantity` per `product_id`). See item 8 for the
+   add-behaviour split (**do not "fix" it back into a merge**).
 4. Sold price stored immutably on order line (snapshot at time of sale)
 5. Price changes never affect historical orders
 6. **Remembered customer prices (auto-memory):** editing a line price in `OrderForm` auto-saves it as
@@ -647,6 +653,24 @@ a `profiles` row (role defaults to `customer`), so classify checks the **role**,
    snapshotted into `order_items.cost_cents` at order time like the sold price, so profit/margin
    analytics reflect it and **historical orders are never recalculated**. Owner-only; price-list scoped.
    See **Price lists — detail UI → Per-list cost-of-goods (COG) override**.
+8. **Duplicate line items — add behaviour splits by entry point (`OrderForm.tsx`, `addProduct(product, merge)`):**
+   - **Manual picker add (`onAddProduct`, `merge=false`)** → **always a new separate line**, even if
+     the same product+unit already exists. This is what lets a product appear N times.
+   - **Barcode scanner (`onProductFound`, `merge=true`)** → **increments the latest matching line**,
+     never spawns a duplicate — so scan-to-count still works (scan a barcode 5× = qty 5, not 5 lines).
+   - ⚠️ **Scanner is NOT in daily use yet** — this divergence is unverified against a real scanner and
+     is the likely place a future bug shows up. If scanned items start creating duplicate lines instead
+     of incrementing (or vice-versa), check the `merge` flag threaded through `addProduct` →
+     `addProductWithUnitType` (and preserved on the multi-unit `unitTypeSelector` modal via
+     `handleUnitTypeSelect`), **not** the removed merge logic.
+   - **Do not re-introduce a merge/dedup by `product_id + unit_type`.** Three former merge points were
+     removed to allow duplicates: the picker add, the customer-pricing reprice `useEffect` (now
+     re-prices 1:1), and `changeUnitType` (now just switches the unit, never merges). Re-adding any of
+     them silently collapses the customer's separate lines.
+   - **Known limitation (acceptable):** remembered customer prices are keyed unique on
+     `(customer_id, product_id, unit_type)`, so if one product+unit is split across lines with
+     *different* edited prices, only the first is remembered for next time (deduped in the save loop).
+     The lines and current invoice are correct; this only affects future auto-suggest. See item 6.
 
 ### VAT (BTW) — Reverse charge for non-NL customers
 1. NL customer → product's `tax_rate` (9% food / 21% non-food / 0%) — unchanged
