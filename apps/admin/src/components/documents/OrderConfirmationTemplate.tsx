@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
+import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 
 // A4: 595.28 x 841.89 points
@@ -209,6 +210,7 @@ const styles = StyleSheet.create({
   colDesc: { flex: 1, paddingRight: 8 },
   colQty: { width: 70, textAlign: 'center' },
   colUnitPrice: { width: 70, textAlign: 'right' },
+  colBoxPrice: { width: 54, textAlign: 'right', paddingRight: 6 },
   colTotal: { width: 70, textAlign: 'right' },
 
   // Totals section (simplified)
@@ -341,7 +343,9 @@ interface OrderConfirmationTemplateProps {
 }
 
 export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplateProps) {
+  const T = getDocText(data.lang)
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
+  const hasBox = data.items.some(i => i.unitType === 'doos')
 
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
@@ -393,16 +397,16 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
 
         {/* Thank You Banner */}
         <View style={styles.thankYouBanner}>
-          <Text style={styles.thankYouTitle}>Bedankt voor uw bestelling!</Text>
+          <Text style={styles.thankYouTitle}>{T.ocThankTitle}</Text>
           <Text style={styles.thankYouText}>
-            Wij hebben uw bestelling in goede orde ontvangen en gaan deze zo spoedig mogelijk verwerken.
+            {T.ocThankText}
           </Text>
         </View>
 
         {/* Customer + Order Metadata */}
         <View style={styles.infoRow}>
           <View style={styles.customerBox}>
-            <Text style={styles.customerLabel}>Klantgegevens</Text>
+            <Text style={styles.customerLabel}>{T.addrCustomer}</Text>
             <Text style={styles.customerName}>{data.customer.companyName}</Text>
             <Text style={styles.customerDetail}>
               {customerLines.join('\n')}
@@ -410,15 +414,15 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
           </View>
           <View style={styles.metaBox}>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Ordernummer:</Text>
+              <Text style={styles.metaLabel}>{T.metaOrderNumber}</Text>
               <Text style={styles.metaValueHighlight}>{data.order.orderNumber}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Orderdatum:</Text>
+              <Text style={styles.metaLabel}>{T.metaOrderDate}</Text>
               <Text style={styles.metaValue}>{formatDate(data.order.orderDate)}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Bevestigingsdatum:</Text>
+              <Text style={styles.metaLabel}>{T.metaConfirmDate}</Text>
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
           </View>
@@ -426,14 +430,14 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
 
         {/* Order Summary */}
         <View style={styles.orderSummary}>
-          <Text style={styles.summaryTitle}>Besteloverzicht</Text>
+          <Text style={styles.summaryTitle}>{T.ocSummaryTitle}</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Aantal artikelen:</Text>
-            <Text style={styles.summaryValue}>{data.items.length} producten ({totalItems} stuks)</Text>
+            <Text style={styles.summaryLabel}>{T.ocItemsLabel}</Text>
+            <Text style={styles.summaryValue}>{T.ocItemsValue(data.items.length, totalItems)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Totaalbedrag:</Text>
-            <Text style={styles.summaryValue}>{formatPrice(data.grandTotal)} incl. BTW</Text>
+            <Text style={styles.summaryLabel}>{T.ocTotalLabel}</Text>
+            <Text style={styles.summaryValue}>{formatPrice(data.grandTotal)}{T.ocInclVatSuffix}</Text>
           </View>
         </View>
 
@@ -441,27 +445,42 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colIdx]}>#</Text>
-            <Text style={[styles.th, styles.colDesc]}>Product</Text>
-            <Text style={[styles.th, styles.colQty]}>Aantal</Text>
-            <Text style={[styles.th, styles.colUnitPrice]}>Stukprijs</Text>
-            <Text style={[styles.th, styles.colTotal]}>Totaal</Text>
+            <Text style={[styles.th, styles.colDesc]}>{T.thProduct}</Text>
+            <Text style={[styles.th, styles.colQty]}>{T.thQty}</Text>
+            <Text style={[styles.th, styles.colUnitPrice]}>{T.thPiecePrice}</Text>
+            {hasBox && (
+              <Text style={[styles.th, styles.colBoxPrice]}>{T.thBoxPrice}</Text>
+            )}
+            <Text style={[styles.th, styles.colTotal]}>{T.thTotal}</Text>
           </View>
-          {data.items.map((item, idx) => (
-            <View
-              key={idx}
-              wrap={false}
-              style={[
-                styles.tableRow,
-                idx % 2 === 0 ? styles.rowEven : styles.rowOdd,
-              ]}
-            >
-              <Text style={[styles.td, styles.colIdx]}>{item.index}</Text>
-              <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
-              <Text style={[styles.tdBold, styles.colQty]}>{item.quantity} {item.unit.toLowerCase()}</Text>
-              <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
-              <Text style={[styles.tdBold, styles.colTotal]}>{formatPrice(item.total)}</Text>
-            </View>
-          ))}
+          {data.items.map((item, idx) => {
+            const isBoxLine = item.unitType === 'doos'
+            return (
+              <View
+                key={idx}
+                wrap={false}
+                style={[
+                  styles.tableRow,
+                  idx % 2 === 0 ? styles.rowEven : styles.rowOdd,
+                ]}
+              >
+                <Text style={[styles.td, styles.colIdx]}>{item.index}</Text>
+                <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
+                <Text style={[styles.tdBold, styles.colQty]}>{item.quantity} {item.unit.toLowerCase()}</Text>
+                <Text style={[styles.td, styles.colUnitPrice]}>
+                  {isBoxLine
+                    ? (item.piecePrice != null ? formatPrice(item.piecePrice) : '—')
+                    : formatPrice(item.unitPrice)}
+                </Text>
+                {hasBox && (
+                  <Text style={[styles.td, styles.colBoxPrice]}>
+                    {isBoxLine ? formatPrice(item.unitPrice) : '—'}
+                  </Text>
+                )}
+                <Text style={[styles.tdBold, styles.colTotal]}>{formatPrice(item.total)}</Text>
+              </View>
+            )
+          })}
         </View>
 
         {/* Spacer: pin the totals + footer to the page bottom */}
@@ -471,21 +490,21 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
         <View style={styles.totalsSection} wrap={false}>
           <View style={styles.totalsBox}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Subtotaal</Text>
+              <Text style={styles.totalLabel}>{T.tSubtotal}</Text>
               <Text style={styles.totalValue}>{formatPrice(data.subtotal)}</Text>
             </View>
             {data.discount > 0 && data.documentType !== 'credit_note' && (
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Korting</Text>
+                <Text style={styles.totalLabel}>{T.tDiscount}</Text>
                 <Text style={styles.totalValue}>-{formatPrice(data.discount)}</Text>
               </View>
             )}
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>BTW</Text>
+              <Text style={styles.totalLabel}>{T.thVat}</Text>
               <Text style={styles.totalValue}>{formatPrice(data.totalVat)}</Text>
             </View>
             <View style={styles.grandTotalRow}>
-              <Text style={styles.grandTotalLabel}>Totaal</Text>
+              <Text style={styles.grandTotalLabel}>{T.tGrandTotal}</Text>
               <Text style={styles.grandTotalValue}>{formatPrice(data.grandTotal)}</Text>
             </View>
           </View>
@@ -493,29 +512,25 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
 
         {/* Next Steps */}
         <View style={styles.nextSteps}>
-          <Text style={styles.nextStepsTitle}>Wat kunt u verwachten?</Text>
+          <Text style={styles.nextStepsTitle}>{T.ocNextTitle}</Text>
           <Text style={styles.nextStepsText}>
-            {`1. Wij verwerken uw bestelling binnen 1 werkdag\n`}
-            {`2. U ontvangt bericht wanneer uw bestelling klaar is voor levering\n`}
-            {`3. Levering vindt plaats op de afgesproken dag\n`}
-            {`4. Na levering ontvangt u de factuur\n\n`}
-            {`Wijzigingen? Neem zo snel mogelijk contact met ons op.`}
+            {T.ocNextText}
           </Text>
         </View>
 
         {/* Contact Section */}
         <View style={styles.contactSection}>
-          <Text style={styles.contactTitle}>Vragen over uw bestelling?</Text>
+          <Text style={styles.contactTitle}>{T.ocContactTitle}</Text>
           <View style={styles.contactGrid}>
             {data.company.phone && (
               <View style={styles.contactItem}>
-                <Text style={styles.contactLabel}>Telefoon:</Text>
+                <Text style={styles.contactLabel}>{T.ocPhone}</Text>
                 <Text style={styles.contactValue}>{data.company.phone}</Text>
               </View>
             )}
             {data.company.email && (
               <View style={styles.contactItem}>
-                <Text style={styles.contactLabel}>E-mail:</Text>
+                <Text style={styles.contactLabel}>{T.ocEmail}</Text>
                 <Text style={styles.contactValue}>{data.company.email}</Text>
               </View>
             )}

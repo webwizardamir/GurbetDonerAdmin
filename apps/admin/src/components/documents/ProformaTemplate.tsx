@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
+import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 
 // A4: 595.28 x 841.89 points
@@ -193,6 +194,8 @@ const styles = StyleSheet.create({
   colNum: { width: 18, textAlign: 'right', paddingRight: 6 },
   colDesc: { flex: 1, paddingRight: 8 },
   colUnitPrice: { width: 70, textAlign: 'right', paddingRight: 6 },
+  colPiecePrice: { width: 54, textAlign: 'right', paddingRight: 6 },
+  colBoxPrice: { width: 54, textAlign: 'right', paddingRight: 6 },
   colQty: { width: 55, textAlign: 'left', paddingLeft: 4 },
   colExclVat: { width: 70, textAlign: 'right', paddingRight: 6 },
   colVatAmt: { width: 55, textAlign: 'right', paddingRight: 6 },
@@ -305,8 +308,10 @@ interface ProformaTemplateProps {
 }
 
 export function ProformaTemplate({ data }: ProformaTemplateProps) {
+  const T = getDocText(data.lang)
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
   const isReverseCharge = !!data.customer.country && data.customer.country.trim().toUpperCase() !== 'NL'
+  const hasBox = data.items.some(i => i.unitType === 'doos')
 
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
@@ -357,14 +362,14 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
         {/* Disclaimer */}
         <View style={styles.disclaimer}>
           <Text style={styles.disclaimerText}>
-            Dit is een prijsopgave/offerte en geen factuur. Prijzen zijn onder voorbehoud.
+            {T.pfDisclaimer}
           </Text>
         </View>
 
         {/* Customer + Metadata */}
         <View style={styles.infoRow}>
           <View style={styles.customerBox}>
-            <Text style={styles.customerLabel}>Geadresseerde</Text>
+            <Text style={styles.customerLabel}>{T.addrRecipient}</Text>
             <Text style={styles.customerName}>{data.customer.companyName}</Text>
             <Text style={styles.customerDetail}>
               {customerLines.join('\n')}
@@ -372,11 +377,11 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
           </View>
           <View style={styles.metaBox}>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Datum:</Text>
+              <Text style={styles.metaLabel}>{T.metaDate}</Text>
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Geldig tot:</Text>
+              <Text style={styles.metaLabel}>{T.metaValidUntil}</Text>
               <Text style={styles.metaValueHighlight}>{getValidityDate(data.documentDate)}</Text>
             </View>
           </View>
@@ -386,8 +391,8 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
         {isReverseCharge && (
           <View style={styles.verlegdBox}>
             <Text style={styles.verlegdText}>
-              <Text style={styles.verlegdLabel}>BTW verlegd — intracommunautaire levering</Text>
-              {' (Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW. BTW-nummer afnemer: '}
+              <Text style={styles.verlegdLabel}>{T.verlegdLabel}</Text>
+              {T.verlegdBody}
               {data.customer.vatNumber || '—'}
             </Text>
           </View>
@@ -397,17 +402,25 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colNum]}>#</Text>
-            <Text style={[styles.th, styles.colDesc]}>Omschrijving</Text>
-            <Text style={[styles.th, styles.colUnitPrice]}>Eenheidprijs</Text>
-            <Text style={[styles.th, styles.colQty]}>Aantal</Text>
-            <Text style={[styles.th, styles.colExclVat]}>Excl. BTW</Text>
-            <Text style={[styles.th, styles.colVatAmt]}>BTW</Text>
-            <Text style={[styles.th, styles.colInclVat]}>Incl. BTW</Text>
+            <Text style={[styles.th, styles.colDesc]}>{T.thDescription}</Text>
+            {hasBox ? (
+              <>
+                <Text style={[styles.th, styles.colPiecePrice]}>{T.thPiecePrice}</Text>
+                <Text style={[styles.th, styles.colBoxPrice]}>{T.thBoxPrice}</Text>
+              </>
+            ) : (
+              <Text style={[styles.th, styles.colUnitPrice]}>{T.thUnitPrice}</Text>
+            )}
+            <Text style={[styles.th, styles.colQty]}>{T.thQty}</Text>
+            <Text style={[styles.th, styles.colExclVat]}>{T.thExclVat}</Text>
+            <Text style={[styles.th, styles.colVatAmt]}>{T.thVat}</Text>
+            <Text style={[styles.th, styles.colInclVat]}>{T.thInclVat}</Text>
           </View>
           {data.items.map((item, idx) => {
             const priceExclVat = item.unitPrice * item.quantity
             const vatAmount = Math.round(priceExclVat * (item.vatRate / 100))
             const priceInclVat = priceExclVat + vatAmount
+            const isBoxLine = item.unitType === 'doos'
 
             return (
               <View
@@ -420,7 +433,20 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
               >
                 <Text style={[styles.tdBold, styles.colNum]}>{idx + 1}</Text>
                 <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
-                <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
+                {hasBox ? (
+                  <>
+                    <Text style={[styles.td, styles.colPiecePrice]}>
+                      {isBoxLine
+                        ? (item.piecePrice != null ? formatPrice(item.piecePrice) : '—')
+                        : formatPrice(item.unitPrice)}
+                    </Text>
+                    <Text style={[styles.td, styles.colBoxPrice]}>
+                      {isBoxLine ? formatPrice(item.unitPrice) : '—'}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
+                )}
                 <Text style={[styles.td, styles.colQty]}>{item.quantity} {item.unit.toLowerCase()}</Text>
                 <Text style={[styles.td, styles.colExclVat]}>{formatPrice(priceExclVat)}</Text>
                 <Text style={[styles.td, styles.colVatAmt]}>{formatPrice(vatAmount)}</Text>
@@ -437,23 +463,23 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
         <View style={styles.totalsSection} wrap={false}>
           <View style={styles.totalsBox}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Subtotaal excl. BTW</Text>
+              <Text style={styles.totalLabel}>{T.tSubtotalExclVat}</Text>
               <Text style={styles.totalValue}>{formatPrice(data.subtotal)}</Text>
             </View>
             {data.discount > 0 && data.documentType !== 'credit_note' && (
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Korting</Text>
+                <Text style={styles.totalLabel}>{T.tDiscount}</Text>
                 <Text style={styles.totalValue}>-{formatPrice(data.discount)}</Text>
               </View>
             )}
             {data.vatBreakdown.map((vat, idx) => (
               <View key={idx} style={styles.totalRow}>
-                <Text style={styles.totalLabel}>BTW {vat.rate}%</Text>
+                <Text style={styles.totalLabel}>{T.thVat} {vat.rate}%</Text>
                 <Text style={styles.totalValue}>{formatPrice(vat.amount)}</Text>
               </View>
             ))}
             <View style={styles.grandTotalRow}>
-              <Text style={styles.grandTotalLabel}>Totaal incl. BTW</Text>
+              <Text style={styles.grandTotalLabel}>{T.tGrandInclVat}</Text>
               <Text style={styles.grandTotalValue}>{formatPrice(data.grandTotal)}</Text>
             </View>
           </View>
@@ -461,12 +487,9 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
 
         {/* Conditions */}
         <View style={styles.conditionsSection}>
-          <Text style={styles.conditionsTitle}>Voorwaarden</Text>
+          <Text style={styles.conditionsTitle}>{T.pfConditionsTitle}</Text>
           <Text style={styles.conditionsText}>
-            {`• Deze offerte is geldig tot ${getValidityDate(data.documentDate)}\n`}
-            {`• Prijzen zijn onder voorbehoud van prijswijzigingen\n`}
-            {`• Levertijd in overleg\n`}
-            {`• Op al onze leveringen zijn onze algemene voorwaarden van toepassing`}
+            {T.pfConditions(getValidityDate(data.documentDate))}
           </Text>
         </View>
 
@@ -497,7 +520,7 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
             </View>
           </View>
           <Text style={styles.footerCenter}>
-            Vragen? Neem contact met ons op: {data.company.phone || data.company.email}
+            {T.pfContactPrefix}{data.company.phone || data.company.email}
           </Text>
         </View>
       </Page>

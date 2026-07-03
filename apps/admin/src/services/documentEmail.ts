@@ -2,17 +2,20 @@ import { supabase } from './supabase'
 import type {
   DocumentSend,
   EmailDocumentType,
+  EmailLang,
   EmailTemplate,
   EmailTemplateKey,
   EmailTemplateMap,
+  LocalizedEmailTemplates,
 } from '../types'
 
 // ===========================================================================
 // Defaults — used when document_settings.email_templates is empty for a type.
-// All Dutch (PDFs are Dutch-only per CLAUDE.md, emails follow the same rule).
+// Dutch for NL/BE customers, English for everyone else (chosen by country; see
+// utils/documentLang.ts). The PDFs localize the same way (documentLabels.ts).
 // ===========================================================================
 
-const DEFAULT_TEMPLATES: Record<EmailTemplateKey, EmailTemplate> = {
+const DEFAULT_TEMPLATES_NL: Record<EmailTemplateKey, EmailTemplate> = {
   invoice: {
     subject: 'Factuur {{document_number}} van {{company_name}}',
     body: 'Beste {{customer_name}},\n\nIn de bijlage vindt u factuur {{document_number}} ter waarde van {{total}}.\n\nGelieve te voldoen voor {{due_date}}.\n\nMet vriendelijke groet,\n{{company_name}}',
@@ -52,20 +55,92 @@ const DEFAULT_TEMPLATES: Record<EmailTemplateKey, EmailTemplate> = {
   },
 }
 
-export function getDefaultTemplate(type: EmailTemplateKey): EmailTemplate {
-  return { ...DEFAULT_TEMPLATES[type] }
+const DEFAULT_TEMPLATES_EN: Record<EmailTemplateKey, EmailTemplate> = {
+  invoice: {
+    subject: 'Invoice {{document_number}} from {{company_name}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached invoice {{document_number}} for {{total}}.\n\nKindly settle before {{due_date}}.\n\nKind regards,\n{{company_name}}',
+  },
+  proforma: {
+    subject: 'Quotation {{document_number}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached quotation {{document_number}} for {{total}}.\n\nKind regards,\n{{company_name}}',
+  },
+  credit_note: {
+    subject: 'Credit note {{document_number}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached credit note {{document_number}}.\n\nKind regards,\n{{company_name}}',
+  },
+  packing_slip: {
+    subject: 'Packing slip {{document_number}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached the packing slip for order {{order_number}}.\n\nKind regards,\n{{company_name}}',
+  },
+  order_confirmation: {
+    subject: 'Order confirmation {{document_number}}',
+    body: 'Dear {{customer_name}},\n\nThank you for your order. Please find attached order confirmation {{document_number}}.\n\nKind regards,\n{{company_name}}',
+  },
+  payment_reminder: {
+    subject: 'Payment reminder {{document_number}}',
+    body: 'Dear {{customer_name}},\n\nThis is a friendly reminder of the outstanding invoice {{document_number}} for {{total}}, due on {{due_date}}.\n\nKind regards,\n{{company_name}}',
+  },
+  payment_reminder_1: {
+    subject: 'Reminder: invoice {{document_number}} outstanding',
+    body: 'Dear {{customer_name}},\n\nThis may have escaped your attention: invoice {{document_number}} for {{total}} was due on {{due_date}} and is still outstanding. We kindly ask you to transfer the amount to IBAN {{iban}}. You can view the invoice at {{portal_link}}.\n\nKind regards,\n{{company_name}}',
+  },
+  payment_reminder_2: {
+    subject: 'Second reminder: invoice {{document_number}}',
+    body: 'Dear {{customer_name}},\n\nDespite our earlier reminder, invoice {{document_number}} ({{total}}) is still outstanding. It is now {{days_overdue}} days past the due date ({{due_date}}). We urgently request that you pay the outstanding amount immediately to IBAN {{iban}}.\n\nKind regards,\n{{company_name}}',
+  },
+  payment_reminder_final: {
+    subject: 'Final notice: invoice {{document_number}}',
+    body: 'Dear {{customer_name}},\n\nThis is our final notice for invoice {{document_number}} for {{total}}, now {{days_overdue}} days overdue. We request that you pay the amount within 7 days to IBAN {{iban}} to avoid further (collection) costs.\n\nKind regards,\n{{company_name}}',
+  },
 }
 
-/** Resolve a per-type template from the saved map, falling back to defaults. */
-export function getTemplate(map: EmailTemplateMap | null | undefined, type: EmailTemplateKey): EmailTemplate {
-  const saved = map?.[type]
-  if (saved?.subject || saved?.body) {
+const DEFAULTS_BY_LANG: Record<EmailLang, Record<EmailTemplateKey, EmailTemplate>> = {
+  nl: DEFAULT_TEMPLATES_NL,
+  en: DEFAULT_TEMPLATES_EN,
+}
+
+/**
+ * Accept either the new language-nested shape `{ nl, en }` or a legacy flat
+ * `EmailTemplateMap` (pre-00077) and always return the nested shape. A flat map
+ * is treated as the Dutch bucket.
+ */
+export function normalizeEmailTemplates(
+  raw: LocalizedEmailTemplates | EmailTemplateMap | null | undefined
+): LocalizedEmailTemplates {
+  const r = (raw ?? {}) as Record<string, unknown>
+  const looksNested = 'nl' in r || 'en' in r
+  if (looksNested) {
     return {
-      subject: saved.subject || DEFAULT_TEMPLATES[type].subject,
-      body:    saved.body    || DEFAULT_TEMPLATES[type].body,
+      nl: (r.nl as EmailTemplateMap) ?? {},
+      en: (r.en as EmailTemplateMap) ?? {},
     }
   }
-  return getDefaultTemplate(type)
+  return { nl: (raw as EmailTemplateMap) ?? {}, en: {} }
+}
+
+export function getDefaultTemplate(type: EmailTemplateKey, lang: EmailLang = 'nl'): EmailTemplate {
+  return { ...DEFAULTS_BY_LANG[lang][type] }
+}
+
+/**
+ * Resolve a per-type template from the saved map for the given language,
+ * falling back to that language's defaults. Accepts nested or legacy-flat maps.
+ */
+export function getTemplate(
+  map: LocalizedEmailTemplates | EmailTemplateMap | null | undefined,
+  type: EmailTemplateKey,
+  lang: EmailLang = 'nl'
+): EmailTemplate {
+  const langMap = normalizeEmailTemplates(map)[lang]
+  const saved = langMap?.[type]
+  const def = DEFAULTS_BY_LANG[lang][type]
+  if (saved?.subject || saved?.body) {
+    return {
+      subject: saved.subject || def.subject,
+      body:    saved.body    || def.body,
+    }
+  }
+  return { ...def }
 }
 
 // ===========================================================================

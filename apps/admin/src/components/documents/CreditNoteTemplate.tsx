@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
+import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 
 // A4: 595.28 x 841.89 points
@@ -199,6 +200,8 @@ const styles = StyleSheet.create({
   colNum: { width: 18, textAlign: 'right', paddingRight: 6 },
   colDesc: { flex: 1, paddingRight: 8 },
   colUnitPrice: { width: 70, textAlign: 'right', paddingRight: 6 },
+  colPiecePrice: { width: 54, textAlign: 'right', paddingRight: 6 },
+  colBoxPrice: { width: 54, textAlign: 'right', paddingRight: 6 },
   colQty: { width: 55, textAlign: 'left', paddingLeft: 4 },
   colExclVat: { width: 70, textAlign: 'right', paddingRight: 6 },
   colVatAmt: { width: 55, textAlign: 'right', paddingRight: 6 },
@@ -355,8 +358,10 @@ interface CreditNoteTemplateProps {
 }
 
 export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
+  const T = getDocText(data.lang)
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
   const isReverseCharge = !!data.customer.country && data.customer.country.trim().toUpperCase() !== 'NL'
+  const hasBox = data.items.some(i => i.unitType === 'doos')
 
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
@@ -407,7 +412,7 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
         {/* Credit Banner */}
         <View style={styles.creditBanner}>
           <Text style={styles.creditBannerText}>
-            CREDITNOTA - Dit bedrag wordt verrekend met uw openstaande saldo
+            {T.cnBanner}
           </Text>
         </View>
 
@@ -422,7 +427,7 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
           </View>
           <View style={styles.metaBox}>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Creditnotadatum:</Text>
+              <Text style={styles.metaLabel}>{T.metaCreditDate}</Text>
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
           </View>
@@ -430,9 +435,9 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
 
         {/* Reference */}
         <View style={styles.referenceBox}>
-          <Text style={styles.referenceTitle}>Referentie oorspronkelijke transactie</Text>
+          <Text style={styles.referenceTitle}>{T.cnRefTitle}</Text>
           <Text style={styles.referenceText}>
-            Deze creditnota heeft betrekking op order {data.order.orderNumber} van {formatDate(data.order.orderDate)}.
+            {T.cnRefText(data.order.orderNumber, formatDate(data.order.orderDate))}
           </Text>
         </View>
 
@@ -440,8 +445,8 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
         {isReverseCharge && (
           <View style={styles.verlegdBox}>
             <Text style={styles.verlegdText}>
-              <Text style={styles.verlegdLabel}>BTW verlegd — intracommunautaire levering</Text>
-              {' (Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW. BTW-nummer afnemer: '}
+              <Text style={styles.verlegdLabel}>{T.verlegdLabel}</Text>
+              {T.verlegdBody}
               {data.customer.vatNumber || '—'}
             </Text>
           </View>
@@ -451,17 +456,25 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colNum]}>#</Text>
-            <Text style={[styles.th, styles.colDesc]}>Omschrijving</Text>
-            <Text style={[styles.th, styles.colUnitPrice]}>Eenheidprijs</Text>
-            <Text style={[styles.th, styles.colQty]}>Aantal</Text>
-            <Text style={[styles.th, styles.colExclVat]}>Excl. BTW</Text>
-            <Text style={[styles.th, styles.colVatAmt]}>BTW</Text>
-            <Text style={[styles.th, styles.colCredit]}>Credit</Text>
+            <Text style={[styles.th, styles.colDesc]}>{T.thDescription}</Text>
+            {hasBox ? (
+              <>
+                <Text style={[styles.th, styles.colPiecePrice]}>{T.thPiecePrice}</Text>
+                <Text style={[styles.th, styles.colBoxPrice]}>{T.thBoxPrice}</Text>
+              </>
+            ) : (
+              <Text style={[styles.th, styles.colUnitPrice]}>{T.thUnitPrice}</Text>
+            )}
+            <Text style={[styles.th, styles.colQty]}>{T.thQty}</Text>
+            <Text style={[styles.th, styles.colExclVat]}>{T.thExclVat}</Text>
+            <Text style={[styles.th, styles.colVatAmt]}>{T.thVat}</Text>
+            <Text style={[styles.th, styles.colCredit]}>{T.thCredit}</Text>
           </View>
           {data.items.map((item, idx) => {
             const priceExclVat = item.unitPrice * item.quantity
             const vatAmount = Math.round(priceExclVat * (item.vatRate / 100))
             const priceInclVat = priceExclVat + vatAmount
+            const isBoxLine = item.unitType === 'doos'
 
             return (
               <View
@@ -474,7 +487,20 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
               >
                 <Text style={[styles.tdBold, styles.colNum]}>{idx + 1}</Text>
                 <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
-                <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
+                {hasBox ? (
+                  <>
+                    <Text style={[styles.td, styles.colPiecePrice]}>
+                      {isBoxLine
+                        ? (item.piecePrice != null ? formatPrice(item.piecePrice) : '—')
+                        : formatPrice(item.unitPrice)}
+                    </Text>
+                    <Text style={[styles.td, styles.colBoxPrice]}>
+                      {isBoxLine ? formatPrice(item.unitPrice) : '—'}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
+                )}
                 <Text style={[styles.td, styles.colQty]}>{item.quantity} {item.unit.toLowerCase()}</Text>
                 <Text style={[styles.td, styles.colExclVat]}>{formatPrice(priceExclVat)}</Text>
                 <Text style={[styles.td, styles.colVatAmt]}>{formatPrice(vatAmount)}</Text>
@@ -490,17 +516,15 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
         {/* Bottom: Reason + Totals */}
         <View style={styles.bottomSection} wrap={false}>
           <View style={styles.reasonBox}>
-            <Text style={styles.reasonTitle}>Reden creditering</Text>
+            <Text style={styles.reasonTitle}>{T.cnReasonTitle}</Text>
             <Text style={styles.reasonText}>
-              Annulering/retour van bestelling.
-              {'\n\n'}
-              Bij vragen over deze creditnota kunt u contact opnemen met onze administratie.
+              {T.cnReasonText}
             </Text>
           </View>
 
           <View style={styles.totalsBox}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Subtotaal</Text>
+              <Text style={styles.totalLabel}>{T.tSubtotal}</Text>
               <Text style={styles.totalValueCredit}>-{formatPrice(data.subtotal)}</Text>
             </View>
             {data.vatBreakdown.map((vat, idx) => (
@@ -510,7 +534,7 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
               </View>
             ))}
             <View style={styles.grandTotalRow}>
-              <Text style={styles.grandTotalLabel}>Totaal credit</Text>
+              <Text style={styles.grandTotalLabel}>{T.tCreditTotal}</Text>
               <Text style={styles.grandTotalValue}>-{formatPrice(data.grandTotal)}</Text>
             </View>
           </View>
@@ -518,10 +542,9 @@ export function CreditNoteTemplate({ data }: CreditNoteTemplateProps) {
 
         {/* Processing Info */}
         <View style={styles.processingBox}>
-          <Text style={styles.processingTitle}>Verwerking van deze creditnota</Text>
+          <Text style={styles.processingTitle}>{T.cnProcessTitle}</Text>
           <Text style={styles.processingText}>
-            {`Het creditbedrag van ${formatPrice(data.grandTotal)} wordt verrekend met uw openstaande facturen of uitbetaald naar uw bankrekening.\n\n`}
-            {`Heeft u reeds betaald? Dan ontvangt u het bedrag binnen 14 werkdagen retour.`}
+            {T.cnProcessText(formatPrice(data.grandTotal))}
           </Text>
         </View>
 

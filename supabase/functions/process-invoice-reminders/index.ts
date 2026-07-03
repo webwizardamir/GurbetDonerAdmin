@@ -29,8 +29,11 @@ interface ReminderConfig {
   steps: ReminderStep[]
 }
 interface Template { subject: string; body: string }
+type Lang = 'nl' | 'en'
 
-const DEFAULT_TEMPLATES: Record<string, Template> = {
+// Kept in sync with apps/admin/src/services/documentEmail.ts (the edge function
+// can't import from the app). NL for NL/BE customers, EN for everyone else.
+const DEFAULT_TEMPLATES_NL: Record<string, Template> = {
   payment_reminder_1: {
     subject: 'Herinnering: factuur {{document_number}} openstaand',
     body: 'Beste {{customer_name}},\n\nMogelijk is het aan uw aandacht ontsnapt: factuur {{document_number}} ter waarde van {{total}} had vervaldatum {{due_date}} en staat nog open. Wij verzoeken u vriendelijk het bedrag over te maken op IBAN {{iban}}. U kunt de factuur bekijken via {{portal_link}}.\n\nMet vriendelijke groet,\n{{company_name}}',
@@ -43,6 +46,39 @@ const DEFAULT_TEMPLATES: Record<string, Template> = {
     subject: 'Laatste aanmaning: factuur {{document_number}}',
     body: 'Beste {{customer_name}},\n\nDit is onze laatste aanmaning voor factuur {{document_number}} ten bedrage van {{total}}, die nu {{days_overdue}} dagen achterstallig is. Wij verzoeken u het bedrag binnen 7 dagen te voldoen op IBAN {{iban}} om verdere (incasso)kosten te voorkomen.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
+}
+
+const DEFAULT_TEMPLATES_EN: Record<string, Template> = {
+  payment_reminder_1: {
+    subject: 'Reminder: invoice {{document_number}} outstanding',
+    body: 'Dear {{customer_name}},\n\nThis may have escaped your attention: invoice {{document_number}} for {{total}} was due on {{due_date}} and is still outstanding. We kindly ask you to transfer the amount to IBAN {{iban}}. You can view the invoice at {{portal_link}}.\n\nKind regards,\n{{company_name}}',
+  },
+  payment_reminder_2: {
+    subject: 'Second reminder: invoice {{document_number}}',
+    body: 'Dear {{customer_name}},\n\nDespite our earlier reminder, invoice {{document_number}} ({{total}}) is still outstanding. It is now {{days_overdue}} days past the due date ({{due_date}}). We urgently request that you pay the outstanding amount immediately to IBAN {{iban}}.\n\nKind regards,\n{{company_name}}',
+  },
+  payment_reminder_final: {
+    subject: 'Final notice: invoice {{document_number}}',
+    body: 'Dear {{customer_name}},\n\nThis is our final notice for invoice {{document_number}} for {{total}}, now {{days_overdue}} days overdue. We request that you pay the amount within 7 days to IBAN {{iban}} to avoid further (collection) costs.\n\nKind regards,\n{{company_name}}',
+  },
+}
+
+const DEFAULTS_BY_LANG: Record<Lang, Record<string, Template>> = {
+  nl: DEFAULT_TEMPLATES_NL,
+  en: DEFAULT_TEMPLATES_EN,
+}
+
+function resolveLang(country: string | null | undefined): Lang {
+  const code = (country || 'NL').trim().toUpperCase()
+  return code === 'NL' || code === 'BE' ? 'nl' : 'en'
+}
+
+// email_templates is now language-nested ({ nl, en }); older rows may be a flat
+// map (treated as NL). Return the template bucket for the requested language.
+function langBucket(raw: Record<string, unknown>, lang: Lang): Record<string, Template> {
+  const nested = 'nl' in raw || 'en' in raw
+  if (nested) return (raw[lang] as Record<string, Template>) ?? {}
+  return lang === 'nl' ? (raw as Record<string, Template>) : {}
 }
 
 const DEFAULT_CONFIG: ReminderConfig = {
@@ -84,7 +120,7 @@ serve(async (req) => {
     .maybeSingle()
 
   const cfg: ReminderConfig = { ...DEFAULT_CONFIG, ...(settings?.client_reminder_config ?? {}) }
-  const templates: Record<string, Template> = (settings?.email_templates ?? {}) as Record<string, Template>
+  const rawTemplates = (settings?.email_templates ?? {}) as Record<string, unknown>
   const companyName = settings?.company_name ?? ''
   const iban = settings?.bank_iban ?? ''
   const portalLink = APP_URL ? `${APP_URL}/portal/documents` : ''
@@ -108,7 +144,7 @@ serve(async (req) => {
     // Candidate overdue, unpaid, non-opted-out invoices that have an invoice doc.
     const { data: orders } = await admin
       .from('orders')
-      .select('id, order_number, total, invoice_due_date, reminders_opted_out, customer:customers!customer_id(id, company_name, email, reminders_opted_out)')
+      .select('id, order_number, total, invoice_due_date, reminders_opted_out, customer:customers!customer_id(id, company_name, email, billing_country, reminders_opted_out)')
       .lt('invoice_due_date', todayISO())
       .not('status', 'in', '(completed,cancelled,refunded)')
       .eq('reminders_opted_out', false)
@@ -166,14 +202,17 @@ serve(async (req) => {
       if (already) { result.clientSkipped++; continue }
 
       const step = current
-      const tmpl = templates[step.template_key] ?? DEFAULT_TEMPLATES[step.template_key] ?? DEFAULT_TEMPLATES.payment_reminder_1
+      const lang = resolveLang(customer.billing_country as string | undefined)
+      const bucket = langBucket(rawTemplates, lang)
+      const defaults = DEFAULTS_BY_LANG[lang]
+      const tmpl = bucket[step.template_key] ?? defaults[step.template_key] ?? defaults.payment_reminder_1
       const ctx = {
         company_name: companyName,
         customer_name: (customer.company_name as string) ?? '',
         document_number: invDoc.document_number as string,
         order_number: o.order_number as string,
         total: formatEuro(o.total as number),
-        due_date: formatNlDate(o.invoice_due_date as string),
+        due_date: formatDate(o.invoice_due_date as string, lang),
         days_overdue: String(daysOverdue),
         iban,
         portal_link: portalLink,
@@ -324,8 +363,9 @@ function formatEuro(cents: number): string {
   return new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format((cents ?? 0) / 100)
 }
 
-function formatNlDate(iso: string): string {
-  return new Intl.DateTimeFormat('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso))
+function formatDate(iso: string, lang: Lang): string {
+  const locale = lang === 'en' ? 'en-GB' : 'nl-NL'
+  return new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso))
 }
 
 function json(body: unknown, status: number) {

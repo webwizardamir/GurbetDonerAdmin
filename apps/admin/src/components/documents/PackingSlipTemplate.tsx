@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
+import { getDocText } from '../../services/documentLabels'
 
 // A4: 595.28 x 841.89 points
 // Using Helvetica (built-in) for all text
@@ -263,6 +264,7 @@ interface PackingSlipTemplateProps {
 }
 
 export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
+  const T = getDocText(data.lang)
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
 
   // Build customer address lines (country merged into city line)
@@ -313,7 +315,7 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
         {/* ========== DELIVERY ADDRESS + METADATA ========== */}
         <View style={styles.infoRow}>
           <View style={styles.customerBox}>
-            <Text style={styles.customerLabel}>Afleveradres</Text>
+            <Text style={styles.customerLabel}>{T.addrDelivery}</Text>
             <Text style={styles.customerName}>{data.customer.companyName}</Text>
             <Text style={styles.customerDetail}>
               {customerLines.join('\n')}
@@ -321,7 +323,7 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
           </View>
           <View style={styles.metaBox}>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Order Nr.:</Text>
+              <Text style={styles.metaLabel}>{T.metaOrderNumberShort}</Text>
               <Text style={styles.metaValue}>{data.order.orderNumber}</Text>
             </View>
             <View style={styles.metaRow}>
@@ -329,7 +331,7 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Artikelen:</Text>
+              <Text style={styles.metaLabel}>{T.metaArticles}</Text>
               <Text style={styles.metaValue}>{data.items.length}</Text>
             </View>
           </View>
@@ -339,9 +341,9 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colIdx]}>#</Text>
-            <Text style={[styles.th, styles.colDesc]}>Omschrijving</Text>
-            <Text style={[styles.th, styles.colQty]}>Aantal</Text>
-            <Text style={[styles.th, styles.colCheck]}>Check</Text>
+            <Text style={[styles.th, styles.colDesc]}>{T.thDescription}</Text>
+            <Text style={[styles.th, styles.colQty]}>{T.thQty}</Text>
+            <Text style={[styles.th, styles.colCheck]}>{T.thCheck}</Text>
           </View>
           {data.items.map((item, idx) => (
             <View
@@ -364,9 +366,9 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
 
         {/* ========== DELIVERY NOTES ========== */}
         <View style={styles.notesSection}>
-          <Text style={styles.notesTitle}>Bezorginformatie</Text>
+          <Text style={styles.notesTitle}>{T.psNotesTitle}</Text>
           <Text style={styles.notesText}>
-            Controleer alle artikelen bij ontvangst. Meld eventuele afwijkingen direct.
+            {T.psNotesText}
           </Text>
         </View>
 
@@ -376,7 +378,7 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
         {/* ========== SIGNATURES ========== */}
         <View style={styles.signatureSection} wrap={false}>
           <View style={styles.signatureBox}>
-            <Text style={styles.signatureTitle}>Afzender</Text>
+            <Text style={styles.signatureTitle}>{T.psSender}</Text>
             <View style={styles.sigField}>
               <Text style={styles.sigLabel}>{data.labels.name}</Text>
               <View style={styles.sigLine} />
@@ -387,7 +389,7 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
             </View>
           </View>
           <View style={styles.signatureBox}>
-            <Text style={styles.signatureTitle}>Ontvanger</Text>
+            <Text style={styles.signatureTitle}>{T.psReceiver}</Text>
             <View style={styles.sigField}>
               <Text style={styles.sigLabel}>{data.labels.name}</Text>
               <View style={styles.sigLine} />

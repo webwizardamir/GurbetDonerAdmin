@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
+import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 
 // A4: 595.28 x 841.89 points
@@ -329,6 +330,7 @@ interface PaymentReminderTemplateProps {
 }
 
 export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) {
+  const T = getDocText(data.lang)
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
   const hasBankInfo = data.company.iban || data.company.bankName
   const daysOverdue = getDaysOverdue(data.dueDate)
@@ -385,19 +387,17 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
         {/* Urgent Banner */}
         <View style={styles.urgentBanner}>
           <Text style={styles.urgentTitle}>
-            {isCritical ? 'LAATSTE AANMANING' : isUrgent ? 'TWEEDE HERINNERING' : 'BETALINGSHERINNERING'}
+            {isCritical ? T.prTitleFinal : isUrgent ? T.prTitleSecond : T.prTitleFirst}
           </Text>
           <Text style={styles.urgentText}>
-            {daysOverdue > 0
-              ? `Uw betaling is ${daysOverdue} dagen over de vervaldatum.`
-              : 'De vervaldatum van uw factuur is bereikt.'}
+            {daysOverdue > 0 ? T.prOverdue(daysOverdue) : T.prDueReached}
           </Text>
         </View>
 
         {/* Customer + Metadata */}
         <View style={styles.infoRow}>
           <View style={styles.customerBox}>
-            <Text style={styles.customerLabel}>Debiteur</Text>
+            <Text style={styles.customerLabel}>{T.addrDebtor}</Text>
             <Text style={styles.customerName}>{data.customer.companyName}</Text>
             <Text style={styles.customerDetail}>
               {customerLines.join('\n')}
@@ -405,34 +405,34 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
           </View>
           <View style={styles.metaBox}>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Herinneringsdatum:</Text>
+              <Text style={styles.metaLabel}>{T.prMetaReminderDate}</Text>
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Dagen te laat:</Text>
-              <Text style={styles.metaValueRed}>{daysOverdue} dagen</Text>
+              <Text style={styles.metaLabel}>{T.prMetaDaysLate}</Text>
+              <Text style={styles.metaValueRed}>{T.prDaysSuffix(daysOverdue)}</Text>
             </View>
           </View>
         </View>
 
         {/* Invoice Reference */}
         <View style={styles.invoiceRefBox}>
-          <Text style={styles.invoiceRefTitle}>Betreft: Openstaande factuur</Text>
+          <Text style={styles.invoiceRefTitle}>{T.prRefTitle}</Text>
           <View style={styles.invoiceRefGrid}>
             <View style={styles.invoiceRefItem}>
-              <Text style={styles.invoiceRefLabel}>Factuurnummer:</Text>
+              <Text style={styles.invoiceRefLabel}>{T.prRefInvoiceNumber}</Text>
               <Text style={styles.invoiceRefValue}>{data.invoiceNumber || '—'}</Text>
             </View>
             <View style={styles.invoiceRefItem}>
-              <Text style={styles.invoiceRefLabel}>Orderdatum:</Text>
+              <Text style={styles.invoiceRefLabel}>{T.prRefOrderDate}</Text>
               <Text style={styles.invoiceRefValue}>{formatDate(data.order.orderDate)}</Text>
             </View>
             <View style={styles.invoiceRefItem}>
-              <Text style={styles.invoiceRefLabel}>Oorspronkelijke vervaldatum:</Text>
+              <Text style={styles.invoiceRefLabel}>{T.prRefOrigDue}</Text>
               <Text style={styles.invoiceRefValue}>{formatDate(data.dueDate)}</Text>
             </View>
             <View style={styles.invoiceRefItem}>
-              <Text style={styles.invoiceRefLabel}>Aantal artikelen:</Text>
+              <Text style={styles.invoiceRefLabel}>{T.prRefItems}</Text>
               <Text style={styles.invoiceRefValue}>{data.items.length}</Text>
             </View>
           </View>
@@ -440,19 +440,19 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
 
         {/* Amount Due */}
         <View style={styles.amountDueBox}>
-          <Text style={styles.amountDueLabel}>OPENSTAAND BEDRAG</Text>
+          <Text style={styles.amountDueLabel}>{T.prAmountDueLabel}</Text>
           <Text style={styles.amountDueValue}>{formatPrice(data.grandTotal)}</Text>
         </View>
 
         {/* Message */}
         <View style={styles.messageSection}>
-          <Text style={styles.messageTitle}>Geachte heer/mevrouw,</Text>
+          <Text style={styles.messageTitle}>{T.prGreeting}</Text>
           <Text style={styles.messageText}>
             {isCritical
-              ? `Ondanks eerdere herinneringen hebben wij nog geen betaling van u ontvangen voor bovengenoemde factuur. Het openstaande bedrag van ${formatPrice(data.grandTotal)} dient per omgaande te worden voldaan.\n\nIndien wij binnen 7 dagen geen betaling ontvangen, zijn wij genoodzaakt de vordering uit handen te geven. De daaruit voortvloeiende kosten zullen op u worden verhaald.`
+              ? T.prBodyCritical(formatPrice(data.grandTotal))
               : isUrgent
-              ? `Wij hebben tot op heden geen betaling van u ontvangen voor bovengenoemde factuur. Het totaalbedrag van ${formatPrice(data.grandTotal)} is inmiddels ${daysOverdue} dagen over de vervaldatum.\n\nWij verzoeken u vriendelijk doch dringend het openstaande bedrag binnen 7 dagen over te maken.`
-              : `Uit onze administratie blijkt dat onderstaande factuur nog niet is voldaan. Wellicht is uw betaling reeds onderweg, in dat geval kunt u deze herinnering als niet verzonden beschouwen.\n\nMocht u de factuur nog niet hebben betaald, dan verzoeken wij u vriendelijk het openstaande bedrag zo spoedig mogelijk over te maken.`
+              ? T.prBodyUrgent(formatPrice(data.grandTotal), daysOverdue)
+              : T.prBodyNormal
             }
           </Text>
         </View>
@@ -463,17 +463,17 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
         {/* Bank Details */}
         {hasBankInfo && (
           <View style={styles.bankSection}>
-            <Text style={styles.bankTitle}>Maak uw betaling over naar:</Text>
+            <Text style={styles.bankTitle}>{T.prBankTitle}</Text>
             <View style={styles.bankGrid}>
               {data.company.bankName && (
                 <View style={styles.bankItem}>
-                  <Text style={styles.bankLabel}>Bank:</Text>
+                  <Text style={styles.bankLabel}>{T.prBankBank}</Text>
                   <Text style={styles.bankValue}>{data.company.bankName}</Text>
                 </View>
               )}
               {data.company.accountHolder && (
                 <View style={styles.bankItem}>
-                  <Text style={styles.bankLabel}>T.n.v.:</Text>
+                  <Text style={styles.bankLabel}>{T.prBankHolder}</Text>
                   <Text style={styles.bankValue}>{data.company.accountHolder}</Text>
                 </View>
               )}
@@ -482,19 +482,16 @@ export function PaymentReminderTemplate({ data }: PaymentReminderTemplateProps) 
               <Text style={styles.bankIban}>{data.company.iban}</Text>
             )}
             <Text style={styles.paymentRef}>
-              Vermeld bij betaling: {data.invoiceNumber || '—'}
+              {T.prIbanRef(data.invoiceNumber || '—')}
             </Text>
           </View>
         )}
 
         {/* Action Required */}
         <View style={styles.actionSection}>
-          <Text style={styles.actionTitle}>Heeft u vragen of opmerkingen?</Text>
+          <Text style={styles.actionTitle}>{T.prActionTitle}</Text>
           <Text style={styles.actionText}>
-            {`Neem dan zo spoedig mogelijk contact met ons op:\n`}
-            {data.company.phone && `Telefoon: ${data.company.phone}\n`}
-            {data.company.email && `E-mail: ${data.company.email}\n`}
-            {`\nIndien u reeds betaald heeft, verzoeken wij u dit bericht te negeren.`}
+            {T.prActionText(data.company.phone || undefined, data.company.email || undefined)}
           </Text>
         </View>
 

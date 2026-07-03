@@ -1,16 +1,18 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Info, Plus, Trash2, Mail, AlertTriangle } from 'lucide-react'
 import type {
   ClientReminderConfig,
   ClientReminderStep,
   DocumentSettings,
-  EmailTemplateMap,
+  EmailLang,
+  LocalizedEmailTemplates,
   ReminderStepKey,
   ReminderTone,
 } from '../../types'
-import { getTemplate, REMINDER_PLACEHOLDER_KEYS } from '../../services/documentEmail'
+import { getTemplate, normalizeEmailTemplates, REMINDER_PLACEHOLDER_KEYS } from '../../services/documentEmail'
 import { DEFAULT_CLIENT_REMINDER_CONFIG } from '../../services/invoiceReminders'
+import LangTabs from './LangTabs'
 
 // One template per tone; the schedule references templates via tone.
 const TONE_TEMPLATE: Record<ReminderTone, ReminderStepKey> = {
@@ -23,16 +25,18 @@ const TONES: ReminderTone[] = ['gentle', 'second', 'final']
 interface RemindersTabProps {
   formData: Partial<DocumentSettings>
   onConfigChange: (config: ClientReminderConfig) => void
-  onTemplatesChange: (templates: EmailTemplateMap) => void
+  onTemplatesChange: (templates: LocalizedEmailTemplates) => void
 }
 
 export default function RemindersTab({ formData, onConfigChange, onTemplatesChange }: RemindersTabProps) {
   const { t } = useTranslation()
+  const [lang, setLang] = useState<EmailLang>('nl')
   const cfg: ClientReminderConfig = {
     ...DEFAULT_CLIENT_REMINDER_CONFIG,
     ...(formData.client_reminder_config ?? {}),
   }
-  const templates = (formData.email_templates ?? {}) as EmailTemplateMap
+  const localized = normalizeEmailTemplates(formData.email_templates)
+  const templates = localized[lang]
   const placeholderChips = useMemo(() => REMINDER_PLACEHOLDER_KEYS.map(k => `{{${k}}}`), [])
 
   const patch = (p: Partial<ClientReminderConfig>) => onConfigChange({ ...cfg, ...p })
@@ -60,7 +64,8 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
 
   const updateTemplate = (key: ReminderStepKey, field: 'subject' | 'body', value: string) => {
     const existing = templates[key] ?? { subject: '', body: '' }
-    onTemplatesChange({ ...templates, [key]: { ...existing, [field]: value } })
+    const nextLang = { ...templates, [key]: { ...existing, [field]: value } }
+    onTemplatesChange({ ...localized, [lang]: nextLang })
   }
 
   const toggleClass = (on: boolean) =>
@@ -195,9 +200,12 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
 
       {/* Per-tone email copy */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Mail className="w-4 h-4 text-slate-500" />
-          <h3 className="font-semibold text-slate-900 dark:text-white">{t('settings.reminders.copy.title')}</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-slate-500" />
+            <h3 className="font-semibold text-slate-900 dark:text-white">{t('settings.reminders.copy.title')}</h3>
+          </div>
+          <LangTabs lang={lang} onChange={setLang} />
         </div>
 
         <div className="p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -211,7 +219,7 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
 
         {TONES.map(tone => {
           const key = TONE_TEMPLATE[tone]
-          const effective = getTemplate(templates, key)
+          const effective = getTemplate(localized, key, lang)
           const subject = templates[key]?.subject ?? ''
           const body = templates[key]?.body ?? ''
           const isDefault = !subject && !body

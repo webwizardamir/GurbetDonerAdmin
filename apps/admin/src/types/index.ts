@@ -494,7 +494,9 @@ export interface DocumentSettings {
 
   // Email (Phase 5)
   email_bcc?: string | null
-  email_templates?: EmailTemplateMap | null
+  // Localized per-language template map (migration 00077). Legacy rows may still
+  // hold a flat EmailTemplateMap — normalizeEmailTemplates() handles both.
+  email_templates?: LocalizedEmailTemplates | EmailTemplateMap | null
 
   // Client overdue-invoice reminder schedule (migration 00058)
   client_reminder_config?: ClientReminderConfig | null
@@ -538,6 +540,15 @@ export type ReminderStepKey =
 export type EmailTemplateKey = EmailDocumentType | ReminderStepKey
 
 export type EmailTemplateMap = Partial<Record<EmailTemplateKey, EmailTemplate>>
+
+// Document/email language. NL/BE customers get 'nl', everyone else 'en'
+// (see utils/documentLang.ts). Email templates are stored per-language.
+export type EmailLang = 'nl' | 'en'
+
+export interface LocalizedEmailTemplates {
+  nl: EmailTemplateMap
+  en: EmailTemplateMap
+}
 
 // ---------------------------------------------------------------------------
 // Client overdue-invoice reminder configuration (document_settings JSONB)

@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Info } from 'lucide-react'
-import type { DocumentSettings, EmailDocumentType, EmailTemplateMap } from '../../types'
-import { getTemplate, PLACEHOLDER_KEYS } from '../../services/documentEmail'
+import type { DocumentSettings, EmailDocumentType, EmailLang, LocalizedEmailTemplates } from '../../types'
+import { getTemplate, normalizeEmailTemplates, PLACEHOLDER_KEYS } from '../../services/documentEmail'
+import LangTabs from './LangTabs'
 
 const DOC_TYPES: EmailDocumentType[] = [
   'invoice',
@@ -16,23 +17,31 @@ const DOC_TYPES: EmailDocumentType[] = [
 interface EmailTabProps {
   formData: Partial<DocumentSettings>
   onChange: (field: keyof DocumentSettings, value: string | number) => void
-  onTemplatesChange: (templates: EmailTemplateMap) => void
+  onTemplatesChange: (templates: LocalizedEmailTemplates) => void
 }
 
 export default function EmailTab({ formData, onChange, onTemplatesChange }: EmailTabProps) {
   const { t } = useTranslation()
-  const templates = (formData.email_templates ?? {}) as EmailTemplateMap
+  const [lang, setLang] = useState<EmailLang>('nl')
+  const localized = normalizeEmailTemplates(formData.email_templates)
+  const templates = localized[lang]
 
   const updateTemplate = (type: EmailDocumentType, key: 'subject' | 'body', value: string) => {
     const existing = templates[type] ?? { subject: '', body: '' }
-    const next: EmailTemplateMap = { ...templates, [type]: { ...existing, [key]: value } }
-    onTemplatesChange(next)
+    const nextLang = { ...templates, [type]: { ...existing, [key]: value } }
+    onTemplatesChange({ ...localized, [lang]: nextLang })
   }
 
   const placeholderChips = useMemo(() => PLACEHOLDER_KEYS.map(k => `{{${k}}}`), [])
 
   return (
     <div className="space-y-6">
+      {/* Language selector — NL for NL/BE customers, EN for the rest */}
+      <div className="space-y-1">
+        <LangTabs lang={lang} onChange={setLang} label={t('settings.documents.email.templateLanguage')} />
+        <p className="text-xs text-slate-500 dark:text-slate-400 pl-6">{t('settings.documents.email.languageHint')}</p>
+      </div>
+
       {/* Resend secret notice */}
       <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
@@ -77,7 +86,7 @@ export default function EmailTab({ formData, onChange, onTemplatesChange }: Emai
 
       {/* Per-type templates */}
       {DOC_TYPES.map(type => {
-        const effective = getTemplate(templates, type)
+        const effective = getTemplate(localized, type, lang)
         const subject = templates[type]?.subject ?? ''
         const body    = templates[type]?.body    ?? ''
         const isDefault = !subject && !body

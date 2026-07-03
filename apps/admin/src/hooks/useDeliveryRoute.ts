@@ -146,6 +146,26 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     setOrderDirty(true)
   }, [])
 
+  // Jump a stop to an exact 1-based position within the INCLUDED subset (the
+  // numbers the user sees). Reorders only the included ids and writes them back
+  // into their original slots in the full manualOrder, so excluded ids keep
+  // their positions. Unlike moveStop's whole-array arrayMove this places the
+  // stop exactly (no off-by-one on large jumps), which is the whole point of
+  // the position dropdown.
+  const moveStopToPosition = useCallback((customerId: string, targetPos1Based: number) => {
+    setManualOrder(prev => {
+      const included = prev.filter(id => selectedIds.has(id))
+      const from = included.indexOf(customerId)
+      if (from < 0) return prev
+      const to = Math.max(0, Math.min(targetPos1Based - 1, included.length - 1))
+      if (from === to) return prev
+      const reordered = arrayMove(included, from, to)
+      let k = 0
+      return prev.map(id => (selectedIds.has(id) ? reordered[k++] : id))
+    })
+    setOrderDirty(true)
+  }, [selectedIds])
+
   // ---- settings ------------------------------------------------------------
   const updateDeparture = useCallback((hhmm: string) => { setDepartureHHmm(hhmm); setOrderDirty(true) }, [])
   const toggleReturnToDepot = useCallback(() => { setReturnToDepot(v => !v); setOrderDirty(true) }, [])
@@ -316,6 +336,7 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     selectNone,
     setLock,
     moveStop,
+    moveStopToPosition,
     updateDeparture,
     toggleReturnToDepot,
     optimize,

@@ -10,7 +10,7 @@ import {
   sendDocumentEmail,
   type TemplateContext,
 } from '../../services/documentEmail'
-import type { EmailDocumentType, EmailTemplateMap } from '../../types'
+import type { EmailDocumentType } from '../../types'
 import { formatPrice } from '../../utils/format'
 
 interface SendDocumentModalProps {
@@ -45,6 +45,9 @@ export default function SendDocumentModal({
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
 
+  // Email language follows the document language (NL/BE → nl, else en).
+  const lang = invoiceData.lang ?? 'nl'
+
   // Build the {{placeholder}} substitution context once from invoiceData.
   const ctx: TemplateContext = useMemo(() => ({
     company_name:    invoiceData.company.name,
@@ -53,9 +56,9 @@ export default function SendDocumentModal({
     order_number:    invoiceData.order.orderNumber,
     total:           formatPrice(invoiceData.grandTotal ?? 0),
     due_date:        invoiceData.dueDate
-      ? new Date(invoiceData.dueDate).toLocaleDateString('nl-NL')
+      ? new Date(invoiceData.dueDate).toLocaleDateString(lang === 'en' ? 'en-GB' : 'nl-NL')
       : '',
-  }), [invoiceData])
+  }), [invoiceData, lang])
 
   // Load settings + customer email + render template defaults.
   useEffect(() => {
@@ -68,8 +71,7 @@ export default function SendDocumentModal({
         ])
         if (cancelled) return
 
-        const map = (settings?.email_templates ?? {}) as EmailTemplateMap
-        const tmpl = getTemplate(map, documentType)
+        const tmpl = getTemplate(settings?.email_templates, documentType, lang)
         setSubject(renderTemplate(tmpl.subject, ctx))
         setBody(renderTemplate(tmpl.body, ctx))
         setRecipient(customerRow?.email ?? '')
@@ -81,7 +83,7 @@ export default function SendDocumentModal({
       }
     })()
     return () => { cancelled = true }
-  }, [documentType, invoiceData.customer.id, ctx])
+  }, [documentType, invoiceData.customer.id, ctx, lang])
 
   const handleSend = async () => {
     if (!recipient.trim()) {

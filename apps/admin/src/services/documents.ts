@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
 import type { DocumentSettings, DocumentType, Document } from '../types'
+import { resolveDocumentLang } from '../utils/documentLang'
+import { EN_LABELS, DOC_TITLES_EN, type DocLang } from './documentLabels'
 
 // =====================================================
 // Document Settings
@@ -257,6 +259,9 @@ export async function deleteDocument(id: string): Promise<void> {
 // =====================================================
 
 export interface InvoiceData {
+  // Language for this document (nl for NL/BE customers, en otherwise). Carried
+  // into the snapshot so a portal re-render reproduces the same language.
+  lang: DocLang
   // Document info
   documentNumber: string
   // The customer-facing invoice number for this order (app-generated, else a
@@ -313,7 +318,9 @@ export interface InvoiceData {
     note?: string
     quantity: number
     unit: string
+    unitType: string // raw unit type (kg/piece/zak/doos) — drives the box dual-price columns
     unitPrice: number // cents
+    piecePrice?: number // cents — the product's per-piece price, only set for doos lines
     vatRate: number
     total: number // cents
   }>
@@ -445,7 +452,9 @@ function resolvePaymentTermsText(
 
 export async function buildInvoiceData(
   orderId: string,
-  documentType: DocumentType
+  documentType: DocumentType,
+  // Explicit override; defaults to the customer's country (NL/BE → nl, else en).
+  lang?: DocLang
 ): Promise<InvoiceData> {
   // Fetch order with items and customer
   const { data: order, error: orderError } = await supabase
@@ -465,6 +474,10 @@ export async function buildInvoiceData(
   const settings = await fetchDocumentSettings()
   if (!settings) throw new Error('Document settings not configured')
 
+  // Resolve document language: NL/BE customers → Dutch, everyone else → English.
+  const effectiveLang: DocLang = lang ?? resolveDocumentLang(order.customer?.billing_country)
+  const isEn = effectiveLang === 'en'
+
   // Calculate due date — a customer-specific payment term overrides the global
   // default (NULL on the customer = use the global document setting).
   const customer = order.customer || {}
@@ -474,45 +487,76 @@ export async function buildInvoiceData(
   const dueDate = new Date(orderDate)
   dueDate.setDate(dueDate.getDate() + effectiveDueDays)
 
-  // Get document title based on type
-  const documentTitles: Record<DocumentType, string> = {
-    invoice: settings.label_invoice,
-    proforma: settings.label_proforma,
-    credit_note: settings.label_credit_note,
-    packing_slip: settings.label_packing_slip,
-    order_confirmation: settings.label_order_confirmation || 'ORDERBEVESTIGING',
-    payment_reminder: settings.label_payment_reminder || 'BETALINGSHERINNERING',
-  }
+  // Get document title based on type (English titles for EN documents)
+  const documentTitles: Record<DocumentType, string> = isEn
+    ? { ...DOC_TITLES_EN }
+    : {
+        invoice: settings.label_invoice,
+        proforma: settings.label_proforma,
+        credit_note: settings.label_credit_note,
+        packing_slip: settings.label_packing_slip,
+        order_confirmation: settings.label_order_confirmation || 'ORDERBEVESTIGING',
+        payment_reminder: settings.label_payment_reminder || 'BETALINGSHERINNERING',
+      }
 
-  // Convert unit type to Dutch format
-  const formatUnitDutch = (unitType: string, quantity: number): string => {
+  // Convert unit type to a short display word per language.
+  const formatUnit = (unitType: string, quantity: number): string => {
+    const one = quantity === 1
     switch (unitType?.toLowerCase()) {
       case 'kg':
         return 'kg'
       case 'piece':
-        return quantity === 1 ? 'stuk' : 'stuks'
+        return isEn ? (one ? 'pc' : 'pcs') : one ? 'stuk' : 'stuks'
       case 'zak':
-        return quantity === 1 ? 'zak' : 'zakken'
+        return isEn ? (one ? 'bag' : 'bags') : one ? 'zak' : 'zakken'
       case 'doos':
-        return quantity === 1 ? 'doos' : 'dozen'
+        return isEn ? (one ? 'box' : 'boxes') : one ? 'doos' : 'dozen'
       case 'package':
-        return quantity === 1 ? 'pak' : 'pakken'
+        return isEn ? (one ? 'pack' : 'packs') : one ? 'pak' : 'pakken'
       default:
         return unitType // Return the original unit type if not recognized
     }
   }
 
+  // Box (doos) dual-price test feature: for any box-priced line, look up the
+  // product's configured per-piece price so the document can show Stukprijs +
+  // Doosprijs side-by-side. Read from product_unit_prices (unit_type='piece');
+  // ~all box products already have one, the rare miss just renders "—".
+  const rawItems = (order.items || []) as Record<string, unknown>[]
+  const boxProductIds = Array.from(
+    new Set(
+      rawItems
+        .filter(it => (it.unit_type as string) === 'doos' && it.product_id)
+        .map(it => it.product_id as string)
+    )
+  )
+  const pieceByProduct = new Map<string, number>()
+  if (boxProductIds.length > 0) {
+    const { data: pieceRows } = await supabase
+      .from('product_unit_prices')
+      .select('product_id, price')
+      .eq('unit_type', 'piece')
+      .not('price', 'is', null)
+      .in('product_id', boxProductIds)
+    for (const r of (pieceRows as { product_id: string; price: number | null }[]) ?? []) {
+      if (r.price != null) pieceByProduct.set(r.product_id, Number(r.price))
+    }
+  }
+
   // Process items and calculate VAT breakdown
-  let items = (order.items || []).map((item: Record<string, unknown>, idx: number) => {
+  let items = rawItems.map((item: Record<string, unknown>, idx: number) => {
     const quantity = Number(item.quantity) || 0
     const unitType = (item.unit_type as string) || 'piece'
+    const productId = (item.product_id as string) || ''
     return {
       index: idx + 1,
       description: item.product_name as string,
       note: (item.notes as string | undefined) || undefined,
       quantity,
-      unit: formatUnitDutch(unitType, quantity),
+      unit: formatUnit(unitType, quantity),
+      unitType,
       unitPrice: Number(item.unit_price) || 0,
+      piecePrice: unitType === 'doos' ? pieceByProduct.get(productId) : undefined,
       vatRate: Number(item.tax_rate) || 0,
       total: Number(item.total) || 0,
     }
@@ -556,8 +600,10 @@ export async function buildInvoiceData(
         description: l.description,
         note: undefined,
         quantity: l.quantity,
-        unit: formatUnitDutch(l.unitType, l.quantity),
+        unit: formatUnit(l.unitType, l.quantity),
+        unitType: l.unitType,
         unitPrice: l.unitPrice,
+        piecePrice: undefined,
         vatRate: l.vatRate,
         total: l.amount + l.taxAmount,
       }))
@@ -593,6 +639,7 @@ export async function buildInvoiceData(
   }
 
   return {
+    lang: effectiveLang,
     documentNumber: '', // Will be set when generating
     invoiceNumber,
     documentType,
@@ -643,30 +690,37 @@ export async function buildInvoiceData(
     totalVat,
     grandTotal,
 
-    labels: {
-      documentTitle: documentTitles[documentType],
-      invoiceAddress: settings.label_invoice_address,
-      date: settings.label_date,
-      customerNumber: settings.label_customer_number,
-      dueDate: settings.label_due_date,
-      description: settings.label_description,
-      quantity: settings.label_quantity,
-      unit: settings.label_unit,
-      unitPrice: settings.label_unit_price,
-      vat: settings.label_vat,
-      total: settings.label_total,
-      subtotal: settings.label_subtotal,
-      grandTotal: settings.label_grand_total,
-      paymentMethod: settings.label_payment_method,
-      cash: settings.label_cash,
-      bank: settings.label_bank,
-      onAccount: settings.label_on_account,
-      forApproval: settings.label_for_approval,
-      name: settings.label_name,
-      signature: settings.label_signature,
-    },
+    // For NL use the user-editable settings labels; for EN use the fixed English
+    // set (the settings labels are Dutch). documentTitle comes from the
+    // per-language documentTitles map either way.
+    labels: isEn
+      ? { documentTitle: documentTitles[documentType], ...EN_LABELS }
+      : {
+          documentTitle: documentTitles[documentType],
+          invoiceAddress: settings.label_invoice_address,
+          date: settings.label_date,
+          customerNumber: settings.label_customer_number,
+          dueDate: settings.label_due_date,
+          description: settings.label_description,
+          quantity: settings.label_quantity,
+          unit: settings.label_unit,
+          unitPrice: settings.label_unit_price,
+          vat: settings.label_vat,
+          total: settings.label_total,
+          subtotal: settings.label_subtotal,
+          grandTotal: settings.label_grand_total,
+          paymentMethod: settings.label_payment_method,
+          cash: settings.label_cash,
+          bank: settings.label_bank,
+          onAccount: settings.label_on_account,
+          forApproval: settings.label_for_approval,
+          name: settings.label_name,
+          signature: settings.label_signature,
+        },
 
-    paymentTerms: resolvePaymentTermsText(settings.payment_terms_text, globalDueDays, effectiveDueDays),
+    paymentTerms: isEn
+      ? `Please pay the total amount within ${effectiveDueDays} days of the invoice date.`
+      : resolvePaymentTermsText(settings.payment_terms_text, globalDueDays, effectiveDueDays),
     footerText: settings.footer_text,
   }
 }

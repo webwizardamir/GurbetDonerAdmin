@@ -220,6 +220,7 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, onRo
                   departureTime={r.effectiveRoute?.departureTime ?? null}
                   onToggle={r.toggleStop}
                   onMove={r.moveStop}
+                  onMoveToPosition={r.moveStopToPosition}
                   onSetLock={r.setLock}
                 />
               )}

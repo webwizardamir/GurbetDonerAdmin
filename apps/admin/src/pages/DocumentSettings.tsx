@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import { useDocumentSettings } from '../hooks/useDocumentSettings'
-import type { ClientReminderConfig, DocumentSettings, EmailTemplateMap } from '../types'
+import type { ClientReminderConfig, DocumentSettings, LocalizedEmailTemplates } from '../types'
 import CompanyTab from '../components/settings/CompanyTab'
 import BankPaymentTab from '../components/settings/BankPaymentTab'
 import NumberingTab from '../components/settings/NumberingTab'
@@ -57,7 +57,7 @@ export default function DocumentSettingsPage() {
     setSaveSuccess(false)
   }
 
-  const handleTemplatesChange = (templates: EmailTemplateMap) => {
+  const handleTemplatesChange = (templates: LocalizedEmailTemplates) => {
     setFormData(prev => ({ ...prev, email_templates: templates }))
     setSaveSuccess(false)
   }

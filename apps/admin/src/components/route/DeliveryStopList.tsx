@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  ChevronDown, ChevronRight, GripVertical, Lock,
+  ChevronDown, ChevronRight, ChevronsUpDown, GripVertical, Lock,
   MapPinOff, MoreVertical, ArrowUp, ArrowDown, StickyNote, RotateCcw, Globe,
 } from 'lucide-react'
 import type { DisplayStop } from '../../hooks/useDeliveryRoute'
 import type { LockPosition } from '../../services/route'
 import { formatQuantityWithUnit } from '../../utils/format'
 import { formatDistance, etaClock } from '../../utils/route'
+import DropdownMenu from '../ui/DropdownMenu'
 
 interface Props {
   included: DisplayStop[]
@@ -16,11 +17,86 @@ interface Props {
   departureTime: string | null
   onToggle: (id: string) => void
   onMove: (activeId: string, overId: string) => void
+  onMoveToPosition: (id: string, pos: number) => void
   onSetLock: (id: string, pos: LockPosition | null) => void
 }
 
+// The sequence badge, upgraded to an app-style position picker: click it to open
+// a 1..N dropdown and jump this stop straight to that position (the rest shift
+// to fill), instead of nudging up/down one row at a time. Rendered via the
+// portal-based DropdownMenu so it escapes the scroll container's clipping.
+function PositionPicker({
+  current, total, variant, onPick,
+}: {
+  current: number
+  total: number
+  variant: 'locked' | 'failed' | 'normal'
+  onPick: (pos: number) => void
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLButtonElement>(null)
+
+  // Persistent ring + corner caret so the badge reads as a tappable chip on
+  // touch devices too (hover cues don't exist there); 32px min touch target.
+  const base = 'relative w-8 h-8 rounded-full text-sm font-semibold flex items-center justify-center shrink-0 tabular-nums ring-1 ring-slate-300 dark:ring-slate-500 transition-shadow hover:ring-2 hover:ring-green-400/70 focus:outline-none focus:ring-2 focus:ring-green-500'
+  const color =
+    variant === 'locked'
+      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+      : variant === 'failed'
+        ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+
+  return (
+    <>
+      <button
+        ref={ref}
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`${base} ${color}`}
+        aria-label={t('route.setPosition')}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={t('route.setPosition')}
+      >
+        {variant === 'failed' ? <MapPinOff className="w-3.5 h-3.5" /> : current}
+        {variant === 'locked' ? (
+          <Lock className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5" />
+        ) : (
+          <ChevronsUpDown className="w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 text-slate-400 dark:text-slate-300" />
+        )}
+      </button>
+      <DropdownMenu isOpen={open} onClose={() => setOpen(false)} anchorRef={ref} align="left" width={212}>
+        {/* Build the 1..N grid only while open — avoids O(N²) discarded elements
+            across the stop list when every picker is closed. */}
+        {open && (
+          <div className="max-h-60 overflow-y-auto p-1 grid grid-cols-4 gap-1">
+            {Array.from({ length: total }, (_, i) => i + 1).map(n => (
+              <button
+                key={n}
+                type="button"
+                role="menuitemradio"
+                aria-checked={n === current}
+                aria-label={t('route.setPositionTo', { n })}
+                onClick={() => { onPick(n); setOpen(false) }}
+                className={`h-9 rounded-lg text-sm tabular-nums transition-colors ${
+                  n === current
+                    ? 'bg-green-600 text-white font-semibold'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        )}
+      </DropdownMenu>
+    </>
+  )
+}
+
 export default function DeliveryStopList({
-  included, excluded, hasRoute, departureTime, onToggle, onMove, onSetLock,
+  included, excluded, hasRoute, departureTime, onToggle, onMove, onMoveToPosition, onSetLock,
 }: Props) {
   const { t } = useTranslation()
   const [openManifest, setOpenManifest] = useState<Set<string>>(new Set())
@@ -61,21 +137,13 @@ export default function DeliveryStopList({
                 aria-label={t('route.exclude')}
               />
 
-              {/* sequence / lock badge */}
-              {stop.lock ? (
-                <span className="relative w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm font-semibold flex items-center justify-center shrink-0 tabular-nums">
-                  {hasRoute ? stop.sequence ?? i + 1 : i + 1}
-                  <Lock className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5" />
-                </span>
-              ) : failed ? (
-                <span className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
-                  <MapPinOff className="w-3.5 h-3.5" />
-                </span>
-              ) : (
-                <span className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold flex items-center justify-center shrink-0 tabular-nums">
-                  {hasRoute ? stop.sequence ?? i + 1 : i + 1}
-                </span>
-              )}
+              {/* sequence badge → click to jump to an exact position */}
+              <PositionPicker
+                current={hasRoute ? stop.sequence ?? i + 1 : i + 1}
+                total={included.length}
+                variant={stop.lock ? 'locked' : failed ? 'failed' : 'normal'}
+                onPick={n => onMoveToPosition(stop.customerId, n)}
+              />
 
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{stop.customerName}</p>

@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
+import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 
 // A4: 595.28 x 841.89 points
@@ -186,6 +187,9 @@ const styles = StyleSheet.create({
   colDesc: { flex: 1, paddingRight: 8 },
   colNote: { width: 62, paddingRight: 6 },
   colUnitPrice: { width: 62, textAlign: 'right', paddingRight: 6 },
+  // Box (doos) dual-price columns — used only when the order has a box line.
+  colPiecePrice: { width: 54, textAlign: 'right', paddingRight: 6 },
+  colBoxPrice: { width: 54, textAlign: 'right', paddingRight: 6 },
   colQty: { width: 52, textAlign: 'left', paddingLeft: 4 },
   colExclVat: { width: 66, textAlign: 'right', paddingRight: 6 },
   colVatAmt: { width: 50, textAlign: 'right', paddingRight: 6 },
@@ -317,6 +321,27 @@ const styles = StyleSheet.create({
   },
 
   // ===========================================
+  // IBAN CALLOUT (directly under the payment terms — clients kept asking
+  // "where is your IBAN?"). Small, left-accent reminder, IBAN in bold.
+  // ===========================================
+  ibanCallout: {
+    borderLeftWidth: 2,
+    borderLeftColor: '#16a34a',
+    backgroundColor: '#f0fdf4',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 6,
+  },
+  ibanCalloutText: {
+    fontSize: 7.5,
+    color: '#166534',
+    lineHeight: 1.35,
+  },
+  ibanCalloutStrong: {
+    fontFamily: 'Helvetica-Bold',
+  },
+
+  // ===========================================
   // FOOTER
   // ===========================================
   footer: {
@@ -366,8 +391,11 @@ interface InvoiceTemplateProps {
 // into a multi-invoice document (CombinedInvoicesTemplate) as well as the
 // single-invoice InvoiceTemplate below.
 export function InvoicePage({ data }: InvoiceTemplateProps) {
+  const T = getDocText(data.lang)
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
   const isReverseCharge = !!data.customer.country && data.customer.country.trim().toUpperCase() !== 'NL'
+  // Show the Stukprijs + Doosprijs columns only when the order has a box line.
+  const hasBox = data.items.some(i => i.unitType === 'doos')
 
   // Build customer address lines (avoiding duplicates, country merged into city line)
   const customerLines: string[] = []
@@ -425,15 +453,15 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
           </View>
           <View style={styles.metaBox}>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Factuurnummer:</Text>
+              <Text style={styles.metaLabel}>{T.metaInvoiceNumber}</Text>
               <Text style={styles.metaValue}>{data.documentNumber}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Factuurdatum:</Text>
+              <Text style={styles.metaLabel}>{T.metaInvoiceDate}</Text>
               <Text style={styles.metaValue}>{formatDate(data.documentDate)}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Leverdatum:</Text>
+              <Text style={styles.metaLabel}>{T.metaDeliveryDate}</Text>
               <Text style={styles.metaValueDue}>{formatDate(data.dueDate)}</Text>
             </View>
           </View>
@@ -443,8 +471,8 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
         {isReverseCharge && (
           <View style={styles.verlegdBox}>
             <Text style={styles.verlegdText}>
-              <Text style={styles.verlegdLabel}>BTW verlegd — intracommunautaire levering</Text>
-              {' (Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW. BTW-nummer afnemer: '}
+              <Text style={styles.verlegdLabel}>{T.verlegdLabel}</Text>
+              {T.verlegdBody}
               {data.customer.vatNumber || '—'}
             </Text>
           </View>
@@ -454,18 +482,26 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colNum]}>#</Text>
-            <Text style={[styles.th, styles.colDesc]}>Omschrijving</Text>
-            <Text style={[styles.th, styles.colNote]}>Notitie</Text>
-            <Text style={[styles.th, styles.colUnitPrice]}>Eenheidprijs</Text>
-            <Text style={[styles.th, styles.colQty]}>Aantal</Text>
-            <Text style={[styles.th, styles.colExclVat]}>Excl. BTW</Text>
-            <Text style={[styles.th, styles.colVatAmt]}>BTW</Text>
-            <Text style={[styles.th, styles.colInclVat]}>Incl. BTW</Text>
+            <Text style={[styles.th, styles.colDesc]}>{T.thDescription}</Text>
+            <Text style={[styles.th, styles.colNote]}>{T.thNote}</Text>
+            {hasBox ? (
+              <>
+                <Text style={[styles.th, styles.colPiecePrice]}>{T.thPiecePrice}</Text>
+                <Text style={[styles.th, styles.colBoxPrice]}>{T.thBoxPrice}</Text>
+              </>
+            ) : (
+              <Text style={[styles.th, styles.colUnitPrice]}>{T.thUnitPrice}</Text>
+            )}
+            <Text style={[styles.th, styles.colQty]}>{T.thQty}</Text>
+            <Text style={[styles.th, styles.colExclVat]}>{T.thExclVat}</Text>
+            <Text style={[styles.th, styles.colVatAmt]}>{T.thVat}</Text>
+            <Text style={[styles.th, styles.colInclVat]}>{T.thInclVat}</Text>
           </View>
           {data.items.map((item, idx) => {
             const priceExclVat = item.unitPrice * item.quantity
             const vatAmount = Math.round(priceExclVat * (item.vatRate / 100))
             const priceInclVat = priceExclVat + vatAmount
+            const isBoxLine = item.unitType === 'doos'
 
             return (
               <View
@@ -479,7 +515,20 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
                 <Text style={[styles.tdBold, styles.colNum]}>{idx + 1}</Text>
                 <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
                 <Text style={[styles.td, styles.colNote]}>{item.note || ''}</Text>
-                <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
+                {hasBox ? (
+                  <>
+                    <Text style={[styles.td, styles.colPiecePrice]}>
+                      {isBoxLine
+                        ? (item.piecePrice != null ? formatPrice(item.piecePrice) : '—')
+                        : formatPrice(item.unitPrice)}
+                    </Text>
+                    <Text style={[styles.td, styles.colBoxPrice]}>
+                      {isBoxLine ? formatPrice(item.unitPrice) : '—'}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
+                )}
                 <Text style={[styles.td, styles.colQty]}>{item.quantity} {item.unit.toLowerCase()}</Text>
                 <Text style={[styles.td, styles.colExclVat]}>{formatPrice(priceExclVat)}</Text>
                 <Text style={[styles.td, styles.colVatAmt]}>{formatPrice(vatAmount)}</Text>
@@ -497,26 +546,26 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
           {/* Left: Payment Method + Receipt */}
           <View style={styles.leftColumn}>
             <View style={styles.actionBox}>
-              <Text style={styles.actionTitle}>Betaalmethode</Text>
+              <Text style={styles.actionTitle}>{T.payMethod}</Text>
               <View style={styles.paymentRow}>
                 <View style={styles.checkbox} />
-                <Text style={styles.paymentLabel}>Contant</Text>
+                <Text style={styles.paymentLabel}>{T.payCash}</Text>
               </View>
               <View style={styles.paymentRow}>
                 <View style={styles.checkbox} />
-                <Text style={styles.paymentLabel}>PIN</Text>
+                <Text style={styles.paymentLabel}>{T.payPin}</Text>
               </View>
               <View style={styles.paymentRow}>
                 <View style={styles.checkbox} />
-                <Text style={styles.paymentLabel}>Open/Bank</Text>
+                <Text style={styles.paymentLabel}>{T.payOpenBank}</Text>
               </View>
               <View style={styles.paymentRow}>
                 <View style={styles.checkbox} />
-                <Text style={styles.paymentLabel}>Oude Facturen</Text>
+                <Text style={styles.paymentLabel}>{T.payOldInvoices}</Text>
               </View>
             </View>
             <View style={styles.actionBox}>
-              <Text style={styles.actionTitle}>Ontvangst</Text>
+              <Text style={styles.actionTitle}>{T.receipt}</Text>
               <View style={styles.sigField}>
                 <Text style={styles.sigLabel}>{data.labels.name}</Text>
                 <View style={styles.sigLine} />
@@ -537,7 +586,7 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
               </View>
               {data.discount > 0 && data.documentType !== 'credit_note' && (
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Korting</Text>
+                  <Text style={styles.totalLabel}>{T.tDiscount}</Text>
                   <Text style={styles.totalValue}>-{formatPrice(data.discount)}</Text>
                 </View>
               )}
@@ -559,6 +608,19 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
         {data.paymentTerms && (
           <View style={styles.paymentTerms}>
             <Text style={styles.paymentTermsText}>{data.paymentTerms}</Text>
+          </View>
+        )}
+
+        {/* ========== IBAN CALLOUT (clients kept asking where the IBAN is) ========== */}
+        {data.company.iban && (
+          <View style={styles.ibanCallout}>
+            <Text style={styles.ibanCalloutText}>
+              {T.ibanPay}
+              <Text style={styles.ibanCalloutStrong}>{data.company.iban}</Text>
+              {data.company.accountHolder ? `${T.ibanInNameOf}${data.company.accountHolder}` : ''}
+              {data.documentNumber ? `${T.ibanQuoting}${data.documentNumber}` : ''}
+              {'.'}
+            </Text>
           </View>
         )}
 
