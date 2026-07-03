@@ -405,7 +405,7 @@ verlegdLabel: { fontFamily: 'Helvetica-Bold' },
 - Footer center: `fontSize: 6.5`, `marginTop: 3`
 
 ### When in doubt
-- All PDFs render in **Dutch only** (legal compliance) regardless of app language.
+- **Customer-facing documents are bilingual by COUNTRY (since 2026-07-03), not app language:** NL/BE customers get Dutch, everyone else English. `resolveDocumentLang(country)` (`utils/documentLang.ts`) decides; `buildInvoiceData` sets `InvoiceData.lang` (stored in the snapshot) and swaps the settings labels to `EN_LABELS`/`DOC_TITLES_EN`; templates read all prose from `getDocText(data.lang)` (`services/documentLabels.ts`). This is a **different axis** than VAT reverse-charge (`country !== 'NL'`) — a BE customer gets a Dutch doc that still carries the reverse-charge notice. Do not merge the two rules. Internal docs (SoldProducts, route, data-export) stay Dutch. See **Bilingual documents + emails** below.
 - Sequential numbering and immutable price snapshots are enforced server-side; templates only render.
 - The only WC-frozen behavior on these templates is the BTW notice — it appears whenever `customer.country !== 'NL'`. Imported orders preserve the original BTW from WC, but the notice block still renders if applicable.
 - If you're tempted to enlarge any of these values "for readability," resist — the spec was tuned to fit 15–16 items per page across all templates. Add a new template by copying `InvoiceTemplate.tsx` and swapping the brand color.
@@ -489,8 +489,9 @@ optimized delivery route + a truck loading order, via Google Maps through a Supa
 4. **Geocode cache** on `customers` (lat/lng/geocoded_at/geocode_address_hash/geocode_status); a
    trigger nulls it when the address changes so it re-geocodes only that row.
 5. **Driver hand-off**: "Deel met chauffeur" opens WhatsApp with the Google Maps directions link
-   (works with no app access); the share text + "Copy" text are **always Dutch** (like the PDFs),
-   regardless of app language. PDFs render in Dutch only.
+   (works with no app access); the share text + "Copy" text are **always Dutch**,
+   regardless of app language. The route PDF is an internal/driver doc so it stays Dutch-only
+   (unlike the customer-facing documents, which are bilingual by country — see PDF templates section).
 6. `google-map-api.txt` (repo root) holds the live key in plaintext — **gitignored, never commit it.**
 7. **Invoices in route order.** The panel has a "Facturen (routevolgorde)" action (Receipt icon →
    combined/separate choice) that prints invoices in the exact arranged sequence
@@ -885,6 +886,72 @@ responsive (drawer sidebar below `lg`); this fixed the clipping in `OrderItemsLi
   **Do not re-add a broad `USING(true)` SELECT policy on these tables** — it reopens the cross-customer leak.
 - **Deferred (full portal pass):** forgot/reset-password pages (email works, so quick), customer self-edit
   of account (needs a column-scoped write path), UX polish (skeletons, mobile tab bar, orders pagination).
+
+---
+
+## Client document/order changes (2026-07-03)
+
+Five client-driven changes; all committed to `main`, migrations 00077/00078 applied live, reminder edge
+function redeployed (v4). See memory `[[en_docs_doos_route_features]]` + `[[shipping_fee_feature]]`.
+
+### 1. Bilingual documents + emails/reminders (by customer country)
+- **Rule:** `country ∈ {NL, BE} → Dutch`, else **English**. `resolveDocumentLang` (`utils/documentLang.ts`).
+  Separate from the VAT reverse-charge axis (`country !== 'NL'`) — a BE customer gets a Dutch doc **with**
+  the reverse-charge notice.
+- **Documents:** `buildInvoiceData` sets `InvoiceData.lang` (in the snapshot → portal re-renders match) and
+  swaps settings labels to `EN_LABELS`/`DOC_TITLES_EN`; every template reads prose from `getDocText(lang)`
+  in **`services/documentLabels.ts`** (render-time, not stored). Admin-side download/print/send always
+  regenerate live, so existing orders reflect the language immediately; portal shows the frozen snapshot.
+- **Emails/reminders:** `document_settings.email_templates` is now **language-nested** `{ nl, en }`
+  (migration **00077**; `normalizeEmailTemplates` tolerates the legacy flat shape as `nl`). `getTemplate(map,
+  type, lang)` + per-lang defaults in `services/documentEmail.ts`. Settings **Email + Reminders** tabs have
+  **NL/EN sub-tabs** (`components/settings/LangTabs.tsx`). `SendDocumentModal` + `process-invoice-reminders`
+  pick the language from `billing_country`. Keep the app + edge-fn default templates in sync.
+
+### 2. Box (doos) dual price — TEST feature (revertable)
+When an order has any `doos` line, priced templates (Invoice/Proforma/CreditNote/OrderConfirmation) show two
+price columns: **Eenheidprijs** (per single unit — per stuk for boxed goods, per kg for weighed; NOT literally
+"Stukprijs" so it isn't wrong on a kg row) + **Doosprijs** (box price). Gated on `hasBox`, so non-box docs are
+unchanged. Piece price is a **live** lookup in `buildInvoiceData` from `product_unit_prices` (unit_type='piece')
+— not snapshotted (fine; the immutable sold price is the box price). Clean revert = drop the `hasBox` branches.
+
+### 3. Invoice IBAN callout
+Centered green reminder box under the payment-terms banner (`InvoiceTemplate.tsx`), IBAN + `t.n.v.` holder,
+no invoice-number text. Footer IBAN removed (was redundant). Only on the invoice.
+
+### 4. Notitie column auto-hides
+`InvoiceTemplate` drops the Notitie column when **no** line has a note (`hasNotes`), so the flex Omschrijving
+column reclaims the width. Invoice-only (no other template had a Notitie column).
+
+### 5. Route: editable position dropdown
+Sold Products → Route: each stop's number badge is a click-to-jump **1..N** picker (`PositionPicker` in
+`DeliveryStopList.tsx` via portal `ui/DropdownMenu`) → `moveStopToPosition` in `hooks/useDeliveryRoute.ts`
+(reorders the included subset, excluded stops keep positions, exact placement on big jumps). Drag + up/down
+arrows still work.
+
+---
+
+## Per-order shipping fee — "Verzendkosten" (2026-07-03)
+
+Replaces the old **"Transport" product** workaround (which polluted the goods subtotal and counted as profit).
+
+- **Storage:** reuses the existing `orders.delivery_fee` (ex-BTW cents). No new column.
+- **UI:** a flat `€` input (`ShippingInput` in `OrderItemsList.tsx`) in the order-form totals strip next to the
+  order discount; empty = none (row hidden). Editable on re-open (`OrderForm` prefills from `editOrder.delivery_fee`,
+  submits `delivery_fee`). OrderDetail panel + the invoice/proforma/order-confirmation totals show a guarded
+  **"Verzendkosten"** row (EN "Shipping"); credit notes exclude it; PackingSlip/PaymentReminder have no row.
+- **BTW:** shipping is entered **ex-BTW** and **follows the order's dominant goods rate** — **0% for
+  reverse-charge/international** (the main use), the order's goods rate for NL. One shared helper
+  **`resolveShippingVat`** (`utils/discount.ts`) is used at save (`orders.ts` `buildOrderRows` +
+  `recalculateOrderTotals`), form preview (`OrderForm`), and document (`buildInvoiceData`) so amounts never
+  drift (VAT rounded once). Imported WC orders keep their frozen `order.total` (no VAT re-fold).
+- **Profit-safe (invariant):** shipping is kept OUT of `orders.subtotal`/`discount`/`tax`; only in `delivery_fee`
+  + folded into `orders.total`. Profit reads `subtotal` + `order_items.cost_cents`, so **shipping is never
+  profit/revenue**. Do NOT add it to subtotal.
+- **Do not break:** `recalculateOrderTotals` must re-add `delivery_fee` (+ its VAT) to `total` while keeping
+  `subtotal`/`discount`/`tax` goods-only. **Migration 00078:** the refund "fully refunded" test compares against
+  the **goods total** (`Σ order_items.total`), not `orders.total` — otherwise a shipping order can never reach
+  `refunded`. (Equals `orders.total` when there's no shipping, so existing orders are unaffected.)
 
 ---
 
