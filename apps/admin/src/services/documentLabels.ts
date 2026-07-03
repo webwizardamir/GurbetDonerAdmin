@@ -76,7 +76,11 @@ const NL = {
   thProduct: 'Product',
   thNote: 'Notitie',
   thUnitPrice: 'Eenheidprijs',
-  thPiecePrice: 'Stukprijs',
+  // Generic "price of one single unit" (per stuk for boxed goods, per kg for
+  // weighed goods) — used as the first price column when a box line is present,
+  // sitting next to Doosprijs. NOT literally "Stukprijs" so it isn't wrong on a
+  // kg row in a mixed order.
+  thPiecePrice: 'Eenheidprijs',
   thBoxPrice: 'Doosprijs',
   thQty: 'Aantal',
   thExclVat: 'Excl. BTW',
@@ -204,7 +208,7 @@ const EN: typeof NL = {
   thProduct: 'Product',
   thNote: 'Note',
   thUnitPrice: 'Unit price',
-  thPiecePrice: 'Piece price',
+  thPiecePrice: 'Unit price',
   thBoxPrice: 'Box price',
   thQty: 'Quantity',
   thExclVat: 'Excl. VAT',
