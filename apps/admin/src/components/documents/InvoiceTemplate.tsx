@@ -406,6 +406,9 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
   const isReverseCharge = !!data.customer.country && data.customer.country.trim().toUpperCase() !== 'NL'
   // Show the Stukprijs + Doosprijs columns only when the order has a box line.
   const hasBox = data.items.some(i => i.unitType === 'doos')
+  // Only render the Notitie column when at least one line actually has a note —
+  // otherwise drop it so the flex description column reclaims the space.
+  const hasNotes = data.items.some(i => (i.note ?? '').trim().length > 0)
 
   // Build customer address lines (avoiding duplicates, country merged into city line)
   const customerLines: string[] = []
@@ -493,7 +496,7 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colNum]}>#</Text>
             <Text style={[styles.th, styles.colDesc]}>{T.thDescription}</Text>
-            <Text style={[styles.th, styles.colNote]}>{T.thNote}</Text>
+            {hasNotes && <Text style={[styles.th, styles.colNote]}>{T.thNote}</Text>}
             {hasBox ? (
               <>
                 <Text style={[styles.th, styles.colPiecePrice]}>{T.thPiecePrice}</Text>
@@ -524,7 +527,7 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
               >
                 <Text style={[styles.tdBold, styles.colNum]}>{idx + 1}</Text>
                 <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
-                <Text style={[styles.td, styles.colNote]}>{item.note || ''}</Text>
+                {hasNotes && <Text style={[styles.td, styles.colNote]}>{item.note || ''}</Text>}
                 {hasBox ? (
                   <>
                     <Text style={[styles.td, styles.colPiecePrice]}>
