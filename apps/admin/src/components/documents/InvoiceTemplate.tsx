@@ -322,23 +322,33 @@ const styles = StyleSheet.create({
 
   // ===========================================
   // IBAN CALLOUT (directly under the payment terms — clients kept asking
-  // "where is your IBAN?"). Small, left-accent reminder, IBAN in bold.
+  // "where is your IBAN?"). Centered, prominent IBAN (reminder-style, a touch
+  // smaller). The footer IBAN was removed in favour of this.
   // ===========================================
   ibanCallout: {
-    borderLeftWidth: 2,
-    borderLeftColor: '#16a34a',
+    borderWidth: 0.5,
+    borderColor: '#16a34a',
     backgroundColor: '#f0fdf4',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     marginBottom: 6,
+    alignItems: 'center',
   },
-  ibanCalloutText: {
+  ibanCalloutLabel: {
+    fontSize: 8,
+    color: '#166534',
+    marginBottom: 2,
+  },
+  ibanCalloutIban: {
+    fontSize: 11,
+    fontFamily: 'Helvetica-Bold',
+    color: '#16a34a',
+    letterSpacing: 0.5,
+  },
+  ibanCalloutHolder: {
     fontSize: 7.5,
     color: '#166534',
-    lineHeight: 1.35,
-  },
-  ibanCalloutStrong: {
-    fontFamily: 'Helvetica-Bold',
+    marginTop: 1,
   },
 
   // ===========================================
@@ -614,13 +624,11 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
         {/* ========== IBAN CALLOUT (clients kept asking where the IBAN is) ========== */}
         {data.company.iban && (
           <View style={styles.ibanCallout}>
-            <Text style={styles.ibanCalloutText}>
-              {T.ibanPay}
-              <Text style={styles.ibanCalloutStrong}>{data.company.iban}</Text>
-              {data.company.accountHolder ? `${T.ibanInNameOf}${data.company.accountHolder}` : ''}
-              {data.documentNumber ? `${T.ibanQuoting}${data.documentNumber}` : ''}
-              {'.'}
-            </Text>
+            <Text style={styles.ibanCalloutLabel}>{T.ibanPay}</Text>
+            <Text style={styles.ibanCalloutIban}>{data.company.iban}</Text>
+            {data.company.accountHolder && (
+              <Text style={styles.ibanCalloutHolder}>{T.ibanHolderPrefix}{data.company.accountHolder}</Text>
+            )}
           </View>
         )}
 
@@ -645,9 +653,7 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
                   data.company.vatNumber && `BTW: ${data.company.vatNumber}`,
                 ].filter(Boolean).join('  |  ')}
               </Text>
-              {data.company.iban && (
-                <Text style={styles.footerIban}>IBAN: {data.company.iban}{data.company.bic ? `  |  BIC: ${data.company.bic}` : ''}</Text>
-              )}
+              {/* IBAN moved to the centered callout under the payment terms. */}
             </View>
           </View>
           {data.footerText && (

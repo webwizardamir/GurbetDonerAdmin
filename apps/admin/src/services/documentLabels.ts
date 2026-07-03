@@ -102,10 +102,9 @@ const NL = {
   // reverse charge
   verlegdLabel: 'BTW verlegd — intracommunautaire levering',
   verlegdBody: ' (Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW. BTW-nummer afnemer: ',
-  // IBAN callout (invoice)
-  ibanPay: 'Gelieve te betalen op IBAN ',
-  ibanInNameOf: ' t.n.v. ',
-  ibanQuoting: ' o.v.v. factuurnummer ',
+  // IBAN callout (invoice) — centered block under the payment terms
+  ibanPay: 'Gelieve het bedrag over te maken op IBAN:',
+  ibanHolderPrefix: 't.n.v. ',
   // proforma
   pfDisclaimer: 'Dit is een prijsopgave/offerte en geen factuur. Prijzen zijn onder voorbehoud.',
   pfConditionsTitle: 'Voorwaarden',
@@ -228,9 +227,8 @@ const EN: typeof NL = {
   receipt: 'Receipt',
   verlegdLabel: 'VAT reverse charge — intra-Community supply',
   verlegdBody: ' (Art. 138 EU VAT Directive 2006/112/EC). 0% VAT. Customer VAT number: ',
-  ibanPay: 'Please pay to IBAN ',
-  ibanInNameOf: ' in the name of ',
-  ibanQuoting: ' quoting invoice number ',
+  ibanPay: 'Please transfer the amount to IBAN:',
+  ibanHolderPrefix: 'in the name of ',
   pfDisclaimer: 'This is a quotation, not an invoice. Prices are subject to change.',
   pfConditionsTitle: 'Terms',
   pfConditions: (validUntil: string) =>
