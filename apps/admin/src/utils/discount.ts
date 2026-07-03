@@ -34,12 +34,44 @@ export interface DiscountLineInput {
 }
 
 export interface DiscountLineResult {
+  taxRate: number // pass-through of the input effective rate, e.g. 9 (for shipping-VAT resolution)
   lineGross: number // unitPrice * quantity, ex-VAT, before any discount
   lineDiscount: number // the LINE portion only, cents
   orderDiscountShare: number // this line's share of the order-level discount, cents
   finalBase: number // ex-VAT, net of BOTH discounts
   tax: number // cents
   total: number // incl. VAT, fully net
+}
+
+// ---------------------------------------------------------------------------
+// Shipping fee VAT (Verzendkosten)
+// ---------------------------------------------------------------------------
+// Shipping is entered EX-BTW and FOLLOWS THE ORDER'S BTW: it takes the order's
+// dominant goods rate (the tax_rate covering the largest ex-VAT base). Because
+// the lines carry the already reverse-charge-adjusted rate, a non-NL order's
+// rates are all 0 → shipping VAT resolves to 0 automatically. Rounded ONCE here
+// so save-time, form-preview and document-time never drift by a cent.
+export function resolveShippingVat(
+  shippingExCents: number,
+  rateBases: Array<{ rate: number; base: number }>,
+): { rate: number; vat: number } {
+  const shipping = Math.max(0, Math.round(shippingExCents || 0))
+  if (shipping <= 0) return { rate: 0, vat: 0 }
+
+  // Sum ex-VAT base per rate, then pick the dominant one (largest base;
+  // tie-break higher rate, then first seen).
+  const byRate = new Map<number, number>()
+  for (const { rate, base } of rateBases) {
+    if (!(base > 0)) continue
+    byRate.set(rate, (byRate.get(rate) ?? 0) + base)
+  }
+  let rate = 0
+  let best = -1
+  for (const [r, base] of byRate) {
+    if (base > best || (base === best && r > rate)) { best = base; rate = r }
+  }
+
+  return { rate, vat: Math.round((shipping * rate) / 100) }
 }
 
 export interface OrderTotalsResult {
@@ -113,6 +145,7 @@ export function computeOrderTotals(
     total += lineTotal
 
     return {
+      taxRate: l.taxRate,
       lineGross: l.lineGross,
       lineDiscount: l.lineDiscount,
       orderDiscountShare: share,

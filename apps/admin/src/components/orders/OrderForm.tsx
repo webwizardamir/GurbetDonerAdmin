@@ -13,7 +13,7 @@ import type { Customer, Product, UnitType, ProductUnitPrice } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import { formatPrice } from '../../utils/format'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
-import { computeOrderTotals, type DiscountType } from '../../utils/discount'
+import { computeOrderTotals, resolveShippingVat, type DiscountType } from '../../utils/discount'
 import { setCustomerPrice, clearCustomerPrice } from '../../services/pricing'
 
 interface OrderFormProps {
@@ -66,6 +66,8 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0])
   const [orderDiscountType, setOrderDiscountType] = useState<DiscountType | null>(null)
   const [orderDiscountValue, setOrderDiscountValue] = useState<number | null>(null)
+  // Flat shipping fee (Verzendkosten), ex-BTW cents. null = none (row hidden).
+  const [shipping, setShipping] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loadingPrices] = useState(false)
@@ -194,6 +196,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     setInternalNotes(editOrder.internal_notes || '')
     setOrderDiscountType(editOrder.discount_type ?? null)
     setOrderDiscountValue(editOrder.discount_value ?? null)
+    setShipping(editOrder.delivery_fee ? editOrder.delivery_fee : null)
     if (editOrder.items && editOrder.items.length > 0) {
       const loadedItems: OrderLineItem[] = editOrder.items.map(item => {
         const product = products.find(p => p.id === item.product_id)
@@ -342,6 +345,14 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   ), [items, orderDiscountType, orderDiscountValue, reverseCharge])
   const { subtotal, discountTotal, tax: taxTotal, total } = totals
 
+  // Shipping fee (ex-BTW) + its dominant-rate BTW, added on top of the goods
+  // total for the displayed grand total (matches what the service persists).
+  const shipVat = useMemo(
+    () => resolveShippingVat(shipping ?? 0, totals.lines.map(l => ({ rate: l.taxRate, base: l.finalBase }))),
+    [shipping, totals.lines],
+  )
+  const grandTotalWithShipping = total + (shipping ?? 0) + shipVat.vat
+
   const handleSubmit = async () => {
     if (!selectedCustomer) { setError(t('orders.form.selectCustomerError')); return }
     if (items.length === 0) { setError(t('orders.form.addProductError')); return }
@@ -352,6 +363,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
         customer_id: selectedCustomer.id, order_date: orderDate,
         delivery_notes: deliveryNotes || undefined, internal_notes: internalNotes || undefined,
         discount_type: orderDiscountType, discount_value: orderDiscountValue,
+        delivery_fee: shipping ?? 0,
       }
       const itemsData = items.map(i => ({
         product_id: i.product.id, product_name: i.product.name, product_sku: i.product.sku,
@@ -638,7 +650,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
               subtotal={subtotal}
               discountTotal={discountTotal}
               taxTotal={taxTotal}
-              total={total}
+              total={grandTotalWithShipping}
+              shipping={shipping}
+              onSetShipping={setShipping}
               reverseCharge={reverseCharge}
               orderDiscountType={orderDiscountType}
               orderDiscountValue={orderDiscountValue}

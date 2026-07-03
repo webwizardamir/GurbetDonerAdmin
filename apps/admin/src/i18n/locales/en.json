@@ -604,6 +604,7 @@
       "selectUnitType": "Select unit type to add",
       "inCart": "{{qty}}× in cart",
       "orderDiscount": "Discount",
+      "shipping": "Shipping",
       "discountToggle": "Switch between % and €"
     },
     "detail": {

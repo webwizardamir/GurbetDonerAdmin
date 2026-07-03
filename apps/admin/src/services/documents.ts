@@ -1,6 +1,8 @@
 import { supabase } from './supabase'
 import type { DocumentSettings, DocumentType, Document } from '../types'
 import { resolveDocumentLang } from '../utils/documentLang'
+import { isImportedOrder } from '../utils/vat'
+import { resolveShippingVat } from '../utils/discount'
 import { EN_LABELS, DOC_TITLES_EN, type DocLang } from './documentLabels'
 
 // =====================================================
@@ -328,6 +330,7 @@ export interface InvoiceData {
   // Totals
   subtotal: number // cents — gross goods, ex-VAT, BEFORE discount
   discount: number // cents — total discount (line + order-level), ex-VAT; 0 hides the row
+  shipping: number // cents — shipping fee (Verzendkosten), ex-VAT; 0 hides the row
   vatBreakdown: Array<{
     rate: number
     base: number // cents — taxable base AFTER discount
@@ -589,10 +592,43 @@ export async function buildInvoiceData(
   let discount = Number(order.discount) || 0
   let grandTotal = Number(order.total) || (subtotal - discount + totalVat)
 
+  // Shipping fee (Verzendkosten), ex-VAT. It follows the order's dominant BTW
+  // rate (0 for reverse-charge/international). For app orders we fold its VAT
+  // into the breakdown and recompute the grand total so the document reconciles.
+  // Imported (WC) orders are frozen: their `total` already includes shipping +
+  // WC's own shipping tax, so we render the row but never re-fold VAT.
+  let shipping = Number(order.delivery_fee) || 0
+  if (shipping > 0 && documentType !== 'credit_note' && !isImportedOrder(order)) {
+    const rateBases = (order.items || []).map((it: Record<string, unknown>) => ({
+      rate: Number(it.tax_rate) || 0,
+      base: (Number(it.total) || 0) - (Number(it.tax_amount) || 0),
+    }))
+    const shipVat = resolveShippingVat(shipping, rateBases)
+    if (shipVat.vat > 0) {
+      const idx = vatBreakdown.findIndex(v => v.rate === shipVat.rate)
+      if (idx >= 0) {
+        vatBreakdown[idx] = {
+          rate: shipVat.rate,
+          base: vatBreakdown[idx].base + shipping,
+          amount: vatBreakdown[idx].amount + shipVat.vat,
+        }
+      } else {
+        vatBreakdown = [...vatBreakdown, { rate: shipVat.rate, base: shipping, amount: shipVat.vat }]
+          .sort((a, b) => a.rate - b.rate)
+      }
+      totalVat += shipVat.vat
+    }
+    grandTotal = subtotal - discount + shipping + totalVat
+  }
+
   // A credit note must reflect what was actually refunded, not the full order.
   // When refund rows exist we rebuild the lines and totals from them; a plain
-  // cancellation (no refund rows) keeps the full-order fallback above.
+  // cancellation (no refund rows) falls back to the full order. Either way a
+  // credit note never re-bills shipping, so drop it and keep the grand total
+  // goods-only (order.total includes shipping, which must not leak here).
   if (documentType === 'credit_note') {
+    shipping = 0
+    grandTotal = subtotal - discount + totalVat
     const refundLines = await fetchRefundCreditLines(orderId)
     if (refundLines.length > 0) {
       items = refundLines.map((l, idx) => ({
@@ -686,6 +722,7 @@ export async function buildInvoiceData(
 
     subtotal,
     discount,
+    shipping,
     vatBreakdown,
     totalVat,
     grandTotal,

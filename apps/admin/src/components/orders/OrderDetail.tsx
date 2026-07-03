@@ -382,7 +382,7 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
             </div>
             {order.delivery_fee > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">{t('orders.detail.delivery')}</span>
+                <span className="text-slate-600 dark:text-slate-400">{t('orders.form.shipping')}</span>
                 <span className="text-slate-900 dark:text-white">{formatPrice(order.delivery_fee)}</span>
               </div>
             )}

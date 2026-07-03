@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import type { Order, OrderItem, OrderStatus, PaymentMethod, UnitType } from '../types'
-import { computeOrderTotals, resolveDiscountCents, type DiscountType } from '../utils/discount'
+import { computeOrderTotals, resolveDiscountCents, resolveShippingVat, type DiscountType } from '../utils/discount'
 
 // Database row shapes for type-safe transformations
 interface DbOrderRow {
@@ -107,6 +107,9 @@ export interface CreateOrderData {
   // fixed -> cents. The service resolves + distributes it across lines.
   discount_type?: DiscountType | null
   discount_value?: number | null
+  // Flat shipping fee (Verzendkosten), ex-BTW cents. Kept out of subtotal/tax
+  // (never profit); folded into orders.total with its dominant-rate BTW.
+  delivery_fee?: number | null
 }
 
 export interface CreateOrderItemData {
@@ -337,7 +340,7 @@ export async function fetchOrderById(id: string): Promise<OrderWithItems | null>
 // see migration 00056). `order_items.discount_amount` holds the LINE portion
 // only; `orders.discount` holds the grand-total discount.
 function buildOrderRows(
-  orderData: Pick<CreateOrderData, 'discount_type' | 'discount_value'>,
+  orderData: Pick<CreateOrderData, 'discount_type' | 'discount_value' | 'delivery_fee'>,
   items: CreateOrderItemData[],
 ) {
   const totals = computeOrderTotals(
@@ -351,6 +354,11 @@ function buildOrderRows(
     orderData.discount_type ?? null,
     orderData.discount_value ?? null,
   )
+
+  // Shipping fee (ex-BTW) follows the order's dominant BTW rate; kept OUT of
+  // subtotal/discount/tax (so profit stays goods-only) and folded into `total`.
+  const shipping = Math.max(0, Math.round(orderData.delivery_fee ?? 0))
+  const shipVat = resolveShippingVat(shipping, totals.lines.map(l => ({ rate: l.taxRate, base: l.finalBase })))
 
   const itemRows = items.map((item, idx) => {
     const line = totals.lines[idx]
@@ -378,7 +386,8 @@ function buildOrderRows(
     discount_type: orderData.discount_type ?? null,
     discount_value: orderData.discount_value ?? null,
     tax: totals.tax,
-    total: totals.total,
+    delivery_fee: shipping,
+    total: totals.total + shipping + shipVat.vat,
   }
 
   return { header, itemRows }
@@ -726,10 +735,27 @@ export async function recalculateOrderTotals(orderId: string): Promise<void> {
     netTotal += Number(item.total) || 0
   }
 
-  const total = netTotal
-  const totalDiscount = subtotal + totalTax - total
+  // Preserve the shipping fee (Verzendkosten): it lives in orders.delivery_fee
+  // and is folded into total (with its dominant-rate BTW) — recomputing total
+  // purely from line items would silently drop it.
+  const { data: ord } = await supabase
+    .from('orders')
+    .select('delivery_fee')
+    .eq('id', orderId)
+    .single()
+  const shipping = Math.max(0, Number(ord?.delivery_fee) || 0)
+  const shipVat = resolveShippingVat(
+    shipping,
+    (items || []).map(it => ({
+      rate: Number(it.tax_rate) || 0,
+      base: (Number(it.total) || 0) - (Number(it.tax_amount) || 0),
+    })),
+  )
 
-  // Update with cents values
+  const total = netTotal + shipping + shipVat.vat
+  const totalDiscount = subtotal + totalTax - netTotal
+
+  // Update with cents values (subtotal/discount/tax stay goods-only).
   const { error: updateError } = await supabase
     .from('orders')
     .update({

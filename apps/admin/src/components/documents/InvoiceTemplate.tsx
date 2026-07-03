@@ -603,6 +603,12 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
                   <Text style={styles.totalValue}>-{formatPrice(data.discount)}</Text>
                 </View>
               )}
+              {data.shipping > 0 && data.documentType !== 'credit_note' && (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{T.tShipping}</Text>
+                  <Text style={styles.totalValue}>{formatPrice(data.shipping)}</Text>
+                </View>
+              )}
               {data.vatBreakdown.map((vat, idx) => (
                 <View key={idx} style={styles.totalRow}>
                   <Text style={styles.totalLabel}>{data.labels.vat} {vat.rate}%</Text>

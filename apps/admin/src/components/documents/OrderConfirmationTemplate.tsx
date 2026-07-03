@@ -499,6 +499,12 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
                 <Text style={styles.totalValue}>-{formatPrice(data.discount)}</Text>
               </View>
             )}
+            {data.shipping > 0 && data.documentType !== 'credit_note' && (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>{T.tShipping}</Text>
+                <Text style={styles.totalValue}>{formatPrice(data.shipping)}</Text>
+              </View>
+            )}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>{T.thVat}</Text>
               <Text style={styles.totalValue}>{formatPrice(data.totalVat)}</Text>

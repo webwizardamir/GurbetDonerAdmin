@@ -51,6 +51,9 @@ interface OrderItemsListProps {
   onSetNotes?: (lineId: string, notes: string) => void
   onSetLineDiscount?: (lineId: string, type: DiscountType, value: number | null) => void
   onSetOrderDiscount?: (type: DiscountType, value: number | null) => void
+  /** Flat shipping fee (Verzendkosten), ex-BTW cents. null/0 = none. */
+  shipping?: number | null
+  onSetShipping?: (cents: number | null) => void
 }
 
 // Price input that keeps the user's typed string while focused and only
@@ -169,6 +172,57 @@ function DiscountInput({
         value={draft}
         placeholder="0"
         aria-label={t('orders.itemsTable.discount')}
+        onFocus={e => { setFocused(true); e.target.select() }}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={() => { setFocused(false); commit() }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.currentTarget.blur() }
+          if (e.key === 'Escape') { setDraft(display); e.currentTarget.blur() }
+        }}
+        className="w-full min-w-0 text-sm px-1.5 py-1 bg-white dark:bg-slate-700 text-right text-slate-700 dark:text-slate-200 focus:outline-none"
+      />
+    </div>
+  )
+}
+
+// Flat shipping-fee input (euros -> cents). A fixed €-amount (no %/€ toggle);
+// mirrors DiscountInput's chrome + keep-draft-while-focused so decimals type
+// cleanly. Empty commits null (-> 0 -> the Verzendkosten row is hidden).
+function ShippingInput({
+  valueCents,
+  onCommit,
+  className = '',
+}: {
+  valueCents: number | null | undefined
+  onCommit: (cents: number | null) => void
+  className?: string
+}) {
+  const { t } = useTranslation()
+  const display = valueCents == null || valueCents === 0 ? '' : (valueCents / 100).toFixed(2)
+  const [draft, setDraft] = useState(display)
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) setDraft(display)
+  }, [display, focused])
+
+  const commit = () => {
+    const normalized = draft.replace(',', '.').trim()
+    if (normalized === '') { onCommit(null); return }
+    const n = parseFloat(normalized)
+    if (Number.isFinite(n) && n >= 0) onCommit(Math.round(n * 100))
+    else setDraft(display)
+  }
+
+  return (
+    <div className={`inline-flex items-stretch rounded border border-slate-200 dark:border-slate-600 overflow-hidden focus-within:ring-1 focus-within:ring-green-500 ${className}`}>
+      <span aria-hidden="true" className="px-2 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-200 select-none">€</span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={draft}
+        placeholder="0,00"
+        aria-label={t('orders.form.shipping')}
         onFocus={e => { setFocused(true); e.target.select() }}
         onChange={e => setDraft(e.target.value)}
         onBlur={() => { setFocused(false); commit() }}
@@ -361,6 +415,8 @@ export default function OrderItemsList({
   onSetNotes,
   onSetLineDiscount,
   onSetOrderDiscount,
+  shipping,
+  onSetShipping,
 }: OrderItemsListProps) {
   const { t } = useTranslation()
   const { isOwner } = useAuth()
@@ -666,6 +722,16 @@ export default function OrderItemsList({
                     type={orderDiscountType}
                     value={orderDiscountValue}
                     onCommit={(type, value) => onSetOrderDiscount(type, value)}
+                    className="w-24"
+                  />
+                </div>
+              )}
+              {onSetShipping && (
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400">{t('orders.form.shipping')}</span>
+                  <ShippingInput
+                    valueCents={shipping}
+                    onCommit={onSetShipping}
                     className="w-24"
                   />
                 </div>
