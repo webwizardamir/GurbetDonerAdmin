@@ -106,7 +106,7 @@ serve(async (req) => {
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
   const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-  const FROM_ADDRESS = Deno.env.get('RESEND_FROM_ADDRESS') || 'info@melekhalalfood.nl'
+  const FROM_ADDRESS = Deno.env.get('RESEND_FROM_ADDRESS') || 'debiteuren@melekhalalfood.nl'
   const APP_URL = (Deno.env.get('APP_URL') || '').replace(/\/$/, '')
   if (!RESEND_API_KEY) return json({ error: 'RESEND_API_KEY not set' }, 500)
 

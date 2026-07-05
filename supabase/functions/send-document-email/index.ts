@@ -70,7 +70,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
     const FROM_ADDRESS = Deno.env.get('RESEND_FROM_ADDRESS') ||
-      'info@melekhalalfood.nl'  // set the real sender as a secret on the function
+      'debiteuren@melekhalalfood.nl'  // set the real sender as a secret on the function
 
     // 1. Verify caller identity using their user JWT
     const authHeader = req.headers.get('Authorization') ?? ''
