@@ -70,7 +70,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
     const FROM_ADDRESS = Deno.env.get('RESEND_FROM_ADDRESS') ||
-      'documents@example.com'  // set the real sender as a secret on the function
+      'info@melekhalalfood.nl'  // set the real sender as a secret on the function
 
     // 1. Verify caller identity using their user JWT
     const authHeader = req.headers.get('Authorization') ?? ''
@@ -107,6 +107,14 @@ serve(async (req) => {
 
     // 4. Insert pending audit row first — so we have a record even if Resend errors
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
+
+    // Company branding for the email shell (logo + footer). Non-fatal: a missing
+    // row just yields a name-only header.
+    const { data: brand } = await admin
+      .from('document_settings')
+      .select('company_name, company_logo_url, company_address, company_postal_code, company_city, company_country, company_phone, company_email, company_website, company_vat_number, company_kvk_number, bank_iban, bank_account_holder')
+      .limit(1)
+      .maybeSingle()
     const { data: sendRow, error: insertErr } = await admin
       .from('document_sends')
       .insert({
@@ -133,8 +141,8 @@ serve(async (req) => {
       from: FROM_ADDRESS,
       to: [payload.recipient_email],
       subject: payload.subject,
-      // Plain text body wrapped in a basic HTML shell. Whitespace preserved.
-      html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; white-space: pre-wrap; color: #1e293b;">${escapeHtml(payload.body)}</div>`,
+      // Branded, email-client-safe HTML shell (logo header + company footer).
+      html: buildBrandedEmailHtml(payload.body, brand ?? {}),
       attachments: [{
         filename: payload.pdf_filename,
         content: payload.pdf_base64,
@@ -191,4 +199,104 @@ function escapeHtml(s: string): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
+}
+
+// ===========================================================================
+// Branded HTML email shell.
+// DUPLICATED (kept in sync) with apps/admin/src/utils/emailHtml.ts and
+// supabase/functions/process-invoice-reminders/index.ts. Change all three
+// together so the Outbox preview matches what customers receive.
+// ===========================================================================
+
+interface EmailBrandSettings {
+  company_name?: string | null
+  company_logo_url?: string | null
+  company_address?: string | null
+  company_postal_code?: string | null
+  company_city?: string | null
+  company_country?: string | null
+  company_phone?: string | null
+  company_email?: string | null
+  company_website?: string | null
+  company_vat_number?: string | null
+  company_kvk_number?: string | null
+  bank_iban?: string | null
+  bank_account_holder?: string | null
+}
+
+function joinParts(parts: Array<string | null | undefined>, sep: string): string {
+  return parts.filter((p) => p && String(p).trim()).join(sep)
+}
+
+function buildBrandedEmailHtml(body: string, s: EmailBrandSettings = {}): string {
+  const BRAND = '#16a34a', BRAND_DARK = '#166534', INK = '#1e293b', MUTED = '#64748b', LINE = '#e2e8f0', CANVAS = '#f1f5f9'
+  const company = (s.company_name || '').trim() || 'Melek Halal Food'
+
+  const header = s.company_logo_url
+    ? `<img src="${escapeHtml(s.company_logo_url)}" alt="${escapeHtml(company)}" width="150" style="display:block;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;" />`
+    : `<span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#ffffff;">${escapeHtml(company)}</span>`
+
+  const addressLine = joinParts([s.company_address, joinParts([joinParts([s.company_postal_code, s.company_city], ' '), s.company_country], ', ')], ', ')
+  const contactLine = joinParts([
+    s.company_phone ? `Tel: ${escapeHtml(s.company_phone)}` : '',
+    s.company_email ? escapeHtml(s.company_email) : '',
+    s.company_website ? escapeHtml(s.company_website.replace(/^https?:\/\//, '')) : '',
+  ], ' &nbsp;•&nbsp; ')
+  const legalLine = joinParts([
+    s.company_vat_number ? `BTW: ${escapeHtml(s.company_vat_number)}` : '',
+    s.company_kvk_number ? `KvK: ${escapeHtml(s.company_kvk_number)}` : '',
+  ], ' &nbsp;•&nbsp; ')
+  const ibanLine = s.bank_iban
+    ? `IBAN: ${escapeHtml(s.bank_iban)}${s.bank_account_holder ? ` &nbsp;•&nbsp; t.n.v. ${escapeHtml(s.bank_account_holder)}` : ''}`
+    : ''
+
+  const footerRows = [addressLine, contactLine, legalLine, ibanLine]
+    .filter(Boolean)
+    .map((line) => `<tr><td style="padding:1px 0;font-size:11px;line-height:1.5;color:${MUTED};">${line}</td></tr>`)
+    .join('')
+
+  const bodyHtml = escapeHtml(body).replace(/\r?\n/g, '<br>')
+
+  return `<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>${escapeHtml(company)}</title>
+</head>
+<body style="margin:0;padding:0;background-color:${CANVAS};-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${CANVAS};">
+<tr>
+<td align="center" style="padding:24px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background-color:#ffffff;border-radius:14px;overflow:hidden;border:1px solid ${LINE};">
+<tr>
+<td style="background:linear-gradient(135deg,${BRAND},${BRAND_DARK});background-color:${BRAND};padding:22px 28px;">
+${header}
+</td>
+</tr>
+<tr>
+<td style="padding:28px 28px 8px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:${INK};">
+${bodyHtml}
+</td>
+</tr>
+<tr>
+<td style="padding:20px 28px 0 28px;">
+<div style="height:1px;background-color:${LINE};line-height:1px;font-size:0;">&nbsp;</div>
+</td>
+</tr>
+<tr>
+<td style="padding:14px 28px 24px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="padding:0 0 4px 0;font-size:13px;font-weight:700;color:${INK};">${escapeHtml(company)}</td></tr>
+${footerRows}
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>`
 }

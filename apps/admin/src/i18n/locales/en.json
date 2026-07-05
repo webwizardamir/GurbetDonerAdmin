@@ -895,6 +895,12 @@
       "recipient": "Recipient",
       "subject": "Subject",
       "order": "Order"
+    },
+    "view": {
+      "status": "Status",
+      "to": "To",
+      "errorLabel": "Error",
+      "previewLabel": "Preview of sent email"
     }
   },
   "priceLists": {

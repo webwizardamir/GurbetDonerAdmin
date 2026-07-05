@@ -895,6 +895,12 @@
       "recipient": "Ontvanger",
       "subject": "Onderwerp",
       "order": "Bestelling"
+    },
+    "view": {
+      "status": "Status",
+      "to": "Aan",
+      "errorLabel": "Fout",
+      "previewLabel": "Voorbeeld van verzonden e-mail"
     }
   },
   "priceLists": {
