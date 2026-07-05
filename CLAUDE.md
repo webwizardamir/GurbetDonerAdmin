@@ -955,6 +955,45 @@ Replaces the old **"Transport" product** workaround (which polluted the goods su
 
 ---
 
+## Email delivery — branding, Outbox view, sender (2026-07-05)
+
+All customer-facing mail (invoices/proforma/credit notes/order confirmations/packing slips + payment
+reminders, manual and auto) goes out through two edge functions via Resend:
+`send-document-email` (manual sends, PDF attached) and `process-invoice-reminders` (auto dunning +
+internal staff nudges). Committed to `main`; both functions redeployed (send-document-email v5,
+process-invoice-reminders v5 — the latter stays **verify_jwt=false**, cron-secret model). See memory
+`[[branded_emails_and_outbox_view]]`.
+
+### Sender address
+- `from` = the **`RESEND_FROM_ADDRESS` project-wide edge secret** (one secret, read by BOTH functions,
+  so a single change covers documents AND reminders). The secret **overrides** the code fallback.
+- Client document/reminder mail should send from **`debiteuren@melekhalalfood.nl`** — set that as the
+  secret in Supabase → Edge Functions → Secrets (only the owner can; not settable via MCP). The code
+  **fallback default** is `debiteuren@melekhalalfood.nl` but it is inert while the secret is set.
+- `melekhalalfood.nl` is **domain-verified** in Resend, so any `@melekhalalfood.nl` address sends with
+  no re-verification. Ensure the sender mailbox exists so client replies/bounces are received.
+- Public-site (`apps/web`) contact/distributor/samples forms only show `info@melekhalalfood.nl`
+  `mailto:` links (`lib/site.ts`); those POSTs are logged, not emailed (Resend wiring deferred).
+
+### Branded HTML email shell
+- Replaces the old bare `<div white-space:pre-wrap>` wrapper. Table-based, email-client-safe: green
+  (`#16a34a`→`#166534`) header bar with `company_logo_url`, typeset body (newlines→`<br>`), divider,
+  and a footer (company name, address, phone/email/website, BTW/KvK, IBAN + t.n.v.) — all from
+  `document_settings`.
+- **`buildBrandedEmailHtml(body, settings)` is DUPLICATED in three files (keep in sync):**
+  `apps/admin/src/utils/emailHtml.ts` (frontend, Outbox preview — uses regex `.replace`, admin tsconfig
+  is pre-ES2021), and inline in each of the two edge functions (Deno can't import app code, uses
+  `.replaceAll`). Change all three together, or the Outbox preview drifts from what customers receive.
+- The plain-text `body` is still what's stored in `document_sends.body` and composed in
+  `SendDocumentModal`; the shell is applied at **send time** (and re-applied for preview), not stored.
+
+### Outbox — click to view content
+- `pages/Outbox.tsx` rows are clickable → `EmailViewModal` renders status/to/bcc/error + a **branded
+  preview** (iframe `srcDoc` via `buildBrandedEmailHtml`) of exactly what was sent. No DB change —
+  `document_sends` already stored `subject`+`body`. i18n keys under `outbox.view.*` (nl+en).
+
+---
+
 ## Custom Agents
 
 The project has specialized agents defined in `.claude/agents.md`. Use these for focused reviews and tasks:
