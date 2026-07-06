@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
-import { Loader2, FileText, AlertCircle, CheckSquare, Square, Truck, Package, Receipt } from 'lucide-react'
+import { Loader2, FileText, AlertCircle, CheckSquare, Square, Truck, Package, Receipt, Plus, Minus } from 'lucide-react'
 import Modal from '../ui/Modal'
 import { buildSoldProductsDocument } from './SoldProductsTemplate'
 import { fetchOrders } from '../../services/orders'
@@ -48,6 +48,7 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 const BIG_BATCH = 100
+const MAX_COPIES = 5
 
 export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, routeOrderedIds, onClose }: Props) {
   const { t } = useTranslation()
@@ -74,6 +75,7 @@ export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, ro
   const [doSoldProducts, setDoSoldProducts] = useState(false)
   const [doRoute, setDoRoute] = useState(false)
   const [invoiceMode, setInvoiceMode] = useState<'combined' | 'separate'>('combined')
+  const [copies, setCopies] = useState(1)
 
   const [generating, setGenerating] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
@@ -133,6 +135,7 @@ export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, ro
         issued = await renderInvoicesToFiles(orderedIds, {
           mode: invoiceMode,
           combinedFilename: `dagfacturen-${dateRange.start}`,
+          copies: invoiceMode === 'combined' ? copies : 1,
           onProgress: (done, total) => { issued = done; setProgress({ done, total }) },
         })
       }
@@ -212,6 +215,36 @@ export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, ro
                 </button>
               ))}
             </div>
+
+            {invoiceMode === 'combined' && (
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40">
+                <div className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-900 dark:text-white">{t('dayClose.copies')}</span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">{t('dayClose.copiesHint')}</span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setCopies(c => Math.max(1, c - 1))}
+                    disabled={copies <= 1}
+                    aria-label={t('dayClose.copiesDecrease')}
+                    className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="w-8 text-center text-sm font-semibold tabular-nums text-slate-900 dark:text-white">{copies}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCopies(c => Math.min(MAX_COPIES, c + 1))}
+                    disabled={copies >= MAX_COPIES}
+                    aria-label={t('dayClose.copiesIncrease')}
+                    className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {hasRouteOrder && (
               <label className="flex items-center gap-2 px-1 cursor-pointer select-none">

@@ -27,6 +27,12 @@ interface RenderOptions {
   mode: InvoiceOutputMode
   /** Filename for the combined file (without extension). */
   combinedFilename: string
+  /**
+   * Number of copies of each invoice to interleave in the COMBINED PDF
+   * (default 1). N>1 repeats each invoice N times consecutively, so a single
+   * uncollated-free print gives 1-1-2-2-3-3… copies. Ignored for 'separate'.
+   */
+  copies?: number
   onProgress?: (done: number, total: number) => void
 }
 
@@ -38,13 +44,19 @@ interface RenderOptions {
  */
 export async function renderInvoicesToFiles(
   orderedIds: string[],
-  { mode, combinedFilename, onProgress }: RenderOptions,
+  { mode, combinedFilename, copies = 1, onProgress }: RenderOptions,
 ): Promise<number> {
   if (orderedIds.length === 0) return 0
   const results = await generateBatchInvoices(orderedIds, { onProgress })
 
   if (mode === 'combined') {
-    const blob = await pdf(<CombinedInvoicesTemplate invoices={results.map(r => r.data)} />).toBlob()
+    // Repeat each invoice `copies` times consecutively (1-1-2-2-3-3…), so one
+    // print gives the requested number of copies already interleaved.
+    const n = Math.max(1, Math.floor(copies))
+    const invoices = n === 1
+      ? results.map(r => r.data)
+      : results.flatMap(r => Array.from({ length: n }, () => r.data))
+    const blob = await pdf(<CombinedInvoicesTemplate invoices={invoices} />).toBlob()
     downloadBlob(blob, `${combinedFilename}.pdf`)
   } else {
     // Browsers throttle many rapid downloads — space them out a little.
