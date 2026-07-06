@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Calendar, ChevronDown } from 'lucide-react'
 import type { DateRangeKey } from '../../hooks/useAnalytics'
 
@@ -15,6 +16,7 @@ export default function DateRangePicker({
   dateRanges: _dateRanges,
   onSelect,
 }: DateRangePickerProps) {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [showCustom, setShowCustom] = useState(false)
   const [customStart, setCustomStart] = useState('')
@@ -38,16 +40,25 @@ export default function DateRangePicker({
     }
   }
 
-  const rangeOptions = [
-    { key: 'today', label: 'Today' },
-    { key: 'last7Days', label: 'Last 7 days' },
-    { key: 'last30Days', label: 'Last 30 days' },
-    { key: 'last90Days', label: 'Last 90 days' },
-    { key: 'thisMonth', label: 'This month' },
-    { key: 'lastMonth', label: 'Last month' },
-    { key: 'thisYear', label: 'This year' },
-    { key: 'custom', label: 'Custom range...' },
+  const rangeOptions: { key: string; label: string }[] = [
+    { key: 'today', label: t('analytics.today') },
+    { key: 'last7Days', label: t('analytics.last7Days') },
+    { key: 'last30Days', label: t('analytics.last30Days') },
+    { key: 'last90Days', label: t('analytics.last90Days') },
+    { key: 'thisMonth', label: t('analytics.thisMonth') },
+    { key: 'lastMonth', label: t('analytics.lastMonth') },
+    { key: 'thisYear', label: t('analytics.thisYear') },
+    { key: 'custom', label: t('analytics.customRange') },
   ]
+
+  // Prefer a translated label for the known preset keys; fall back to the
+  // passed-in label (e.g. a custom range's date span).
+  const buttonLabel =
+    currentKey && currentKey !== 'custom'
+      ? t(`analytics.${currentKey}`)
+      : currentKey === 'custom'
+        ? t('analytics.custom')
+        : currentLabel
 
   return (
     <div className="relative">
@@ -56,7 +67,7 @@ export default function DateRangePicker({
         className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
       >
         <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-        <span className="truncate max-w-[100px] sm:max-w-none">{currentLabel}</span>
+        <span className="truncate max-w-[100px] sm:max-w-none">{buttonLabel}</span>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
@@ -93,7 +104,7 @@ export default function DateRangePicker({
               <div className="p-4 space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Start Date
+                    {t('analytics.startDate')}
                   </label>
                   <input
                     type="date"
@@ -104,7 +115,7 @@ export default function DateRangePicker({
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    End Date
+                    {t('analytics.endDate')}
                   </label>
                   <input
                     type="date"
@@ -118,14 +129,14 @@ export default function DateRangePicker({
                     onClick={() => setShowCustom(false)}
                     className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
                   >
-                    Back
+                    {t('analytics.back')}
                   </button>
                   <button
                     onClick={handleCustomSubmit}
                     disabled={!customStart || !customEnd}
                     className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg"
                   >
-                    Apply
+                    {t('analytics.apply')}
                   </button>
                 </div>
               </div>

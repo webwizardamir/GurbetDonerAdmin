@@ -40,7 +40,7 @@ export default function Analytics() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { isOwner, loading: authLoading } = useAuth()
-  const { dateRange, dateRangeKey, setDateRange, dateRanges } = useDateRange()
+  const { dateRange, dateRangeKey, setDateRange, dateRanges } = useDateRange('today')
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
   const [refreshKey, setRefreshKey] = useState(0)
   const [statuses, setStatuses] = useState<string[]>([])

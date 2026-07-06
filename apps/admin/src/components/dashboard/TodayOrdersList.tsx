@@ -163,7 +163,7 @@ function OrderRow({
 }) {
   return (
     <div
-      onClick={() => navigate('/orders')}
+      onClick={() => navigate(`/orders?order=${order.id}`)}
       className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:translate-x-0.5 transition-all duration-150 group"
     >
       <div className="flex items-center gap-3 min-w-0">
