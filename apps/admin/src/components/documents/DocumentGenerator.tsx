@@ -122,19 +122,34 @@ export default function DocumentGenerator({
   const handlePrint = async () => {
     if (!invoiceData) return
 
+    // Open the tab synchronously, inside the tap, so mobile browsers don't
+    // treat it as a programmatic popup and block it. The PDF is generated
+    // afterwards and loaded into this already-open window.
+    const printWindow = window.open('', '_blank')
+
     setGenerating(true)
     try {
       const blob = await pdf(getDocumentTemplate(documentType, invoiceData)).toBlob()
       const url = URL.createObjectURL(blob)
 
-      // Open in new window for printing
-      const printWindow = window.open(url, '_blank')
       if (printWindow) {
+        // Show the PDF. On desktop we auto-open the print dialog; on mobile the
+        // browser ignores print() for PDFs, so the user taps the viewer's own
+        // print/share control (one tap away).
+        printWindow.location.href = url
         printWindow.onload = () => {
-          printWindow.print()
+          try {
+            printWindow.print()
+          } catch {
+            // Mobile PDF viewers don't support programmatic print — no-op.
+          }
         }
+      } else {
+        // Popup was blocked — fall back to opening the PDF in the current tab.
+        window.location.href = url
       }
     } catch (err) {
+      printWindow?.close()
       setError(err instanceof Error ? err.message : 'Failed to generate PDF for print')
     } finally {
       setGenerating(false)
