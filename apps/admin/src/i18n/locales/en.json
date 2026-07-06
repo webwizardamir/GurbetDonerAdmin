@@ -1040,7 +1040,7 @@
     "separate": "Separate files",
     "useRouteOrder": "Sort invoices by delivery route",
     "copies": "Number of copies",
-    "copiesHint": "Each invoice repeats N times in a row (1-1-2-2-3-3) — a single print gives every copy.",
+    "copiesHint": "Each invoice repeats N times in a row (1-1-2-2-3-3).",
     "copiesIncrease": "More copies",
     "copiesDecrease": "Fewer copies",
     "selectAll": "Select all",
