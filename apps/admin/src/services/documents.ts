@@ -521,10 +521,16 @@ export async function buildInvoiceData(
     }
   }
 
-  // Box (doos) dual-price test feature: for any box-priced line, look up the
-  // product's configured per-piece price so the document can show Stukprijs +
-  // Doosprijs side-by-side. Read from product_unit_prices (unit_type='piece');
-  // ~all box products already have one, the rare miss just renders "—".
+  // Box (doos) dual-price test feature: for any box-priced line, show the
+  // Eenheidprijs (per single unit) + Doosprijs (box price) side-by-side.
+  // The Eenheidprijs must reflect the ACTUAL sold box price (so a negotiated /
+  // remembered / price-list price shows through), not a flat catalog default.
+  // We derive it from the sold box price scaled by the catalog piece:doos ratio:
+  //   piecesPerBox = defaultDoos / defaultPiece
+  //   Eenheidprijs = soldBoxPrice / piecesPerBox = soldPrice * defaultPiece / defaultDoos
+  // (1:1 products → Eenheidprijs == Doosprijs; multi-piece boxes scale correctly).
+  // Read both defaults from product_unit_prices; incomplete data falls back to
+  // the catalog piece price, and the rare full miss renders "—".
   const rawItems = (order.items || []) as Record<string, unknown>[]
   const boxProductIds = Array.from(
     new Set(
@@ -533,17 +539,30 @@ export async function buildInvoiceData(
         .map(it => it.product_id as string)
     )
   )
-  const pieceByProduct = new Map<string, number>()
+  const pieceDefaultByProduct = new Map<string, number>()
+  const doosDefaultByProduct = new Map<string, number>()
   if (boxProductIds.length > 0) {
-    const { data: pieceRows } = await supabase
+    const { data: unitRows } = await supabase
       .from('product_unit_prices')
-      .select('product_id, price')
-      .eq('unit_type', 'piece')
+      .select('product_id, unit_type, price')
+      .in('unit_type', ['piece', 'doos'])
       .not('price', 'is', null)
       .in('product_id', boxProductIds)
-    for (const r of (pieceRows as { product_id: string; price: number | null }[]) ?? []) {
-      if (r.price != null) pieceByProduct.set(r.product_id, Number(r.price))
+    for (const r of (unitRows as { product_id: string; unit_type: string; price: number | null }[]) ?? []) {
+      if (r.price == null) continue
+      if (r.unit_type === 'piece') pieceDefaultByProduct.set(r.product_id, Number(r.price))
+      else if (r.unit_type === 'doos') doosDefaultByProduct.set(r.product_id, Number(r.price))
     }
+  }
+  // Turn the actually-sold box price into a per-single-unit price for the
+  // Eenheidprijs column (see block comment above).
+  const resolveDisplayPiecePrice = (productId: string, soldUnitPrice: number): number | undefined => {
+    const dPiece = pieceDefaultByProduct.get(productId)
+    const dDoos = doosDefaultByProduct.get(productId)
+    if (dPiece != null && dDoos && dDoos > 0) {
+      return Math.round((soldUnitPrice * dPiece) / dDoos)
+    }
+    return dPiece // incomplete catalog data → fall back to catalog piece price
   }
 
   // Process items and calculate VAT breakdown
@@ -559,7 +578,7 @@ export async function buildInvoiceData(
       unit: formatUnit(unitType, quantity),
       unitType,
       unitPrice: Number(item.unit_price) || 0,
-      piecePrice: unitType === 'doos' ? pieceByProduct.get(productId) : undefined,
+      piecePrice: unitType === 'doos' ? resolveDisplayPiecePrice(productId, Number(item.unit_price) || 0) : undefined,
       vatRate: Number(item.tax_rate) || 0,
       total: Number(item.total) || 0,
     }
