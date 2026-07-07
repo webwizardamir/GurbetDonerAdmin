@@ -141,9 +141,8 @@ export default function Orders() {
 
   // Phase 6: sortable columns. Default = order_date desc (newest first)
   type OrderSortKey = 'order_number' | 'customer' | 'order_date' | 'created_at' | 'status' | 'invoice' | 'total'
-  // Default: newest-created first (matches the server's created_at-desc fetch), so the order
-  // you just entered sits at the top even if its order_date is back/forward-dated.
-  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<OrderSortKey>('created_at', 'desc')
+  // Default: newest order_date first.
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<OrderSortKey>('order_date', 'desc')
 
   const filteredOrders = useMemo(() => sortBy(filteredOrdersUnsorted, {
     order_number: o => o.order_number,
