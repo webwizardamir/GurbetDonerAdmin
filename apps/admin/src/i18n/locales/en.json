@@ -518,7 +518,7 @@
     "confirmCancel": "Cancel {{count}} order(s)? This will restore stock for tracked items.",
     "status": {
       "draft": "Draft",
-      "pending": "Pending",
+      "pending": "Pending Payment",
       "pending_payment": "Pending Payment",
       "on_hold": "On Hold",
       "processing": "Processing",

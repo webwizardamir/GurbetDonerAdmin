@@ -43,9 +43,11 @@ import { formatPrice, formatDateShort, formatDateTime, formatDayMonth, formatTim
 import { computeOrderProfit } from '../utils/orderProfit'
 import { useAuth } from '../context/AuthContext'
 
-// Canonical status order for the filter dropdown. MUST include every status the DB can hold
-// (incl. `pending`, the value new in-app orders get) so a real status never shows count 0 by
-// being absent from the list. Any other status present in the counts is appended dynamically.
+// Canonical display order for the status filter dropdown. This is only an ordering hint —
+// the dropdown shows a status ONLY when it actually has orders (count > 0), so unused enum
+// values (e.g. pending_payment, on_hold) never clutter the list. Any status with orders that
+// isn't listed here is appended after these, and the currently-selected status stays visible
+// even at count 0 so the select never goes blank.
 const STATUS_FILTER_ORDER = ['draft', 'pending', 'pending_payment', 'on_hold', 'completed', 'cancelled', 'refunded']
 
 export default function Orders() {
@@ -296,13 +298,13 @@ export default function Orders() {
             <select value={filters.status || ''} onChange={e => handleStatusFilter(e.target.value as OrderStatus | '')}
               className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
               <option value="">{t('orders.allStatus')} ({statusCounts.total})</option>
-              {STATUS_FILTER_ORDER.map(s => (
-                <option key={s} value={s}>{t(`orders.status.${s}`)} ({statusCounts[s] ?? 0})</option>
-              ))}
-              {Object.keys(statusCounts)
-                .filter(s => s !== 'total' && !STATUS_FILTER_ORDER.includes(s) && (statusCounts[s] ?? 0) > 0)
+              {[
+                ...STATUS_FILTER_ORDER,
+                ...Object.keys(statusCounts).filter(s => s !== 'total' && !STATUS_FILTER_ORDER.includes(s)),
+              ]
+                .filter(s => (statusCounts[s] ?? 0) > 0 || s === filters.status)
                 .map(s => (
-                  <option key={s} value={s}>{t(`orders.status.${s}`, { defaultValue: s })} ({statusCounts[s]})</option>
+                  <option key={s} value={s}>{t(`orders.status.${s}`, { defaultValue: s })} ({statusCounts[s] ?? 0})</option>
                 ))}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />

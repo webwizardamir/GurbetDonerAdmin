@@ -518,7 +518,7 @@
     "confirmCancel": "{{count}} bestelling(en) annuleren? Dit herstelt de voorraad voor bijgehouden artikelen.",
     "status": {
       "draft": "Concept",
-      "pending": "In afwachting",
+      "pending": "Wacht op betaling",
       "pending_payment": "Wacht op betaling",
       "on_hold": "In de wacht",
       "processing": "In verwerking",
