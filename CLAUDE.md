@@ -912,8 +912,17 @@ function redeployed (v4). See memory `[[en_docs_doos_route_features]]` + `[[ship
 When an order has any `doos` line, priced templates (Invoice/Proforma/CreditNote/OrderConfirmation) show two
 price columns: **Eenheidprijs** (per single unit — per stuk for boxed goods, per kg for weighed; NOT literally
 "Stukprijs" so it isn't wrong on a kg row) + **Doosprijs** (box price). Gated on `hasBox`, so non-box docs are
-unchanged. Piece price is a **live** lookup in `buildInvoiceData` from `product_unit_prices` (unit_type='piece')
-— not snapshotted (fine; the immutable sold price is the box price). Clean revert = drop the `hasBox` branches.
+unchanged. Clean revert = drop the `hasBox` branches.
+
+**Eenheidprijs is DERIVED from the actual sold box price (fixed 2026-07-07)** — it must reflect any negotiated /
+remembered / price-list price on the line, not a flat catalog default. `buildInvoiceData` fetches BOTH the piece
+and doos catalog defaults from `product_unit_prices` and computes
+`Eenheidprijs = round(soldUnitPrice × defaultPiece / defaultDoos)` (= sold box price ÷ piecesPerBox). For 1:1
+products (e.g. patat, piece==doos) both columns show the same value; for multi-piece boxes the negotiated discount
+scales correctly to the piece level. Falls back to the catalog piece price only when the doos default is missing.
+**Do NOT revert to a flat `product_unit_prices` piece lookup** — that ignored the sold price (order 10591 printed a
+correct €14,80 Doosprijs but a stale €15,00 Eenheidprijs). Analytics is unaffected either way: revenue/profit read
+the immutable `order_items` snapshot (`unit_price`/`total`/`cost_cents`); the piece value is PDF-cosmetic only.
 
 ### 3. Invoice IBAN callout
 Centered green reminder box under the payment-terms banner (`InvoiceTemplate.tsx`), IBAN + `t.n.v.` holder,
