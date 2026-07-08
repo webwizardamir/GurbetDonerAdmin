@@ -144,9 +144,20 @@ export default function DocumentGenerator({
             // Mobile PDF viewers don't support programmatic print — no-op.
           }
         }
+        // Release the blob URL once the print tab is closed (with a long fallback
+        // timer in case `unload` never fires) so it doesn't leak for the session.
+        printWindow.addEventListener('unload', () => URL.revokeObjectURL(url))
+        setTimeout(() => URL.revokeObjectURL(url), 60_000)
       } else {
-        // Popup was blocked — fall back to opening the PDF in the current tab.
-        window.location.href = url
+        // Popup was blocked — download the PDF instead of navigating the current
+        // (admin) tab away, which would drop the user out of the app.
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${invoiceData.documentNumber}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
       }
     } catch (err) {
       printWindow?.close()
