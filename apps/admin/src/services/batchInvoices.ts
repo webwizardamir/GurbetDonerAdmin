@@ -17,10 +17,12 @@ export interface BatchInvoiceResult {
 /**
  * Generate invoice data for many orders, conserving sequential numbering.
  *
- * CRITICAL: this loop is strictly sequential (await per order, never
- * Promise.all). `getNextDocumentNumber` does a read-then-write on the
- * document_settings counter with no DB-level atomicity, so running the calls
- * in parallel would hand out duplicate invoice numbers. Re-running the same day
+ * This loop is sequential (await per order, never Promise.all) so invoice
+ * numbers are assigned in the caller-defined order (e.g. delivery-route order).
+ * Numbering itself is now safe under concurrency regardless — getNextDocumentNumber
+ * delegates to the atomic get_next_document_number_atomic RPC (migration 00079),
+ * which row-locks the settings counter and derives GREATEST(counter, max_used+1),
+ * so it can never issue a duplicate/colliding number. Re-running the same day
  * reuses each order's existing number via fetchLatestDocumentForOrder, so it is
  * idempotent and never burns extra numbers.
  *

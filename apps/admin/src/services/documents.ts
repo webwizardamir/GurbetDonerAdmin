@@ -153,69 +153,19 @@ export async function fetchLatestDocumentForOrder(
 }
 
 export async function getNextDocumentNumber(docType: DocumentType): Promise<string> {
-  // Get current settings
-  const settings = await fetchDocumentSettings()
+  // Delegate to the atomic, drift-proof RPC (migration 00079). It row-locks the
+  // settings singleton and computes the next number as
+  // GREATEST(stored_counter, max_used_for_type + 1), so it can never hand out an
+  // already-used number (the old client-side read-increment did, whenever the
+  // stored counter drifted behind the real max → duplicate-key 409, e.g. the
+  // Day Close batch failing mid-loop). It also serializes concurrent callers.
+  const { data, error } = await supabase.rpc('get_next_document_number_atomic', {
+    p_doc_type: docType,
+  })
 
-  if (!settings) {
-    throw new Error('Document settings not configured. Please configure settings first.')
-  }
-
-  let prefix: string
-  let nextNumber: number
-  let updateField: string
-
-  switch (docType) {
-    case 'invoice':
-      prefix = settings.invoice_prefix || 'INV-'
-      nextNumber = settings.invoice_next_number || 1
-      updateField = 'invoice_next_number'
-      break
-    case 'proforma':
-      prefix = settings.proforma_prefix || 'PRO-'
-      nextNumber = settings.proforma_next_number || 1
-      updateField = 'proforma_next_number'
-      break
-    case 'credit_note':
-      prefix = settings.credit_note_prefix || 'CN-'
-      nextNumber = settings.credit_note_next_number || 1
-      updateField = 'credit_note_next_number'
-      break
-    case 'packing_slip':
-      prefix = settings.packing_slip_prefix || 'PS-'
-      nextNumber = settings.packing_slip_next_number || 1
-      updateField = 'packing_slip_next_number'
-      break
-    case 'order_confirmation':
-      prefix = settings.order_confirmation_prefix || 'OB-'
-      nextNumber = settings.order_confirmation_next_number || 1
-      updateField = 'order_confirmation_next_number'
-      break
-    case 'payment_reminder':
-      prefix = settings.payment_reminder_prefix || 'HR-'
-      nextNumber = settings.payment_reminder_next_number || 1
-      updateField = 'payment_reminder_next_number'
-      break
-    default:
-      prefix = 'DOC-'
-      nextNumber = 1
-      updateField = 'invoice_next_number'
-  }
-
-  // Generate document number
-  const documentNumber = `${prefix}${String(nextNumber).padStart(5, '0')}`
-
-  // Increment the counter
-  const { error: updateError } = await supabase
-    .from('document_settings')
-    .update({ [updateField]: nextNumber + 1 })
-    .eq('id', settings.id)
-
-  if (updateError) {
-    console.error('Failed to increment document number:', updateError)
-    // Still return the number, just log the error
-  }
-
-  return documentNumber
+  if (error) throw error
+  if (!data) throw new Error('Document settings not configured. Please configure settings first.')
+  return data as string
 }
 
 export async function createDocument(
