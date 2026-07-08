@@ -12,7 +12,7 @@ import {
   Building2,
 } from 'lucide-react'
 import { pdf } from '@react-pdf/renderer'
-import { fetchDocuments, type InvoiceData } from '../services/documents'
+import { fetchDocuments, buildInvoiceData, updateDocumentSnapshot, type InvoiceData } from '../services/documents'
 import { supabase } from '../services/supabase'
 import type { Document, DocumentType } from '../types'
 import { usePermission } from '../hooks/usePermission'
@@ -240,7 +240,26 @@ export default function Invoices() {
   }
 
   const generatePdfBlob = async (doc: Document) => {
-    const data = doc.snapshot as unknown as InvoiceData
+    // Rebuild the document LIVE from the current order so this download matches
+    // the Orders-page download exactly (both use buildInvoiceData). The stored
+    // doc.snapshot is frozen at first generation and goes stale when the order
+    // is later edited (customer/country change, added/removed lines, price edits,
+    // new template features) — rendering it produced a different PDF here than on
+    // the Orders page. Preserve the existing document number; opportunistically
+    // re-freeze the snapshot so the customer portal (which renders the snapshot)
+    // heals too. Fall back to the frozen snapshot if the order is gone.
+    let data: InvoiceData
+    if (doc.order_id) {
+      try {
+        data = await buildInvoiceData(doc.order_id, doc.document_type)
+        data.documentNumber = doc.document_number
+        updateDocumentSnapshot(doc.id, data as unknown as Record<string, unknown>).catch(() => {})
+      } catch {
+        data = doc.snapshot as unknown as InvoiceData
+      }
+    } else {
+      data = doc.snapshot as unknown as InvoiceData
+    }
     let template
     switch (doc.document_type) {
       case 'invoice': template = <InvoiceTemplate data={data} />; break
@@ -256,7 +275,7 @@ export default function Invoices() {
 
   const handleDownload = async (doc: Document) => {
     if (doc.pdf_url) { window.open(doc.pdf_url, '_blank'); return }
-    if (doc.snapshot) {
+    if (doc.snapshot || doc.order_id) {
       try {
         const blob = await generatePdfBlob(doc)
         const url = URL.createObjectURL(blob)

@@ -197,6 +197,54 @@ export async function createDocument(
   return data
 }
 
+// Update only the stored snapshot of an existing document (keeps its number,
+// type, generated_at, etc. intact).
+export async function updateDocumentSnapshot(
+  id: string,
+  snapshot: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await supabase
+    .from('documents')
+    .update({ snapshot })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+/**
+ * Rebuild the stored snapshot of every document belonging to an order from the
+ * CURRENT order state, preserving each document's existing number/type.
+ *
+ * The Orders-page download rebuilds a document live via `buildInvoiceData`,
+ * while the Invoices list page and the customer portal render the frozen
+ * `documents.snapshot`. Those diverge whenever the order is edited after a
+ * document was first generated (customer/country change, added/removed lines,
+ * price edits, new template features). Calling this after an order mutation
+ * re-freezes the snapshot to match live, so the same document renders
+ * identically on every surface.
+ *
+ * Best-effort: never allocates a new document number (`buildInvoiceData`
+ * returns an empty number — we set it from the existing row), and per-document
+ * failures are swallowed so a snapshot refresh can never block an order save.
+ */
+export async function refreshOrderDocumentSnapshots(orderId: string): Promise<void> {
+  let docs: Document[]
+  try {
+    docs = await fetchDocuments(orderId)
+  } catch {
+    return
+  }
+  // Rebuild each document in parallel; allSettled keeps it best-effort so one
+  // failed document never blocks the others (or the caller).
+  await Promise.allSettled(
+    docs.map(async (doc) => {
+      const data = await buildInvoiceData(orderId, doc.document_type)
+      data.documentNumber = doc.document_number
+      await updateDocumentSnapshot(doc.id, data as unknown as Record<string, unknown>)
+    }),
+  )
+}
+
 export async function deleteDocument(id: string): Promise<void> {
   const { error } = await supabase
     .from('documents')

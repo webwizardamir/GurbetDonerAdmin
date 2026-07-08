@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import type { Order, OrderItem, OrderStatus, PaymentMethod, UnitType } from '../types'
 import { computeOrderTotals, resolveDiscountCents, resolveShippingVat, type DiscountType } from '../utils/discount'
+import { refreshOrderDocumentSnapshots } from './documents'
 
 // Database row shapes for type-safe transformations
 interface DbOrderRow {
@@ -575,6 +576,10 @@ export async function updateOrderNotes(
       .eq('order_id', orderId)
     if (error) throw error
   }
+
+  // Per-line notes print in the document "Notitie" column, so refresh any
+  // existing document snapshots to match. Fire-and-forget (never throws).
+  void refreshOrderDocumentSnapshots(orderId)
 }
 
 // Move an order to the trash (soft delete). Sets status=cancelled + deleted_at
@@ -645,6 +650,13 @@ export async function updateOrderWithItems(
   // Fetch and return complete order
   const result = await fetchOrderById(orderId)
   if (!result) throw new Error('Failed to fetch updated order')
+
+  // Keep any already-generated documents' frozen snapshots in sync with the
+  // now-edited order so the Invoices page + customer portal match the live
+  // Orders-page rebuild. Fire-and-forget: it contributes nothing to the
+  // returned order and must not delay the save (best-effort, never throws).
+  void refreshOrderDocumentSnapshots(orderId)
+
   return result
 }
 
