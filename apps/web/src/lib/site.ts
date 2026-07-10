@@ -52,12 +52,12 @@ export const site = {
     {
       slug: "potato",
       name: "Potato",
-      description: "Potato burgers, falafel and onion rings.",
+      description: "Premium, Extra Crunch and Excellence fries, and potato snacks.",
     },
     {
       slug: "snacks",
       name: "Snacks",
-      description: "Cheese sticks, cheese nuggets, fish burger and panko shrimp.",
+      description: "Onion rings, falafel, cheese sticks, nuggets, fish burger and panko shrimp.",
     },
     {
       slug: "rice",

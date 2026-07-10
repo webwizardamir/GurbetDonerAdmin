@@ -4,6 +4,20 @@ One-line entries per ship. Most recent at the top. "v" is an iteration label, no
 
 ---
 
+## v12.1 — Category fixes + potato fries (2026-07-10)
+
+Client follow-up to v12:
+- **Onion rings + falafel moved out of Potato → Snacks** (they're not potato). Audit confirmed these were
+  the only misfiled products; rather than a thin new category, Snacks now serves as the general
+  snacks/sides bucket (cheese sticks/nuggets, fish burger, panko shrimp, onion rings, falafel).
+- **Added 5 potato fries products**: Premium / Extra Crunch (both 9/9mm + 6/6mm) + Excellence, 2.5 kg
+  packshots. Deduped from 7 supplied images (one exact duplicate, one low-res screenshot). Potato is now
+  single-format so its Packaging/Box toggle is disabled (consistent with rice/olives). Note: the supplied
+  fry-bag mockups are brand-inconsistent (Factory vs ULAS) and Excellence has no cut on front.
+- Updated Potato/Snacks category descriptions in `site.ts`.
+
+---
+
 ## v12 — Food categories + searchable product browser (2026-07-10)
 
 Reworked the catalogue around **food categories** and a zakupols-style browse flow. The visible top-level

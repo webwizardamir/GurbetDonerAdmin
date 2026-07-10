@@ -1,6 +1,6 @@
 ---
 name: "Falafel"
-category: potato
+category: snacks
 image: "/images/products/falafel.png"
 featured: false
 order: 440
