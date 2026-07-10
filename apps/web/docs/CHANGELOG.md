@@ -15,6 +15,15 @@ Client follow-up to v12:
   single-format so its Packaging/Box toggle is disabled (consistent with rice/olives). Note: the supplied
   fry-bag mockups are brand-inconsistent (Factory vs ULAS) and Excellence has no cut on front.
 - Updated Potato/Snacks category descriptions in `site.ts`.
+- **Chicken category icon** swapped to a proper drumstick (Lucide, MIT) — the hand-drawn one read as a
+  lab flask.
+- **Extra Crunch 9/9mm packshot** trimmed with `sharp` (was a 1600×1600 square with a small centered bag
+  → looked tiny in the tile); now cropped tight to the bag on white so it matches the other fries.
+- **Scroll-perf note:** removed the fixed header's `backdrop-filter: blur` in v12 (a real per-frame paint
+  cost). A client also reported heavy scroll lag on his laptop; diagnosed from his `chrome://gpu` as a
+  machine issue, **not the site** — Chrome was rendering on the Intel iGPU (not his RTX 3070) driving a
+  165 Hz panel, so the iGPU couldn't sustain 165 fps compositing. Fixed by forcing Chrome to the dGPU.
+  No further site changes needed for it.
 
 ---
 
