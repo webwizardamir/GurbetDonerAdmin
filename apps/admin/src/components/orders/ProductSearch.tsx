@@ -95,7 +95,7 @@ export default function ProductSearch({
                   setProductSearch('')
                 }}
                 disabled={loadingPrices}
-                className="w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between"
+                className="w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between disabled:opacity-50 disabled:cursor-wait"
               >
                 <div className="flex items-center gap-3">
                   <Package className="w-4 h-4 text-slate-400" />

@@ -70,7 +70,12 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const [shipping, setShipping] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [loadingPrices] = useState(false)
+  // True while the customer's pricing context (customer_prices + price_list_items)
+  // is being fetched. Gates the "add product" button so a product can't be added
+  // with a stale/default price before the remembered customer price has loaded
+  // (otherwise the freshly-added line keeps the non-remembered price — and in edit
+  // mode never self-heals, since repriceArmedRef is false for loaded orders).
+  const [loadingPrices, setLoadingPrices] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [initialized, setInitialized] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState(false)
@@ -95,9 +100,11 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     if (!selectedCustomer) {
       setCustomerPrices(new Map())
       setListItems(new Map())
+      setLoadingPrices(false)
       return
     }
     let cancelled = false
+    setLoadingPrices(true)
     void (async () => {
       const [cpRes, plRes] = await Promise.all([
         supabase
@@ -129,6 +136,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
         plMap.get(row.product_id)!.set(row.unit_type, { price: row.price_cents, tax: row.tax_rate, cost: row.cost_cents })
       }
       setListItems(plMap)
+      setLoadingPrices(false)
     })()
     return () => { cancelled = true }
   }, [selectedCustomer?.id, selectedCustomer?.price_list_id])
