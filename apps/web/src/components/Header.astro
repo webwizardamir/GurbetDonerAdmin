@@ -38,8 +38,8 @@ const path = Astro.url.pathname;
               </a>
               <div class="site-header__dropdown">
                 <div class="site-header__dropdown-panel" role="menu">
-                  {site.productFormats.map((f) => (
-                    <a class="site-header__dropdown-link" role="menuitem" href={`/products/#${f.slug}`}>{f.name}</a>
+                  {site.productCategories.map((c) => (
+                    <a class="site-header__dropdown-link" role="menuitem" href={`/products/#cat-${c.slug}`}>{c.name}</a>
                   ))}
                 </div>
               </div>
@@ -76,14 +76,15 @@ const path = Astro.url.pathname;
     inset-inline: 0;
     inset-block-start: 0;
     z-index: 50;
-    background: color-mix(in srgb, var(--color-bone) 88%, transparent);
-    -webkit-backdrop-filter: saturate(140%) blur(16px);
-    backdrop-filter: saturate(140%) blur(16px);
+    /* Opaque bg instead of a translucent bar + backdrop-blur. The blur forced the
+       browser to re-render everything scrolling under the fixed header on every
+       frame (cost scales with viewport width x DPI) — the main desktop scroll-jank
+       here. A solid background composites once and scrolls essentially free. */
+    background: var(--color-bone);
     border-bottom: 1px solid transparent;
     transition:
       background-color 0.4s var(--ease-out-expo),
-      border-color 0.35s var(--ease-out-expo),
-      backdrop-filter 0.35s var(--ease-out-expo);
+      border-color 0.35s var(--ease-out-expo);
   }
   .site-header[data-scrolled="true"] {
     background: color-mix(in srgb, var(--color-bone) 98%, transparent);
@@ -121,7 +122,7 @@ const path = Astro.url.pathname;
 
   /* Dark homepage: when scrolled the header stays dark (not bone) with light contents. */
   body.has-dark-hero .site-header[data-scrolled="true"] {
-    background: color-mix(in srgb, var(--color-emerald-black) 86%, transparent);
+    background: var(--color-emerald-black);
     border-bottom-color: var(--color-line-dark);
   }
   body.has-dark-hero .site-header[data-scrolled="true"] .site-header__link { color: var(--color-bone); }
@@ -139,11 +140,11 @@ const path = Astro.url.pathname;
   /* Light inner pages (page-light) have no dark hero, so the header is the greeny emerald-black
      bar (like the homepage's scrolled state) at all scroll positions, with light contents. */
   body.page-light .site-header {
-    background: color-mix(in srgb, var(--color-emerald-black) 86%, transparent);
+    background: var(--color-emerald-black);
     border-bottom-color: var(--color-line-dark);
   }
   body.page-light .site-header[data-scrolled="true"] {
-    background: color-mix(in srgb, var(--color-emerald-black) 94%, transparent);
+    background: var(--color-emerald-black);
   }
   body.page-light .site-header__link,
   body.page-light .site-header__toggle { color: var(--color-bone); }

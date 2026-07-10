@@ -1,6 +1,6 @@
 ---
 name: "Spicy Burger"
-category: beef
+category: meat
 format: box
 image: "/images/products/spicy-burger.png"
 featured: false

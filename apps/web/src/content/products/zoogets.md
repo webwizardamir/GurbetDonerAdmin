@@ -1,6 +1,6 @@
 ---
 name: "Zoogets"
-category: beef
+category: chicken
 image: "/images/products/zoogets.png"
 featured: false
 order: 300

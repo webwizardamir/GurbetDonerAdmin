@@ -5,9 +5,10 @@ const products = defineCollection({
   loader: glob({ pattern: "**/*.md", base: "./src/content/products" }),
   schema: z.object({
     name: z.string(),
-    // Meat type — kept only as a hidden secondary sort within each format.
-    category: z.enum(["chicken", "beef", "snacks"]),
-    // Visible category: retail packs (packaging) vs bulk/foodservice cases (box).
+    // Food category — the primary, visible browse axis (tabs + rail + nav).
+    category: z.enum(["meat", "chicken", "potato", "snacks", "rice", "olives"]),
+    // Secondary axis: retail packs (packaging) vs bulk/foodservice cases (box).
+    // Kept fully functional as an in-widget toggle, no longer a top-level nav.
     format: z.enum(["packaging", "box"]).default("packaging"),
     weight: z.string().optional(),
     tagline: z.string().optional(),

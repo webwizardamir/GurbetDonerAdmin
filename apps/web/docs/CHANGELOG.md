@@ -4,6 +4,38 @@ One-line entries per ship. Most recent at the top. "v" is an iteration label, no
 
 ---
 
+## v12 — Food categories + searchable product browser (2026-07-10)
+
+Reworked the catalogue around **food categories** and a zakupols-style browse flow. The visible top-level
+axis is now **Meat, Chicken, Potato, Snacks, Rice, Olives** (English labels); **Packaging/Box is demoted
+to a secondary, in-widget toggle** (no longer in nav), kept fully functional.
+
+- **New `category` taxonomy** (`content.config.ts` enum + `site.ts` `productCategories`). Remapped all 46
+  product `.md` files (beef→meat; the meat snacks frikandel/işkembe/manti→meat; potato-burger/falafel/
+  onion-rings→potato; cheese & seafood snacks stay `snacks`) and **fixed a data error: Zoogets was tagged
+  beef but is breaded chicken** → chicken. Added **8 new products**: 2 Sella basmati rice + 6 olives/turşu
+  (sliced/biberli/grilled green olives, cucumber/mixed/hot-pepper pickles), packshots in
+  `public/images/products/`.
+- **Iconized category rail below the hero** (`CategoryRail.astro` + `CategoryIcon.astro`, 6 inline SVG
+  glyphs, no counts). Tiles link to `/products/#cat-{slug}`; on the homepage they select the on-page
+  widget's tab and scroll (custom event), else navigate to the products page which reads the hash.
+- **Reusable `ProductBrowser.astro`**: category tabs + live name search + Packaging/Box segmented toggle
+  over one flat, filterable grid. Used on **both** the homepage ("Browse the range.") and `/products/`.
+  Built as **Astro + vanilla JS (no React island)** — all cards server-rendered as real links (SEO / no-JS),
+  filtered by toggling `hidden`. New `getAllProducts()` in `lib/products.ts`.
+- **Context-aware format toggle**: the Packaging/Box control auto-disables (greys out, resets to All) for
+  categories that contain only one format (Potato, Snacks, Rice, Olives) and enables only where both exist
+  (All, Meat, Chicken). Rice/olives were unified to a single format (the size-based split was meaningless).
+- **Wiring + cleanup**: product-detail breadcrumb/related switched from format to category; Header dropdown,
+  MobileMenu sublist and Footer "Range" now list the 6 categories; hero/about/footer copy updated off
+  "chicken, beef and snacks". Deleted the now-dead `ProductWorlds`, `Categories`, `FeaturedProducts`.
+- **Scroll-performance fix**: removed the fixed header's `backdrop-filter: blur(16px)` (it re-blurred all
+  content scrolling under the fixed header every frame — a real per-frame paint cost that scales with
+  viewport width) and made the header background opaque. Visually near-identical (solid bar vs frosted),
+  cheaper to composite. (The `background-attachment: fixed` weave is a further candidate, left for now.)
+
+---
+
 ## v11 — Header "Inloggen" (customer portal link) (2026-06-28)
 
 - **Replaced the "Become a distributor" header CTA with "Inloggen"** so existing wholesale customers can reach their portal login. Links to `site.portalUrl` (`https://app.melekhalalfood.nl/portal/login`, new field in `site.ts`). Updated `Header.astro` (desktop CTA) and `MobileMenu.astro` (mobile CTA); "Request samples" stays, the nav "Distributors" page link stays. (The portal itself — a separate admin app — got document downloads + a security fix the same day.)

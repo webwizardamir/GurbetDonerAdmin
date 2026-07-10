@@ -25,10 +25,10 @@ const links = [...site.nav];
             </a>
             {item.href === "/products/" && (
               <ul class="mobile-menu__sublist">
-                {site.productFormats.map((f) => (
+                {site.productCategories.map((c) => (
                   <li>
-                    <a href={`/products/#${f.slug}`} data-mm-close>
-                      <span class="mobile-menu__sublabel">{f.name}</span>
+                    <a href={`/products/#cat-${c.slug}`} data-mm-close>
+                      <span class="mobile-menu__sublabel">{c.name}</span>
                     </a>
                   </li>
                 ))}

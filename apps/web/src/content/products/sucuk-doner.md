@@ -1,6 +1,6 @@
 ---
 name: "Sucuk Döner"
-category: beef
+category: meat
 image: "/images/products/sucuk-doner.png"
 featured: false
 order: 250

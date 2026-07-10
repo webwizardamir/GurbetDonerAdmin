@@ -11,7 +11,7 @@ export const site = {
   portalUrl: "https://app.melekhalalfood.nl/portal/login",
   tagline: "Halal, perfected. Crafted in Europe.",
   description:
-    "Halal frozen chicken, beef and snacks for distributors, retailers and Horeca partners across Europe.",
+    "Halal frozen meat, chicken, snacks, rice and olives for distributors, retailers and Horeca partners across Europe.",
   origin: "Europe",
   reach: "Across Europe",
   email: "info@melekhalalfood.nl",
@@ -36,28 +36,41 @@ export const site = {
     { label: "Distributors", href: "/distributors/" },
     { label: "Contact", href: "/contact/" },
   ],
+  // Food categories: the primary, visible browse axis (rail, tabs, nav).
+  // Display order is used as the tab order and the products grid sort.
   productCategories: [
+    {
+      slug: "meat",
+      name: "Meat",
+      description: "Halal beef kebab, köfte, burgers, döner, cevapcici and more.",
+    },
     {
       slug: "chicken",
       name: "Chicken",
-      tagline: "Halal chicken.",
-      description: "Kebab, nuggets, tenders, wings and schnitzel.",
+      description: "Halal chicken kebab, nuggets, tenders, wings and schnitzel.",
     },
     {
-      slug: "beef",
-      name: "Beef",
-      tagline: "Halal beef.",
-      description: "Beef kebab, cevapcici, köfte and burgers.",
+      slug: "potato",
+      name: "Potato",
+      description: "Potato burgers, falafel and onion rings.",
     },
     {
       slug: "snacks",
       name: "Snacks",
-      tagline: "Crispy frozen snacks.",
-      description: "Mozzarella sticks, kipcorn, frikandel, falafel and more.",
+      description: "Cheese sticks, cheese nuggets, fish burger and panko shrimp.",
+    },
+    {
+      slug: "rice",
+      name: "Rice",
+      description: "Extra long grain Sella basmati rice.",
+    },
+    {
+      slug: "olives",
+      name: "Olives",
+      description: "Green olives and Turkish pickles (turşu).",
     },
   ],
-  // Visible product categories (the menu axis). Within each, items are sorted by
-  // meat (productCategories order) as a hidden secondary key.
+  // Secondary axis (packaging vs box), shown as an in-widget toggle, not in nav.
   productFormats: [
     {
       slug: "packaging",

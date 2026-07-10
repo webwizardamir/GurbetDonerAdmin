@@ -1,6 +1,6 @@
-// Single source for grouping products by the visible Packaging/Box format.
-// Meat (`category`) is used only as a hidden secondary sort so each format grid
-// clusters all chicken, then beef, then snacks — no meat labels are shown.
+// Product access for the public catalogue. The visible browse axis is the food
+// `category` (Meat, Chicken, Potato, Snacks, Rice, Olives); `format`
+// (packaging/box) is a secondary filter handled client-side in ProductBrowser.
 import { getCollection } from "astro:content";
 import { site } from "./site";
 
@@ -14,19 +14,20 @@ export type ProductItem = {
   order: number;
 };
 
-// Hidden secondary sort order, taken from productCategories.
-const meatOrder = site.productCategories.map((c) => c.slug);
+// Category display order, taken from site.productCategories.
+const categoryOrder: string[] = site.productCategories.map((c) => c.slug);
 
-const byMeatThenOrder = (a: ProductItem, b: ProductItem) =>
-  meatOrder.indexOf(a.category) - meatOrder.indexOf(b.category) || a.order - b.order;
+const byCategoryThenOrder = (a: ProductItem, b: ProductItem) =>
+  categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category) ||
+  a.order - b.order;
 
-// Returns one group per format (Packaging, Box), each with its items already
-// sorted. Products without an image are dropped (catalogue needs a packshot).
-export async function getProductsByFormat() {
-  let products: ProductItem[] = [];
+// Flat list of every product with an image, sorted by category then order.
+// The ProductBrowser renders all of these once and filters them client-side by
+// category + format + name, so no per-group query is needed.
+export async function getAllProducts(): Promise<ProductItem[]> {
   try {
     const all = await getCollection("products");
-    products = all
+    return all
       .map((p) => ({
         id: p.id,
         name: p.data.name,
@@ -36,11 +37,9 @@ export async function getProductsByFormat() {
         image: p.data.image,
         order: p.data.order ?? 100,
       }))
-      .filter((p) => p.image);
-  } catch {}
-
-  return site.productFormats.map((f) => ({
-    ...f,
-    items: products.filter((p) => p.format === f.slug).sort(byMeatThenOrder),
-  }));
+      .filter((p) => p.image)
+      .sort(byCategoryThenOrder);
+  } catch {
+    return [];
+  }
 }

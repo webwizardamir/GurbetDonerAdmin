@@ -1,6 +1,6 @@
 ---
 name: "Shawarma"
-category: beef
+category: meat
 image: "/images/products/shawarma.jpg"
 featured: false
 order: 260

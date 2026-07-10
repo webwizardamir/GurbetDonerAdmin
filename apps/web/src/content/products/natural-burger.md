@@ -1,6 +1,6 @@
 ---
 name: "Natural Burger"
-category: beef
+category: meat
 format: box
 image: "/images/products/natural-burger.png"
 featured: false

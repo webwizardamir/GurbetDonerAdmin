@@ -1,6 +1,6 @@
 ---
 name: "Onion Burger"
-category: beef
+category: meat
 format: box
 image: "/images/products/onion-burger.png"
 featured: false

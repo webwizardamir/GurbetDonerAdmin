@@ -1,17 +1,19 @@
 ---
 import Base from "../layouts/Base.astro";
 import Hero from "../components/sections/Hero.astro";
+import CategoryRail from "../components/sections/CategoryRail.astro";
 import CertMarquee from "../components/sections/CertMarquee.astro";
 import ProductionStory from "../components/sections/ProductionStory.astro";
-import ProductWorlds from "../components/sections/ProductWorlds.astro";
+import ProductBrowser from "../components/sections/ProductBrowser.astro";
 import ExportCTA from "../components/sections/ExportCTA.astro";
 ---
 
 <Base bodyClass="has-dark-hero">
   <Hero />
+  <CategoryRail scene="light" />
   <CertMarquee />
   <ProductionStory scene="light" />
-  <ProductWorlds scene="light" />
+  <ProductBrowser id="product-browser" scene="light" heading="Browse the range." showAllLink={true} />
   <ExportCTA />
 </Base>
 

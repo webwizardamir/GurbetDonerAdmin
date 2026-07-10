@@ -17,7 +17,7 @@ const year = new Date().getFullYear();
       <div class="footer__brand">
         <img src="/logo.png" alt={site.fullName} width="324" height="150" class="footer__logo" />
         <p class="footer__intro">
-          Halal frozen chicken, beef and snacks for distributors, retailers and Horeca partners across Europe.
+          Halal frozen meat, chicken, snacks, rice and olives for distributors, retailers and Horeca partners across Europe.
         </p>
         <div class="footer__cta">
           <a href="/distributors/" class="btn btn-primary footer__btn">Become a distributor</a>
@@ -28,8 +28,8 @@ const year = new Date().getFullYear();
       <div class="footer__col">
         <p class="footer__heading">Range</p>
         <ul class="footer__list">
-          {site.productFormats.map((c) => (
-            <li><a href={`/products/#${c.slug}`}>{c.name}</a></li>
+          {site.productCategories.map((c) => (
+            <li><a href={`/products/#cat-${c.slug}`}>{c.name}</a></li>
           ))}
           <li><a href="/products/">All products</a></li>
         </ul>

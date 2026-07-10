@@ -1,6 +1,6 @@
 ---
 name: "Akcaabat"
-category: beef
+category: meat
 format: box
 image: "/images/products/akcaabat.png"
 featured: false

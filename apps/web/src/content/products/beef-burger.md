@@ -1,6 +1,6 @@
 ---
 name: "Beef Burger"
-category: beef
+category: meat
 format: box
 image: "/images/products/beef-burger.png"
 featured: false

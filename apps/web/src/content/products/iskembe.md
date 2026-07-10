@@ -1,6 +1,6 @@
 ---
 name: "Iskembe"
-category: snacks
+category: meat
 image: "/images/products/iskembe.png"
 featured: false
 order: 430

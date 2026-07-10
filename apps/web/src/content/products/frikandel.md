@@ -1,6 +1,6 @@
 ---
 name: "Frikandel"
-category: snacks
+category: meat
 image: "/images/products/frikandel.jpg"
 featured: true
 order: 360

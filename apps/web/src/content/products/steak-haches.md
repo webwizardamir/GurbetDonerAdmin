@@ -1,6 +1,6 @@
 ---
 name: "Steak Haches"
-category: beef
+category: meat
 format: box
 image: "/images/products/steak-haches.png"
 featured: false
