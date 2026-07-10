@@ -648,7 +648,14 @@ a `profiles` row (role defaults to `customer`), so classify checks the **role**,
    `customer_prices` first — see [[pricing_resolution_chain]]) and shows an amber "Onthouden prijs"
    badge in `OrderItemsList` with a forget × (`clearCustomerPrice`, handles unit-less `*` rows too).
    No global promotion — overrides stay per-customer until cleared. Tracked via a per-line
-   `priceEdited` flag.
+   `priceEdited` flag. **Keyed per unit_type** — a price remembered for `piece` does NOT apply to a
+   `doos` line of the same product (each unit is its own `customer_prices` row); this is by design, and
+   is the usual explanation when a "remembered price didn't apply." Rows **never expire** (no TTL/cron)
+   — they persist until the forget × or a manual overwrite. **Applying the remembered price depends on
+   the async-fetched `customerPrices` context** (loaded on customer-select in `OrderForm`); the
+   `loadingPrices` flag gates the add-product button until that context is ready, so a product can't be
+   added with the pre-fetch default price (in edit mode the reprice effect won't correct it afterwards —
+   `repriceArmedRef` is false for loaded orders). See `BUGS_AND_FIXES.md` (2026-07-10).
 7. **Per-price-list cost override (COG):** a price list can set a custom **cost** per product/unit
    (`price_list_items.cost_cents`, migration 00068) for bulk deals bought below the default cost. It's
    snapshotted into `order_items.cost_cents` at order time like the sold price, so profit/margin
