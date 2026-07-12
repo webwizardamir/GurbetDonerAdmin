@@ -27,6 +27,7 @@ import { InvoiceTableRow, InvoiceMobileCard } from '../components/documents/Invo
 import OrderDetail from '../components/orders/OrderDetail'
 import { fetchOrderById, type OrderWithItems } from '../services/orders'
 import { documentExportColumns } from '../utils/export'
+import { shareOrDownloadBlob } from '../utils/shareBlob'
 import ExportMenu from '../components/ui/ExportMenu'
 
 // ─── Helpers ──────────────────────────────────────────
@@ -278,14 +279,7 @@ export default function Invoices() {
     if (doc.snapshot || doc.order_id) {
       try {
         const blob = await generatePdfBlob(doc)
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `${doc.document_number}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
+        await shareOrDownloadBlob(blob, `${doc.document_number}.pdf`)
       } catch (err) {
         console.error('Failed to regenerate PDF:', err)
         setError('Failed to generate PDF. Please try again.')

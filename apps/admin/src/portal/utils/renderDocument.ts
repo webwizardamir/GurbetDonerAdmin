@@ -7,22 +7,13 @@
 import type { Document } from '../../types'
 import type { InvoiceData } from '../../services/documents'
 
+// Re-export the shared delivery helpers so portal callers keep a single import.
+export { downloadBlob, shareOrDownloadBlob } from '../../utils/shareBlob'
+
 type RenderableDoc = Pick<Document, 'document_type' | 'snapshot'>
 
 export async function renderDocumentBlob(doc: RenderableDoc): Promise<Blob> {
   const { pdf } = await import('@react-pdf/renderer')
   const { getDocumentTemplate } = await import('../../components/documents/getDocumentTemplate')
   return pdf(getDocumentTemplate(doc.document_type, doc.snapshot as unknown as InvoiceData)).toBlob()
-}
-
-// Trigger a browser download for a rendered blob.
-export function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

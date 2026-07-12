@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Download, Loader2, Eye, X, AlertCircle } from 'lucide-react'
-import { renderDocumentBlob, downloadBlob } from '../utils/renderDocument'
+import { renderDocumentBlob, shareOrDownloadBlob } from '../utils/renderDocument'
 
 interface RenderableDoc {
   document_type: string
@@ -23,7 +23,7 @@ export default function PortalDocumentActions({ doc, fullWidth = false }: { doc:
     setState('rendering')
     try {
       const blob = await renderDocumentBlob(doc as Parameters<typeof renderDocumentBlob>[0])
-      downloadBlob(blob, filename)
+      await shareOrDownloadBlob(blob, filename)
       setState('idle')
     } catch (e) {
       console.error('Document render failed:', e)

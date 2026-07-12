@@ -21,6 +21,7 @@ import {
 } from '../../services/documents'
 import type { DocumentType } from '../../types'
 import { formatPrice } from '../../utils/format'
+import { shareOrDownloadBlob } from '../../utils/shareBlob'
 
 interface DocumentGeneratorProps {
   orderId: string
@@ -88,15 +89,9 @@ export default function DocumentGenerator({
       // Generate PDF blob with correct template
       const blob = await pdf(getDocumentTemplate(documentType, invoiceData)).toBlob()
 
-      // Create download link
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${invoiceData.documentNumber}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      // Deliver it: native share on iOS (so it shares a real PDF, not a blob page),
+      // classic download on Android/desktop.
+      await shareOrDownloadBlob(blob, `${invoiceData.documentNumber}.pdf`)
 
       // Only insert a new documents row when this is the first download of
       // this type for the order. Subsequent downloads reuse the existing row.
@@ -149,15 +144,11 @@ export default function DocumentGenerator({
         printWindow.addEventListener('unload', () => URL.revokeObjectURL(url))
         setTimeout(() => URL.revokeObjectURL(url), 60_000)
       } else {
-        // Popup was blocked — download the PDF instead of navigating the current
-        // (admin) tab away, which would drop the user out of the app.
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `${invoiceData.documentNumber}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+        // Popup was blocked — deliver the PDF (share on iOS, download elsewhere)
+        // instead of navigating the current (admin) tab away, which would drop the
+        // user out of the app.
         URL.revokeObjectURL(url)
+        await shareOrDownloadBlob(blob, `${invoiceData.documentNumber}.pdf`)
       }
     } catch (err) {
       printWindow?.close()
