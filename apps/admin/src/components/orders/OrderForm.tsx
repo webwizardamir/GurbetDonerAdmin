@@ -15,6 +15,7 @@ import { formatPrice } from '../../utils/format'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 import { computeOrderTotals, resolveShippingVat, type DiscountType } from '../../utils/discount'
 import { setCustomerPrice, clearCustomerPrice } from '../../services/pricing'
+import { ensureOrderInvoice } from '../../services/documents'
 
 interface OrderFormProps {
   onCancel: () => void
@@ -380,8 +381,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
         discount_type: i.discount_type ?? null, discount_value: i.discount_value ?? null,
         notes: i.notes?.trim() || undefined,
       }))
-      if (isEditMode && editOrder) { await updateWithItems(editOrder.id, orderData, itemsData) }
-      else { await create(orderData, itemsData) }
+      let savedOrder: OrderWithItems | undefined
+      if (isEditMode && editOrder) { savedOrder = await updateWithItems(editOrder.id, orderData, itemsData) }
+      else { savedOrder = await create(orderData, itemsData) }
 
       // Remember any manually-edited line prices for this customer (per
       // product + unit_type), so they auto-apply on the next order. Best-effort:
@@ -410,6 +412,25 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
               setCustomerPrice(selectedCustomer.id, i.product.id, i.unit_price, i.selectedUnitType)
             ))
           } catch (e) { console.error('Failed to remember customer prices:', e) }
+        }
+      }
+
+      // Auto-issue the invoice document (number + snapshot) on save, so it's
+      // ready without a manual download and the 24h auto-send has something to
+      // send. Non-imported orders only (WC orders keep their own numbering).
+      // Best-effort: a failure here must never block/rollback the saved order.
+      // On CREATE we await so the number exists before navigating (the Orders
+      // column then shows it immediately); on EDIT the snapshot refresh in
+      // updateOrderWithItems already runs, so this just back-fills a missing
+      // invoice for legacy orders (fire-and-forget).
+      if (!isImported && savedOrder) {
+        if (isEditMode) {
+          // Fire-and-forget on edit: attach a .catch so a rejected promise is
+          // swallowed (best-effort) rather than becoming an unhandled rejection.
+          void ensureOrderInvoice(savedOrder.id).catch(e => console.error('Auto invoice generation failed:', e))
+        } else {
+          try { await ensureOrderInvoice(savedOrder.id) }
+          catch (e) { console.error('Auto invoice generation failed:', e) }
         }
       }
       onSuccess()

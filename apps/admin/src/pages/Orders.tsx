@@ -20,6 +20,7 @@ import {
   Check,
   RotateCcw,
   StickyNote,
+  ReceiptText,
 } from 'lucide-react'
 import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
@@ -71,7 +72,7 @@ export default function Orders() {
   const [showPaymentModal, setShowPaymentModal] = useState<'single' | 'bulk' | null>(null)
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null)
   const [documentInfo, setDocumentInfo] = useState<Map<string, OrderDocumentInfo>>(new Map())
-  const [sendInfo, setSendInfo] = useState<Record<string, { total: number; sent: number; failed: number }>>({})
+  const [sendInfo, setSendInfo] = useState<Record<string, { total: number; sent: number; failed: number; invoiceSent: boolean }>>({})
   const [statusCounts, setStatusCounts] = useState<Record<string, number> & { total: number }>({ total: 0 })
 
   // Read URL params on mount to apply filters (e.g. ?status=pending_payment)
@@ -156,17 +157,22 @@ export default function Orders() {
     total:        o => o.total ?? 0,
   }), [filteredOrdersUnsorted, sortBy, documentInfo])
 
-  useEffect(() => {
+  // Refetch the per-order invoice number + send-status maps for the current
+  // page. Extracted so it can also be triggered after a document is generated in
+  // the detail modal (so the invoice column updates without a page refresh).
+  const refreshDocInfo = () => {
     const orderIds = orders.map(o => o.id)
-    if (orderIds.length > 0) {
-      fetchDocumentInfoByOrder(orderIds).then(info => setDocumentInfo(info)).catch(console.error)
-    }
-    // Send-status indicator for the current page's orders (scoped to these IDs,
-    // not a full-table scan).
+    if (orderIds.length === 0) { setDocumentInfo(new Map()); setSendInfo({}); return }
+    fetchDocumentInfoByOrder(orderIds).then(info => setDocumentInfo(info)).catch(console.error)
     fetchSendCountsByOrder(orderIds).then(setSendInfo).catch(console.error)
+  }
+
+  useEffect(() => {
+    refreshDocInfo()
     // WC-style per-status counts for the status filter dropdown. Refetched when
     // the orders list changes so they stay fresh after completing/cancelling.
     getOrderStatusCounts().then(setStatusCounts).catch(console.error)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders])
 
   useEffect(() => { setSelectedIds(new Set()) }, [filters, searchQuery])
@@ -516,6 +522,11 @@ export default function Orders() {
                               </div>
                             )
                           })()}
+                          {sendInfo[order.id]?.invoiceSent && (
+                            <div className="p-1.5" title={t('orders.invoiceSent')}>
+                              <ReceiptText className="w-4 h-4 text-emerald-600" />
+                            </div>
+                          )}
                           {canComplete && (
                             <button onClick={() => handleQuickComplete(order.id)} className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.markComplete')}>
                               <Check className="w-4 h-4 text-green-600" />
@@ -706,7 +717,7 @@ export default function Orders() {
         </div>
       )}
 
-      {viewingOrder && <OrderDetail order={viewingOrder} onClose={() => setViewingOrder(null)} onStatusChange={() => { setViewingOrder(null); refresh() }} />}
+      {viewingOrder && <OrderDetail order={viewingOrder} onClose={() => setViewingOrder(null)} onStatusChange={() => { setViewingOrder(null); refresh() }} onDocGenerated={refreshDocInfo} />}
 
       {notesOrder && (
         <OrderNotesModal

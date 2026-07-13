@@ -614,8 +614,12 @@
       "updateError": "Failed to update status",
       "documents": "Documents",
       "discount": "Discount",
-      "delivery": "Delivery"
+      "delivery": "Delivery",
+      "invoiceSentOn": "Invoice sent on {{date}}",
+      "invoiceScheduled": "Invoice will be sent automatically around {{date}}",
+      "invoiceNotSent": "Invoice not sent yet"
     },
+    "invoiceSent": "Invoice sent",
     "paymentModal": {
       "title": "Complete Order",
       "orderLabel": "Order",
@@ -1411,6 +1415,10 @@
     },
     "reminders": {
       "queueNote": "The outstanding-invoices list is always on; your team sees overdue invoices and can send a reminder manually. Automatic sending below is optional.",
+      "autoInvoice": {
+        "title": "Auto-send invoice (24h)",
+        "subtitle": "Automatically email the invoice (PDF attached) to the customer 24 hours after the order is created."
+      },
       "autoSend": {
         "title": "Automatic sending",
         "subtitle": "Send reminders automatically by email on the schedule below.",

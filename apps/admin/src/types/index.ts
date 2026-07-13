@@ -562,12 +562,15 @@ export interface ClientReminderStep {
 }
 
 export interface ClientReminderConfig {
-  auto_send_enabled: boolean   // GLOBAL kill-switch for automated email
+  auto_send_enabled: boolean   // GLOBAL kill-switch for automated reminder email
   send_hour: number            // 0-23 local hour the daily job may send
   working_days_only: boolean   // skip Sat/Sun for automated sends
   repeat_interval_days: number // after the last explicit step, repeat every N days
   max_count: number            // max reminders ever sent per invoice
   steps: ClientReminderStep[]  // ordered escalation milestones
+  // Auto-email the invoice (PDF attached) ~24h after the order is created.
+  // Separate from the reminder kill-switch; OPT-IN (treated as false when absent).
+  initial_invoice_send_enabled?: boolean
 }
 
 // ---------------------------------------------------------------------------

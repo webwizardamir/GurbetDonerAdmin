@@ -7,7 +7,7 @@
 import { useTranslation } from 'react-i18next'
 import {
   ShoppingCart, Loader2, Eye, Pencil, Trash2, Calendar, FileText, Mail,
-  Check, RotateCcw, StickyNote,
+  Check, RotateCcw, StickyNote, ReceiptText,
 } from 'lucide-react'
 import type { OrderWithItems } from '../../services/orders'
 import type { OrderDocumentInfo } from '../../services/documents'
@@ -24,7 +24,7 @@ export const DELETABLE_STATUSES = ['draft', 'pending', 'pending_payment', 'on_ho
 // (trash keeps their status 'cancelled' — a stock no-op — see trash_order).
 export const TRASHABLE_STATUSES = [...DELETABLE_STATUSES, 'cancelled']
 
-interface SendInfo { sent: number; failed: number; total: number }
+interface SendInfo { sent: number; failed: number; total: number; invoiceSent?: boolean }
 
 interface OrdersTableProps {
   orders: OrderWithItems[]
@@ -157,6 +157,11 @@ export default function OrdersTable({
             </div>
           )
         })()}
+        {sendI?.invoiceSent && (
+          <div className="p-2" title={t('orders.invoiceSent')}>
+            <ReceiptText className="w-4 h-4 text-emerald-600" />
+          </div>
+        )}
         {onQuickComplete && canComplete && (
           <button onClick={() => onQuickComplete(order.id)} className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.markComplete')}>
             <Check className="w-4 h-4 text-green-600" />

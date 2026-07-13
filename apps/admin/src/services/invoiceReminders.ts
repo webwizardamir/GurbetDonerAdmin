@@ -15,6 +15,7 @@ export const DEFAULT_CLIENT_REMINDER_CONFIG: ClientReminderConfig = {
   working_days_only: true,
   repeat_interval_days: 7,
   max_count: 3,
+  initial_invoice_send_enabled: false, // opt-in; enabled in Settings after render env is wired
   steps: [
     { days_after_due: 1,  template_key: 'payment_reminder_1',     tone: 'gentle' },
     { days_after_due: 14, template_key: 'payment_reminder_2',     tone: 'second' },

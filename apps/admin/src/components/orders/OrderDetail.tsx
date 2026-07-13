@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Loader2,
@@ -18,6 +18,7 @@ import {
   StickyNote,
 } from 'lucide-react'
 import { updateOrderStatus } from '../../services/orders'
+import { fetchDocumentSends } from '../../services/documentEmail'
 import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import DocumentGenerator from '../documents/DocumentGenerator'
@@ -35,6 +36,9 @@ interface OrderDetailProps {
   order: OrderWithItems
   onClose: () => void
   onStatusChange: () => void
+  /** Called after a document is generated/sent so the parent list can refresh
+   *  its invoice-number + send-status columns without a full page refresh. */
+  onDocGenerated?: () => void
 }
 
 // Format date with long month name
@@ -74,15 +78,30 @@ function formatUnitDutch(unitType: string, quantity: number, t?: (key: string) =
   }
 }
 
-export default function OrderDetail({ order, onClose, onStatusChange }: OrderDetailProps) {
+export default function OrderDetail({ order, onClose, onStatusChange, onDocGenerated }: OrderDetailProps) {
   const { t } = useTranslation()
   const { isOwner } = useAuth()
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generatingDoc, setGeneratingDoc] = useState<DocumentType | null>(null)
+  const [invoiceSentAt, setInvoiceSentAt] = useState<string | null | undefined>(undefined)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showRefundModal, setShowRefundModal] = useState(false)
   const [showNotesModal, setShowNotesModal] = useState(false)
+
+  // Invoice email status — undefined while loading, null = not sent yet, else the
+  // timestamp it was sent (manual or the 24h auto-send).
+  useEffect(() => {
+    let alive = true
+    fetchDocumentSends({ orderId: order.id })
+      .then(rows => {
+        if (!alive) return
+        const inv = rows.find(s => s.document_type === 'invoice' && s.status === 'sent')
+        setInvoiceSentAt(inv ? (inv.sent_at ?? inv.created_at) : null)
+      })
+      .catch(() => { if (alive) setInvoiceSentAt(null) })
+    return () => { alive = false }
+  }, [order.id])
 
   // Owner-only per-order profit (revenue = subtotal, ex-VAT; cost = Σ cost_cents×qty).
   const orderProfit = computeOrderProfit(order)
@@ -448,6 +467,26 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
                 {t('orders.detail.documents')}
               </h3>
             </div>
+
+            {/* Invoice email status — only a factual "sent on <date>" (manual or
+                the 24h auto-send) or a neutral "not sent yet". We deliberately do
+                NOT promise a scheduled send here: whether the auto-send fires
+                depends on settings (opt-in toggle) + opt-out state the panel
+                doesn't know, so a "will be sent on…" line could be a lie. */}
+            {invoiceSentAt !== undefined && !isImportedOrder(order) && (
+              invoiceSentAt ? (
+                <div className="flex items-center gap-1.5 mb-3 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  {t('orders.detail.invoiceSentOn', { date: formatDateTime(invoiceSentAt) })}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 mb-3 text-xs text-slate-500 dark:text-slate-400">
+                  <Clock className="w-3.5 h-3.5" />
+                  {t('orders.detail.invoiceNotSent')}
+                </div>
+              )
+            )}
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setGeneratingDoc('invoice')}
@@ -514,7 +553,17 @@ export default function OrderDetail({ order, onClose, onStatusChange }: OrderDet
           orderNumber={order.order_number}
           documentType={generatingDoc}
           onClose={() => setGeneratingDoc(null)}
-          onGenerated={() => setGeneratingDoc(null)}
+          onGenerated={() => {
+            setGeneratingDoc(null)
+            onDocGenerated?.()
+            // Refresh the local invoice-sent status too.
+            fetchDocumentSends({ orderId: order.id })
+              .then(rows => {
+                const inv = rows.find(s => s.document_type === 'invoice' && s.status === 'sent')
+                setInvoiceSentAt(inv ? (inv.sent_at ?? inv.created_at) : null)
+              })
+              .catch(() => {})
+          }}
         />
       )}
 

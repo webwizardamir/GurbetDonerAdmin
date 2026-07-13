@@ -197,6 +197,28 @@ export async function createDocument(
   return data
 }
 
+/**
+ * Ensure an order has an issued invoice document (number + snapshot), creating
+ * one if missing. Idempotent and numbering-safe: an existing invoice's number is
+ * REUSED (so downloading later never re-allocates), otherwise a fresh atomic
+ * number is assigned. Mirrors generateBatchInvoices for a single order. Callers
+ * should skip imported (WooCommerce) orders — those carry their own numbering.
+ */
+export async function ensureOrderInvoice(
+  orderId: string,
+): Promise<{ number: string; data: InvoiceData; isNew: boolean }> {
+  const data = await buildInvoiceData(orderId, 'invoice')
+  const existing = await fetchLatestDocumentForOrder(orderId, 'invoice')
+  if (existing) {
+    data.documentNumber = existing.document_number
+    return { number: existing.document_number, data, isNew: false }
+  }
+  const number = await getNextDocumentNumber('invoice')
+  data.documentNumber = number
+  await createDocument(orderId, 'invoice', number, data as unknown as Record<string, unknown>)
+  return { number, data, isNew: true }
+}
+
 // Update only the stored snapshot of an existing document (keeps its number,
 // type, generated_at, etc. intact).
 export async function updateDocumentSnapshot(

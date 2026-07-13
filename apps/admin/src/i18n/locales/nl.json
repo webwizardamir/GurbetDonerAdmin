@@ -614,8 +614,12 @@
       "updateError": "Kan status niet bijwerken",
       "documents": "Documenten",
       "discount": "Korting",
-      "delivery": "Bezorging"
+      "delivery": "Bezorging",
+      "invoiceSentOn": "Factuur verzonden op {{date}}",
+      "invoiceScheduled": "Factuur wordt automatisch verzonden rond {{date}}",
+      "invoiceNotSent": "Factuur nog niet verzonden"
     },
+    "invoiceSent": "Factuur verzonden",
     "paymentModal": {
       "title": "Bestelling voltooien",
       "orderLabel": "Bestelling",
@@ -1411,6 +1415,10 @@
     },
     "reminders": {
       "queueNote": "De openstaande-facturenlijst is altijd actief; je team ziet verlopen facturen en kan handmatig een herinnering sturen. Automatisch verzenden hieronder is optioneel.",
+      "autoInvoice": {
+        "title": "Factuur automatisch versturen (24u)",
+        "subtitle": "Stuur de factuur (PDF als bijlage) automatisch per e-mail naar de klant, 24 uur na het aanmaken van de bestelling."
+      },
       "autoSend": {
         "title": "Automatisch verzenden",
         "subtitle": "Stuur herinneringen automatisch per e-mail volgens onderstaand schema.",

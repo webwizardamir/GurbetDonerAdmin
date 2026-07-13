@@ -8,7 +8,9 @@
 // passes the secret header. Every request is rejected unless
 //   X-Reminder-Cron-Secret === Deno.env.get('REMINDER_CRON_SECRET').
 // Set these secrets on the function in Supabase Studio:
-//   REMINDER_CRON_SECRET, RESEND_API_KEY, RESEND_FROM_ADDRESS, APP_URL
+//   REMINDER_CRON_SECRET, RESEND_API_KEY, RESEND_FROM_ADDRESS, APP_URL,
+//   RENDER_ENDPOINT_URL (the Vercel /api/render-invoice URL) + RENDER_SECRET
+//   (shared with that function — used to fetch the invoice PDF to attach).
 // (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are injected automatically.)
 //
 // Emails are HTML/text only (NO PDF attachment) — @react-pdf can't run here. The
@@ -27,6 +29,9 @@ interface ReminderConfig {
   repeat_interval_days: number
   max_count: number
   steps: ReminderStep[]
+  // Auto-email the invoice (PDF attached) ~24h after the order is created.
+  // Defaults to true when absent. Toggled in Settings → Reminders.
+  initial_invoice_send_enabled?: boolean
 }
 interface Template { subject: string; body: string }
 type Lang = 'nl' | 'en'
@@ -34,9 +39,13 @@ type Lang = 'nl' | 'en'
 // Kept in sync with apps/admin/src/services/documentEmail.ts (the edge function
 // can't import from the app). NL for NL/BE customers, EN for everyone else.
 const DEFAULT_TEMPLATES_NL: Record<string, Template> = {
+  invoice: {
+    subject: 'Factuur {{document_number}} van {{company_name}}',
+    body: 'Beste {{customer_name}},\n\nBijgaand ontvangt u factuur {{document_number}} ter waarde van {{total}} met vervaldatum {{due_date}}. Wij verzoeken u vriendelijk het bedrag over te maken op IBAN {{iban}}.\n\nMet vriendelijke groet,\n{{company_name}}',
+  },
   payment_reminder_1: {
     subject: 'Herinnering: factuur {{document_number}} openstaand',
-    body: 'Beste {{customer_name}},\n\nMogelijk is het aan uw aandacht ontsnapt: factuur {{document_number}} ter waarde van {{total}} had vervaldatum {{due_date}} en staat nog open. Wij verzoeken u vriendelijk het bedrag over te maken op IBAN {{iban}}. U kunt de factuur bekijken via {{portal_link}}.\n\nMet vriendelijke groet,\n{{company_name}}',
+    body: 'Beste {{customer_name}},\n\nMogelijk is het aan uw aandacht ontsnapt: factuur {{document_number}} ter waarde van {{total}} had vervaldatum {{due_date}} en staat nog open. Wij verzoeken u vriendelijk het bedrag over te maken op IBAN {{iban}}.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
   payment_reminder_2: {
     subject: 'Tweede herinnering: factuur {{document_number}}',
@@ -49,9 +58,13 @@ const DEFAULT_TEMPLATES_NL: Record<string, Template> = {
 }
 
 const DEFAULT_TEMPLATES_EN: Record<string, Template> = {
+  invoice: {
+    subject: 'Invoice {{document_number}} from {{company_name}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached invoice {{document_number}} for {{total}}, due on {{due_date}}. We kindly ask you to transfer the amount to IBAN {{iban}}.\n\nKind regards,\n{{company_name}}',
+  },
   payment_reminder_1: {
     subject: 'Reminder: invoice {{document_number}} outstanding',
-    body: 'Dear {{customer_name}},\n\nThis may have escaped your attention: invoice {{document_number}} for {{total}} was due on {{due_date}} and is still outstanding. We kindly ask you to transfer the amount to IBAN {{iban}}. You can view the invoice at {{portal_link}}.\n\nKind regards,\n{{company_name}}',
+    body: 'Dear {{customer_name}},\n\nThis may have escaped your attention: invoice {{document_number}} for {{total}} was due on {{due_date}} and is still outstanding. We kindly ask you to transfer the amount to IBAN {{iban}}.\n\nKind regards,\n{{company_name}}',
   },
   payment_reminder_2: {
     subject: 'Second reminder: invoice {{document_number}}',
@@ -87,6 +100,10 @@ const DEFAULT_CONFIG: ReminderConfig = {
   working_days_only: true,
   repeat_interval_days: 7,
   max_count: 3,
+  // OPT-IN: stays off until the owner enables it in Settings → Reminders (after
+  // the Vercel PDF renderer env is wired). Prevents a rollout mass-send and any
+  // surprise customer mail.
+  initial_invoice_send_enabled: false,
   steps: [
     { days_after_due: 1, template_key: 'payment_reminder_1', tone: 'gentle' },
     { days_after_due: 14, template_key: 'payment_reminder_2', tone: 'second' },
@@ -144,7 +161,10 @@ serve(async (req) => {
 
   // 3. Time-of-day / working-day gate (Europe/Amsterdam).
   const nowParts = amsterdamParts()
-  const result = { clientSent: 0, clientFailed: 0, clientSkipped: 0, adminSent: 0 }
+  const result = {
+    clientSent: 0, clientFailed: 0, clientSkipped: 0, adminSent: 0,
+    invoiceSent: 0, invoiceFailed: 0, invoiceSkipped: 0,
+  }
 
   const hourOk = nowParts.hour === cfg.send_hour
   const dayOk = !cfg.working_days_only || (nowParts.weekday >= 1 && nowParts.weekday <= 5)
@@ -262,7 +282,10 @@ serve(async (req) => {
 
       if (sendInsertErr || !sendRow) { result.clientFailed++; continue }
 
-      const { ok, resendId, error } = await sendResend(RESEND_API_KEY, FROM_ADDRESS, email, subject, body, brand)
+      // Attach the invoice PDF (rendered by the Vercel function) so the customer
+      // receives the actual invoice, not just a link. Best-effort.
+      const reminderPdf = await fetchInvoicePdf(o.id as string)
+      const { ok, resendId, error } = await sendResend(RESEND_API_KEY, FROM_ADDRESS, email, subject, body, brand, reminderPdf)
 
       await admin.from('document_sends').update(
         ok
@@ -310,6 +333,111 @@ serve(async (req) => {
     }
   }
 
+  // 6. Initial invoice auto-send — email the invoice (PDF attached) once, ~24h
+  //    after the order was created. Sent in the SAME window as the reminders
+  //    (cfg.send_hour on working days), so no 03:00/Sunday mail. Gates, all of
+  //    which must hold:
+  //      - cfg.initial_invoice_send_enabled === true  (OPT-IN; off by default)
+  //      - renderConfigured  (Vercel PDF renderer wired → never a PDF-less email)
+  //      - hourOk && dayOk    (business-hours send window)
+  //    Candidate window is a NARROW [24h .. 72h]-old band, NOT a 30-day sweep:
+  //    this bounds the set on first enable (no rollout blast of old orders) while
+  //    still giving each order ~3 daily attempts. Drafts are excluded (an
+  //    unfinalized order must not be auto-emailed); cancelled/refunded/trashed
+  //    too. Idempotent on a SUCCESSFUL send only, so a transient failure retries
+  //    next day instead of permanently blocking the invoice.
+  const renderConfigured = !!Deno.env.get('RENDER_ENDPOINT_URL') && !!Deno.env.get('RENDER_SECRET')
+  if (cfg.initial_invoice_send_enabled === true && renderConfigured && hourOk && dayOk) {
+    const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
+    const windowFloor = new Date(Date.now() - 72 * 3600 * 1000).toISOString()
+    const { data: newOrders } = await admin
+      .from('orders')
+      .select('id, order_number, total, invoice_due_date, reminders_opted_out, customer:customers!customer_id(id, company_name, email, billing_country, reminders_opted_out)')
+      .lte('created_at', dayAgo)
+      .gte('created_at', windowFloor)
+      .is('deleted_at', null)
+      .not('status', 'in', '(draft,cancelled,refunded)')
+      .eq('reminders_opted_out', false)
+      .limit(100)
+
+    for (const o of (newOrders ?? []) as Record<string, unknown>[]) {
+      const customer = (o.customer ?? {}) as Record<string, unknown>
+      const email = customer.email as string | undefined
+      if (!email || customer.reminders_opted_out) { result.invoiceSkipped++; continue }
+
+      // First invoice only: skip if the invoice was already emailed SUCCESSFULLY
+      // (manual send or a prior auto run). A prior 'failed'/'pending' row does
+      // NOT block a retry — otherwise one transient error kills the send forever.
+      const { data: sentInvoice } = await admin
+        .from('document_sends')
+        .select('id')
+        .eq('order_id', o.id as string)
+        .eq('document_type', 'invoice')
+        .eq('status', 'sent')
+        .limit(1)
+      if (sentInvoice && sentInvoice.length > 0) { result.invoiceSkipped++; continue }
+
+      // Require an issued invoice document (auto-generated on save).
+      const { data: invDoc } = await admin
+        .from('documents')
+        .select('id, document_number')
+        .eq('order_id', o.id as string)
+        .eq('document_type', 'invoice')
+        .order('generated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (!invDoc) { result.invoiceSkipped++; continue }
+
+      // Render the PDF FIRST — it's the whole point of this send. If it's
+      // unavailable (renderer hiccup), skip WITHOUT logging a send, so we never
+      // email an invoice whose body says "attached" with nothing attached, and
+      // the order simply retries on the next run.
+      const pdf = await fetchInvoicePdf(o.id as string)
+      if (!pdf) { result.invoiceFailed++; continue }
+
+      const lang = resolveLang(customer.billing_country as string | undefined)
+      const bucket = langBucket(rawTemplates, lang)
+      const defaults = DEFAULTS_BY_LANG[lang]
+      const tmpl = bucket['invoice'] ?? defaults['invoice'] ?? defaults.payment_reminder_1
+      const ctx = {
+        company_name: companyName,
+        customer_name: (customer.company_name as string) ?? '',
+        document_number: invDoc.document_number as string,
+        order_number: o.order_number as string,
+        total: formatEuro(o.total as number),
+        due_date: o.invoice_due_date ? formatDate(o.invoice_due_date as string, lang) : '',
+        days_overdue: '0',
+        iban,
+        portal_link: portalLink,
+      }
+      const subject = render(tmpl.subject, ctx)
+      const body = render(tmpl.body, ctx)
+
+      // Log a pending row FIRST (untracked send would re-fire next run).
+      const { data: sendRow, error: sendInsertErr } = await admin.from('document_sends').insert({
+        document_id: invDoc.id as string,
+        order_id: o.id as string,
+        document_type: 'invoice',
+        recipient_email: email,
+        bcc_email: null,
+        subject, body,
+        status: 'pending',
+      }).select('id').single()
+      if (sendInsertErr || !sendRow) { result.invoiceFailed++; continue }
+
+      const { ok, resendId, error } = await sendResend(RESEND_API_KEY, FROM_ADDRESS, email, subject, body, brand, pdf)
+
+      await admin.from('document_sends').update(
+        ok
+          ? { status: 'sent', resend_message_id: resendId, sent_at: new Date().toISOString() }
+          : { status: 'failed', error_message: error },
+      ).eq('id', sendRow.id)
+
+      if (ok) result.invoiceSent++
+      else result.invoiceFailed++
+    }
+  }
+
   return json({ ok: true, ...result, ranAt: new Date().toISOString() }, 200)
 })
 
@@ -344,21 +472,61 @@ function render(tmpl: string, ctx: Record<string, string>): string {
   return tmpl.replace(/\{\{(\w+)\}\}/g, (_m, k: string) => ctx[k] ?? '')
 }
 
-async function sendResend(apiKey: string, from: string, to: string, subject: string, body: string, brand: EmailBrandSettings = {}) {
+async function sendResend(
+  apiKey: string, from: string, to: string, subject: string, body: string,
+  brand: EmailBrandSettings = {},
+  attachment?: { base64: string; filename: string } | null,
+) {
   try {
+    const payload: Record<string, unknown> = {
+      from, to: [to], subject,
+      html: buildBrandedEmailHtml(body, brand),
+    }
+    if (attachment) {
+      payload.attachments = [{ filename: attachment.filename, content: attachment.base64 }]
+    }
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from, to: [to], subject,
-        html: buildBrandedEmailHtml(body, brand),
-      }),
+      body: JSON.stringify(payload),
     })
     const data = await r.json() as { id?: string; message?: string; name?: string }
     if (!r.ok) return { ok: false, error: data.message || data.name || `Resend ${r.status}` }
     return { ok: true, resendId: data.id ?? null }
   } catch (e) {
     return { ok: false, error: (e as Error).message }
+  }
+}
+
+/**
+ * Fetch the rendered invoice PDF (base64) for an order from the Vercel renderer
+ * (RENDER_ENDPOINT_URL) — the Deno runtime can't render @react-pdf itself.
+ * Best-effort: returns null on any failure so the caller can still send the
+ * email without an attachment rather than losing it entirely.
+ */
+async function fetchInvoicePdf(orderId: string): Promise<{ base64: string; filename: string } | null> {
+  const url = Deno.env.get('RENDER_ENDPOINT_URL')
+  const secret = Deno.env.get('RENDER_SECRET')
+  if (!url || !secret) return null
+  // Hard timeout so a slow/hanging renderer can't stall the whole cron run and
+  // starve the remaining orders in the batch.
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 20_000)
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Render-Secret': secret },
+      body: JSON.stringify({ orderId }),
+      signal: ctrl.signal,
+    })
+    if (!r.ok) return null
+    const data = await r.json() as { pdf_base64?: string; filename?: string }
+    if (!data.pdf_base64) return null
+    return { base64: data.pdf_base64, filename: data.filename ?? `Factuur-${orderId}.pdf` }
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
   }
 }
 

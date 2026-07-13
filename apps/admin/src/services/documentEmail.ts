@@ -210,21 +210,30 @@ export async function fetchDocumentSends(opts: {
  * list page. Scoped to the given order IDs (the current page, ~50) so it stays
  * a bounded query instead of scanning the whole document_sends table.
  */
-export async function fetchSendCountsByOrder(orderIds: string[]): Promise<Record<string, { total: number; sent: number; failed: number }>> {
+export interface OrderSendInfo {
+  total: number
+  sent: number
+  failed: number
+  /** True once the INVOICE specifically has been emailed (status 'sent'). */
+  invoiceSent: boolean
+}
+
+export async function fetchSendCountsByOrder(orderIds: string[]): Promise<Record<string, OrderSendInfo>> {
   if (orderIds.length === 0) return {}
   const { data, error } = await supabase
     .from('document_sends')
-    .select('order_id, status')
+    .select('order_id, status, document_type')
     .in('order_id', orderIds)
   if (error) throw error
 
-  const out: Record<string, { total: number; sent: number; failed: number }> = {}
-  for (const row of (data as { order_id: string | null; status: string }[]) ?? []) {
+  const out: Record<string, OrderSendInfo> = {}
+  for (const row of (data as { order_id: string | null; status: string; document_type: string }[]) ?? []) {
     if (!row.order_id) continue
-    const bucket = out[row.order_id] ??= { total: 0, sent: 0, failed: 0 }
+    const bucket = out[row.order_id] ??= { total: 0, sent: 0, failed: 0, invoiceSent: false }
     bucket.total += 1
     if (row.status === 'sent')   bucket.sent   += 1
     if (row.status === 'failed') bucket.failed += 1
+    if (row.document_type === 'invoice' && row.status === 'sent') bucket.invoiceSent = true
   }
   return out
 }

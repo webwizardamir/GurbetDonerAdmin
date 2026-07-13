@@ -81,6 +81,25 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
         <p className="text-sm text-blue-800 dark:text-blue-300">{t('settings.reminders.queueNote')}</p>
       </div>
 
+      {/* Initial invoice auto-send (24h after order creation) */}
+      <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-slate-900 dark:text-white">{t('settings.reminders.autoInvoice.title')}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('settings.reminders.autoInvoice.subtitle')}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={cfg.initial_invoice_send_enabled === true}
+            onClick={() => patch({ initial_invoice_send_enabled: !(cfg.initial_invoice_send_enabled === true) })}
+            className={toggleClass(cfg.initial_invoice_send_enabled === true)}
+          >
+            <span className={knobClass(cfg.initial_invoice_send_enabled === true)} />
+          </button>
+        </div>
+      </div>
+
       {/* Auto-send kill switch */}
       <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4">
         <div className="flex items-start justify-between gap-4">
