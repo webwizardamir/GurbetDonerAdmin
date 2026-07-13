@@ -1620,6 +1620,7 @@
       "codeHeading": "Voer uw code in",
       "codeSubtitle": "We hebben u een inlogcode per e-mail gestuurd",
       "codeSent": "Als {{email}} bij ons bekend is, hebben we een inlogcode gestuurd.",
+      "rateLimited": "U heeft recent een code aangevraagd. Controleer uw e-mail, of wacht even voordat u opnieuw stuurt.",
       "codeLabel": "Inlogcode",
       "codePlaceholder": "123456",
       "verify": "Inloggen",

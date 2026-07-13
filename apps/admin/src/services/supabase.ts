@@ -53,6 +53,17 @@ const portalAuthStorage = {
   },
 }
 
+// One-time migration for the session-first default (below): sessions created
+// BEFORE this change have their token in localStorage but no recorded remember
+// preference. Treat those as "remembered" so flipping the default doesn't
+// silently sign existing customers out on the next token refresh.
+try {
+  if (window.localStorage.getItem('sb-portal-auth-token')
+    && window.localStorage.getItem(PORTAL_REMEMBER_KEY) === null) {
+    window.localStorage.setItem(PORTAL_REMEMBER_KEY, 'true')
+  }
+} catch { /* storage unavailable — ignore */ }
+
 // Portal client - uses separate storage key to avoid session conflicts
 export const portalSupabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',

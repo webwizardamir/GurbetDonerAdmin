@@ -1620,6 +1620,7 @@
       "codeHeading": "Enter your code",
       "codeSubtitle": "We've emailed you a login code",
       "codeSent": "If {{email}} is on file, we've sent a login code.",
+      "rateLimited": "You recently requested a code. Check your email, or wait a moment before requesting another.",
       "codeLabel": "Login code",
       "codePlaceholder": "123456",
       "verify": "Sign in",

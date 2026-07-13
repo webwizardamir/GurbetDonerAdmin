@@ -34,9 +34,9 @@ export default function PortalLogin() {
     setNotice(null)
     setRequesting(true)
     try {
-      await requestCode(email)
+      const { rateLimited } = await requestCode(email)
       setStep('code')
-      setNotice(t('portal.login.codeSent', { email }))
+      setNotice(rateLimited ? t('portal.login.rateLimited') : t('portal.login.codeSent', { email }))
     } catch {
       setNotice(t('portal.login.requestError'))
     } finally {

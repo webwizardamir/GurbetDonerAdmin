@@ -146,11 +146,15 @@ export async function getPortalUser(): Promise<PortalUser | null> {
  * (enumeration-safe); only throws on a genuine network failure so the UI can
  * offer a retry.
  */
-export async function portalRequestCode(email: string): Promise<void> {
-  const { error } = await portalSupabase.functions.invoke('portal-request-code', {
+export async function portalRequestCode(email: string): Promise<{ rateLimited: boolean }> {
+  const { data, error } = await portalSupabase.functions.invoke('portal-request-code', {
     body: { email: email.trim().toLowerCase() },
   })
   if (error) throw error // network/transport error only — the fn itself returns generic 200
+  // `rateLimited` reflects only the per-email throttle (not customer existence),
+  // so the UI can honestly say "you requested one recently" instead of a false
+  // "we sent a code".
+  return { rateLimited: (data as { rateLimited?: boolean } | null)?.rateLimited === true }
 }
 
 /**

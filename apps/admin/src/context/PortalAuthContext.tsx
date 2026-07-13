@@ -11,8 +11,9 @@ interface PortalAuthContextType {
   loading: boolean
   error: string | null
   signIn: (email: string, password: string, remember?: boolean) => Promise<void>
-  /** Passwordless step 1 — email a login code (enumeration-safe; never throws on unknown email). */
-  requestCode: (email: string) => Promise<void>
+  /** Passwordless step 1 — email a login code (enumeration-safe; never throws on unknown email).
+   *  Returns { rateLimited } so the UI can distinguish "sent" from "throttled". */
+  requestCode: (email: string) => Promise<{ rateLimited: boolean }>
   /** Passwordless step 2 — verify the code and open a session. */
   verifyCode: (email: string, code: string, remember?: boolean) => Promise<void>
   signOut: () => Promise<void>
@@ -145,7 +146,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
 
   const requestCode = useCallback(async (email: string) => {
     setError(null)
-    await portalRequestCode(email)
+    return portalRequestCode(email)
   }, [])
 
   const verifyCode = useCallback(async (email: string, code: string, remember = true) => {
