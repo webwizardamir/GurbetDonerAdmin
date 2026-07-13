@@ -1012,6 +1012,73 @@ process-invoice-reminders v5 — the latter stays **verify_jwt=false**, cron-sec
 
 ---
 
+## Orders list sorts by order_date, not created_at (2026-07-13)
+
+The Orders list paginated/sorted server-side by `created_at DESC` while the UI displays, filters and
+client-sorts by `order_date`. An order created earlier but given a later `order_date` (future delivery)
+sank into its `created_at` page and the per-page client sort floated it to the top there — so it looked
+misplaced (e.g. "13 Jul among 9 Jul") and was missing from page 1. `fetchOrders` (`services/orders.ts`)
+now orders by `order_date DESC, created_at DESC` (created_at is only a stable-pagination tiebreaker),
+matching the column that is shown/filtered.
+
+## Reminders page: rich status cell + snooze pauses auto emails (2026-07-13)
+
+The overdue-invoices page (`/overdue`, `pages/OverdueInvoices.tsx`) replaced the bare "reminders sent"
+count with a `ReminderStatusCell`: escalation dots (N of max), last-sent (relative + exact on hover) and a
+projected next-reminder date (`projectNextReminder`/`buildMilestones` in `services/invoiceReminders.ts` — a
+faithful port of the edge-fn ladder; keep in sync). A history timeline modal lists every sent
+`payment_reminder` and drills into the exact branded email via the shared `EmailViewModal` (extracted from
+`Outbox.tsx`). **Behavioural fix:** snoozing an invoice now also pauses its automatic reminder emails —
+`process-invoice-reminders` skips orders with a future `invoice_reminder_state.snoozed_until` (snooze was
+previously in-app-only and the cron ignored it).
+
+## Automatic invoicing — generate on save + 24h PDF email (2026-07-13)
+
+Invoicing is hands-off. `ensureOrderInvoice(orderId)` (`services/documents.ts`, idempotent — **reuses the
+existing number so it never changes on re-download**) is called from `OrderForm` on create (awaited) and
+edit (fire-and-forget), skipping imported orders, so every non-imported order gets its invoice document +
+number the moment it's saved; the Orders invoice-number column refreshes immediately (shared
+`refreshDocInfo` + `onDocGenerated` threaded Orders→OrderDetail→DocumentGenerator).
+
+The **24h auto-send emails the invoice with the actual PDF attached** (not a portal link). Supabase's Deno
+cron can't render `@react-pdf`, so a **Vercel Node function `apps/admin/api/render-invoice.ts`** renders the
+invoice PDF from its live `documents.snapshot`, and the cron fetches + attaches it. That function is
+**pre-bundled by esbuild** (`scripts/build-api.mjs`, wired into `npm run build` → `api/render-invoice.mjs`)
+because `@vercel/node` does NOT bundle relative `../src/*.tsx` imports (a plain `.ts` importing `../src`
+fails at runtime with ERR_MODULE_NOT_FOUND — do not revert). `process-invoice-reminders` gained
+`fetchInvoicePdf` (calls the renderer via `RENDER_ENDPOINT_URL`+`RENDER_SECRET`) and **Step 6** (24h
+initial-invoice send), and now also attaches the invoice PDF to overdue reminders. Step 6 is **opt-in**
+(`client_reminder_config.initial_invoice_send_enabled`, default false), additionally gated on the renderer
+being configured + the reminder business-hours window, uses a narrow 24–72h candidate window (no rollout
+blast), **excludes drafts**, and dedups on a *successful* send (transient failures retry). Sent status shows
+a green "Factuur verzonden" badge (Orders list + OrderDetail; `fetchSendCountsByOrder` gained `invoiceSent`).
+Owner env: Vercel (`SUPABASE_SERVICE_ROLE_KEY`, `RENDER_SECRET`; URL reuses `VITE_SUPABASE_URL`), edge fn
+(`RENDER_ENDPOINT_URL`, `RENDER_SECRET`).
+
+## Customer portal — self-service passwordless login (email OTP) (2026-07-13)
+
+Customers with an email on file log in themselves — **no admin provisioning**. `/portal/login`
+(`portal/PortalLogin.tsx`) is a two-step OTP flow: enter email → branded 8-digit code (Resend) → enter it.
+The public edge fn **`portal-request-code`** (verify_jwt off) auto-provisions the portal account on first
+verified code, gated to active customers. Security model (built + adversarially reviewed twice):
+- **Enumeration-safe**: constant-time generic 200 + `EdgeRuntime.waitUntil` background provision/send.
+- **`portal_login_resolve` RPC** (migration 00083) resolves the customer atomically & injection-safely
+  (auth.users email index, staff guard, **active-link-first** so a customer whose portal email differs from
+  `customers.email` still logs in) — replaces the edge fn's ilike lookup / O(n) listUsers scan / inline
+  classify.
+- **Rate limit** (migrations 00082/00083): `portal_login_can_send` (per-email caps) up front;
+  `portal_login_consume_global` (whole-endpoint daily cap, 2000) consumed **only on a real send** so probes
+  can't lock customers out. `portal_login_attempts`/`portal_login_global` are RLS-locked (service-role only).
+- **INSERT-only** on `customer_accounts` (never re-activates a revoked account — revocation stays owner-only
+  in `manage-portal-account`); sets the `email` column.
+- Client: `portalVerifyCode` uses `verifyOtp({type:'email'})` (verified correct for a
+  `generateLink('magiclink')` OTP). Portal session defaults to `sessionStorage` unless "remember me" ticked.
+- **OWNER MUST disable public email signups** (Supabase Auth → Providers → Email) so only the service-role
+  edge fn can create users; otherwise the gate is bypassable from the browser console.
+
+The old password login is removed from the UI (OTP covers everyone); admin provisioning
+(`PortalManagement` / `manage-portal-account`) still handles disable/revoke.
+
 ## Custom Agents
 
 The project has specialized agents defined in `.claude/agents.md`. Use these for focused reviews and tasks:

@@ -716,3 +716,20 @@ The misleading doc on the unused `lineProfit` helper ("…a line revenue base (e
 **Prevention:** Any price resolution that depends on an async-fetched context (`customerPrices`/`listItems`) must gate the action that consumes it — don't let a product be added before the context loads, especially in edit mode where the reprice effect won't correct it. When "a remembered price didn't apply," first check the **unit type** of the line vs the unit the price was remembered under — different unit = different `customer_prices` row (expected), not a durability bug.
 
 ---
+
+## Orders list: future-dated order appears on the wrong page (2026-07-13)
+
+**Symptom (reported by client):** Order #10581 (Slagerij Atas) appeared when searching by name/number but was missing from the normal Orders list; sorting by date, it showed among 9-Jul orders on page 2 (top), even though its date is 13 Jul.
+**Cause:** `fetchOrders` (`services/orders.ts`) paginated + sorted **server-side by `created_at DESC`**, while the UI displays, filters and client-sorts by **`order_date`**. #10581 was *created* 6 Jul but given `order_date` 13 Jul (future delivery), so it landed in the 6-Jul `created_at` page; the per-page client sort (`useTableSort` default `order_date desc`) then floated it to the top of that page — so it read as "13 Jul among 9 Jul" and was absent from page 1. Search worked because search ignores the paginated sort.
+**Solution (commit `37cf857`):** `fetchOrders` now orders by `order_date DESC, created_at DESC` (created_at only as a stable-pagination tiebreaker), so pagination matches the date the UI shows/filters. All `fetchOrders` consumers group by `order_date`, so the change is correct everywhere.
+**Prevention:** the server-side pagination/sort key MUST match the field the UI displays and filters on; a per-page client sort only reorders the rows already fetched, it can't move a row onto the right page.
+
+## Customer portal self-service OTP login — code-review fixes (2026-07-13)
+
+**Context:** the new public `portal-request-code` edge fn (passwordless email-OTP login) passed an adversarial security review during design, but a post-implementation high-effort review found real defects. Fixed in commit `72ec039` + migration `00083`:
+- **Rate-limit DoS (critical):** the global daily send cap was consumed **before** the customer-existence check, so an unauthenticated attacker POSTing ~500 distinct random emails could trip it and lock every real customer out of login. Fix: split the limiter — `portal_login_can_send` does per-email caps up front; new `portal_login_consume_global` (cap 2000) is consumed **only on a real send** in the background, so probes never touch it.
+- **Custom-portal-email regression:** the flow keyed on `customers.email`, but customers onboarded with a portal auth-email that differs from `customers.email` (via `manage-portal-account`) could no longer log in. Fix: new atomic `portal_login_resolve` RPC resolves the ACTIVE `customer_accounts` link keyed on the auth user's **own** email first, then the unique `customers.email`; it also folds in the staff guard + auth-user lookup (replacing an `ilike` LIKE-injection, an O(n) `listUsers` scan, and inline classify).
+- **Session downgrade:** flipping the portal "remember me" default to session-first silently logged out already-persisted customers on the next token refresh. Fix: a one-time migration in `services/supabase.ts` marks pre-existing localStorage sessions as remembered.
+- **Minor:** `customer_accounts` INSERT now sets the `email` column (owner reset/relink read it); a rate-limited resend now returns a `rateLimited` flag so the UI stops falsely claiming "code sent".
+**Non-issues (verified):** `verifyOtp({type:'email'})` works for a `generateLink('magiclink')` OTP (tested end-to-end); duplicate customer emails are impossible (`UNIQUE(lower(email))`, migration 00030).
+**Prevention:** on a public unauthenticated endpoint, never let cheap probes consume a shared/global budget; resolve identity in one atomic, indexed, injection-safe query rather than app-side loops; when changing a storage default, migrate existing state so live sessions aren't dropped.
