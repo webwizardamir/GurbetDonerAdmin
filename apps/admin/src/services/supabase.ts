@@ -36,7 +36,9 @@ const portalAuthStorage = {
     // The token may live in either store depending on the last remember choice.
     window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key),
   setItem: (key: string, value: string): void => {
-    const remember = window.localStorage.getItem(PORTAL_REMEMBER_KEY) !== 'false'
+    // Default to session-only (dies on tab close) — safer on shared shop devices.
+    // Only persist to localStorage when the customer explicitly ticks "remember me".
+    const remember = window.localStorage.getItem(PORTAL_REMEMBER_KEY) === 'true'
     if (remember) {
       window.localStorage.setItem(key, value)
       window.sessionStorage.removeItem(key)

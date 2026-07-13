@@ -139,6 +139,46 @@ export async function getPortalUser(): Promise<PortalUser | null> {
 }
 
 /**
+ * Self-service passwordless login — STEP 1: request a login code.
+ * Calls the public `portal-request-code` edge fn, which (for a known active
+ * customer) auto-provisions the portal account and emails a 6/8-digit OTP.
+ * ALWAYS resolves without revealing whether the email is a customer
+ * (enumeration-safe); only throws on a genuine network failure so the UI can
+ * offer a retry.
+ */
+export async function portalRequestCode(email: string): Promise<void> {
+  const { error } = await portalSupabase.functions.invoke('portal-request-code', {
+    body: { email: email.trim().toLowerCase() },
+  })
+  if (error) throw error // network/transport error only — the fn itself returns generic 200
+}
+
+/**
+ * Self-service passwordless login — STEP 2: verify the code and open a session.
+ * The OTP comes from `generateLink({type:'magiclink'})`; verifyOtp type 'email'
+ * is the matching pairing. On success reuses the standard customer_accounts
+ * active-gate (via getPortalUser) so only linked/active customers pass.
+ */
+export async function portalVerifyCode(email: string, code: string, remember = true): Promise<PortalUser> {
+  setPortalRemember(remember)
+  const { data, error } = await portalSupabase.auth.verifyOtp({
+    email: email.trim().toLowerCase(),
+    token: code.trim(),
+    type: 'email',
+  })
+  if (error) throw error
+  if (!data.user) throw new Error('Verificatie mislukt')
+
+  await portalSupabase.rpc('touch_portal_last_login')
+  const user = await getPortalUser()
+  if (!user) {
+    await portalSupabase.auth.signOut({ scope: 'local' })
+    throw new Error('Geen actief portaalaccount gevonden voor dit e-mailadres')
+  }
+  return user
+}
+
+/**
  * Request password reset for portal user
  */
 export async function portalResetPassword(email: string): Promise<void> {

@@ -1,19 +1,21 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Mail, Lock, Building2, AlertCircle, Sun, Moon, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Mail, KeyRound, Building2, AlertCircle, Sun, Moon, ArrowLeft } from 'lucide-react'
 import { usePortalAuth } from '../context/PortalAuthContext'
 import LanguageSelector from '../components/LanguageSelector'
 
 export default function PortalLogin() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { signIn, loading, error, clearError } = usePortalAuth()
+  const { requestCode, verifyCode, loading, error, clearError } = usePortalAuth()
 
+  const [step, setStep] = useState<'email' | 'code'>('email')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
+  const [code, setCode] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
+  const [requesting, setRequesting] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains('dark')
   )
@@ -24,16 +26,41 @@ export default function PortalLogin() {
     localStorage.setItem('theme', isDark ? 'light' : 'dark')
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Step 1 — request a login code. Always advances to the code step on success
+  // (enumeration-safe: we never reveal whether the email is a customer).
+  const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault()
     clearError()
-
+    setNotice(null)
+    setRequesting(true)
     try {
-      await signIn(email, password, rememberMe)
+      await requestCode(email)
+      setStep('code')
+      setNotice(t('portal.login.codeSent', { email }))
+    } catch {
+      setNotice(t('portal.login.requestError'))
+    } finally {
+      setRequesting(false)
+    }
+  }
+
+  // Step 2 — verify the code and open the session.
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    clearError()
+    try {
+      await verifyCode(email, code, rememberMe)
       navigate('/portal')
     } catch {
-      // Error is handled by context
+      // Error surfaced by context (invalid/expired code).
     }
+  }
+
+  const backToEmail = () => {
+    clearError()
+    setNotice(null)
+    setCode('')
+    setStep('email')
   }
 
   return (
@@ -112,14 +139,14 @@ export default function PortalLogin() {
 
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {t('portal.login.heading')}
+                {step === 'email' ? t('portal.login.heading') : t('portal.login.codeHeading')}
               </h2>
               <p className="text-slate-500 dark:text-slate-400 mt-2">
-                {t('portal.login.subtitle')}
+                {step === 'email' ? t('portal.login.subtitle') : t('portal.login.codeSubtitle')}
               </p>
             </div>
 
-            {/* Error Message */}
+            {/* Error Message (invalid/expired code, etc.) */}
             {error && (
               <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3 text-red-700 dark:text-red-400">
                 <AlertCircle className="w-5 h-5 shrink-0" />
@@ -127,86 +154,106 @@ export default function PortalLogin() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  {t('portal.login.email')}
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('portal.login.emailPlaceholder')}
-                    required
-                    autoComplete="email"
-                    inputMode="email"
-                    autoFocus
-                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
+            {/* Generic notice (enumeration-safe "we sent a code") */}
+            {notice && !error && (
+              <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3 text-green-700 dark:text-green-400">
+                <Mail className="w-5 h-5 shrink-0" />
+                <p className="text-sm">{notice}</p>
               </div>
+            )}
 
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  {t('portal.login.password')}
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            {step === 'email' ? (
+              <form onSubmit={handleRequestCode} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    {t('portal.login.email')}
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={t('portal.login.emailPlaceholder')}
+                      required
+                      autoComplete="email"
+                      inputMode="email"
+                      autoFocus
+                      className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
                   <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('portal.login.passwordPlaceholder')}
-                    required
-                    autoComplete="current-password"
-                    className="w-full pl-12 pr-12 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-2 focus:ring-green-500 cursor-pointer"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((s) => !s)}
-                    aria-label={t(showPassword ? 'portal.login.hidePassword' : 'portal.login.showPassword')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {t('portal.login.rememberMe')}
+                  </span>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={requesting}
+                  className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
+                >
+                  {requesting ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" />{t('portal.login.sending')}</>
+                  ) : (
+                    t('portal.login.sendCode')
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerify} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    {t('portal.login.codeLabel')}
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                      placeholder={t('portal.login.codePlaceholder')}
+                      required
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                      autoFocus
+                      className="w-full pl-12 pr-4 py-3 text-center text-lg tracking-[0.4em] font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 placeholder:tracking-normal placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || code.length < 6}
+                  className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
+                >
+                  {loading ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" />{t('portal.login.verifying')}</>
+                  ) : (
+                    t('portal.login.verify')
+                  )}
+                </button>
+
+                <div className="flex items-center justify-between text-sm">
+                  <button type="button" onClick={backToEmail} className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                    <ArrowLeft className="w-4 h-4" />{t('portal.login.changeEmail')}
+                  </button>
+                  <button type="button" onClick={() => handleRequestCode(new Event('submit') as unknown as React.FormEvent)} disabled={requesting} className="text-green-600 dark:text-green-400 hover:underline disabled:opacity-50">
+                    {t('portal.login.resend')}
                   </button>
                 </div>
-              </div>
+              </form>
+            )}
 
-              {/* Remember me */}
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-2 focus:ring-green-500 cursor-pointer"
-                />
-                <span className="text-sm text-slate-600 dark:text-slate-400">
-                  {t('portal.login.rememberMe')}
-                </span>
-              </label>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {t('portal.login.signingIn')}
-                  </>
-                ) : (
-                  t('portal.login.signIn')
-                )}
-              </button>
-            </form>
-
-            {/* No account / forgot password → contact us */}
+            {/* No account → contact us (with self-service hint) */}
             <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-400">
               <p className="font-medium text-slate-700 dark:text-slate-300">{t('portal.login.noAccount')}</p>
               <p className="mt-1">

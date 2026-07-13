@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo, type ReactNode } from 'react'
 import { portalSupabase } from '../services/supabase'
-import { getPortalUser, portalSignIn, portalSignOut, type PortalUser } from '../services/portalAuth'
+import { getPortalUser, portalSignIn, portalSignOut, portalRequestCode, portalVerifyCode, type PortalUser } from '../services/portalAuth'
 
 // Debug logging - only in development
 const DEBUG = import.meta.env.DEV
@@ -11,6 +11,10 @@ interface PortalAuthContextType {
   loading: boolean
   error: string | null
   signIn: (email: string, password: string, remember?: boolean) => Promise<void>
+  /** Passwordless step 1 — email a login code (enumeration-safe; never throws on unknown email). */
+  requestCode: (email: string) => Promise<void>
+  /** Passwordless step 2 — verify the code and open a session. */
+  verifyCode: (email: string, code: string, remember?: boolean) => Promise<void>
   signOut: () => Promise<void>
   clearError: () => void
 }
@@ -139,6 +143,25 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const requestCode = useCallback(async (email: string) => {
+    setError(null)
+    await portalRequestCode(email)
+  }, [])
+
+  const verifyCode = useCallback(async (email: string, code: string, remember = true) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const portalUser = await portalVerifyCode(email, code, remember)
+      setUser(portalUser)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Verificatie mislukt')
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const signOut = useCallback(async () => {
     setLoading(true)
     try {
@@ -154,8 +177,8 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
   const clearError = useCallback(() => setError(null), [])
 
   const value = useMemo(
-    () => ({ user, loading, error, signIn, signOut, clearError }),
-    [user, loading, error, signIn, signOut, clearError],
+    () => ({ user, loading, error, signIn, requestCode, verifyCode, signOut, clearError }),
+    [user, loading, error, signIn, requestCode, verifyCode, signOut, clearError],
   )
 
   return (
