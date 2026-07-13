@@ -275,6 +275,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
       items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, discount_amount, discount_type, discount_value, tax_rate, tax_amount, total, unit_type, notes),
       refunds:order_refunds(id, woo_refund_id, woo_credit_note_number, refund_date, amount, reason)
     `)
+    .order('order_date', { ascending: false })
     .order('created_at', { ascending: false })
 
   query = filters.trashed ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null)
