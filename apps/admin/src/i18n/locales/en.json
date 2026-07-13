@@ -1802,15 +1802,49 @@
       "due": "Due date",
       "overdue": "Overdue",
       "reminders": "Reminders",
+      "reminderStatus": "Reminders",
       "actions": "Actions"
     },
     "actions": {
       "sendReminder": "Send reminder",
       "viewInvoice": "View invoice",
+      "history": "History",
       "snooze": "Snooze",
       "unsnooze": "Resume",
       "markPaid": "Mark as paid",
       "optOut": "Stop reminders"
+    },
+    "reminderStatus": {
+      "none": "Not sent yet",
+      "progress": "{{sent}} of {{total}} sent",
+      "last": "Last: {{rel}}",
+      "neverSent": "No reminder yet",
+      "aria": "{{sent}} of {{total}} reminders sent — view history"
+    },
+    "rel": {
+      "today": "today",
+      "yesterday": "yesterday",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago",
+      "weeksAgo_one": "{{count}} week ago",
+      "weeksAgo_other": "{{count}} weeks ago",
+      "monthsAgo_one": "{{count}} month ago",
+      "monthsAgo_other": "{{count}} months ago"
+    },
+    "next": {
+      "on": "Next: {{date}}",
+      "due": "Due now",
+      "manual": "Manual",
+      "noEmail": "No email",
+      "done": "Completed",
+      "mayShift": "This date may shift if a manual reminder is sent or the schedule changes."
+    },
+    "autoOffBanner": "Automatic reminders are off — sending is manual.",
+    "autoOffCta": "Settings",
+    "history": {
+      "title": "Sent reminders",
+      "empty": "No reminders sent yet for this invoice.",
+      "viewOrder": "Open order"
     },
     "markPaid": {
       "title": "Mark invoice as paid",

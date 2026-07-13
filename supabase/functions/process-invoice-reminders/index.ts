@@ -166,7 +166,18 @@ serve(async (req) => {
       .not('status', 'in', '(completed,cancelled,refunded)')
       .eq('reminders_opted_out', false)
 
+    // Active snoozes — a snoozed invoice must NOT receive automatic reminders
+    // until the snooze expires (mirrors the in-app "Gesnoozed" state). Batch-
+    // loaded once to avoid an N+1 in the per-order loop.
+    const nowISO = new Date().toISOString()
+    const { data: snoozeRows } = await admin
+      .from('invoice_reminder_state')
+      .select('order_id')
+      .gt('snoozed_until', nowISO)
+    const snoozedSet = new Set((snoozeRows ?? []).map((r) => (r as { order_id: string }).order_id))
+
     for (const o of (orders ?? []) as Record<string, unknown>[]) {
+      if (snoozedSet.has(o.id as string)) { result.clientSkipped++; continue }
       const customer = (o.customer ?? {}) as Record<string, unknown>
       const email = customer.email as string | undefined
       if (!email || customer.reminders_opted_out) { result.clientSkipped++; continue }

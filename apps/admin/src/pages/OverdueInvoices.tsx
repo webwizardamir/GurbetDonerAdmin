@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -9,17 +9,29 @@ import {
   CheckCircle2,
   MoreVertical,
   Loader2,
-  ExternalLink,
   RotateCcw,
   BellOff,
   FileText,
+  History,
+  CalendarClock,
+  Check,
+  Settings,
 } from 'lucide-react'
 import { useOverdueInvoices } from '../hooks/useOverdueInvoices'
-import { formatPrice, formatDate } from '../utils/format'
+import { formatPrice, formatDate, formatDateTime } from '../utils/format'
+import {
+  projectNextReminder,
+  type NextReminder,
+  relTimeKey,
+} from '../services/invoiceReminders'
+import { fetchDocumentSends } from '../services/documentEmail'
+import { fetchDocumentSettings } from '../services/documents'
 import DocumentGenerator from '../components/documents/DocumentGenerator'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import DropdownMenu from '../components/ui/DropdownMenu'
-import type { OverdueInvoice } from '../types'
+import Modal from '../components/ui/Modal'
+import EmailViewModal from '../components/documents/EmailViewModal'
+import type { ClientReminderConfig, DocumentSend, DocumentSettings, OverdueInvoice } from '../types'
 
 type Filter = 'active' | 'snoozed' | 'all'
 
@@ -28,7 +40,7 @@ const SNOOZE_PRESETS = [3, 7, 14]
 
 export default function OverdueInvoices() {
   const { t } = useTranslation()
-  const { invoices, active, snoozed, loading, error, refresh, snooze, unsnooze, markPaid, optOut } =
+  const { invoices, config, active, snoozed, loading, error, refresh, snooze, unsnooze, markPaid, optOut } =
     useOverdueInvoices()
 
   const [filter, setFilter] = useState<Filter>('active')
@@ -36,6 +48,7 @@ export default function OverdueInvoices() {
   const [sendFor, setSendFor] = useState<OverdueInvoice | null>(null)
   const [viewFor, setViewFor] = useState<OverdueInvoice | null>(null)
   const [payFor, setPayFor] = useState<OverdueInvoice | null>(null)
+  const [historyFor, setHistoryFor] = useState<OverdueInvoice | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
   const rows = filter === 'active' ? active : filter === 'snoozed' ? snoozed : invoices
@@ -78,13 +91,6 @@ export default function OverdueInvoices() {
     try { await markPaid(id) } finally { setBusy(null) }
   }
 
-  const severity = (days: number) =>
-    days > 30
-      ? 'text-red-700 dark:text-red-400'
-      : days > 14
-        ? 'text-orange-600 dark:text-orange-400'
-        : 'text-amber-600 dark:text-amber-400'
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -98,6 +104,20 @@ export default function OverdueInvoices() {
       {error && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
           <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
+      {/* Auto-send off — explains the "manual only" state once, globally. */}
+      {!config.auto_send_enabled && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+          <BellOff className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <p className="flex-1 text-sm text-amber-800 dark:text-amber-300">{t('overdue.autoOffBanner')}</p>
+          <Link
+            to="/settings/documents?tab=reminders"
+            className="shrink-0 inline-flex items-center gap-1 text-sm font-medium text-amber-800 dark:text-amber-300 hover:underline"
+          >
+            <Settings className="w-4 h-4" />{t('overdue.autoOffCta')}
+          </Link>
         </div>
       )}
 
@@ -129,21 +149,29 @@ export default function OverdueInvoices() {
         />
       </div>
 
-      {/* Filter tabs */}
+      {/* Filter tabs with count pills */}
       <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700">
-        {(['active', 'snoozed', 'all'] as Filter[]).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              filter === f
-                ? 'border-green-500 text-green-600 dark:text-green-400'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
-            }`}
-          >
-            {t(`overdue.filters.${f}`)}
-          </button>
-        ))}
+        {(['active', 'snoozed', 'all'] as Filter[]).map(f => {
+          const n = f === 'active' ? active.length : f === 'snoozed' ? snoozed.length : invoices.length
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors inline-flex items-center gap-2 ${
+                filter === f
+                  ? 'border-green-500 text-green-600 dark:text-green-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+              }`}
+            >
+              {t(`overdue.filters.${f}`)}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full tabular-nums ${
+                filter === f
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+              }`}>{n}</span>
+            </button>
+          )
+        })}
       </div>
 
       {rows.length === 0 ? (
@@ -178,13 +206,39 @@ export default function OverdueInvoices() {
                     <p className={`text-xs font-semibold ${severity(inv.days_overdue)}`}>{t('overdue.daysLabel', { count: inv.days_overdue })}</p>
                   </div>
                 </div>
+
+                {/* Reminder status strip — tap to open history */}
+                <button
+                  type="button"
+                  onClick={() => setHistoryFor(inv)}
+                  aria-label={t('overdue.reminderStatus.aria', { sent: Math.min(inv.reminders_sent, config.max_count), total: config.max_count })}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 px-3 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5">
+                      <LadderDots sent={inv.reminders_sent} total={config.max_count} />
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        {inv.reminders_sent === 0
+                          ? t('overdue.reminderStatus.none')
+                          : t('overdue.reminderStatus.progress', { sent: Math.min(inv.reminders_sent, config.max_count), total: config.max_count })}
+                      </span>
+                    </span>
+                    <NextBadge next={projectNextReminder(inv, config)} />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {inv.last_reminder_at ? lastSentLabel(t, inv.last_reminder_at) : t('overdue.reminderStatus.neverSent')}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400 shrink-0">
+                      <History className="w-3.5 h-3.5" />{t('overdue.actions.history')}
+                    </span>
+                  </div>
+                </button>
+
                 {!inv.customer_email && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">{t('overdue.noEmail')}</p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setViewFor(inv)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg">
-                    <FileText className="w-3.5 h-3.5" />{t('overdue.actions.viewInvoice')}
-                  </button>
                   {isSnoozed ? (
                     <button onClick={() => doUnsnooze(inv.order_id)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg">
                       <RotateCcw className="w-3.5 h-3.5" />{t('overdue.actions.unsnooze')}
@@ -194,6 +248,9 @@ export default function OverdueInvoices() {
                       <Send className="w-3.5 h-3.5" />{t('overdue.actions.sendReminder')}
                     </button>
                   )}
+                  <button onClick={() => setViewFor(inv)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg">
+                    <FileText className="w-3.5 h-3.5" />{t('overdue.actions.viewInvoice')}
+                  </button>
                   <button onClick={() => doSnooze(inv.order_id, 7)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg">
                     <Clock className="w-3.5 h-3.5" />{t('overdue.snoozeDays', { count: 7 })}
                   </button>
@@ -216,8 +273,7 @@ export default function OverdueInvoices() {
                 <Th>{t('overdue.cols.customer')}</Th>
                 <Th className="text-right">{t('overdue.cols.amount')}</Th>
                 <Th>{t('overdue.cols.due')}</Th>
-                <Th className="text-center">{t('overdue.cols.overdue')}</Th>
-                <Th className="text-center">{t('overdue.cols.reminders')}</Th>
+                <Th>{t('overdue.cols.reminderStatus')}</Th>
                 <Th className="text-right">{t('overdue.cols.actions')}</Th>
               </tr>
             </thead>
@@ -226,16 +282,15 @@ export default function OverdueInvoices() {
                 const isSnoozed = !!inv.snoozed_until && new Date(inv.snoozed_until).getTime() > Date.now()
                 return (
                   <tr key={inv.order_id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 align-top text-sm">
                       <Link
                         to={`/orders/${inv.order_id}/edit`}
-                        className="font-medium text-slate-900 dark:text-white hover:text-green-600 dark:hover:text-green-400 inline-flex items-center gap-1"
+                        className="font-medium text-slate-900 dark:text-white hover:text-green-600 dark:hover:text-green-400"
                       >
                         {inv.invoice_number || inv.order_number}
-                        <ExternalLink className="w-3 h-3 opacity-50" />
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 align-top text-sm">
                       <Link
                         to={`/customers/${inv.customer_id}`}
                         className="text-slate-700 dark:text-slate-300 hover:text-green-600 dark:hover:text-green-400"
@@ -248,30 +303,23 @@ export default function OverdueInvoices() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right font-medium text-slate-900 dark:text-white">
+                    <td className="px-4 py-3 align-top text-sm text-right font-medium text-slate-900 dark:text-white tabular-nums">
                       {formatPrice(inv.total)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-                      {formatDate(inv.invoice_due_date)}
+                    {/* Due date + overdue severity (merged column) */}
+                    <td className="px-4 py-3 align-top text-sm">
+                      <div className="text-slate-600 dark:text-slate-400 tabular-nums">{formatDate(inv.invoice_due_date)}</div>
+                      <div className={`text-xs font-semibold ${severity(inv.days_overdue)}`}>
+                        {t('overdue.daysLabel', { count: inv.days_overdue })}
+                      </div>
                     </td>
-                    <td className={`px-4 py-3 text-sm text-center font-semibold ${severity(inv.days_overdue)}`}>
-                      {t('overdue.daysLabel', { count: inv.days_overdue })}
+                    {/* Rich reminder-status cell */}
+                    <td className="px-4 py-3 align-top">
+                      <ReminderStatusCell inv={inv} config={config} onHistory={() => setHistoryFor(inv)} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-center text-slate-600 dark:text-slate-400">
-                      {inv.reminders_sent > 0 ? inv.reminders_sent : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right">
+                    <td className="px-4 py-3 align-top text-sm text-right">
                       <div className="inline-flex items-center gap-1 relative">
                         {busy === inv.order_id && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
-                        <button
-                          onClick={() => setViewFor(inv)}
-                          aria-label={t('overdue.actions.viewInvoice')}
-                          title={t('overdue.actions.viewInvoice')}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          {t('overdue.actions.viewInvoice')}
-                        </button>
                         {isSnoozed ? (
                           <button
                             onClick={() => doUnsnooze(inv.order_id)}
@@ -295,6 +343,8 @@ export default function OverdueInvoices() {
                           isOpen={menuFor === inv.order_id}
                           onToggle={() => setMenuFor(menuFor === inv.order_id ? null : inv.order_id)}
                           onClose={() => setMenuFor(null)}
+                          onViewInvoice={() => { setMenuFor(null); setViewFor(inv) }}
+                          onHistory={() => { setMenuFor(null); setHistoryFor(inv) }}
                           onSnooze={(d) => doSnooze(inv.order_id, d)}
                           onMarkPaid={() => { setMenuFor(null); setPayFor(inv) }}
                           onOptOut={() => doOptOut(inv.order_id)}
@@ -333,6 +383,10 @@ export default function OverdueInvoices() {
         />
       )}
 
+      {historyFor && (
+        <ReminderHistoryModal inv={historyFor} onClose={() => setHistoryFor(null)} />
+      )}
+
       <ConfirmDialog
         open={!!payFor}
         title={t('overdue.markPaid.title')}
@@ -348,13 +402,249 @@ export default function OverdueInvoices() {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Reminder-status cell (desktop) — replaces the bare "reminders sent" count.
+// ---------------------------------------------------------------------------
+function ReminderStatusCell({ inv, config, onHistory }: {
+  inv: OverdueInvoice; config: ClientReminderConfig; onHistory: () => void
+}) {
+  const { t } = useTranslation()
+  const total = config.max_count
+  const next = projectNextReminder(inv, config)
+
+  return (
+    <button
+      type="button"
+      onClick={onHistory}
+      aria-label={t('overdue.reminderStatus.aria', { sent: Math.min(inv.reminders_sent, total), total })}
+      className="group w-full -mx-1 rounded-lg px-2 py-1 text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+    >
+      {/* Line 1 — ladder progress */}
+      <span className="flex items-center gap-1.5">
+        <LadderDots sent={inv.reminders_sent} total={total} />
+        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+          {inv.reminders_sent === 0
+            ? t('overdue.reminderStatus.none')
+            : t('overdue.reminderStatus.progress', { sent: Math.min(inv.reminders_sent, total), total })}
+        </span>
+      </span>
+
+      {/* Line 2 — last sent (relative; exact on hover) */}
+      {inv.last_reminder_at ? (
+        <span
+          className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"
+          title={formatDateTime(inv.last_reminder_at)}
+        >
+          <Check className="w-3 h-3 shrink-0 text-slate-400 dark:text-slate-500" />
+          {lastSentLabel(t, inv.last_reminder_at)}
+        </span>
+      ) : (
+        <span className="mt-0.5 block text-xs text-slate-400 dark:text-slate-500">
+          {t('overdue.reminderStatus.neverSent')}
+        </span>
+      )}
+
+      {/* Line 3 — next reminder */}
+      <span className="mt-1 flex items-center">
+        <NextBadge next={next} />
+      </span>
+    </button>
+  )
+}
+
+// Filled dot per sent reminder, hollow for remaining ladder rungs.
+function LadderDots({ sent, total }: { sent: number; total: number }) {
+  const rungs = Math.max(total, sent, 1)
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+      {Array.from({ length: rungs }).map((_, i) => (
+        <span
+          key={i}
+          className={`h-1.5 w-1.5 rounded-full ${
+            i < sent ? 'bg-green-500 dark:bg-green-400' : 'bg-slate-200 dark:bg-slate-600'
+          }`}
+        />
+      ))}
+    </span>
+  )
+}
+
+function NextBadge({ next }: { next: NextReminder }) {
+  const { t } = useTranslation()
+  const base = 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium'
+  switch (next.kind) {
+    case 'scheduled':
+      return (
+        <span
+          className={`${base} bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400`}
+          title={next.mayShift ? t('overdue.next.mayShift') : formatDateTime(next.date.toISOString())}
+        >
+          <CalendarClock className="w-3 h-3" />
+          {t('overdue.next.on', { date: formatDate(next.date.toISOString()) })}
+          {next.mayShift && <span aria-hidden="true">*</span>}
+        </span>
+      )
+    case 'due':
+      return (
+        <span className={`${base} bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400`}>
+          <Clock className="w-3 h-3" />{t('overdue.next.due')}
+        </span>
+      )
+    case 'no-email':
+      return (
+        <span className={`${base} bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400`}>
+          <BellOff className="w-3 h-3" />{t('overdue.next.noEmail')}
+        </span>
+      )
+    case 'manual':
+      return (
+        <span className={`${base} bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400`}>
+          <BellOff className="w-3 h-3" />{t('overdue.next.manual')}
+        </span>
+      )
+    case 'done':
+      return (
+        <span className={`${base} bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400`}>
+          <Check className="w-3 h-3" />{t('overdue.next.done')}
+        </span>
+      )
+  }
+}
+
+// "Laatste: 3 dagen geleden" — relative text; exact stamp is shown in a tooltip/modal.
+function lastSentLabel(t: (k: string, o?: Record<string, unknown>) => string, iso: string): string {
+  const { key, count } = relTimeKey(iso)
+  return t('overdue.reminderStatus.last', { rel: t(`overdue.rel.${key}`, { count }) })
+}
+
+// ---------------------------------------------------------------------------
+// Sent-reminder history — timeline modal, lazy-loaded on open.
+// ---------------------------------------------------------------------------
+function ReminderHistoryModal({ inv, onClose }: { inv: OverdueInvoice; onClose: () => void }) {
+  const { t } = useTranslation()
+  const [sends, setSends] = useState<DocumentSend[] | null>(null)
+  const [settings, setSettings] = useState<DocumentSettings | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<DocumentSend | null>(null)
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const rows = await fetchDocumentSends({ orderId: inv.order_id })
+        setSends(rows.filter(s => s.document_type === 'payment_reminder'))
+      } catch (e) {
+        setError((e as Error).message)
+      }
+    })()
+    // Branding for the drill-down email preview — non-fatal.
+    void (async () => {
+      try { setSettings(await fetchDocumentSettings()) } catch { /* plain preview */ }
+    })()
+  }, [inv.order_id])
+
+  return (
+    <>
+      <Modal
+        isOpen
+        onClose={onClose}
+        maxWidth="max-w-lg"
+        title={
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+              {t('overdue.history.title')}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+              {inv.invoice_number || inv.order_number} · {inv.customer_name}
+            </p>
+          </div>
+        }
+      >
+        <div className="flex-1 overflow-y-auto p-5">
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300">
+              {error}
+            </div>
+          )}
+
+          {sends === null ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+            </div>
+          ) : sends.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <BellOff className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('overdue.history.empty')}</p>
+            </div>
+          ) : (
+            <ol className="relative space-y-4 pl-6 before:absolute before:left-[7px] before:top-1 before:bottom-1 before:w-px before:bg-slate-200 dark:before:bg-slate-700">
+              {sends.map(s => (
+                <li key={s.id} className="relative">
+                  <span className={`absolute -left-[22px] top-1 h-3.5 w-3.5 rounded-full ring-4 ring-white dark:ring-slate-800 ${
+                    s.status === 'sent' ? 'bg-green-500'
+                    : s.status === 'failed' ? 'bg-red-500'
+                    : s.status === 'bounced' ? 'bg-orange-500' : 'bg-amber-500'
+                  }`} />
+                  <button
+                    type="button"
+                    onClick={() => setSelected(s)}
+                    className="w-full text-left rounded-lg -mx-2 px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate" title={s.subject}>
+                          {s.subject}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                          {formatDateTime(s.sent_at ?? s.created_at)}
+                          {s.error_message && (
+                            <span className="ml-1 text-red-600 dark:text-red-400">· {s.error_message}</span>
+                          )}
+                        </p>
+                      </div>
+                      <span className={`shrink-0 text-[11px] font-medium px-1.5 py-0.5 rounded-md ${
+                        s.status === 'sent' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : s.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        : s.status === 'bounced' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      }`}>
+                        {t(`outbox.status.${s.status}`)}
+                      </span>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 p-5 border-t border-slate-200 dark:border-slate-700">
+          <Link
+            to={`/orders/${inv.order_id}/edit`}
+            className="text-sm text-green-600 dark:text-green-400 hover:underline"
+          >
+            {t('overdue.history.viewOrder')}
+          </Link>
+          <button onClick={onClose} className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors">
+            {t('common.close')}
+          </button>
+        </div>
+      </Modal>
+
+      {selected && (
+        <EmailViewModal send={selected} settings={settings} onClose={() => setSelected(null)} />
+      )}
+    </>
+  )
+}
+
 // Row overflow menu. Uses the portal-based DropdownMenu so the panel escapes the
-// table/card overflow and stacking context (the old absolute menu was clipped to
-// just the first item) and flips up when near the viewport bottom.
+// table/card overflow and stacking context and flips up when near the viewport bottom.
 function RowActionsMenu({
   isOpen,
   onToggle,
   onClose,
+  onViewInvoice,
+  onHistory,
   onSnooze,
   onMarkPaid,
   onOptOut,
@@ -362,6 +652,8 @@ function RowActionsMenu({
   isOpen: boolean
   onToggle: () => void
   onClose: () => void
+  onViewInvoice: () => void
+  onHistory: () => void
   onSnooze: (days: number) => void
   onMarkPaid: () => void
   onOptOut: () => void
@@ -382,7 +674,22 @@ function RowActionsMenu({
       >
         <MoreVertical className="w-4 h-4" />
       </button>
-      <DropdownMenu isOpen={isOpen} onClose={onClose} anchorRef={triggerRef} align="right" width={176}>
+      <DropdownMenu isOpen={isOpen} onClose={onClose} anchorRef={triggerRef} align="right" width={192}>
+        <button
+          onClick={onViewInvoice}
+          className="w-full px-3 py-1.5 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 inline-flex items-center gap-2"
+        >
+          <FileText className="w-4 h-4" />
+          {t('overdue.actions.viewInvoice')}
+        </button>
+        <button
+          onClick={onHistory}
+          className="w-full px-3 py-1.5 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 inline-flex items-center gap-2"
+        >
+          <History className="w-4 h-4" />
+          {t('overdue.actions.history')}
+        </button>
+        <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
         <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase">
           {t('overdue.actions.snooze')}
         </div>
@@ -422,6 +729,13 @@ function Th({ children, className = '' }: { children: React.ReactNode; className
     </th>
   )
 }
+
+const severity = (days: number) =>
+  days > 30
+    ? 'text-red-700 dark:text-red-400'
+    : days > 14
+      ? 'text-orange-600 dark:text-orange-400'
+      : 'text-amber-600 dark:text-amber-400'
 
 const TONES: Record<string, string> = {
   red: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',

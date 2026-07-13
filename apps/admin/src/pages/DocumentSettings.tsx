@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Save,
@@ -41,7 +42,12 @@ const tabs: TabConfig[] = [
 export default function DocumentSettingsPage() {
   const { t } = useTranslation()
   const { settings, loading, saving, error, save } = useDocumentSettings()
-  const [activeTab, setActiveTab] = useState<TabId>('company')
+  const [searchParams] = useSearchParams()
+  // Allow deep-linking to a specific tab, e.g. /settings/documents?tab=reminders
+  const initialTab = tabs.some(tab => tab.id === searchParams.get('tab'))
+    ? (searchParams.get('tab') as TabId)
+    : 'company'
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab)
   const [formData, setFormData] = useState<Partial<DocumentSettings>>({})
   const [saveSuccess, setSaveSuccess] = useState(false)
 

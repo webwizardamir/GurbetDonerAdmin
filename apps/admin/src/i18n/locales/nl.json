@@ -1802,15 +1802,49 @@
       "due": "Vervaldatum",
       "overdue": "Verlopen",
       "reminders": "Herinneringen",
+      "reminderStatus": "Herinneringen",
       "actions": "Acties"
     },
     "actions": {
       "sendReminder": "Herinnering sturen",
       "viewInvoice": "Factuur bekijken",
+      "history": "Geschiedenis",
       "snooze": "Snoozen",
       "unsnooze": "Hervatten",
       "markPaid": "Markeer als betaald",
       "optOut": "Geen herinneringen meer"
+    },
+    "reminderStatus": {
+      "none": "Nog niet verzonden",
+      "progress": "{{sent}} van {{total}} verzonden",
+      "last": "Laatste: {{rel}}",
+      "neverSent": "Nog geen herinnering",
+      "aria": "{{sent}} van {{total}} herinneringen verzonden — bekijk geschiedenis"
+    },
+    "rel": {
+      "today": "vandaag",
+      "yesterday": "gisteren",
+      "daysAgo_one": "{{count}} dag geleden",
+      "daysAgo_other": "{{count}} dagen geleden",
+      "weeksAgo_one": "{{count}} week geleden",
+      "weeksAgo_other": "{{count}} weken geleden",
+      "monthsAgo_one": "{{count}} maand geleden",
+      "monthsAgo_other": "{{count}} maanden geleden"
+    },
+    "next": {
+      "on": "Volgende: {{date}}",
+      "due": "Nu gepland",
+      "manual": "Handmatig",
+      "noEmail": "Geen e-mail",
+      "done": "Voltooid",
+      "mayShift": "Deze datum kan verschuiven bij een handmatige herinnering of een wijziging in het schema."
+    },
+    "autoOffBanner": "Automatische herinneringen staan uit — verzenden gaat handmatig.",
+    "autoOffCta": "Instellingen",
+    "history": {
+      "title": "Verzonden herinneringen",
+      "empty": "Nog geen herinneringen verzonden voor deze factuur.",
+      "viewOrder": "Order openen"
     },
     "markPaid": {
       "title": "Factuur als betaald markeren",

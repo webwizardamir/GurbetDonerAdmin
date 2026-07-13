@@ -5,8 +5,10 @@ import {
   clearInvoiceReminderSnooze,
   markInvoicePaid,
   setInvoiceReminderOptOut,
+  DEFAULT_CLIENT_REMINDER_CONFIG,
 } from '../services/invoiceReminders'
-import type { OverdueInvoice } from '../types'
+import { fetchDocumentSettings } from '../services/documents'
+import type { ClientReminderConfig, OverdueInvoice } from '../types'
 
 /**
  * Loads the overdue-invoice work queue. Refreshes on mount and whenever the
@@ -15,6 +17,7 @@ import type { OverdueInvoice } from '../types'
  */
 export function useOverdueInvoices() {
   const [invoices, setInvoices] = useState<OverdueInvoice[]>([])
+  const [config, setConfig] = useState<ClientReminderConfig>(DEFAULT_CLIENT_REMINDER_CONFIG)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const lastLoadRef = useRef(0)
@@ -35,6 +38,17 @@ export function useOverdueInvoices() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Escalation schedule — loaded once so the page can project the next
+  // reminder date and "N of max" progress. Non-fatal: keep the default config.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const s = await fetchDocumentSettings()
+        if (s?.client_reminder_config) setConfig({ ...DEFAULT_CLIENT_REMINDER_CONFIG, ...s.client_reminder_config })
+      } catch { /* keep default config */ }
+    })()
+  }, [])
 
   // Resurface on return to the app, but throttle rapid focus events (~30s).
   useEffect(() => {
@@ -77,6 +91,7 @@ export function useOverdueInvoices() {
 
   return {
     invoices,
+    config,
     active,
     snoozed,
     activeCount: active.length,
