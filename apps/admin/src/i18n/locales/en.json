@@ -1611,7 +1611,7 @@
       "welcome": "Welcome to the Customer Portal",
       "title": "Sign in to your account",
       "heading": "Customer Portal",
-      "subtitle": "Enter your email — we'll send you a login code",
+      "subtitle": "Enter your email and we'll send you a login code",
       "email": "Email address",
       "emailPlaceholder": "name@company.com",
       "rememberMe": "Keep me signed in on this device",
