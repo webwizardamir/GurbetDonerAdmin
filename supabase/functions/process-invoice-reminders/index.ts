@@ -30,7 +30,7 @@ interface ReminderConfig {
   max_count: number
   steps: ReminderStep[]
   // Auto-email the invoice (PDF attached) ~24h after the order is created.
-  // Defaults to true when absent. Toggled in Settings → Reminders.
+  // OPT-IN (treated as false when absent). Toggled in Settings → Reminders.
   initial_invoice_send_enabled?: boolean
 }
 interface Template { subject: string; body: string }
