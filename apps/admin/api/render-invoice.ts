@@ -34,7 +34,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const orderId = (req.body?.orderId ?? '') as string
   if (!orderId) return res.status(400).json({ error: 'missing orderId' })
 
-  const SUPABASE_URL = process.env.SUPABASE_URL
+  // URL isn't secret — reuse the app's existing VITE_SUPABASE_URL if a plain
+  // SUPABASE_URL isn't set, so the owner only has to add the (secret) service-role
+  // key + RENDER_SECRET to Vercel. The service-role key must NEVER be VITE_-prefixed
+  // (that would leak it into the browser bundle).
+  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
   const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!SUPABASE_URL || !SERVICE_ROLE) {
     return res.status(500).json({ error: 'supabase env not configured' })
