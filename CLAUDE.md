@@ -1032,7 +1032,7 @@ faithful port of the edge-fn ladder; keep in sync). A history timeline modal lis
 `process-invoice-reminders` skips orders with a future `invoice_reminder_state.snoozed_until` (snooze was
 previously in-app-only and the cron ignored it).
 
-## Automatic invoicing — generate on save + 24h PDF email (2026-07-13)
+## Automatic invoicing — generate on save + 24h PDF email (2026-07-13, window fixed 2026-07-14)
 
 Invoicing is hands-off. `ensureOrderInvoice(orderId)` (`services/documents.ts`, idempotent — **reuses the
 existing number so it never changes on re-download**) is called from `OrderForm` on create (awaited) and
@@ -1049,11 +1049,20 @@ fails at runtime with ERR_MODULE_NOT_FOUND — do not revert). `process-invoice-
 `fetchInvoicePdf` (calls the renderer via `RENDER_ENDPOINT_URL`+`RENDER_SECRET`) and **Step 6** (24h
 initial-invoice send), and now also attaches the invoice PDF to overdue reminders. Step 6 is **opt-in**
 (`client_reminder_config.initial_invoice_send_enabled`, default false), additionally gated on the renderer
-being configured + the reminder business-hours window, uses a narrow 24–72h candidate window (no rollout
-blast), **excludes drafts**, and dedups on a *successful* send (transient failures retry). Sent status shows
-a green "Factuur verzonden" badge (Orders list + OrderDetail; `fetchSendCountsByOrder` gained `invoiceSent`).
-Owner env: Vercel (`SUPABASE_SERVICE_ROLE_KEY`, `RENDER_SECRET`; URL reuses `VITE_SUPABASE_URL`), edge fn
-(`RENDER_ENDPOINT_URL`, `RENDER_SECRET`).
+being configured + the reminder business-hours window, **excludes drafts**, and dedups on a *successful*
+send (transient failures retry). Sent status shows a green "Factuur verzonden" badge (Orders list +
+OrderDetail; `fetchSendCountsByOrder` gained `invoiceSent`). Owner env: Vercel (`SUPABASE_SERVICE_ROLE_KEY`,
+`RENDER_SECRET`; URL reuses `VITE_SUPABASE_URL`), edge fn (`RENDER_ENDPOINT_URL`, `RENDER_SECRET`).
+
+**Window keyed on `order_date`, not `created_at` (fixed 2026-07-14, edge fn v10, commit 252f646).** The
+send must go out ~24h after the **order/delivery date**, not the entry time: an order entered 13 Jul for an
+`order_date` of 16 Jul sends on **17 Jul**, never 14 Jul. `order_date` is a DATE column, so the candidate
+window compares against date strings via `dateOffsetISO(days)`: `order_date <= yesterday` (the send opens the
+day *after* the order date) with an `order_date >= 3 days ago` floor to keep the band narrow (~3 daily
+retries, no rollout blast of old backdated orders). Actual send time = `send_hour` in Europe/Amsterdam on a
+working day (currently **08:00**, `working_days_only=true`); if the day-after lands on a weekend it rolls to
+the next weekday (still inside the 3-day floor). **Do not revert the window to `created_at`** — that emails a
+future-dated order too early.
 
 ## Customer portal — self-service passwordless login (email OTP) (2026-07-13)
 
