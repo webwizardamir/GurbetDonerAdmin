@@ -29,7 +29,8 @@ interface ReminderConfig {
   repeat_interval_days: number
   max_count: number
   steps: ReminderStep[]
-  // Auto-email the invoice (PDF attached) ~24h after the order is created.
+  // Auto-email the invoice (PDF attached) ~24h after the order DATE (not the
+  // creation time — a future-dated order sends the day after its order_date).
   // OPT-IN (treated as false when absent). Toggled in Settings → Reminders.
   initial_invoice_send_enabled?: boolean
 }
@@ -334,27 +335,31 @@ serve(async (req) => {
   }
 
   // 6. Initial invoice auto-send — email the invoice (PDF attached) once, ~24h
-  //    after the order was created. Sent in the SAME window as the reminders
+  //    after the order DATE. Sent in the SAME window as the reminders
   //    (cfg.send_hour on working days), so no 03:00/Sunday mail. Gates, all of
   //    which must hold:
   //      - cfg.initial_invoice_send_enabled === true  (OPT-IN; off by default)
   //      - renderConfigured  (Vercel PDF renderer wired → never a PDF-less email)
   //      - hourOk && dayOk    (business-hours send window)
-  //    Candidate window is a NARROW [24h .. 72h]-old band, NOT a 30-day sweep:
-  //    this bounds the set on first enable (no rollout blast of old orders) while
-  //    still giving each order ~3 daily attempts. Drafts are excluded (an
-  //    unfinalized order must not be auto-emailed); cancelled/refunded/trashed
-  //    too. Idempotent on a SUCCESSFUL send only, so a transient failure retries
-  //    next day instead of permanently blocking the invoice.
+  //    Candidate window is keyed on order_date (the delivery/order date the user
+  //    sets), NOT created_at: an order entered on 13 Jul for an order_date of
+  //    16 Jul must send on 17 Jul (day after the order date), never 14 Jul.
+  //    order_date is a DATE column, so compare against date strings. The send
+  //    opens the day after order_date (order_date <= yesterday) and the floor
+  //    (order_date >= 3 days ago) keeps the band narrow: no rollout blast of old
+  //    orders, still ~3 daily retries. Drafts are excluded (an unfinalized order
+  //    must not be auto-emailed); cancelled/refunded/trashed too. Idempotent on a
+  //    SUCCESSFUL send only, so a transient failure retries next day instead of
+  //    permanently blocking the invoice.
   const renderConfigured = !!Deno.env.get('RENDER_ENDPOINT_URL') && !!Deno.env.get('RENDER_SECRET')
   if (cfg.initial_invoice_send_enabled === true && renderConfigured && hourOk && dayOk) {
-    const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
-    const windowFloor = new Date(Date.now() - 72 * 3600 * 1000).toISOString()
+    const upperDate = dateOffsetISO(-1)   // yesterday — order_date on/before this
+    const lowerDate = dateOffsetISO(-3)   // 3 days ago — order_date on/after this
     const { data: newOrders } = await admin
       .from('orders')
-      .select('id, order_number, total, invoice_due_date, reminders_opted_out, customer:customers!customer_id(id, company_name, email, billing_country, reminders_opted_out)')
-      .lte('created_at', dayAgo)
-      .gte('created_at', windowFloor)
+      .select('id, order_number, total, order_date, invoice_due_date, reminders_opted_out, customer:customers!customer_id(id, company_name, email, billing_country, reminders_opted_out)')
+      .lte('order_date', upperDate)
+      .gte('order_date', lowerDate)
       .is('deleted_at', null)
       .not('status', 'in', '(draft,cancelled,refunded)')
       .eq('reminders_opted_out', false)
@@ -632,6 +637,12 @@ ${footerRows}
 
 function todayISO(): string {
   return new Date().toISOString().split('T')[0]
+}
+
+// Date (YYYY-MM-DD) offset by `days` from today, for comparing against DATE
+// columns like order_date. Negative = past (e.g. -1 = yesterday).
+function dateOffsetISO(days: number): string {
+  return new Date(Date.now() + days * 86400000).toISOString().split('T')[0]
 }
 
 function daysBetween(dueISO: string): number {
