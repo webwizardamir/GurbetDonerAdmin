@@ -155,6 +155,7 @@ const NL = {
   psNotesText: 'Controleer alle artikelen bij ontvangst. Meld eventuele afwijkingen direct.',
   psSender: 'Afzender',
   psReceiver: 'Ontvanger',
+  psTotalLabel: 'Totaal',
   // payment reminder
   prTitleFinal: 'LAATSTE AANMANING',
   prTitleSecond: 'TWEEDE HERINNERING',
@@ -275,6 +276,7 @@ const EN: typeof NL = {
   psNotesText: 'Please check all items on receipt. Report any discrepancies immediately.',
   psSender: 'Sender',
   psReceiver: 'Recipient',
+  psTotalLabel: 'Total',
   prTitleFinal: 'FINAL NOTICE',
   prTitleSecond: 'SECOND REMINDER',
   prTitleFirst: 'PAYMENT REMINDER',

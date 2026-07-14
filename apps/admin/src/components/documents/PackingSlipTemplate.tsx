@@ -168,6 +168,39 @@ const styles = StyleSheet.create({
     marginHorizontal: 'auto',
   },
 
+  // TOTAL (quantity summary, per unit type)
+  totalsWrap: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 8,
+  },
+  totalsBox: {
+    minWidth: '45%',
+    maxWidth: '70%',
+    borderTopWidth: 2,
+    borderTopColor: '#1e293b',
+    backgroundColor: '#f8fafc',
+    padding: 7,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalsLabel: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  totalsValue: {
+    flex: 1,
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    textAlign: 'right',
+    marginLeft: 10,
+  },
+
   // DELIVERY NOTES (compact)
   notesSection: {
     backgroundColor: '#fef3c7',
@@ -282,6 +315,48 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
   }
   if (cityParts.length) customerLines.push(cityParts.join(', '))
 
+  // Quantity total, grouped by unit type. A packing slip carries no prices, so
+  // the "total" is the summed quantity per unit (kg / doos / stuks / ...). Only
+  // the unit types actually present are listed — a box-only slip shows just
+  // boxes, a kg-only slip just kg, mixed slips list each. First-seen order.
+  const isEn = data.lang === 'en'
+  const formatUnit = (unitType: string, quantity: number): string => {
+    const one = quantity === 1
+    switch (unitType?.toLowerCase()) {
+      case 'kg':
+        return 'kg'
+      case 'piece':
+        return isEn ? (one ? 'pc' : 'pcs') : one ? 'stuk' : 'stuks'
+      case 'zak':
+        return isEn ? (one ? 'bag' : 'bags') : one ? 'zak' : 'zakken'
+      case 'doos':
+        return isEn ? (one ? 'box' : 'boxes') : one ? 'doos' : 'dozen'
+      case 'package':
+        return isEn ? (one ? 'pack' : 'packs') : one ? 'pak' : 'pakken'
+      default:
+        return unitType
+    }
+  }
+  const fmtQty = (n: number): string =>
+    Number.isInteger(n)
+      ? String(n)
+      : n.toLocaleString(isEn ? 'en-US' : 'nl-NL', { maximumFractionDigits: 3 })
+
+  const unitOrder: string[] = []
+  const qtyByUnit = new Map<string, number>()
+  for (const it of data.items) {
+    const key = (it.unitType || it.unit || '').toLowerCase()
+    if (!qtyByUnit.has(key)) {
+      qtyByUnit.set(key, 0)
+      unitOrder.push(key)
+    }
+    qtyByUnit.set(key, (qtyByUnit.get(key) ?? 0) + (Number(it.quantity) || 0))
+  }
+  const totalParts = unitOrder.map((u) => {
+    const qty = qtyByUnit.get(u) ?? 0
+    return `${fmtQty(qty)} ${formatUnit(u, qty)}`
+  })
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -363,6 +438,16 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
             </View>
           ))}
         </View>
+
+        {/* ========== TOTAL (quantity per unit type) ========== */}
+        {totalParts.length > 0 && (
+          <View style={styles.totalsWrap} wrap={false}>
+            <View style={styles.totalsBox}>
+              <Text style={styles.totalsLabel}>{T.psTotalLabel}</Text>
+              <Text style={styles.totalsValue}>{totalParts.join(',  ')}</Text>
+            </View>
+          </View>
+        )}
 
         {/* ========== DELIVERY NOTES ========== */}
         <View style={styles.notesSection}>
