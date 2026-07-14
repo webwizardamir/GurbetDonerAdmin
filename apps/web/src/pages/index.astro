@@ -5,6 +5,7 @@ import CategoryRail from "../components/sections/CategoryRail.astro";
 import CertMarquee from "../components/sections/CertMarquee.astro";
 import ProductionStory from "../components/sections/ProductionStory.astro";
 import ProductBrowser from "../components/sections/ProductBrowser.astro";
+import Partners from "../components/sections/Partners.astro";
 import ExportCTA from "../components/sections/ExportCTA.astro";
 ---
 
@@ -13,7 +14,8 @@ import ExportCTA from "../components/sections/ExportCTA.astro";
   <CategoryRail scene="light" />
   <CertMarquee />
   <ProductionStory scene="light" />
-  <ProductBrowser id="product-browser" scene="light" heading="Browse the range." showAllLink={true} />
+  <ProductBrowser id="product-browser" scene="light" heading="Browse the range." showAllLink={true} showAllTab={false} />
+  <Partners scene="light" />
   <ExportCTA />
 </Base>
 

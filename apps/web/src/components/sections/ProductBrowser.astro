@@ -11,8 +11,19 @@ interface Props {
   scene?: string;
   heading?: string;
   showAllLink?: boolean;
+  // Whether to render the "All" category tab. The homepage preview turns this off
+  // so it opens on the first category (a short list) instead of every product; the
+  // full /products page keeps it. Only this tab differs — the rest of the component
+  // (and any future change to it) is shared by both instances.
+  showAllTab?: boolean;
 }
-const { id = "product-browser", scene = "light", heading, showAllLink = false } = Astro.props;
+const {
+  id = "product-browser",
+  scene = "light",
+  heading,
+  showAllLink = false,
+  showAllTab = true,
+} = Astro.props;
 
 const products = await getAllProducts();
 const cats = site.productCategories;
@@ -27,9 +38,13 @@ const catName = (slug: string) => cats.find((c) => c.slug === slug)?.name ?? "";
 
     <div class="pb__controls">
       <div class="pb__tabs" role="tablist" aria-label="Product categories">
-        <button type="button" class="cat-filter is-active" data-cat="all">All</button>
-        {cats.map((c) => (
-          <button type="button" class="cat-filter" data-cat={c.slug}>{c.name}</button>
+        {showAllTab && <button type="button" class="cat-filter is-active" data-cat="all">All</button>}
+        {cats.map((c, i) => (
+          <button
+            type="button"
+            class={`cat-filter${!showAllTab && i === 0 ? " is-active" : ""}`}
+            data-cat={c.slug}
+          >{c.name}</button>
         ))}
       </div>
 
@@ -97,7 +112,10 @@ const catName = (slug: string) => cats.find((c) => c.slug === slug)?.name ?? "";
     const search = section.querySelector<HTMLInputElement>("[data-pb-search]");
     const empty = section.querySelector<HTMLElement>("[data-pb-empty]");
 
-    const state = { category: "all", format: "all", query: "" };
+    // Initial category = whichever tab is server-rendered active ("all" on the full
+    // catalogue, the first category on the homepage preview where "All" is omitted).
+    const initialTab = tabs.find((t) => t.classList.contains("is-active")) ?? tabs[0];
+    const state = { category: initialTab?.dataset.cat ?? "all", format: "all", query: "" };
     const validCats = new Set(tabs.map((t) => t.dataset.cat));
 
     // Which formats (packaging/box) each category actually contains. The
