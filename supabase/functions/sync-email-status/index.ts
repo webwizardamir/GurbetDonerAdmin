@@ -13,12 +13,14 @@
 //   - An admin user calls it from the Outbox "Refresh status" button with their
 //     JWT (verified in-code, owner/shop_manager only).
 //
-// READ KEY (required — the one thing to configure): the normal RESEND_API_KEY is
-// typically "sending access" only and CANNOT read delivery status (GET /emails
-// returns 401 restricted_api_key). Create a Resend "Full access" key and set it
-// as the RESEND_READ_API_KEY edge secret. We use it only for the status reads;
-// the send-only key keeps sending. If it's missing we fall back to
-// RESEND_API_KEY and report readKeyRestricted so the UI can prompt the owner.
+// READ KEY: the RESEND_API_KEY may be "sending access" only, which CANNOT read
+// delivery status (GET /emails → 401 restricted_api_key). Use a Full-access key.
+// Either make RESEND_API_KEY full access, or set a separate RESEND_READ_API_KEY;
+// we prefer the latter and fall back to the former, reporting readKeyRestricted.
+//
+// NOTE: the values written here (delivered/bounced/complained/suppressed) must be
+// permitted by document_sends_status_check (see migration 00087) or the UPDATE is
+// silently rejected and the row stays 'sent'.
 //
 // BODY (optional): { days?: number, limit?: number }
 //   days  — how far back to look (default 7, max 180). A wide value backfills.
@@ -47,7 +49,7 @@ function mapEvent(lastEvent: string): { status: string; reason: string | null } 
     case 'complained':
       return { status: 'complained', reason: 'Marked as spam by the recipient.' }
     case 'suppressed':
-      return { status: 'suppressed', reason: 'On the Resend account-level suppression list (prior bounce/complaint) — not delivered.' }
+      return { status: 'suppressed', reason: 'On the Resend account-level suppression list (a prior send to this address bounced or was marked spam) — not delivered.' }
     case 'failed':
     case 'canceled':
       return { status: 'failed', reason: `Resend reported the email as ${lastEvent}.` }
@@ -63,8 +65,6 @@ serve(async (req) => {
   try {
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (!RESEND_API_KEY) return json({ error: 'RESEND_API_KEY secret is not set' }, 500)
-    // Full-access key for status reads; falls back to the send key (which will
-    // 401 if it's send-only — reported as readKeyRestricted below).
     const READ_KEY = Deno.env.get('RESEND_READ_API_KEY') || RESEND_API_KEY
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -116,7 +116,7 @@ serve(async (req) => {
     const byStatus: Record<string, number> = {}
 
     // Poll Resend with small concurrency to respect rate limits.
-    const CONCURRENCY = 5
+    const CONCURRENCY = 6
     for (let i = 0; i < targets.length && !readKeyRestricted; i += CONCURRENCY) {
       const chunk = targets.slice(i, i + CONCURRENCY)
       await Promise.all(chunk.map(async (row) => {
@@ -125,7 +125,6 @@ serve(async (req) => {
             headers: { 'Authorization': `Bearer ${READ_KEY}` },
           })
           if (r.status === 401 || r.status === 403) {
-            // The key can't read email status — configure RESEND_READ_API_KEY.
             readKeyRestricted = true
             return
           }
