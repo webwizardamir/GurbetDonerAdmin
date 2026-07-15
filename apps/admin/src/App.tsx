@@ -1,5 +1,6 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { lazyWithReload as lazy } from './utils/lazyWithReload'
 import { AuthProvider } from './context/AuthContext'
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext'
 import { ProtectedRoute, OwnerRoute, PublicRoute } from './components/auth'

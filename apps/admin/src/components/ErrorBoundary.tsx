@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import { isChunkLoadError, reloadOnceForChunkError } from '../utils/lazyWithReload'
 // TODO: Add i18n when converting to functional component
 // ErrorBoundary must be a class component (React limitation).
 // Hardcoded strings below should use t() calls after migration to a functional wrapper.
@@ -26,6 +27,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // A dynamic import that failed because the app was redeployed while this tab
+    // was open (stale chunk 404). Recover with a single guarded reload instead
+    // of showing the error screen — covers the heavy libs (react-pdf, exceljs,
+    // jspdf, recharts) that are imported on demand from handlers/effects.
+    if (isChunkLoadError(error) && reloadOnceForChunkError()) return
     console.error('ErrorBoundary caught an error:', error, errorInfo)
     this.setState({ errorInfo })
   }
