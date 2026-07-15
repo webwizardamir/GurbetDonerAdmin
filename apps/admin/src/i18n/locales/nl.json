@@ -1,4 +1,181 @@
 {
+  "auditLog": {
+    "ui": {
+      "title": "Auditlogboek",
+      "refresh": "Vernieuwen",
+      "details": "Details",
+      "changes": "Wijzigingen",
+      "user": "Gebruiker",
+      "role": "Rol",
+      "date": "Datum",
+      "entityId": "Record-ID",
+      "entityType": "Type",
+      "flatView": "Losse regels",
+      "groupedView": "Gegroepeerd",
+      "rawSnapshot": "Ruwe momentopname"
+    },
+    "actions": {
+      "create": "maakte aan",
+      "update": "wijzigde",
+      "delete": "verwijderde"
+    },
+    "entities": {
+      "orders": "Bestelling",
+      "order_items": "Orderregel",
+      "customers": "Klant",
+      "products": "Product",
+      "documents": "Document",
+      "customer_prices": "Klantprijs",
+      "profiles": "Gebruiker",
+      "customer_accounts": "Portaal-account",
+      "categories": "Categorie"
+    },
+    "titlePrefix": {
+      "orders": "Order",
+      "customers": "Klant",
+      "products": "Product",
+      "customer_prices": "Klantprijs",
+      "profiles": "Gebruiker",
+      "customer_accounts": "Portaal-account",
+      "categories": "Categorie"
+    },
+    "docType": {
+      "invoice": "Factuur",
+      "proforma": "Proforma",
+      "credit_note": "Credit Nota",
+      "order_confirmation": "Orderbevestiging",
+      "packing_slip": "Pakbon"
+    },
+    "summary": {
+      "created": "aangemaakt",
+      "added": "toegevoegd",
+      "deleted": "verwijderd",
+      "priceSet": "prijs ingesteld",
+      "minorChange": "kleine wijziging",
+      "andMore": "+{{n}} meer",
+      "toTrash": "naar prullenbak",
+      "restored": "hersteld uit prullenbak",
+      "activated": "geactiveerd",
+      "deactivated": "gedeactiveerd"
+    },
+    "doc": {
+      "generated": "gegenereerd",
+      "snapshotUpdated": "opnieuw opgemaakt (automatisch)"
+    },
+    "group": {
+      "linesChanged": "{{n}} regels gewijzigd"
+    },
+    "diff": {
+      "yes": "Ja",
+      "no": "Nee",
+      "items": "{{n}} items",
+      "complex": "…",
+      "oldValue": "Oud",
+      "newValue": "Nieuw",
+      "noChanges": "Geen inhoudelijke wijzigingen",
+      "changedTo": "gewijzigd naar",
+      "copyId": "ID kopiëren",
+      "copied": "Gekopieerd",
+      "showMore": "meer"
+    },
+    "filters": {
+      "allUsers": "Alle gebruikers",
+      "searchUsers": "Zoek gebruiker...",
+      "systemActor": "Systeem / Automatisch",
+      "allEntities": "Alle types",
+      "allActions": "Alle acties",
+      "searchPlaceholder": "Zoek op naam, order, klant...",
+      "dateFrom": "Van",
+      "dateTo": "Tot",
+      "today": "Vandaag",
+      "last7": "7 dagen",
+      "last30": "30 dagen",
+      "all": "Alles",
+      "clear": "Wis filters"
+    },
+    "states": {
+      "noLogs": "Geen logboekgegevens gevonden",
+      "noResults": "Geen resultaten voor deze filters",
+      "error": "Kon het auditlogboek niet laden",
+      "retry": "Opnieuw proberen"
+    },
+    "stats": {
+      "total": "Gebeurtenissen",
+      "created": "Aangemaakt",
+      "updated": "Gewijzigd",
+      "deleted": "Verwijderd",
+      "activeUsers": "Actieve gebruikers"
+    },
+    "actor": {
+      "system": "Systeem / Automatisch",
+      "systemTooltip": "Automatische actie (cron, e-mail, import of portaal) — geen ingelogde gebruiker."
+    },
+    "enum": {
+      "pending": "in behandeling",
+      "pending_payment": "wacht op betaling",
+      "on_hold": "in de wacht",
+      "completed": "afgerond",
+      "cancelled": "geannuleerd",
+      "refunded": "terugbetaald",
+      "draft": "concept",
+      "owner": "eigenaar",
+      "shop_manager": "winkelbeheerder",
+      "admin": "beheerder",
+      "customer": "klant",
+      "kg": "kg",
+      "piece": "stuk",
+      "zak": "zak",
+      "doos": "doos"
+    },
+    "fields": {
+      "order_number": "Ordernummer",
+      "status": "Status",
+      "total": "Totaal",
+      "subtotal": "Subtotaal",
+      "tax": "BTW",
+      "tax_amount": "BTW-bedrag",
+      "tax_rate": "BTW-tarief",
+      "discount": "Korting",
+      "discount_amount": "Kortingsbedrag",
+      "discount_type": "Kortingstype",
+      "delivery_fee": "Verzendkosten",
+      "order_date": "Orderdatum",
+      "invoice_date": "Factuurdatum",
+      "invoice_due_date": "Vervaldatum",
+      "payment_method": "Betaalwijze",
+      "delivery_notes": "Bezorgnotitie",
+      "internal_notes": "Interne notitie",
+      "notes": "Notitie",
+      "company_name": "Bedrijfsnaam",
+      "contact_person": "Contactpersoon",
+      "email": "E-mail",
+      "phone": "Telefoon",
+      "address": "Adres",
+      "city": "Plaats",
+      "postal_code": "Postcode",
+      "country": "Land",
+      "vat_number": "BTW-nummer",
+      "price_list_id": "Prijslijst",
+      "payment_due_days": "Betaaltermijn (dagen)",
+      "reminders_opted_out": "Herinneringen uitgezet",
+      "name": "Naam",
+      "base_price": "Prijs",
+      "cost_cents": "Inkoopprijs",
+      "stock_quantity": "Voorraad",
+      "track_stock": "Voorraad bijhouden",
+      "barcode": "Barcode",
+      "is_active": "Actief",
+      "product_name": "Product",
+      "quantity": "Aantal",
+      "unit_type": "Eenheid",
+      "unit_price": "Prijs",
+      "custom_price": "Klantprijs",
+      "role": "Rol",
+      "full_name": "Naam",
+      "document_number": "Documentnummer",
+      "document_type": "Documenttype"
+    }
+  },
   "common": {
     "loadMore": "Meer laden",
     "filters": {

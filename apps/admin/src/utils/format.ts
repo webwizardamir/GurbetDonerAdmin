@@ -95,6 +95,35 @@ export function formatDateShort(dateString: string): string {
   return dateShortFormatter.format(new Date(dateString))
 }
 
+const relativeFormatterCache = new Map<string, Intl.RelativeTimeFormat>()
+
+function getRelativeFormatter(locale: string): Intl.RelativeTimeFormat {
+  let f = relativeFormatterCache.get(locale)
+  if (!f) {
+    f = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+    relativeFormatterCache.set(locale, f)
+  }
+  return f
+}
+
+// Relative time from now (e.g. "2 uur geleden" / "2 hours ago"). Locale-aware;
+// pass 'nl' or 'en'. Falls back to a short date for anything older than a week.
+export function formatRelativeTime(dateString: string, locale = 'nl'): string {
+  const then = new Date(dateString).getTime()
+  if (Number.isNaN(then)) return ''
+  const diffMs = then - Date.now()
+  const absSec = Math.abs(diffMs) / 1000
+  const rtf = getRelativeFormatter(locale)
+  if (absSec < 60) return rtf.format(Math.round(diffMs / 1000), 'second')
+  if (absSec < 3600) return rtf.format(Math.round(diffMs / 60000), 'minute')
+  if (absSec < 86400) return rtf.format(Math.round(diffMs / 3600000), 'hour')
+  if (absSec < 604800) return rtf.format(Math.round(diffMs / 86400000), 'day')
+  // Older than a week → absolute short date reads better than "3 weeks ago".
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'nl-NL', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  }).format(new Date(dateString))
+}
+
 // Year-less day/month for dense columns (e.g. "27-06"). Full date lives in a title/tooltip.
 export function formatDayMonth(dateString: string): string {
   return dayMonthFormatter.format(new Date(dateString))
