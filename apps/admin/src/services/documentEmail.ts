@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import type {
   DocumentSend,
+  DocumentSendStatus,
   EmailDocumentType,
   EmailLang,
   EmailTemplate,
@@ -8,6 +9,7 @@ import type {
   EmailTemplateMap,
   LocalizedEmailTemplates,
 } from '../types'
+import { FAILED_SEND_STATUSES } from '../types'
 
 // ===========================================================================
 // Defaults — used when document_settings.email_templates is empty for a type.
@@ -190,19 +192,57 @@ export const REMINDER_PLACEHOLDER_KEYS: Array<keyof TemplateContext> = [
 
 export async function fetchDocumentSends(opts: {
   orderId?: string
-  status?: 'pending' | 'sent' | 'failed' | 'bounced'
+  status?: DocumentSendStatus
+  /** Convenience filter: all delivery-failure statuses at once. */
+  failedOnly?: boolean
   limit?: number
 } = {}): Promise<DocumentSend[]> {
   let q = supabase
     .from('document_sends')
     .select('*')
     .order('created_at', { ascending: false })
-  if (opts.orderId) q = q.eq('order_id', opts.orderId)
-  if (opts.status)  q = q.eq('status', opts.status)
-  if (opts.limit)   q = q.limit(opts.limit)
+  if (opts.orderId)    q = q.eq('order_id', opts.orderId)
+  if (opts.status)     q = q.eq('status', opts.status)
+  if (opts.failedOnly) q = q.in('status', FAILED_SEND_STATUSES)
+  if (opts.limit)      q = q.limit(opts.limit)
   const { data, error } = await q
   if (error) throw error
   return (data as DocumentSend[]) ?? []
+}
+
+/**
+ * Count of emails that failed to reach the customer (bounced / complained /
+ * suppressed / hard-failed) within the last `days`. Drives the Dashboard
+ * delivery-problem alert. Cheap head-count query.
+ */
+export async function fetchFailedSendSummary(days = 30): Promise<{ count: number; latest: string | null }> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+  const { data, error, count } = await supabase
+    .from('document_sends')
+    .select('created_at', { count: 'exact' })
+    .in('status', FAILED_SEND_STATUSES)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return { count: count ?? 0, latest: (data?.[0]?.created_at as string | undefined) ?? null }
+}
+
+/**
+ * Ask the sync-email-status edge function to refresh delivery outcomes from
+ * Resend on demand (the cron does this every 15 min automatically). A wide
+ * `days` also backfills historical rows. Returns the function's summary.
+ */
+export async function syncEmailStatus(days = 120): Promise<{ checked: number; updated: number; readKeyRestricted: boolean }> {
+  const { data, error } = await supabase.functions.invoke('sync-email-status', {
+    body: { days },
+  })
+  if (error) throw error
+  return {
+    checked: data?.checked ?? 0,
+    updated: data?.updated ?? 0,
+    readKeyRestricted: !!data?.readKeyRestricted,
+  }
 }
 
 /**
@@ -227,13 +267,17 @@ export async function fetchSendCountsByOrder(orderIds: string[]): Promise<Record
   if (error) throw error
 
   const out: Record<string, OrderSendInfo> = {}
+  const failed = new Set<string>(FAILED_SEND_STATUSES)
+  // 'sent' (accepted, awaiting confirmation) and 'delivered' both count as a
+  // successful send; the delivery-failure statuses do not.
+  const ok = (s: string) => s === 'sent' || s === 'delivered'
   for (const row of (data as { order_id: string | null; status: string; document_type: string }[]) ?? []) {
     if (!row.order_id) continue
     const bucket = out[row.order_id] ??= { total: 0, sent: 0, failed: 0, invoiceSent: false }
     bucket.total += 1
-    if (row.status === 'sent')   bucket.sent   += 1
-    if (row.status === 'failed') bucket.failed += 1
-    if (row.document_type === 'invoice' && row.status === 'sent') bucket.invoiceSent = true
+    if (ok(row.status))          bucket.sent   += 1
+    if (failed.has(row.status))  bucket.failed += 1
+    if (row.document_type === 'invoice' && ok(row.status)) bucket.invoiceSent = true
   }
   return out
 }

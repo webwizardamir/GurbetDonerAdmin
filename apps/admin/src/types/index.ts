@@ -604,7 +604,29 @@ export interface InvoiceReminder {
   created_at: string
 }
 
-export type DocumentSendStatus = 'pending' | 'sent' | 'failed' | 'bounced'
+// 'sent' = accepted by Resend, delivery not yet confirmed.
+// 'delivered' = Resend confirmed the mailbox accepted it.
+// 'bounced' / 'complained' / 'suppressed' = delivery failed after acceptance
+// (the outcome that used to be invisible because it happens post-send).
+// 'failed' = the Resend API rejected the request at send time.
+// The delivered/bounced/complained/suppressed values are filled in by the
+// sync-email-status poller, not at send time.
+export type DocumentSendStatus =
+  | 'pending'
+  | 'sent'
+  | 'delivered'
+  | 'failed'
+  | 'bounced'
+  | 'complained'
+  | 'suppressed'
+
+// The statuses that mean the customer did NOT receive the email.
+export const FAILED_SEND_STATUSES: DocumentSendStatus[] = [
+  'failed',
+  'bounced',
+  'complained',
+  'suppressed',
+]
 
 export interface DocumentSend {
   id: string

@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Mail, Loader2, AlertCircle, Search } from 'lucide-react'
-import { fetchDocumentSends } from '../services/documentEmail'
+import { Mail, Loader2, AlertCircle, Search, RefreshCw } from 'lucide-react'
+import { fetchDocumentSends, syncEmailStatus } from '../services/documentEmail'
 import { fetchDocumentSettings } from '../services/documents'
 import EmailViewModal, { StatusIcon } from '../components/documents/EmailViewModal'
-import type { DocumentSend, DocumentSendStatus, DocumentSettings } from '../types'
+import type { DocumentSend, DocumentSettings } from '../types'
 
-type StatusFilter = 'all' | DocumentSendStatus
+// 'problems' groups every delivery-failure status (bounced/complained/suppressed/failed).
+type StatusFilter = 'all' | 'delivered' | 'sent' | 'pending' | 'problems'
+const FILTERS: StatusFilter[] = ['all', 'delivered', 'sent', 'pending', 'problems']
 
 export default function Outbox() {
   const { t } = useTranslation()
@@ -18,13 +20,18 @@ export default function Outbox() {
   const [searchQuery, setSearchQuery] = useState('')
   const [settings, setSettings] = useState<DocumentSettings | null>(null)
   const [selected, setSelected] = useState<DocumentSend | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
   const load = async () => {
     setLoading(true)
     setError(null)
     try {
       const rows = await fetchDocumentSends({
-        status: statusFilter === 'all' ? undefined : statusFilter,
+        status: statusFilter === 'delivered' || statusFilter === 'sent' || statusFilter === 'pending'
+          ? statusFilter
+          : undefined,
+        failedOnly: statusFilter === 'problems',
         limit: 500,
       })
       setSends(rows)
@@ -36,6 +43,24 @@ export default function Outbox() {
   }
 
   useEffect(() => { void load() }, [statusFilter])
+
+  // Pull the real delivery outcomes from Resend now (the cron also does this
+  // every 15 min). A wide window backfills older rows too.
+  const handleSync = async () => {
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const { checked, updated, readKeyRestricted } = await syncEmailStatus(120)
+      setSyncMsg(readKeyRestricted
+        ? t('outbox.refreshNeedsKey')
+        : t('outbox.refreshResult', { checked, updated }))
+      await load()
+    } catch (e) {
+      setSyncMsg((e as Error).message)
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   // Company branding for the email preview — loaded once, non-fatal on failure.
   useEffect(() => {
@@ -71,7 +96,7 @@ export default function Outbox() {
           />
         </div>
         <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
-          {(['all', 'sent', 'failed', 'pending', 'bounced'] as const).map((s, i) => (
+          {FILTERS.map((s, i) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -85,6 +110,18 @@ export default function Outbox() {
             </button>
           ))}
         </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          title={t('outbox.refreshHint')}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-60 transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? t('outbox.refreshing') : t('outbox.refresh')}
+        </button>
+        {syncMsg && (
+          <span className="text-xs text-slate-500 dark:text-slate-400">{syncMsg}</span>
+        )}
       </div>
 
       {error && (

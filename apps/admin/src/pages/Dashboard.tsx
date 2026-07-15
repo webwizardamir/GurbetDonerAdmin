@@ -14,6 +14,7 @@ import TodayKPICards from '../components/dashboard/TodayKPICards'
 import type { TodayStats } from '../components/dashboard/TodayKPICards'
 import ActionRequiredBanner from '../components/dashboard/ActionRequiredBanner'
 import type { ActionRequired } from '../components/dashboard/ActionRequiredBanner'
+import EmailDeliveryAlert from '../components/dashboard/EmailDeliveryAlert'
 import OverdueWidget from '../components/dashboard/OverdueWidget'
 import TodayOrdersList from '../components/dashboard/TodayOrdersList'
 // Lazy — pulls in recharts (~400 KB) only after the dashboard shell paints.
@@ -160,6 +161,7 @@ export default function Dashboard() {
         pendingCount={todayStats?.pendingCount ?? 0}
       />
       <TodayKPICards todayStats={todayStats} isOwner={isOwner} />
+      {isOwner && <EmailDeliveryAlert />}
       <ActionRequiredBanner actionRequired={actionRequired} />
       <OverdueWidget />
 

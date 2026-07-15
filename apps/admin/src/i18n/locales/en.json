@@ -312,6 +312,12 @@
   },
   "dashboard": {
     "title": "Dashboard",
+    "emailAlert": {
+      "title_one": "{{count}} email was not delivered",
+      "title_other": "{{count}} emails were not delivered",
+      "message": "These messages were blocked by Resend (bounced, spam complaint, or suppressed) and never reached the customer.",
+      "cta": "View in Outbox"
+    },
     "welcome": "Welcome back",
     "todaysSales": "Today's Sales",
     "pendingOrders": "Pending Orders",
@@ -1068,12 +1074,21 @@
     "empty": "No sent documents yet",
     "searchPlaceholder": "Search by recipient, subject or error...",
     "viewOrder": "View order",
+    "refresh": "Refresh status",
+    "refreshing": "Refreshing...",
+    "refreshHint": "Fetch the real delivery status (delivered/bounced/suppressed) from Resend",
+    "refreshResult": "{{checked}} checked, {{updated}} updated",
+    "refreshNeedsKey": "Resend API key can't read status. Set a 'Full access' key as RESEND_READ_API_KEY.",
     "status": {
       "all": "All",
+      "delivered": "Delivered",
       "sent": "Sent",
       "pending": "Pending",
+      "problems": "Problems",
       "failed": "Failed",
-      "bounced": "Bounced"
+      "bounced": "Bounced",
+      "complained": "Spam complaint",
+      "suppressed": "Suppressed"
     },
     "columns": {
       "status": "Status",

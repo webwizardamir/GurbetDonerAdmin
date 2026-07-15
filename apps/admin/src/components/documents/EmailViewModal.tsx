@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react'
+import { X, CheckCircle2, MailCheck, Clock, XCircle, AlertCircle, AlertTriangle, Ban } from 'lucide-react'
 import { buildBrandedEmailHtml, type EmailBrandSettings } from '../../utils/emailHtml'
 import type { DocumentSend, DocumentSendStatus, DocumentSettings } from '../../types'
 
@@ -105,6 +105,8 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
 
 export function StatusIcon({ status }: { status: DocumentSendStatus }) {
   switch (status) {
+    case 'delivered':
+      return <MailCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
     case 'sent':
       return <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
     case 'pending':
@@ -113,5 +115,11 @@ export function StatusIcon({ status }: { status: DocumentSendStatus }) {
       return <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
     case 'bounced':
       return <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+    case 'complained':
+      return <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+    case 'suppressed':
+      return <Ban className="w-5 h-5 text-red-600 dark:text-red-400" />
+    default:
+      return <Clock className="w-5 h-5 text-slate-400" />
   }
 }

@@ -312,6 +312,12 @@
   },
   "dashboard": {
     "title": "Dashboard",
+    "emailAlert": {
+      "title_one": "{{count}} e-mail is niet afgeleverd",
+      "title_other": "{{count}} e-mails zijn niet afgeleverd",
+      "message": "Deze berichten zijn door Resend geblokkeerd (bounced, spamklacht of onderdrukt) en hebben de klant nooit bereikt.",
+      "cta": "Bekijk in Outbox"
+    },
     "welcome": "Welkom terug",
     "todaysSales": "Verkoop vandaag",
     "pendingOrders": "Openstaande bestellingen",
@@ -1068,12 +1074,21 @@
     "empty": "Nog geen verzonden documenten",
     "searchPlaceholder": "Zoek op ontvanger, onderwerp of fout...",
     "viewOrder": "Bestelling bekijken",
+    "refresh": "Status verversen",
+    "refreshing": "Verversen...",
+    "refreshHint": "Haal de werkelijke afleverstatus (afgeleverd/bounced/onderdrukt) op bij Resend",
+    "refreshResult": "{{checked}} gecontroleerd, {{updated}} bijgewerkt",
+    "refreshNeedsKey": "Resend-API-sleutel kan geen status lezen. Stel een 'Full access'-sleutel in als RESEND_READ_API_KEY.",
     "status": {
       "all": "Alles",
+      "delivered": "Afgeleverd",
       "sent": "Verzonden",
       "pending": "In behandeling",
+      "problems": "Problemen",
       "failed": "Mislukt",
-      "bounced": "Bounced"
+      "bounced": "Bounced",
+      "complained": "Spamklacht",
+      "suppressed": "Onderdrukt"
     },
     "columns": {
       "status": "Status",
