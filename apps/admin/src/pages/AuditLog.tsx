@@ -67,6 +67,7 @@ export default function AuditLog() {
   const [error, setError] = useState(false)
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchTerm, setSearchTerm] = useState('') // debounced, drives the query
   const [entityFilter, setEntityFilter] = useState('')
   const [actionFilter, setActionFilter] = useState('')
   const [userFilter, setUserFilter] = useState<string | null>(null)
@@ -104,31 +105,41 @@ export default function AuditLog() {
   const hasActiveFilters =
     !!searchQuery || !!entityFilter || !!actionFilter || !!userFilter || datePreset !== 'all' || !!dateFrom || !!dateTo
 
-  // ---- query builder shared by list + export ----
-  const buildQuery = useCallback(
-    (select: string) => {
-      let q = supabase.from('audit_logs').select(select).order('created_at', { ascending: false })
-      if (entityFilter) q = q.eq('entity_type', entityFilter)
-      if (actionFilter) q = q.eq('action', actionFilter)
-      if (userFilter) q = q.eq('user_email', userFilter)
-      if (dateRange.fromISO) q = q.gte('created_at', dateRange.fromISO)
-      if (dateRange.toISO) q = q.lte('created_at', dateRange.toISO)
-      return q
-    },
-    [entityFilter, actionFilter, userFilter, dateRange],
+  // Debounce the search box so we don't refetch on every keystroke.
+  useEffect(() => {
+    const id = setTimeout(() => setSearchTerm(searchQuery), 300)
+    return () => clearTimeout(id)
+  }, [searchQuery])
+
+  // ---- server-side filter/search params (shared by list + export) ----
+  // Search runs server-side across the WHOLE table via the search_audit_logs
+  // RPC, including a substring match inside the snapshot JSON — so order numbers
+  // and customer names (which live in new_values/old_values) are findable.
+  const rpcFilters = useMemo(
+    () => ({
+      p_search: searchTerm.trim() || null,
+      p_entity_type: entityFilter || null,
+      p_action: actionFilter || null,
+      p_user_email: userFilter || null,
+      p_from: dateRange.fromISO,
+      p_to: dateRange.toISO,
+    }),
+    [searchTerm, entityFilter, actionFilter, userFilter, dateRange],
   )
 
   const fetchPage = useCallback(
     async (cursor: string | null) => {
-      let q = buildQuery('*').limit(PAGE_SIZE + 1)
-      if (cursor) q = q.lt('created_at', cursor)
-      const { data, error: err } = await q
+      const { data, error: err } = await supabase.rpc('search_audit_logs', {
+        ...rpcFilters,
+        p_cursor: cursor,
+        p_limit: PAGE_SIZE + 1,
+      })
       if (err) throw err
       const rows = (data ?? []) as unknown as AuditLogType[]
       const more = rows.length > PAGE_SIZE
       return { rows: more ? rows.slice(0, PAGE_SIZE) : rows, more }
     },
-    [buildQuery],
+    [rpcFilters],
   )
 
   // reset + fetch when filters change
@@ -211,21 +222,8 @@ export default function AuditLog() {
     }
   }, [logs])
 
-  // ---- client-side search over the loaded rows (title/summary/user) ----
-  const filteredLogs = useMemo(() => {
-    if (!searchQuery.trim()) return logs
-    const qq = searchQuery.toLowerCase()
-    return logs.filter((log) => {
-      const title = deriveEntityTitle(log, t, resolver).toLowerCase()
-      const summary = summarizeChange(log, t, { isOwner }).toLowerCase()
-      return (
-        title.includes(qq) ||
-        summary.includes(qq) ||
-        log.user_email.toLowerCase().includes(qq) ||
-        entityLabel(t, log.entity_type).toLowerCase().includes(qq)
-      )
-    })
-  }, [logs, searchQuery, resolver, t, isOwner])
+  // Search + filtering already happened server-side; render the rows as-is.
+  const filteredLogs = logs
 
   const items: AuditItem[] = useMemo(
     () => (grouped ? groupAuditLogs(filteredLogs) : filteredLogs.map((log) => ({ kind: 'single', log }))),
@@ -267,20 +265,15 @@ export default function AuditLog() {
     }
   }
 
-  // ---- export scoped to the active server-side filters ----
+  // ---- export scoped to the active filters + search (whole matching set) ----
   const fetchAllForExport = async () => {
-    const { data, error: err } = await buildQuery('*')
+    const { data, error: err } = await supabase.rpc('search_audit_logs', {
+      ...rpcFilters,
+      p_cursor: null,
+      p_limit: null, // no limit → all matching rows
+    })
     if (err) throw err
-    let rows = (data ?? []) as unknown as AuditLogType[]
-    if (searchQuery.trim()) {
-      const qq = searchQuery.toLowerCase()
-      rows = rows.filter(
-        (log) =>
-          deriveEntityTitle(log, t, resolver).toLowerCase().includes(qq) ||
-          log.user_email.toLowerCase().includes(qq),
-      )
-    }
-    return rows
+    return (data ?? []) as unknown as AuditLogType[]
   }
 
   const exportColumns = useMemo(
