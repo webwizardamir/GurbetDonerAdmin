@@ -10,6 +10,7 @@ import type {
   LocalizedEmailTemplates,
 } from '../types'
 import { FAILED_SEND_STATUSES } from '../types'
+import { sanitizeOrTerm } from '../utils/pgSearch'
 
 // ===========================================================================
 // Defaults — used when document_settings.email_templates is empty for a type.
@@ -243,6 +244,40 @@ export async function syncEmailStatus(days = 120): Promise<{ checked: number; up
     updated: data?.updated ?? 0,
     readKeyRestricted: !!data?.readKeyRestricted,
   }
+}
+
+/**
+ * Server-side paged + searched Outbox query. Search (recipient / subject /
+ * error) and the status filter run in the DB across the WHOLE table, so a match
+ * on page 30 still surfaces — the page size never limits what search can find.
+ */
+export async function fetchDocumentSendsPaged(opts: {
+  status?: DocumentSendStatus
+  failedOnly?: boolean
+  search?: string
+  page?: number
+  pageSize?: number
+} = {}): Promise<{ rows: DocumentSend[]; total: number }> {
+  const page = Math.max(1, opts.page ?? 1)
+  const pageSize = opts.pageSize ?? 50
+  const from = (page - 1) * pageSize
+
+  let q = supabase
+    .from('document_sends')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+
+  if (opts.status)     q = q.eq('status', opts.status)
+  if (opts.failedOnly) q = q.in('status', FAILED_SEND_STATUSES)
+
+  const term = sanitizeOrTerm(opts.search ?? '')
+  if (term) {
+    q = q.or(`recipient_email.ilike.%${term}%,subject.ilike.%${term}%,error_message.ilike.%${term}%`)
+  }
+
+  const { data, error, count } = await q.range(from, from + pageSize - 1)
+  if (error) throw error
+  return { rows: (data as DocumentSend[]) ?? [], total: count ?? 0 }
 }
 
 /**

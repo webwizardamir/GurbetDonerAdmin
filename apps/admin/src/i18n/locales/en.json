@@ -855,6 +855,8 @@
     "searchPlaceholder": "Search by number, customer, order...",
     "orderLinked": "Order linked",
     "resultCount": "{{filtered}} of {{total}} documents",
+    "matchCount_one": "{{count}} document found",
+    "matchCount_other": "{{count}} documents found",
     "customerName": "Customer",
     "orderNumber": "Order Number",
     "allCustomers": "All Customers",

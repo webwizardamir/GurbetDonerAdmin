@@ -2,22 +2,27 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Mail, Loader2, AlertCircle, Search, RefreshCw } from 'lucide-react'
-import { fetchDocumentSends, syncEmailStatus } from '../services/documentEmail'
+import { fetchDocumentSendsPaged, syncEmailStatus } from '../services/documentEmail'
 import { fetchDocumentSettings } from '../services/documents'
 import EmailViewModal, { StatusIcon } from '../components/documents/EmailViewModal'
+import Pagination from '../components/ui/Pagination'
 import type { DocumentSend, DocumentSettings } from '../types'
 
 // 'problems' groups every delivery-failure status (bounced/complained/suppressed/failed).
 type StatusFilter = 'all' | 'delivered' | 'sent' | 'pending' | 'problems'
 const FILTERS: StatusFilter[] = ['all', 'delivered', 'sent', 'pending', 'problems']
+const PAGE_SIZE = 50
 
 export default function Outbox() {
   const { t } = useTranslation()
   const [sends, setSends] = useState<DocumentSend[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [settings, setSettings] = useState<DocumentSettings | null>(null)
   const [selected, setSelected] = useState<DocumentSend | null>(null)
   const [syncing, setSyncing] = useState(false)
@@ -27,14 +32,17 @@ export default function Outbox() {
     setLoading(true)
     setError(null)
     try {
-      const rows = await fetchDocumentSends({
+      const { rows, total } = await fetchDocumentSendsPaged({
         status: statusFilter === 'delivered' || statusFilter === 'sent' || statusFilter === 'pending'
           ? statusFilter
           : undefined,
         failedOnly: statusFilter === 'problems',
-        limit: 500,
+        search: debouncedSearch,
+        page,
+        pageSize: PAGE_SIZE,
       })
       setSends(rows)
+      setTotal(total)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -42,7 +50,16 @@ export default function Outbox() {
     }
   }
 
-  useEffect(() => { void load() }, [statusFilter])
+  // Debounce the search box so we query the DB ~300ms after typing stops.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300)
+    return () => clearTimeout(id)
+  }, [searchQuery])
+
+  // Any filter/search change resets to page 1.
+  useEffect(() => { setPage(1) }, [statusFilter, debouncedSearch])
+
+  useEffect(() => { void load() }, [statusFilter, debouncedSearch, page])
 
   // Pull the real delivery outcomes from Resend now (the cron also does this
   // every 15 min). A wide window backfills older rows too.
@@ -70,16 +87,6 @@ export default function Outbox() {
       } catch { /* preview falls back to plain branding */ }
     })()
   }, [])
-
-  const filtered = sends.filter(s => {
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
-    return (
-      s.recipient_email.toLowerCase().includes(q) ||
-      s.subject.toLowerCase().includes(q) ||
-      (s.error_message ?? '').toLowerCase().includes(q)
-    )
-  })
 
   return (
     <div className="space-y-4">
@@ -136,7 +143,7 @@ export default function Outbox() {
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-green-600" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : sends.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <Mail className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-3" />
             <p className="text-slate-600 dark:text-slate-400">{t('outbox.empty')}</p>
@@ -155,7 +162,7 @@ export default function Outbox() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {filtered.map(s => (
+                {sends.map(s => (
                   <tr
                     key={s.id}
                     onClick={() => setSelected(s)}
@@ -207,6 +214,10 @@ export default function Outbox() {
           </div>
         )}
       </div>
+
+      {!loading && total > 0 && (
+        <Pagination page={page} pageSize={PAGE_SIZE} totalCount={total} onPageChange={setPage} />
+      )}
 
       {selected && (
         <EmailViewModal send={selected} settings={settings} onClose={() => setSelected(null)} />

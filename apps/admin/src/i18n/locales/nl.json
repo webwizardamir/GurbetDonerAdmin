@@ -855,6 +855,8 @@
     "searchPlaceholder": "Zoek op nummer, klant, bestelling...",
     "orderLinked": "Bestelling gekoppeld",
     "resultCount": "{{filtered}} van {{total}} documenten",
+    "matchCount_one": "{{count}} document gevonden",
+    "matchCount_other": "{{count}} documenten gevonden",
     "customerName": "Klant",
     "orderNumber": "Bestelnummer",
     "allCustomers": "Alle klanten",

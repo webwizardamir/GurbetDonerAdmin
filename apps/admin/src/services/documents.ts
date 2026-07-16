@@ -4,6 +4,7 @@ import { resolveDocumentLang } from '../utils/documentLang'
 import { isImportedOrder } from '../utils/vat'
 import { resolveShippingVat } from '../utils/discount'
 import { EN_LABELS, DOC_TITLES_EN, type DocLang } from './documentLabels'
+import { sanitizeOrTerm } from '../utils/pgSearch'
 
 // =====================================================
 // Document Settings
@@ -67,6 +68,108 @@ export async function fetchDocuments(orderId?: string): Promise<Document[]> {
 
   if (error) throw error
   return data || []
+}
+
+// ── Server-side paged Invoices list ────────────────────────────────────────
+// Backed by the `documents_list` view (migration 00088), which exposes the
+// snapshot's customer_name + order_number as real columns so search / sort /
+// filter / paginate all run in the DB across the WHOLE table — the page size
+// never limits what search finds.
+
+export interface DocumentListRow extends Document {
+  customer_name: string | null
+  order_number: string | null
+}
+
+export type DocumentSortField = 'generated_at' | 'customer_name' | 'document_number' | 'document_type'
+
+export interface DocumentListFilters {
+  search?: string
+  type?: DocumentType | ''
+  customer?: string
+  /** inclusive date bounds, 'YYYY-MM-DD' on generated_at */
+  dateStart?: string
+  dateEnd?: string
+}
+
+// Loosely typed: PostgREST's builder type changes with each chained call, so a
+// generic doesn't hold across .eq/.or/etc. `q` is a Postgrest filter builder.
+function applyDocumentFilters(q: any, f: DocumentListFilters, includeType: boolean): any {
+  let query = q
+  if (includeType && f.type) query = query.eq('document_type', f.type)
+  if (f.customer) query = query.eq('customer_name', f.customer)
+  if (f.dateStart) query = query.gte('generated_at', f.dateStart)
+  if (f.dateEnd) query = query.lte('generated_at', `${f.dateEnd}T23:59:59.999Z`)
+  const term = sanitizeOrTerm(f.search ?? '')
+  if (term) {
+    query = query.or(`document_number.ilike.%${term}%,customer_name.ilike.%${term}%,order_number.ilike.%${term}%`)
+  }
+  return query
+}
+
+export async function fetchDocumentsPaged(opts: DocumentListFilters & {
+  sortField?: DocumentSortField
+  sortDir?: 'asc' | 'desc'
+  page?: number
+  pageSize?: number
+}): Promise<{ rows: DocumentListRow[]; total: number }> {
+  const page = Math.max(1, opts.page ?? 1)
+  const pageSize = opts.pageSize ?? 50
+  const from = (page - 1) * pageSize
+
+  let q = supabase.from('documents_list').select('*', { count: 'exact' })
+  q = applyDocumentFilters(q, opts, true)
+  q = q.order(opts.sortField ?? 'generated_at', { ascending: opts.sortDir === 'asc' })
+
+  const { data, error, count } = await q.range(from, from + pageSize - 1)
+  if (error) throw error
+  return { rows: (data as DocumentListRow[]) ?? [], total: count ?? 0 }
+}
+
+/**
+ * Type breakdown for the stat cards. Respects the search / customer / date
+ * filters but NOT the type filter, so the cards always show the full breakdown
+ * of the current result set. Three cheap head-count queries in parallel.
+ */
+export async function fetchDocumentStats(f: DocumentListFilters): Promise<{ total: number; invoices: number; creditNotes: number }> {
+  const headCount = async (extra?: { type: DocumentType }) => {
+    let q = supabase.from('documents_list').select('*', { count: 'exact', head: true })
+    q = applyDocumentFilters(q, f, false)
+    if (extra) q = q.eq('document_type', extra.type)
+    const { count, error } = await q
+    if (error) throw error
+    return count ?? 0
+  }
+  const [total, invoices, creditNotes] = await Promise.all([
+    headCount(),
+    headCount({ type: 'invoice' }),
+    headCount({ type: 'credit_note' }),
+  ])
+  return { total, invoices, creditNotes }
+}
+
+/** Distinct customer names that appear on documents (for the filter dropdown). */
+export async function fetchDocumentCustomers(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('documents_list')
+    .select('customer_name')
+    .not('customer_name', 'is', null)
+    .order('customer_name')
+  if (error) throw error
+  const seen = new Set<string>()
+  for (const r of (data as { customer_name: string | null }[]) ?? []) {
+    if (r.customer_name) seen.add(r.customer_name)
+  }
+  return Array.from(seen)
+}
+
+/** All rows matching the current filters (every page) — for "export all". */
+export async function fetchAllDocumentsForExport(f: DocumentListFilters): Promise<DocumentListRow[]> {
+  let q = supabase.from('documents_list').select('*').order('generated_at', { ascending: false })
+  q = applyDocumentFilters(q, f, true)
+  const { data, error } = await q.limit(100000)
+  if (error) throw error
+  return (data as DocumentListRow[]) ?? []
 }
 
 // Document info for orders list view

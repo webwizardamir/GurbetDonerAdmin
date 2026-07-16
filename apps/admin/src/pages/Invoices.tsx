@@ -12,9 +12,19 @@ import {
   Building2,
 } from 'lucide-react'
 import { pdf } from '@react-pdf/renderer'
-import { fetchDocuments, buildInvoiceData, updateDocumentSnapshot, type InvoiceData } from '../services/documents'
+import {
+  fetchDocumentsPaged,
+  fetchDocumentStats,
+  fetchDocumentCustomers,
+  fetchAllDocumentsForExport,
+  buildInvoiceData,
+  updateDocumentSnapshot,
+  type InvoiceData,
+  type DocumentListRow,
+} from '../services/documents'
 import { supabase } from '../services/supabase'
 import type { Document, DocumentType } from '../types'
+import Pagination from '../components/ui/Pagination'
 import { usePermission } from '../hooks/usePermission'
 import { InvoiceTemplate } from '../components/documents/InvoiceTemplate'
 import { ProformaTemplate } from '../components/documents/ProformaTemplate'
@@ -112,14 +122,21 @@ function getDateBounds(preset: DatePreset, customStart: string, customEnd: strin
 
 // ─── Main Component ───────────────────────────────────
 
+const PAGE_SIZE = 50
+
 export default function Invoices() {
   const { t } = useTranslation()
   const { canDelete } = usePermission('documents')
   const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
-  const [documents, setDocuments] = useState<Document[]>([])
+  const [documents, setDocuments] = useState<DocumentListRow[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [stats, setStats] = useState({ total: 0, invoices: 0, creditNotes: 0, other: 0 })
+  const [customers, setCustomers] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocumentType | ''>('')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [sortField, setSortField] = useState<SortField>('generated_at')
@@ -132,15 +149,49 @@ export default function Invoices() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkProcessing, setBulkProcessing] = useState(false)
 
-  useEffect(() => { loadDocuments() }, [])
-  useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, typeFilter, dateRangePreset, customStart, customEnd, customerFilter])
+  const dateRangeBounds = useMemo(
+    () => getDateBounds(dateRangePreset, customStart, customEnd),
+    [dateRangePreset, customStart, customEnd]
+  )
+
+  // The server-side filter set (search / type / customer / date). Search runs
+  // in the DB across the whole table, so a match on any page is found.
+  const filters = useMemo(() => ({
+    search: debouncedSearch,
+    type: typeFilter,
+    customer: customerFilter,
+    dateStart: dateRangeBounds?.start,
+    dateEnd: dateRangeBounds?.end,
+  }), [debouncedSearch, typeFilter, customerFilter, dateRangeBounds])
+
+  // Debounce the search box (~300ms after typing stops) before hitting the DB.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300)
+    return () => clearTimeout(id)
+  }, [searchQuery])
+
+  // Any filter/sort change clears the selection and returns to page 1.
+  useEffect(() => {
+    setSelectedIds(new Set())
+    setPage(1)
+  }, [filters, sortField, sortDirection])
 
   const loadDocuments = async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchDocuments()
-      setDocuments(data)
+      const [{ rows, total }, statCounts] = await Promise.all([
+        fetchDocumentsPaged({ ...filters, sortField, sortDir: sortDirection, page, pageSize: PAGE_SIZE }),
+        fetchDocumentStats(filters),
+      ])
+      setDocuments(rows)
+      setTotal(total)
+      setStats({
+        total: statCounts.total,
+        invoices: statCounts.invoices,
+        creditNotes: statCounts.creditNotes,
+        other: statCounts.total - statCounts.invoices - statCounts.creditNotes,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load documents')
     } finally {
@@ -148,58 +199,14 @@ export default function Invoices() {
     }
   }
 
-  const uniqueCustomers = useMemo(() => {
-    const names = new Set<string>()
-    documents.forEach(doc => {
-      const { customerName } = getSnapshotData(doc)
-      if (customerName) names.add(customerName)
-    })
-    return Array.from(names).sort((a, b) => a.localeCompare(b))
-  }, [documents])
+  useEffect(() => { void loadDocuments() }, [filters, sortField, sortDirection, page]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const dateRangeBounds = useMemo(
-    () => getDateBounds(dateRangePreset, customStart, customEnd),
-    [dateRangePreset, customStart, customEnd]
-  )
-
-  const filteredDocuments = useMemo(() => {
-    let result = documents.filter(doc => {
-      if (typeFilter && doc.document_type !== typeFilter) return false
-      if (customerFilter) {
-        const { customerName } = getSnapshotData(doc)
-        if (customerName !== customerFilter) return false
-      }
-      if (dateRangeBounds) {
-        const docDate = doc.generated_at.split('T')[0]
-        if (docDate < dateRangeBounds.start || docDate > dateRangeBounds.end) return false
-      }
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase()
-        const { customerName, orderNumber } = getSnapshotData(doc)
-        if (!doc.document_number.toLowerCase().includes(q) &&
-            !customerName.toLowerCase().includes(q) &&
-            !orderNumber.toLowerCase().includes(q)) return false
-      }
-      return true
-    })
-    result.sort((a, b) => {
-      let cmp = 0
-      switch (sortField) {
-        case 'generated_at': cmp = a.generated_at.localeCompare(b.generated_at); break
-        case 'document_number': cmp = a.document_number.localeCompare(b.document_number); break
-        case 'document_type': cmp = a.document_type.localeCompare(b.document_type); break
-        case 'customer_name': cmp = getSnapshotData(a).customerName.localeCompare(getSnapshotData(b).customerName); break
-      }
-      return sortDirection === 'asc' ? cmp : -cmp
-    })
-    return result
-  }, [documents, typeFilter, searchQuery, customerFilter, dateRangeBounds, sortField, sortDirection])
-
-  const stats = useMemo(() => {
-    const invoices = filteredDocuments.filter(d => d.document_type === 'invoice').length
-    const creditNotes = filteredDocuments.filter(d => d.document_type === 'credit_note').length
-    return { total: filteredDocuments.length, invoices, creditNotes, other: filteredDocuments.length - invoices - creditNotes }
-  }, [filteredDocuments])
+  // Customer filter options (distinct names across all documents) — loaded once.
+  useEffect(() => {
+    void (async () => {
+      try { setCustomers(await fetchDocumentCustomers()) } catch { /* non-fatal */ }
+    })()
+  }, [])
 
   // ─── Handlers ─────────────────────────────────────────
 
@@ -218,11 +225,13 @@ export default function Invoices() {
     setSelectedIds(newSet)
   }
 
+  // Select-all toggles the current page (selection persists across the page's
+  // own rows; export "all results" covers every page via getAllData).
   const toggleSelectAll = () => {
-    if (selectedIds.size === filteredDocuments.length && filteredDocuments.length > 0) {
+    if (selectedIds.size === documents.length && documents.length > 0) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(filteredDocuments.map(d => d.id)))
+      setSelectedIds(new Set(documents.map(d => d.id)))
     }
   }
 
@@ -232,7 +241,7 @@ export default function Invoices() {
     try {
       const { error } = await supabase.from('documents').delete().eq('id', doc.id)
       if (error) throw error
-      setDocuments(prev => prev.filter(d => d.id !== doc.id))
+      await loadDocuments()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete document')
     } finally {
@@ -292,7 +301,7 @@ export default function Invoices() {
   const handleBulkDownload = async () => {
     setBulkProcessing(true)
     try {
-      const selected = filteredDocuments.filter(d => selectedIds.has(d.id))
+      const selected = documents.filter(d => selectedIds.has(d.id))
       for (const doc of selected) {
         await handleDownload(doc)
         await new Promise(r => setTimeout(r, 500))
@@ -307,8 +316,8 @@ export default function Invoices() {
       const ids = Array.from(selectedIds)
       const { error } = await supabase.from('documents').delete().in('id', ids)
       if (error) throw error
-      setDocuments(prev => prev.filter(d => !selectedIds.has(d.id)))
       setSelectedIds(new Set())
+      await loadDocuments()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete documents')
     } finally { setBulkProcessing(false) }
@@ -325,10 +334,12 @@ export default function Invoices() {
     }
   }
 
-  const exportData = useMemo(() => filteredDocuments.map(mapDocForExport), [filteredDocuments]) // eslint-disable-line react-hooks/exhaustive-deps
+  // "All results" export fetches every matching row across all pages; selected
+  // export uses the current page's ticked rows.
+  const getAllExportData = async () => (await fetchAllDocumentsForExport(filters)).map(mapDocForExport)
   const selectedExportData = useMemo(
-    () => filteredDocuments.filter(d => selectedIds.has(d.id)).map(mapDocForExport),
-    [filteredDocuments, selectedIds], // eslint-disable-line react-hooks/exhaustive-deps
+    () => documents.filter(d => selectedIds.has(d.id)).map(mapDocForExport),
+    [documents, selectedIds], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const handleTypeFilterClick = (type: DocumentType) => {
@@ -389,21 +400,21 @@ export default function Invoices() {
           </select>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
         </div>
-        {uniqueCustomers.length > 0 && (
+        {customers.length > 0 && (
           <div className="relative w-full sm:w-auto">
             <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <select value={customerFilter} onChange={e => setCustomerFilter(e.target.value)}
               className="w-full sm:w-auto pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
               <option value="">{t('documents.allCustomers')}</option>
-              {uniqueCustomers.map(name => <option key={name} value={name}>{name}</option>)}
+              {customers.map(name => <option key={name} value={name}>{name}</option>)}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
         )}
         <ExportMenu
-          getAllData={async () => exportData}
+          getAllData={getAllExportData}
           selectedData={selectedExportData}
-          totalCount={exportData.length}
+          totalCount={total}
           columns={documentExportColumns as never}
           filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
           pdfTitle="Documenten"
@@ -425,7 +436,7 @@ export default function Invoices() {
       {/* Result Count */}
       {!loading && (
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          {t('documents.resultCount', { filtered: filteredDocuments.length, total: documents.length })}
+          {t('documents.matchCount', { count: total })}
         </p>
       )}
 
@@ -470,7 +481,7 @@ export default function Invoices() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
           </div>
-        ) : filteredDocuments.length === 0 ? (
+        ) : documents.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-600 dark:text-slate-400">
@@ -484,7 +495,7 @@ export default function Invoices() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
                   <th className="pl-4 pr-2 py-3 w-10">
-                    <input type="checkbox" checked={selectedIds.size === filteredDocuments.length && filteredDocuments.length > 0} onChange={toggleSelectAll}
+                    <input type="checkbox" checked={selectedIds.size === documents.length && documents.length > 0} onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
@@ -504,7 +515,7 @@ export default function Invoices() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {filteredDocuments.map(doc => {
+                {documents.map(doc => {
                   const data = getSnapshotData(doc)
                   return (
                     <InvoiceTableRow
@@ -535,7 +546,7 @@ export default function Invoices() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
           </div>
-        ) : filteredDocuments.length === 0 ? (
+        ) : documents.length === 0 ? (
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
             <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-600 dark:text-slate-400">
@@ -543,7 +554,7 @@ export default function Invoices() {
             </p>
           </div>
         ) : (
-          filteredDocuments.map(doc => {
+          documents.map(doc => {
             const data = getSnapshotData(doc)
             return (
               <InvoiceMobileCard
@@ -564,6 +575,10 @@ export default function Invoices() {
           })
         )}
       </div>
+
+      {!loading && total > 0 && (
+        <Pagination page={page} pageSize={PAGE_SIZE} totalCount={total} onPageChange={setPage} />
+      )}
 
       {/* Info */}
       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
