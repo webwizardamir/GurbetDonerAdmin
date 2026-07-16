@@ -454,9 +454,9 @@ export default function OrderItemsList({
               <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="px-2 py-2 text-left w-8">#</th>
-                  <th className="px-2 py-2 text-left">{t('orders.itemsTable.product')}</th>
+                  <th className="px-2 py-2 text-left max-w-[200px]">{t('orders.itemsTable.product')}</th>
                   <th className="px-2 py-2 text-left">{t('orders.itemsTable.unit')}</th>
-                  <th className="px-2 py-2 text-right w-24">{t('orders.itemsTable.price')}</th>
+                  <th className="px-2 py-2 text-right w-32">{t('orders.itemsTable.price')}</th>
                   <th className="px-2 py-2 text-center w-28">{t('orders.itemsTable.qty')}</th>
                   {onSetLineDiscount && (
                     <th className="px-2 py-2 text-right w-28">{t('orders.itemsTable.discount')}</th>
@@ -474,7 +474,7 @@ export default function OrderItemsList({
                     <tr key={item.lineId} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30">
                       <td className="px-2 py-2 text-slate-400 dark:text-slate-500 align-middle">{idx + 1}</td>
                       <td className="px-2 py-2 align-middle">
-                        <div className="font-medium text-slate-900 dark:text-white truncate" title={item.product.name}>
+                        <div className="font-medium text-slate-900 dark:text-white truncate max-w-[200px]" title={item.product.name}>
                           {item.product.name}
                         </div>
                         {isRemembered?.(item.product.id, item.selectedUnitType) && (
@@ -518,13 +518,13 @@ export default function OrderItemsList({
                           return (
                             <>
                               <div
-                                className="mt-0.5 text-[11px] leading-tight text-slate-500 dark:text-slate-400"
+                                className="mt-0.5 text-[10px] leading-tight text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums"
                                 title={`${t('orders.itemsTable.cogShort')} ${formatPrice(item.cost_cents!)} × ${item.quantity} = ${formatPrice((item.cost_cents ?? 0) * item.quantity)}`}
                               >
                                 {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)}{' '}
-                                <span className={`font-medium ${profitClass(perUnit)}`}>({perUnit >= 0 ? '+' : ''}{formatPrice(perUnit)})</span>
+                                <span className={`font-medium ${profitClass(perUnit)}`}>{perUnit >= 0 ? '+' : ''}{formatPrice(perUnit)}</span>
                               </div>
-                              <div className={`text-[11px] leading-tight font-medium ${profitClass(lp)}`}>
+                              <div className={`text-[10px] leading-tight font-medium whitespace-nowrap tabular-nums ${profitClass(lp)}`}>
                                 {t('orders.profit.label')} {formatPrice(lp)} · {formatPercent(lm)}
                               </div>
                             </>
