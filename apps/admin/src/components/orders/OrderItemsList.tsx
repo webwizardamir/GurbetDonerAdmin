@@ -511,7 +511,8 @@ export default function OrderItemsList({
                           <span className="text-slate-700 dark:text-slate-200">{formatPrice(item.unit_price)}</span>
                         )}
                         {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
-                          // lineTotal here is already ex-VAT (unit_price × qty − line discount).
+                          // Per-unit difference + total line profit (lineTotal is ex-VAT).
+                          const perUnit = item.unit_price - (item.cost_cents ?? 0)
                           const lp = lineTotal - (item.cost_cents ?? 0) * item.quantity
                           const lm = lineTotal > 0 ? (lp / lineTotal) * 100 : 0
                           return (
@@ -520,7 +521,8 @@ export default function OrderItemsList({
                                 className="mt-0.5 text-[11px] leading-tight text-slate-500 dark:text-slate-400"
                                 title={`${t('orders.itemsTable.cogShort')} ${formatPrice(item.cost_cents!)} × ${item.quantity} = ${formatPrice((item.cost_cents ?? 0) * item.quantity)}`}
                               >
-                                {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)}
+                                {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)}{' '}
+                                <span className={`font-medium ${profitClass(perUnit)}`}>({perUnit >= 0 ? '+' : ''}{formatPrice(perUnit)})</span>
                               </div>
                               <div className={`text-[11px] leading-tight font-medium ${profitClass(lp)}`}>
                                 {t('orders.profit.label')} {formatPrice(lp)} · {formatPercent(lm)}
@@ -694,13 +696,18 @@ export default function OrderItemsList({
                   )}
 
                   {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
-                    // lineTotal here is already ex-VAT (unit_price × qty − line discount).
+                    // Per-unit difference + total line profit (lineTotal is ex-VAT).
+                    const perUnit = item.unit_price - (item.cost_cents ?? 0)
                     const lp = lineTotal - (item.cost_cents ?? 0) * item.quantity
                     const lm = lineTotal > 0 ? (lp / lineTotal) * 100 : 0
                     return (
                       <>
                         <div className="flex items-center justify-between text-[11px] leading-tight text-slate-500 dark:text-slate-400">
-                          <span>{t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)} × {item.quantity}</span>
+                          <span>
+                            {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)}{' '}
+                            <span className={`font-medium ${profitClass(perUnit)}`}>({perUnit >= 0 ? '+' : ''}{formatPrice(perUnit)})</span>
+                            {' '}× {item.quantity}
+                          </span>
                           <span>{formatPrice((item.cost_cents ?? 0) * item.quantity)}</span>
                         </div>
                         <div className={`flex items-center justify-between text-[11px] leading-tight font-medium ${profitClass(lp)}`}>

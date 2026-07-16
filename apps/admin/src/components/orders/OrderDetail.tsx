@@ -320,17 +320,15 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                       {formatPrice(item.unit_price)} × {formatQuantity(item.quantity)} {formatUnitDutch(item.unit_type, item.quantity, t)}
                     </p>
                     {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
-                      // Revenue base is ex-VAT (line_total includes BTW; cost_cents is ex-VAT).
-                      const revenueExVat = item.line_total - item.tax_amount
-                      const lp = revenueExVat - (item.cost_cents ?? 0) * item.quantity
-                      const lm = revenueExVat > 0 ? (lp / revenueExVat) * 100 : 0
+                      // Per-unit difference: sold unit price − unit cost (both ex-VAT).
+                      const perUnit = item.unit_price - (item.cost_cents ?? 0)
                       return (
                         <p className="text-[11px] leading-tight text-slate-500 dark:text-slate-400">
-                          {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)} × {formatQuantity(item.quantity)}
-                          {' · '}
-                          <span className={`font-medium ${profitClass(lp)}`}>
-                            {t('orders.profit.label')} {formatPrice(lp)} · {formatPercent(lm)}
+                          {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)}{' '}
+                          <span className={`font-medium ${profitClass(perUnit)}`}>
+                            ({perUnit >= 0 ? '+' : ''}{formatPrice(perUnit)})
                           </span>
+                          {' '}× {formatQuantity(item.quantity)}
                         </p>
                       )
                     })()}
@@ -348,6 +346,17 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       BTW {item.tax_rate}%
                     </p>
+                    {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
+                      // Total line profit — base is ex-VAT (line_total includes BTW; cost_cents ex-VAT).
+                      const revenueExVat = item.line_total - item.tax_amount
+                      const lp = revenueExVat - (item.cost_cents ?? 0) * item.quantity
+                      const lm = revenueExVat > 0 ? (lp / revenueExVat) * 100 : 0
+                      return (
+                        <p className={`text-[11px] font-medium tabular-nums ${profitClass(lp)}`}>
+                          {t('orders.profit.label')} {formatPrice(lp)} · {formatPercent(lm)}
+                        </p>
+                      )
+                    })()}
                   </div>
                 </div>
               ))}
