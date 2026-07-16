@@ -744,6 +744,14 @@ Issued from the order detail panel (Orders page → open an order → **Terugbet
 
 ### Profit Visibility
 - Owner-only. The customer detail page shows an all-time **profit** card (with gross margin), sourced from the **server-gated** `get_customer_items_summary` RPC, which returns `NULL` profit for non-owners. Never fetch cost/profit client-side for a Shop Manager — gate it in the RPC, not just the UI (see `BUGS_AND_FIXES.md`).
+- **Per-line profit on order line items (owner-only, 2026-07-16):** `OrderDetail` and `OrderItemsList` show, per costed line, BOTH the **per-unit difference** (`unit_price − cost_cents`, e.g. `inkoop €5,75 +€0,75`, green next to inkoop) AND the **total line Winst** (`(line_total − tax_amount) − cost×qty` + margin%). Base is ex-VAT (in the live form `lineTotal = unit_price×qty − discount` is already ex-VAT). Gated by `isOwner && cost_cents > 0`.
+
+### Draft orders (Concept) — 2026-07-16
+Opt-in **"Concept"** status to park an unfinalised order. **Live `orders.status` default is `pending`** (the migration files' `draft` default is stale); `draft` was unused, so it now carries special meaning with no effect on the normal flow. A draft:
+1. **Gets no invoice/number** — `OrderForm`'s `ensureOrderInvoice` block is skipped while saving a draft (`!savingAsDraft`); **finalising** (draft→non-draft, via the form checkbox OR the detail status buttons) issues it then.
+2. **Gets no automatic email** — a draft has no invoice doc so the reminder cron's `if(!invDoc) skip` ignores it; belt-and-suspenders, `process-invoice-reminders` Step 4 dunning also excludes `draft` (source committed; **redeploy skipped** — proxy failure, unneeded).
+3. **Is excluded from analytics revenue/profit** — **migration 00089** (a `DO` block that reads each RPC's `pg_get_functiondef` and string-replaces the sold-set predicate to add `'draft'`) patches 20 revenue/profit RPCs. **Kept** in `get_today_stats` operational buckets (items_to_pick/pending_count), the status-distribution RPCs, and `get_order_stats_by_status` (Orders Draft filter). Do NOT hand-rewrite those functions from old migrations — the DO-block preserves live 00070 owner-gating.
+- **Entry ("Both"):** a "Concept" checkbox in `OrderForm` + a "Concept" status action in `OrderDetail`. `CreateOrderData.status?` is threaded through `createOrder`/`updateOrderWithItems` **only when it must change** (never clobbers an existing completed/cancelled status). Drafts still **reserve stock** (deducts on `order_items` insert, status-agnostic) — unchanged. See `[[draft_status_and_line_profit]]`.
 
 ### Roles
 | Permission | Owner | Shop Manager |
