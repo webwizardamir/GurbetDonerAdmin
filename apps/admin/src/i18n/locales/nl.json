@@ -716,7 +716,8 @@
       "cancel": "Annuleren",
       "refund": "Terugbetalen",
       "delete": "Verwijderen",
-      "markComplete": "Markeer als voltooid"
+      "markComplete": "Markeer als voltooid",
+      "markDraft": "Concept"
     },
     "refund": {
       "title": "Terugbetaling",
@@ -773,6 +774,8 @@
       "creating": "Aanmaken...",
       "updating": "Bijwerken...",
       "saveChanges": "Wijzigingen opslaan",
+      "saveAsDraft": "Concept",
+      "saveAsDraftHint": "Bewaar als concept: geen factuur, geen automatische e-mail, telt niet mee in de analyses. Later te finaliseren.",
       "deliveryNotes": "Bezorgnotities",
       "deliveryPlaceholder": "Bezorginstructies...",
       "internalNotes": "Interne notities",

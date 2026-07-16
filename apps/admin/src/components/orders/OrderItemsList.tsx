@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Minus, Trash2, Package, MessageSquare, X } from 'lucide-react'
 import type { UnitType } from '../../types'
-import { formatPrice } from '../../utils/format'
+import { formatPrice, formatPercent, profitClass } from '../../utils/format'
 import { resolveDiscountCents, type DiscountType } from '../../utils/discount'
 import { useAuth } from '../../context/AuthContext'
 
@@ -510,14 +510,24 @@ export default function OrderItemsList({
                         ) : (
                           <span className="text-slate-700 dark:text-slate-200">{formatPrice(item.unit_price)}</span>
                         )}
-                        {isOwner && (item.cost_cents ?? 0) > 0 && (
-                          <div
-                            className="mt-0.5 text-[11px] leading-tight text-slate-500 dark:text-slate-400"
-                            title={`${t('orders.itemsTable.cogShort')} ${formatPrice(item.cost_cents!)} × ${item.quantity} = ${formatPrice((item.cost_cents ?? 0) * item.quantity)}`}
-                          >
-                            {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)}
-                          </div>
-                        )}
+                        {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
+                          // lineTotal here is already ex-VAT (unit_price × qty − line discount).
+                          const lp = lineTotal - (item.cost_cents ?? 0) * item.quantity
+                          const lm = lineTotal > 0 ? (lp / lineTotal) * 100 : 0
+                          return (
+                            <>
+                              <div
+                                className="mt-0.5 text-[11px] leading-tight text-slate-500 dark:text-slate-400"
+                                title={`${t('orders.itemsTable.cogShort')} ${formatPrice(item.cost_cents!)} × ${item.quantity} = ${formatPrice((item.cost_cents ?? 0) * item.quantity)}`}
+                              >
+                                {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)}
+                              </div>
+                              <div className={`text-[11px] leading-tight font-medium ${profitClass(lp)}`}>
+                                {t('orders.profit.label')} {formatPrice(lp)} · {formatPercent(lm)}
+                              </div>
+                            </>
+                          )
+                        })()}
                       </td>
                       <td className="px-2 py-2 align-middle">
                         <div className="flex items-center justify-center gap-0.5">
@@ -683,12 +693,23 @@ export default function OrderItemsList({
                     </div>
                   )}
 
-                  {isOwner && (item.cost_cents ?? 0) > 0 && (
-                    <div className="flex items-center justify-between text-[11px] leading-tight text-slate-500 dark:text-slate-400">
-                      <span>{t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)} × {item.quantity}</span>
-                      <span>{formatPrice((item.cost_cents ?? 0) * item.quantity)}</span>
-                    </div>
-                  )}
+                  {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
+                    // lineTotal here is already ex-VAT (unit_price × qty − line discount).
+                    const lp = lineTotal - (item.cost_cents ?? 0) * item.quantity
+                    const lm = lineTotal > 0 ? (lp / lineTotal) * 100 : 0
+                    return (
+                      <>
+                        <div className="flex items-center justify-between text-[11px] leading-tight text-slate-500 dark:text-slate-400">
+                          <span>{t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)} × {item.quantity}</span>
+                          <span>{formatPrice((item.cost_cents ?? 0) * item.quantity)}</span>
+                        </div>
+                        <div className={`flex items-center justify-between text-[11px] leading-tight font-medium ${profitClass(lp)}`}>
+                          <span>{t('orders.profit.label')}</span>
+                          <span>{formatPrice(lp)} · {formatPercent(lm)}</span>
+                        </div>
+                      </>
+                    )
+                  })()}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500 dark:text-slate-400">{t('orders.itemsTable.total')}</span>
                     <span className="font-semibold text-slate-900 dark:text-white">{formatPrice(lineTotal)}</span>

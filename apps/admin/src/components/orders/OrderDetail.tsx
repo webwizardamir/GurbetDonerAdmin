@@ -18,6 +18,7 @@ import {
   StickyNote,
 } from 'lucide-react'
 import { updateOrderStatus } from '../../services/orders'
+import { ensureOrderInvoice } from '../../services/documents'
 import { fetchDocumentSends } from '../../services/documentEmail'
 import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
@@ -134,7 +135,15 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
     setError(null)
 
     try {
+      const wasDraft = order.status === 'draft'
       await updateOrderStatus(order.id, newStatus, paymentMethod)
+      // Finalising a draft (→ any live status other than draft/cancelled/refunded)
+      // issues the invoice + number now, since drafts deliberately get none.
+      // Best-effort, non-imported only; never block the status change.
+      if (wasDraft && !isImportedOrder(order) &&
+          newStatus !== 'draft' && newStatus !== 'cancelled' && newStatus !== 'refunded') {
+        void ensureOrderInvoice(order.id).catch(e => console.error('Auto invoice generation failed:', e))
+      }
       onStatusChange()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('orders.detail.updateError'))
@@ -149,7 +158,12 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
   }
 
   // Available status transitions
+  // The "Concept" (draft) action only makes sense for early/live orders — not for
+  // completed/cancelled/refunded ones. It parks the order: no invoice, no auto-email,
+  // out of analytics revenue. Finalising (any other action) re-issues the invoice.
+  const canMarkDraft = ['pending', 'pending_payment', 'on_hold', 'draft'].includes(order.status)
   const statusActions: { status: OrderStatus; labelKey: string; icon: React.ReactNode; color: string }[] = [
+    ...(canMarkDraft ? [{ status: 'draft' as OrderStatus, labelKey: 'orders.actions.markDraft', icon: <FileText className="w-4 h-4" />, color: 'slate' }] : []),
     { status: 'pending_payment', labelKey: 'orders.status.pending', icon: <Clock className="w-4 h-4" />, color: 'amber' },
     { status: 'on_hold', labelKey: 'orders.status.on_hold', icon: <RefreshCw className="w-4 h-4" />, color: 'blue' },
     { status: 'completed', labelKey: 'orders.actions.complete', icon: <CheckCircle className="w-4 h-4" />, color: 'green' },
@@ -235,6 +249,7 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                         ${action.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50' : ''}
                         ${action.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50' : ''}
                         ${action.color === 'red' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50' : ''}
+                        ${action.color === 'slate' ? 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600' : ''}
                         disabled:opacity-50
                       `}
                     >
@@ -304,11 +319,21 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       {formatPrice(item.unit_price)} × {formatQuantity(item.quantity)} {formatUnitDutch(item.unit_type, item.quantity, t)}
                     </p>
-                    {isOwner && (item.cost_cents ?? 0) > 0 && (
-                      <p className="text-[11px] leading-tight text-slate-500 dark:text-slate-400">
-                        {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)} × {formatQuantity(item.quantity)}
-                      </p>
-                    )}
+                    {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
+                      // Revenue base is ex-VAT (line_total includes BTW; cost_cents is ex-VAT).
+                      const revenueExVat = item.line_total - item.tax_amount
+                      const lp = revenueExVat - (item.cost_cents ?? 0) * item.quantity
+                      const lm = revenueExVat > 0 ? (lp / revenueExVat) * 100 : 0
+                      return (
+                        <p className="text-[11px] leading-tight text-slate-500 dark:text-slate-400">
+                          {t('orders.itemsTable.cogShort')} {formatPrice(item.cost_cents!)} × {formatQuantity(item.quantity)}
+                          {' · '}
+                          <span className={`font-medium ${profitClass(lp)}`}>
+                            {t('orders.profit.label')} {formatPrice(lp)} · {formatPercent(lm)}
+                          </span>
+                        </p>
+                      )
+                    })()}
                     {item.notes?.trim() && (
                       <p className="mt-1 flex items-start gap-1 text-xs text-slate-500 dark:text-slate-400">
                         <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-slate-400" />
@@ -323,17 +348,6 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       BTW {item.tax_rate}%
                     </p>
-                    {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
-                      // Revenue base is ex-VAT (line_total includes BTW; cost_cents is ex-VAT).
-                      const revenueExVat = item.line_total - item.tax_amount
-                      const lp = revenueExVat - (item.cost_cents ?? 0) * item.quantity
-                      const lm = revenueExVat > 0 ? (lp / revenueExVat) * 100 : 0
-                      return (
-                        <p className={`text-[11px] font-medium tabular-nums ${profitClass(lp)}`}>
-                          {t('orders.profit.label')} {formatPrice(lp)} · {formatPercent(lm)}
-                        </p>
-                      )
-                    })()}
                   </div>
                 </div>
               ))}

@@ -111,6 +111,10 @@ export interface CreateOrderData {
   // Flat shipping fee (Verzendkosten), ex-BTW cents. Kept out of subtotal/tax
   // (never profit); folded into orders.total with its dominant-rate BTW.
   delivery_fee?: number | null
+  // Explicit order status. Normally omitted (new orders default to 'pending' in
+  // the DB). Set to 'draft' to park an order (no invoice/email/analytics), or to
+  // 'pending' to finalise a draft. See OrderForm's draft toggle.
+  status?: OrderStatus
 }
 
 export interface CreateOrderItemData {
@@ -418,6 +422,9 @@ export async function createOrder(
       delivery_notes: orderData.delivery_notes || '',
       internal_notes: orderData.internal_notes || '',
       ...header,
+      // Explicit status only when the caller sets one (e.g. 'draft'); otherwise
+      // the DB default ('pending') applies.
+      ...(orderData.status ? { status: orderData.status } : {}),
       created_by: userId,
     })
     .select()
@@ -626,6 +633,9 @@ export async function updateOrderWithItems(
       delivery_notes: orderData.delivery_notes || '',
       internal_notes: orderData.internal_notes || '',
       ...header,
+      // Only touch status when the caller sets one (draft ↔ finalize); leaving it
+      // out preserves the order's existing status.
+      ...(orderData.status ? { status: orderData.status } : {}),
     })
     .eq('id', orderId)
 

@@ -184,7 +184,7 @@ serve(async (req) => {
       .from('orders')
       .select('id, order_number, total, invoice_due_date, reminders_opted_out, customer:customers!customer_id(id, company_name, email, billing_country, reminders_opted_out)')
       .lt('invoice_due_date', todayISO())
-      .not('status', 'in', '(completed,cancelled,refunded)')
+      .not('status', 'in', '(draft,completed,cancelled,refunded)')
       .eq('reminders_opted_out', false)
 
     // Active snoozes — a snoozed invoice must NOT receive automatic reminders

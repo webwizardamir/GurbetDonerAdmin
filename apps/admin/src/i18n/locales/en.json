@@ -716,7 +716,8 @@
       "cancel": "Cancel",
       "refund": "Refund",
       "delete": "Delete",
-      "markComplete": "Mark as Complete"
+      "markComplete": "Mark as Complete",
+      "markDraft": "Draft"
     },
     "refund": {
       "title": "Refund",
@@ -773,6 +774,8 @@
       "creating": "Creating...",
       "updating": "Updating...",
       "saveChanges": "Save Changes",
+      "saveAsDraft": "Draft",
+      "saveAsDraftHint": "Save as draft: no invoice, no automatic email, excluded from analytics. Finalise later.",
       "deliveryNotes": "Delivery Notes",
       "deliveryPlaceholder": "Delivery instructions...",
       "internalNotes": "Internal Notes",

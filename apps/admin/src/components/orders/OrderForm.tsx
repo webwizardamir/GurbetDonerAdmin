@@ -9,7 +9,7 @@ import BarcodeScanner from './BarcodeScanner'
 import CustomerSelect from './CustomerSelect'
 import ProductSearch from './ProductSearch'
 import OrderItemsList from './OrderItemsList'
-import type { Customer, Product, UnitType, ProductUnitPrice } from '../../types'
+import type { Customer, Product, UnitType, ProductUnitPrice, OrderStatus } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import { formatPrice } from '../../utils/format'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
@@ -71,6 +71,10 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const [shipping, setShipping] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // "Concept" (draft) toggle. A draft gets no auto-invoice, no automatic email,
+  // and is excluded from analytics revenue/profit. Opt-in only; normal orders
+  // keep defaulting to 'pending'. Initialised from the edited order's status.
+  const [isDraft, setIsDraft] = useState(false)
   // True while the customer's pricing context (customer_prices + price_list_items)
   // is being fetched. Gates the "add product" button so a product can't be added
   // with a stale/default price before the remembered customer price has loaded
@@ -206,6 +210,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     setOrderDiscountType(editOrder.discount_type ?? null)
     setOrderDiscountValue(editOrder.discount_value ?? null)
     setShipping(editOrder.delivery_fee ? editOrder.delivery_fee : null)
+    setIsDraft(editOrder.status === 'draft')
     if (editOrder.items && editOrder.items.length > 0) {
       const loadedItems: OrderLineItem[] = editOrder.items.map(item => {
         const product = products.find(p => p.id === item.product_id)
@@ -368,11 +373,23 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     setSaving(true)
     setError(null)
     try {
+      // Only send a status when it must change, so we never clobber an existing
+      // order's completed/cancelled/etc. status:
+      //  - draft ticked & order isn't already draft → 'draft'
+      //  - draft unticked & order IS draft → 'pending' (finalize)
+      //  - new order + draft ticked → 'draft'; new + unticked → omit (defaults 'pending')
+      const currentIsDraft = editOrder?.status === 'draft'
+      let statusUpdate: OrderStatus | undefined
+      if (isDraft && !currentIsDraft) statusUpdate = 'draft'
+      else if (!isDraft && currentIsDraft) statusUpdate = 'pending'
+      const savingAsDraft = isDraft // effective status after save is draft?
+
       const orderData = {
         customer_id: selectedCustomer.id, order_date: orderDate,
         delivery_notes: deliveryNotes || undefined, internal_notes: internalNotes || undefined,
         discount_type: orderDiscountType, discount_value: orderDiscountValue,
         delivery_fee: shipping ?? 0,
+        ...(statusUpdate ? { status: statusUpdate } : {}),
       }
       const itemsData = items.map(i => ({
         product_id: i.product.id, product_name: i.product.name, product_sku: i.product.sku,
@@ -423,7 +440,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       // column then shows it immediately); on EDIT the snapshot refresh in
       // updateOrderWithItems already runs, so this just back-fills a missing
       // invoice for legacy orders (fire-and-forget).
-      if (!isImported && savedOrder) {
+      // Drafts get NO invoice/number and no auto-email — the invoice is issued
+      // only once the order is finalised (draft unticked, or a status action).
+      if (!isImported && savedOrder && !savingAsDraft) {
         if (isEditMode) {
           // Fire-and-forget on edit: attach a .catch so a rejected promise is
           // swallowed (best-effort) rather than becoming an unhandled rejection.
@@ -503,6 +522,19 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <label
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg cursor-pointer select-none text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            title={t('orders.form.saveAsDraftHint')}
+          >
+            <input
+              type="checkbox"
+              checked={isDraft}
+              onChange={e => setIsDraft(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-slate-600 focus:ring-slate-500"
+            />
+            <span className="hidden sm:inline">{t('orders.form.saveAsDraft')}</span>
+            <span className="sm:hidden">{t('orders.status.draft')}</span>
+          </label>
           <button
             onClick={onCancel}
             className="px-3 sm:px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm"
