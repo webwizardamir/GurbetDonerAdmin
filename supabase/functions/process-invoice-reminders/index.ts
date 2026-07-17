@@ -95,6 +95,27 @@ function langBucket(raw: Record<string, unknown>, lang: Lang): Record<string, Te
   return lang === 'nl' ? (raw as Record<string, Template>) : {}
 }
 
+/**
+ * document_sends.status values that mean "this email was already handed to
+ * Resend" — i.e. it must NOT be sent again.
+ *
+ * Do NOT match on `status = 'sent'`. `sent` is only the status for the first
+ * ~15 minutes: the sync-email-status cron polls Resend and rewrites it in place
+ * to the real outcome (delivered / bounced / suppressed / complained). An
+ * `eq('status','sent')` dedup therefore stops matching once the row is synced,
+ * the send looks like it never happened, and the invoice is re-emailed every
+ * run (this shipped ~55 duplicate invoices over 15-17 Jul 2026).
+ *
+ * Only `pending` (mid-flight) and `failed` (Resend rejected it) may retry, so
+ * the guard is expressed as an exclusion — any status added later counts as
+ * sent by default, which fails safe (no duplicate mail).
+ *
+ * `bounced`/`suppressed` deliberately count as sent: those addresses are dead,
+ * and retrying daily just re-mails a dead mailbox. They surface in the Outbox
+ * "problems" filter + the Dashboard delivery alert for a human to fix instead.
+ */
+const NOT_YET_SENT_STATUSES = '(pending,failed)'
+
 const DEFAULT_CONFIG: ReminderConfig = {
   auto_send_enabled: false,
   send_hour: 8,
@@ -215,13 +236,14 @@ serve(async (req) => {
       if (!invDoc) { result.clientSkipped++; continue }
 
       // Reminders already sent (manual + auto), newest first, for the cap and
-      // the spacing guard.
+      // the spacing guard. Counts every non-retryable status, not just 'sent'
+      // — see NOT_YET_SENT_STATUSES.
       const { data: priorSends } = await admin
         .from('document_sends')
         .select('created_at')
         .eq('order_id', o.id as string)
         .eq('document_type', 'payment_reminder')
-        .eq('status', 'sent')
+        .not('status', 'in', NOT_YET_SENT_STATUSES)
         .order('created_at', { ascending: false })
       const remindersSent = priorSends?.length ?? 0
       if (remindersSent >= cfg.max_count) { result.clientSkipped++; continue }
@@ -370,15 +392,16 @@ serve(async (req) => {
       const email = customer.email as string | undefined
       if (!email || customer.reminders_opted_out) { result.invoiceSkipped++; continue }
 
-      // First invoice only: skip if the invoice was already emailed SUCCESSFULLY
-      // (manual send or a prior auto run). A prior 'failed'/'pending' row does
-      // NOT block a retry — otherwise one transient error kills the send forever.
+      // First invoice only: skip if the invoice was already handed to Resend
+      // (manual send or a prior auto run). A 'failed'/'pending' row does NOT
+      // block a retry — otherwise one transient error kills the send forever.
+      // Must NOT match on status='sent' alone; see NOT_YET_SENT_STATUSES.
       const { data: sentInvoice } = await admin
         .from('document_sends')
         .select('id')
         .eq('order_id', o.id as string)
         .eq('document_type', 'invoice')
-        .eq('status', 'sent')
+        .not('status', 'in', NOT_YET_SENT_STATUSES)
         .limit(1)
       if (sentInvoice && sentInvoice.length > 0) { result.invoiceSkipped++; continue }
 
