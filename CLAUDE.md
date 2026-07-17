@@ -1057,8 +1057,8 @@ fails at runtime with ERR_MODULE_NOT_FOUND — do not revert). `process-invoice-
 `fetchInvoicePdf` (calls the renderer via `RENDER_ENDPOINT_URL`+`RENDER_SECRET`) and **Step 6** (24h
 initial-invoice send), and now also attaches the invoice PDF to overdue reminders. Step 6 is **opt-in**
 (`client_reminder_config.initial_invoice_send_enabled`, default false), additionally gated on the renderer
-being configured + the reminder business-hours window, **excludes drafts**, and dedups on a *successful*
-send (transient failures retry). Sent status shows a green "Factuur verzonden" badge (Orders list +
+being configured + the reminder business-hours window, **excludes drafts**, and dedups on an *already-sent*
+send (transient failures retry — see the `status` rule below). Sent status shows a green "Factuur verzonden" badge (Orders list +
 OrderDetail; `fetchSendCountsByOrder` gained `invoiceSent`). Owner env: Vercel (`SUPABASE_SERVICE_ROLE_KEY`,
 `RENDER_SECRET`; URL reuses `VITE_SUPABASE_URL`), edge fn (`RENDER_ENDPOINT_URL`, `RENDER_SECRET`).
 
@@ -1071,6 +1071,38 @@ retries, no rollout blast of old backdated orders). Actual send time = `send_hou
 working day (currently **08:00**, `working_days_only=true`); if the day-after lands on a weekend it rolls to
 the next weekday (still inside the 3-day floor). **Do not revert the window to `created_at`** — that emails a
 future-dated order too early.
+
+### `document_sends.status = 'sent'` is TRANSIENT — never test it with `=` (2026-07-17)
+
+**The single most important rule in the mail system.** `sync-email-status` (cron, every 15 min, live since
+2026-07-15 23:30 UTC) selects rows with `status='sent'` and **rewrites them in place** to the real Resend
+outcome (`delivered`/`bounced`/`suppressed`/`complained`). A row only reads `'sent'` for its **first ~15
+minutes**, so any `status = 'sent'` equality test silently reports **every historic email as never-sent**.
+
+This shipped **~55 duplicate invoice emails 15–17 Jul 2026** (FC-08408 / order 10678 went out 3×): Step 6's
+`.eq('status','sent')` dedup found no row, concluded the invoice was never emailed, and re-sent it every
+daily run. Only the 3-day `order_date` floor capped it at three copies. Fixed in commits d100cfb + feff270.
+
+**Two different questions — one column answers both. Keep them apart:**
+
+| Question | Predicate | Where |
+|---|---|---|
+| Did it reach the customer? (green badge) | `sent \| delivered` | `isSuccessfulSend()` / `SUCCESSFUL_SEND_STATUSES` (`types/index.ts`) |
+| May we send it again? (dedup / cap) | `NOT IN (pending, failed)` | `NOT_YET_SENT_STATUSES` (reminders edge fn) + `get_overdue_invoices` (migration 00090) |
+
+A **bounced** email is a *failure* for the first and a *hard block* for the second — retrying only re-mails a
+dead address; the Outbox "problems" filter + Dashboard delivery alert surface it for a human instead.
+
+- The resend guard is written as an **exclusion**, so any status added to `DocumentSendStatus` later counts
+  as sent by default and **fails safe** (a missing email you'd notice, not silent duplicate customer mail).
+- The edge fn's `NOT_YET_SENT_STATUSES` and `get_overdue_invoices`'s lateral **must stay mirrored** —
+  `services/invoiceReminders.ts` (`projectNextReminder`) is a faithful port of that ladder, so if they
+  disagree the page projects a next-reminder date the cron won't honour.
+- **`invoice_reminders.status` is NOT touched by the sync** — its `'sent'` checks are correct; leave them.
+- **Deploy gotcha:** the Supabase **MCP `deploy_edge_function` fails for this project** ("fetch failed"/proxy).
+  Deploy from the **repo root** (not `system32` — paths resolve relative to cwd) with
+  `npx supabase functions deploy process-invoice-reminders --project-ref pnimvwconhhmcwxcuxcz --no-verify-jwt`.
+  **`--no-verify-jwt` is mandatory** (cron-secret model; MCP also defaults `verify_jwt` to true → 401s the cron).
 
 ## Customer portal — self-service passwordless login (email OTP) (2026-07-13)
 
