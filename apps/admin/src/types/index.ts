@@ -628,6 +628,25 @@ export const FAILED_SEND_STATUSES: DocumentSendStatus[] = [
   'suppressed',
 ]
 
+// The statuses that mean the email reached (or is expected to reach) the
+// customer — i.e. show a green "sent" affordance. NOT the same question as
+// "may we send it again?" (see NOT_YET_SENT_STATUSES in the reminders edge
+// function): a bounced email WAS sent but never arrived, so it belongs here as
+// a failure while still blocking a re-send.
+export const SUCCESSFUL_SEND_STATUSES: DocumentSendStatus[] = ['sent', 'delivered']
+
+/**
+ * True when a send reached (or is expected to reach) the customer.
+ *
+ * Never test `status === 'sent'` directly: 'sent' only survives ~15 minutes
+ * before the sync-email-status poller rewrites the row in place to the real
+ * Resend outcome ('delivered' etc.), after which an equality check silently
+ * reports every historic email as never-sent.
+ */
+export function isSuccessfulSend(status: string): boolean {
+  return (SUCCESSFUL_SEND_STATUSES as string[]).includes(status)
+}
+
 export interface DocumentSend {
   id: string
   document_id: string | null

@@ -21,6 +21,7 @@ import { updateOrderStatus } from '../../services/orders'
 import { ensureOrderInvoice } from '../../services/documents'
 import { fetchDocumentSends } from '../../services/documentEmail'
 import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
+import { isSuccessfulSend } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
 import DocumentGenerator from '../documents/DocumentGenerator'
 import RefundModal from './RefundModal'
@@ -97,7 +98,7 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
     fetchDocumentSends({ orderId: order.id })
       .then(rows => {
         if (!alive) return
-        const inv = rows.find(s => s.document_type === 'invoice' && s.status === 'sent')
+        const inv = rows.find(s => s.document_type === 'invoice' && isSuccessfulSend(s.status))
         setInvoiceSentAt(inv ? (inv.sent_at ?? inv.created_at) : null)
       })
       .catch(() => { if (alive) setInvoiceSentAt(null) })
@@ -582,7 +583,7 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
             // Refresh the local invoice-sent status too.
             fetchDocumentSends({ orderId: order.id })
               .then(rows => {
-                const inv = rows.find(s => s.document_type === 'invoice' && s.status === 'sent')
+                const inv = rows.find(s => s.document_type === 'invoice' && isSuccessfulSend(s.status))
                 setInvoiceSentAt(inv ? (inv.sent_at ?? inv.created_at) : null)
               })
               .catch(() => {})

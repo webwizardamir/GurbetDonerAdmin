@@ -9,7 +9,7 @@ import type {
   EmailTemplateMap,
   LocalizedEmailTemplates,
 } from '../types'
-import { FAILED_SEND_STATUSES } from '../types'
+import { FAILED_SEND_STATUSES, isSuccessfulSend } from '../types'
 import { sanitizeOrTerm } from '../utils/pgSearch'
 
 // ===========================================================================
@@ -304,8 +304,9 @@ export async function fetchSendCountsByOrder(orderIds: string[]): Promise<Record
   const out: Record<string, OrderSendInfo> = {}
   const failed = new Set<string>(FAILED_SEND_STATUSES)
   // 'sent' (accepted, awaiting confirmation) and 'delivered' both count as a
-  // successful send; the delivery-failure statuses do not.
-  const ok = (s: string) => s === 'sent' || s === 'delivered'
+  // successful send; the delivery-failure statuses do not. Shared helper — do
+  // not re-inline a `=== 'sent'` test (see isSuccessfulSend).
+  const ok = isSuccessfulSend
   for (const row of (data as { order_id: string | null; status: string; document_type: string }[]) ?? []) {
     if (!row.order_id) continue
     const bucket = out[row.order_id] ??= { total: 0, sent: 0, failed: 0, invoiceSent: false }
