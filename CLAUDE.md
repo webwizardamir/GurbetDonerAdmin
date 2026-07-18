@@ -1128,6 +1128,57 @@ verified code, gated to active customers. Security model (built + adversarially 
 The old password login is removed from the UI (OTP covers everyone); admin provisioning
 (`PortalManagement` / `manage-portal-account`) still handles disable/revoke.
 
+## Customer type classification — Horeca / Supermarkt / Overig (migrations 00091–00092, 2026-07-18)
+
+An **admin-only** customer classification so orders, analytics and daily operations can be
+filtered/separated by the kind of client. This is a **different axis** than `price_list_id` (a pricing
+tier) — keep them separate. It is also unrelated to the old, disconnected *product* `categories` table.
+
+- **Storage:** `customers.customer_type TEXT` (migration 00091), nullable with
+  `CHECK (customer_type IN ('horeca','supermarkt','other'))`. **NULL = untagged**; existing customers
+  were **not** backfilled (admin tags over time). Fixed 3-value set on purpose (text + CHECK, not a
+  Postgres enum, so a 4th value later is a trivial constraint swap). **One type per customer**;
+  ambiguous → `other`.
+- **Labels are literal, non-i18n** (shown identically in every language): **Horeca / Supermarkt /
+  Overig**. Central source of truth `src/constants/customerType.ts` (`CUSTOMER_TYPES`,
+  `CUSTOMER_TYPE_LABELS`, `CUSTOMER_TYPE_BADGE_CLASS`, `customerTypeLabel()`) drives everything; badge
+  colors Horeca=blue, Supermarkt=green, Overig=grey. Badge component `components/ui/CustomerTypeBadge.tsx`
+  mirrors `PaymentBadge` (no `useTranslation`) and renders **null when untagged** (list cells show an
+  em-dash fallback; the detail/card sites simply render nothing).
+- **NEVER on customer-facing surfaces.** No PDF template, portal RPC (`get_portal_*`), or
+  `SendDocumentModal` was touched. `buildInvoiceData`'s snapshot uses an explicit field whitelist (no
+  object spread), so the `customer_type` now on the orders embed cannot leak into a document snapshot.
+  Shop Manager *does* see it (admin lists/exports) — "admin-only" means not customer-facing; the label
+  carries no cost/profit, so that's within policy.
+- **Where it shows / filters:**
+  - **CustomerForm** — a Type `<select>` in the Pricing section; **CustomerDetail** header badge next
+    to the company name; **Customers list** — type filter + a badge column + sort + mobile card badge.
+  - **Orders list** — a type filter. **Gotcha:** `customer_type` lives on the joined `customers` row,
+    so `services/orders.ts` filters via a PostgREST **inner-embed** (`customers!customer_id!inner` +
+    `.eq('customer.customer_type', …)`, applied only when set) in **both** `fetchOrders` and
+    `fetchOrderCount` (same alias/predicate or counts diverge). Deliberately **not** the
+    `buildSearchOr` id-IN-list path — that caps at 300 ids and a type can exceed that, silently
+    dropping orders.
+  - **Analytics** — a "Type" dimension in `EntityFilter` threaded through `AnalyticsFilters` /
+    `entityArg` (`p_customer_type`) / `filtersKey`; every tab's `entityArg(filters, [...])` pass-array
+    includes `'customerType'`, and it's added to the tab `dims` in `Analytics.tsx`.
+  - **Exports** — a "Klanttype" column on the Orders and Customers exports.
+  - **Sold Products** — a filter + a group-by "Type" option (`useSoldProducts`). **Route** — a
+    Horeca-only run (threaded `panel → useDeliveryRoute → fetchRouteOrders`, filtered client-side on the
+    candidate list; the billed optimize runs on the already-type-scoped selection). **Day Close** — a
+    type-scoped batch (`customerType` prop → `fetchOrders`).
+- **Migration 00092** DROPs + recreates 9 RPCs to add a trailing `p_customer_type text DEFAULT NULL`
+  param (`get_top_customers` gets only that param; `get_sold_products_breakdown` instead gains a
+  RETURNED `customer_type` column). Predicate is `c.customer_type = p_customer_type` when the fn joins
+  customers as `c`, else `customer_id IN (SELECT id FROM customers WHERE customer_type = p_customer_type)`
+  at **every** `p_customer_id` site (5 each in `get_financial_summary`/`get_kpis`). Bodies were copied
+  from the LIVE definitions so owner-gating (`is_owner()`) and the `'draft'` exclusion are preserved.
+  **Security gotcha (do not repeat):** recreating a **SECURITY DEFINER** analytics fn re-grants EXECUTE
+  to `anon` via Supabase default privileges — `REVOKE … FROM PUBLIC` is **not enough**, you must
+  `REVOKE … FROM PUBLIC, anon` or COGS re-leaks to anon (regressing 00070). Verified with
+  `has_function_privilege('anon', …)`. See `BUGS_AND_FIXES.md` + `[[customer_type_feature]]`.
+- **Out of scope (future):** stock-refill reminders aimed at Supermarkt customers.
+
 ## Custom Agents
 
 The project has specialized agents defined in `.claude/agents.md`. Use these for focused reviews and tasks:
