@@ -125,8 +125,8 @@ export default function Analytics() {
           onChange={setFilters}
           dims={
             activeTab === 'overview' || activeTab === 'products'
-              ? ['customer', 'product', 'payment', 'unit']
-              : ['customer', 'payment']
+              ? ['customer', 'product', 'payment', 'unit', 'customerType']
+              : ['customer', 'payment', 'customerType']
           }
         />
       )}

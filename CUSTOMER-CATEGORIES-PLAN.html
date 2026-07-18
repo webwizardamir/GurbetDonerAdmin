@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customer Categories: Plan &amp; Decisions</title>
+<style>
+  :root{
+    --green:#16a34a; --green-d:#166534; --green-l:#dcfce7;
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    --amber:#b45309; --amber-l:#fef3c7; --blue:#1d4ed8; --blue-l:#dbeafe;
+    --purple:#6d28d9; --purple-l:#ede9fe; --slate:#334155;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:920px; margin:0 auto; padding:32px 20px 80px}
+  header.hero{
+    background:linear-gradient(135deg,var(--green),var(--green-d));
+    color:#fff; border-radius:18px; padding:34px 32px; margin-bottom:28px;
+    box-shadow:0 10px 30px rgba(22,163,74,.25);
+  }
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35);
+    padding:4px 12px; border-radius:999px; font-size:12px; letter-spacing:.5px; text-transform:uppercase; margin-bottom:14px}
+  header.hero h1{margin:0 0 8px; font-size:30px; line-height:1.15}
+  header.hero p{margin:0; font-size:16px; opacity:.95; max-width:60ch}
+  header.hero .meta{margin-top:18px; font-size:13px; opacity:.85; display:flex; gap:18px; flex-wrap:wrap}
+
+  h2{font-size:21px; margin:38px 0 6px; display:flex; align-items:center; gap:10px}
+  h2 .n{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px;
+    background:var(--green-l); color:var(--green-d); font-size:14px; font-weight:700; flex:none}
+  .lead{color:var(--slate); margin:0 0 18px; max-width:72ch}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin:14px 0;
+    box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .card h3{margin:0 0 8px; font-size:16px}
+  .card p:last-child{margin-bottom:0}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr}}
+
+  table{width:100%; border-collapse:collapse; margin:8px 0 4px; font-size:14px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{background:var(--bg); font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted)}
+  tbody tr:last-child td{border-bottom:none}
+
+  .badge{display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap}
+  .b-horeca{background:var(--blue-l); color:var(--blue)}
+  .b-super{background:var(--green-l); color:var(--green-d)}
+  .b-other{background:#f1f5f9; color:var(--slate)}
+  .b-untag{background:var(--amber-l); color:var(--amber); border:1px dashed #d97706}
+
+  .pill{display:inline-block; padding:2px 9px; border-radius:6px; font-size:11px; font-weight:700; letter-spacing:.3px}
+  .p1{background:var(--green-l); color:var(--green-d)}
+  .p2{background:var(--purple-l); color:var(--purple)}
+
+  .locked{border-left:4px solid var(--green); background:#f0fdf4}
+  .open{border-left:4px solid var(--amber); background:#fffbeb}
+
+  ul.clean{margin:6px 0; padding-left:20px}
+  ul.clean li{margin:5px 0}
+
+  .mock{background:#0f172a; border-radius:12px; padding:16px; margin:10px 0; overflow-x:auto}
+  .mock .row{display:flex; gap:8px; align-items:center; font-size:13px; color:#e2e8f0; flex-wrap:wrap}
+  .mock .sel{background:#1e293b; border:1px solid #334155; color:#cbd5e1; border-radius:8px; padding:6px 12px; font-size:13px}
+  .mock .sel b{color:#fff}
+  .mock .lbl{color:#94a3b8; font-size:12px; margin-right:4px}
+
+  .note{font-size:13px; color:var(--muted)}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; background:#f1f5f9; border:1px solid var(--line);
+    border-radius:5px; padding:1px 6px; font-size:12.5px}
+  .flag{display:inline-block; background:var(--amber-l); color:var(--amber); font-size:11px; font-weight:700;
+    padding:1px 8px; border-radius:5px; vertical-align:middle}
+
+  details{border:1px solid var(--line); border-radius:12px; background:var(--card); padding:4px 18px; margin:12px 0}
+  summary{cursor:pointer; font-weight:600; padding:12px 0; font-size:15px}
+  details[open] summary{border-bottom:1px solid var(--line); margin-bottom:10px}
+
+  footer{margin-top:50px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:13px}
+
+  @media print{
+    body{background:#fff}
+    .wrap{max-width:none; padding:0}
+    header.hero{box-shadow:none; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+    .card,details{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="tag">Draft for review</span>
+    <h1>Customer Categories</h1>
+    <p>Adding a customer classification (Horeca, Supermarkt or Other) so that orders, reports and daily operations can be filtered and separated by the kind of client.</p>
+    <div class="meta">
+      <span>📅 18 July 2026</span>
+      <span>🎯 Admin app (app.melekhalalfood.nl)</span>
+      <span>👥 For: owner, team, client</span>
+    </div>
+  </header>
+
+  <!-- THE IDEA -->
+  <h2><span class="n">1</span> The idea in one minute</h2>
+  <p class="lead">Today every customer is treated the same. The client wants to know whether a customer is a restaurant or takeaway (Horeca), a Supermarkt, or something that fits neither (Other). Supermarkt clients usually order more, and later we may add stock-refill reminders for them. That reminder part is a future step, not part of this work.</p>
+
+  <div class="card">
+    <h3>Why put the label on the customer, not the product?</h3>
+    <p>The client used to have categories on products and turned them off. This time the label sits on the customer. You tag each customer once, and that label then follows every order, invoice, delivery stop and analytics row that customer produces. There is no need to re-tag products.</p>
+    <p class="note" style="margin-top:10px">This is a separate thing from the existing price list. A customer's price list decides what they pay. Their category decides what kind of business they are. A Horeca and a Supermarkt customer can even share the same price list.</p>
+  </div>
+
+  <!-- WHAT IT LOOKS LIKE -->
+  <h2><span class="n">2</span> What it will look like</h2>
+  <p class="lead">Small additions to screens you already know. One new field on the customer, one colored badge, and one extra dropdown in a few filter bars. No screen is redesigned.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>The three labels</h3>
+      <p style="margin:0 0 12px">
+        <span class="badge b-horeca">Horeca</span>&nbsp;
+        <span class="badge b-super">Supermarkt</span>&nbsp;
+        <span class="badge b-other">Other</span>
+      </p>
+      <p class="note">Existing customers start as <span class="badge b-untag">Untagged</span> until someone sets them, so it stays clear who still needs a label.</p>
+    </div>
+    <div class="card">
+      <h3>On the customer form</h3>
+      <p class="note" style="margin-bottom:8px">A simple dropdown, next to the price list:</p>
+      <div class="mock"><div class="row">
+        <span class="lbl">Type:</span>
+        <span class="sel"><b>Supermarkt</b> ▾</span>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>As a filter (Customers, Orders, Analytics)</h3>
+    <p class="note" style="margin-bottom:8px">A new dropdown sits beside the filters that already exist:</p>
+    <div class="mock"><div class="row">
+      <span class="sel">Search…</span>
+      <span class="sel">Status ▾</span>
+      <span class="sel">City ▾</span>
+      <span class="sel" style="border-color:#16a34a"><b>Type: Horeca</b> ▾</span>
+    </div></div>
+    <p class="note" style="margin-top:10px">In Analytics it becomes another slice, like customer, product and payment already are, so the client can see revenue and profit for just Horeca or just Supermarkt.</p>
+  </div>
+
+  <!-- DECISIONS LOCKED -->
+  <h2><span class="n">3</span> Decisions locked</h2>
+  <p class="lead">These are agreed and drive the build. If the client disagrees with any of them, flag it in section 6.</p>
+
+  <div class="card locked">
+    <table>
+      <thead><tr><th style="width:34%">Decision</th><th>Choice</th></tr></thead>
+      <tbody>
+        <tr><td>The categories</td><td><b>Fixed set of three:</b> Horeca, Supermarkt, Other. Not owner-editable. We do not expect the list to change, and a fixed set is simpler and more reliable.</td></tr>
+        <tr><td>One or many per customer</td><td><b>Exactly one</b> type per customer. Mixed or ambiguous cases go to <b>Other</b>.</td></tr>
+        <tr><td>Existing ~248 customers</td><td><b>Left blank (Untagged)</b> so they surface for tagging, with no wrong guesses.</td></tr>
+        <tr><td>Scope</td><td><b>Full build, all features included.</b> The setup, the type filters everywhere, and the daily-operations separation (routes, sold-products, day-close) all ship. It is built in a sensible order, but nothing is left out.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- THE PLAN -->
+  <h2><span class="n">4</span> The plan</h2>
+  <p class="lead">This is the full build. Everything the client asked for is included. It is done in two parts, in this order, because the setup and filters have to exist before the daily-operations screens can use them. Both parts ship.</p>
+
+  <div class="card">
+    <h3><span class="pill p1">PART 1</span> &nbsp;Setup and filters</h3>
+    <ul class="clean">
+      <li><b>The field itself:</b> add the category to the customer, add the dropdown to the customer form, and the colored badge.</li>
+      <li><b>Customers list:</b> filter by type plus a badge column, so the client can work through the untagged ones.</li>
+      <li><b>Orders list:</b> filter orders by customer type, and show it on the row.</li>
+      <li><b>Analytics:</b> slice every report by customer type (revenue, profit, top customers, and so on).</li>
+      <li><b>Exports:</b> a "Klanttype" column on the Orders and Customers exports (Excel, CSV, PDF).</li>
+    </ul>
+    <p class="note" style="margin-top:6px">Mostly filters and a column. Once this is in, the client can tag customers and report by type.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="pill p2">PART 2</span> &nbsp;Daily operations</h3>
+    <ul class="clean">
+      <li><b>Sold Products:</b> option to group by, or show only, a chosen customer type.</li>
+      <li><b>Delivery route:</b> plan a route for one customer type, for example a Horeca-only run.</li>
+      <li><b>Day Close and daily invoices:</b> generate the daily batch for one type only.</li>
+    </ul>
+    <p class="note" style="margin-top:6px">A bit more work, because these screens do their counting on the server, so the change reaches a little deeper. All three are included in this build.</p>
+    <p class="note" style="margin-top:6px">🔭 <b>Genuinely later, not part of this build:</b> stock-refill reminders aimed at Supermarkt customers. Noted here only so it is not forgotten.</p>
+  </div>
+
+  <!-- OPEN QUESTIONS -->
+  <h2><span class="n">5</span> Open questions for the client and team</h2>
+  <p class="lead">A few things to confirm before we build. Answers here will not change the overall shape. They just settle wording and edge cases.</p>
+
+  <div class="card open">
+    <ul class="clean">
+      <li><b>Are three categories genuinely enough?</b> The client mentioned some customers "fall under different categories." We plan to send those to <b>Other</b>. If there is a real fourth type coming, such as wholesale, catering or butcher, tell us now. It is cheap to add before we start and harder to pull back out of "Other" later.</li>
+      <li><b>Display names and language.</b> Should the labels be Dutch in the app: <b>Horeca / Supermarkt / Overig</b>? Confirm the exact wording for each.</li>
+      <li><b>Badge colors.</b> Proposed: Horeca is blue, Supermarkt is green, Other is grey. Any preference?</li>
+      <li><b>Should the category ever appear on customer-facing documents</b> such as invoices or order confirmations? Our recommendation is <b>no</b>, since it is an internal classification. Please confirm.</li>
+      <li><b>Who tags, and how fast?</b> With ~248 customers starting untagged, does the client want to bulk-tag them in one session, or tag them gradually as orders come in? This only affects how visible the "Untagged" state should be.</li>
+    </ul>
+  </div>
+
+  <!-- HOW IT'S BUILT -->
+  <h2><span class="n">6</span> How it is built, in plain terms</h2>
+  <p class="lead">A short, non-technical summary of the work, so everyone can follow what is happening under the hood. The developer notes are kept light on purpose.</p>
+
+  <div class="card">
+    <h3>The one thing everything depends on</h3>
+    <p>We add a single new setting to each customer that stores their type. Because it is one clean setting with only three allowed values, every screen can read it the same simple way. There is no extra table and no complicated wiring, which keeps it easy to maintain and hard to break. Existing customers keep this setting empty until someone fills it in.</p>
+  </div>
+
+  <div class="card">
+    <h3>What changes on each screen</h3>
+    <table>
+      <thead><tr><th style="width:30%">Screen</th><th>What we do</th></tr></thead>
+      <tbody>
+        <tr><td>Customer form</td><td>Add the type dropdown, next to the price list.</td></tr>
+        <tr><td>Customers list</td><td>Add a type filter, a badge column, and the ability to sort by it.</td></tr>
+        <tr><td>Orders list</td><td>Add a type filter, and show the type on each order row.</td></tr>
+        <tr><td>Analytics</td><td>Add customer type as one more way to slice the reports, like customer and product already are.</td></tr>
+        <tr><td>Exports</td><td>Add a "Klanttype" column to the Orders and Customers export files.</td></tr>
+        <tr><td>Sold Products</td><td>Add the option to group by, or show only, a chosen type.</td></tr>
+        <tr><td>Delivery route</td><td>Allow planning a route for one type, for example Horeca only.</td></tr>
+        <tr><td>Day Close</td><td>Allow generating the daily batch for one type only.</td></tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:8px">Most of these are simple filter changes. The reports, sold-products, route and day-close screens do their counting on the server, so those few need a slightly deeper change so the server understands the new type as well.</p>
+  </div>
+
+  <div class="card">
+    <h3>About the old product categories</h3>
+    <p>The old category system that was on products is still sitting in the background, just switched off in the screens. We are leaving it alone. It labelled products, and this new feature labels customers, so they are two separate things and there is no need to touch the old one.</p>
+  </div>
+
+  <details>
+    <summary>Extra detail for the developer</summary>
+    <ul class="clean">
+      <li><b>Storage:</b> a nullable <span class="kbd">customer_type</span> text column on <span class="kbd">customers</span> with a 3-value CHECK (empty means untagged). No new table, no join. Text plus CHECK, not an enum, so adding a value later is trivial.</li>
+      <li><b>Types:</b> add <span class="kbd">customer_type</span> to the <span class="kbd">Customer</span> type and the customer form data, plus one shared label and color map for the badge.</li>
+      <li><b>Watch-out on Orders:</b> the type sits on the joined customer row, so the order filter needs an <span class="kbd">!inner</span> embed or an id pre-resolution (like the existing name search), not a plain <span class="kbd">.eq</span> on orders.</li>
+      <li><b>Server side:</b> the analytics, sold-products-breakdown, route and day-close queries each need the new type added as a parameter or returned column (a migration on the relevant RPCs).</li>
+      <li><b>No backfill:</b> existing rows stay empty on purpose, so untagged customers stand out.</li>
+    </ul>
+  </details>
+
+  <footer>
+    <p><b>Status:</b> Draft, awaiting client and team answers to section 5. Once confirmed, Phase 1 can begin.<br>
+    Prepared for the MelekHalalFood team. Internal planning document.</p>
+  </footer>
+
+</div>
+</body>
+</html>

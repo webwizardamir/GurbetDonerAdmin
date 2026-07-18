@@ -179,14 +179,14 @@ interface OrderRow {
   items: OrderItemRow[]
 }
 
-export async function fetchRouteOrders(args: { day: string; endDay?: string; cities?: string[] }): Promise<RouteStopInput[]> {
+export async function fetchRouteOrders(args: { day: string; endDay?: string; cities?: string[]; customerType?: string }): Promise<RouteStopInput[]> {
   const citySet = args.cities && args.cities.length ? new Set(args.cities) : null
   const { data, error } = await supabase
     .from('orders')
     .select(`
       id, order_number, status, delivery_notes, customer_id,
       customer:customers!customer_id(
-        id, company_name, contact_person, phone,
+        id, company_name, contact_person, phone, customer_type,
         billing_street, billing_postal_code, billing_city, billing_country,
         shipping_same_as_billing, shipping_street, shipping_postal_code, shipping_city, shipping_country,
         latitude, longitude, geocode_status
@@ -206,6 +206,8 @@ export async function fetchRouteOrders(args: { day: string; endDay?: string; cit
   for (const row of rows) {
     const c = row.customer
     if (!c) continue
+    // Optional admin-only customer-type filter (e.g. a Horeca-only route).
+    if (args.customerType && c.customer_type !== args.customerType) continue
     const address = resolveDeliveryAddress(c)
     if (citySet && !(address.city && citySet.has(address.city))) continue
 

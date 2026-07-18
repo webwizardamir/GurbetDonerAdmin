@@ -58,7 +58,7 @@ export async function getOrderPerformance(
     p_start_date: startDate,
     p_end_date: endDate,
     ...statusArg(statuses),
-    ...entityArg(filters, ['customerId', 'paymentMethod']),
+    ...entityArg(filters, ['customerId', 'paymentMethod', 'customerType']),
   })
 
   if (error) throw error

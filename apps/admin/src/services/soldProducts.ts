@@ -44,6 +44,7 @@ export interface SoldProductBreakdownRow {
   category_name: string | null
   customer_id: string
   customer_name: string
+  customer_type: string | null   // admin-only classification (migration 00091/00092)
   city: string
   total_quantity: number
   total_revenue: number   // cents
@@ -71,6 +72,7 @@ export async function getSoldProductsBreakdown(
     category_name: string | null
     customer_id: string
     customer_name: string
+    customer_type: string | null
     city: string
     total_quantity: number | string
     total_revenue: number | string
@@ -85,6 +87,7 @@ export async function getSoldProductsBreakdown(
     category_name:  r.category_name,
     customer_id:    r.customer_id,
     customer_name:  r.customer_name,
+    customer_type:  r.customer_type ?? null,
     city:           r.city,
     total_quantity: Number(r.total_quantity) || 0,
     total_revenue:  Number(r.total_revenue)  || 0,

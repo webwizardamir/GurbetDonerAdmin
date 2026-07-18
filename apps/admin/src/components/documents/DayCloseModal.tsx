@@ -18,6 +18,8 @@ interface DayRange {
 
 interface Props {
   dateRange: DayRange
+  /** Optional admin-only customer-type filter (e.g. a Horeca-only day close). */
+  customerType?: string
   /** Sold-products data already loaded on the page, for the optional PDF. */
   soldProducts?: SoldProductsDocArgs
   /** Hand off to the route planner (it needs a billed Google optimize). */
@@ -50,7 +52,7 @@ function downloadBlob(blob: Blob, filename: string) {
 const BIG_BATCH = 100
 const MAX_COPIES = 5
 
-export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, routeOrderedIds, onClose }: Props) {
+export default function DayCloseModal({ dateRange, customerType, soldProducts, onOpenRoute, routeOrderedIds, onClose }: Props) {
   const { t } = useTranslation()
   const hasRouteOrder = !!routeOrderedIds && routeOrderedIds.length > 0
   const [useRouteOrder, setUseRouteOrder] = useState(true)
@@ -86,7 +88,7 @@ export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, ro
     setLoadingOrders(true)
     setOrdersError(null)
     const FETCH_LIMIT = 1000
-    fetchOrders({ dateFrom: dateRange.start, dateTo: dateRange.end, limit: FETCH_LIMIT })
+    fetchOrders({ dateFrom: dateRange.start, dateTo: dateRange.end, limit: FETCH_LIMIT, customerType })
       .then(rows => {
         if (cancelled) return
         setCapped(rows.length >= FETCH_LIMIT)
@@ -104,7 +106,7 @@ export default function DayCloseModal({ dateRange, soldProducts, onOpenRoute, ro
       .catch(e => { if (!cancelled) setOrdersError(e instanceof Error ? e.message : String(e)) })
       .finally(() => { if (!cancelled) setLoadingOrders(false) })
     return () => { cancelled = true }
-  }, [dateRange.start, dateRange.end])
+  }, [dateRange.start, dateRange.end, customerType])
 
   const selectedIds = useMemo(() => orders.filter(o => o.selected).map(o => o.orderId), [orders])
   const allSelected = orders.length > 0 && selectedIds.length === orders.length

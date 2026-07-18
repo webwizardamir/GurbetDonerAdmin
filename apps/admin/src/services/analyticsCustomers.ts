@@ -32,13 +32,15 @@ export async function getTopCustomers(
   startDate: string,
   endDate: string,
   limit = 10,
-  statuses?: string[] | null
+  statuses?: string[] | null,
+  filters?: AnalyticsFilters | null
 ): Promise<TopCustomer[]> {
   const { data, error } = await supabase.rpc('get_top_customers', {
     p_start_date: startDate,
     p_end_date: endDate,
     p_limit: limit,
     ...statusArg(statuses),
+    ...entityArg(filters, ['customerType']),
   })
 
   if (error) throw error
@@ -83,7 +85,7 @@ export async function getCustomerPerformance(
     p_start_date: startDate || null,
     p_end_date: endDate || null,
     ...statusArg(statuses),
-    ...entityArg(filters, ['customerId', 'paymentMethod']),
+    ...entityArg(filters, ['customerId', 'paymentMethod', 'customerType']),
   })
 
   if (error) throw error

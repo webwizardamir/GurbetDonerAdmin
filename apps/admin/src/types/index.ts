@@ -120,6 +120,8 @@ export interface Customer {
   // Pricing
   price_list_id?: string | null
   price_list?: PriceList | null
+  // Admin-only classification (migration 00091). NULL = untagged. Never on customer-facing docs.
+  customer_type?: 'horeca' | 'supermarkt' | 'other' | null
   // Geocode cache (delivery route) — see migration 00055
   latitude?: number | null
   longitude?: number | null

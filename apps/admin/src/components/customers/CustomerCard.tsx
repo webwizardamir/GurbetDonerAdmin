@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Building2, Phone, Mail, MapPin, Globe } from 'lucide-react'
 import type { Customer } from '../../types'
 import CustomerActionMenu from './CustomerActionMenu'
+import CustomerTypeBadge from '../ui/CustomerTypeBadge'
 
 interface CustomerCardProps {
   customer: Customer
@@ -62,6 +63,9 @@ export default function CustomerCard({
               <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
                 {customer.contact_person}
               </p>
+            )}
+            {customer.customer_type && (
+              <div className="mt-1"><CustomerTypeBadge type={customer.customer_type} /></div>
             )}
           </div>
         </div>

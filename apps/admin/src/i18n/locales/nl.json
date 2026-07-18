@@ -1283,6 +1283,7 @@
       "none": "Geen",
       "city": "Stad",
       "customer": "Klant",
+      "customerType": "Type",
       "qty": "Aantal",
       "revenue": "Omzet",
       "itemCount_one": "{{count}} product",

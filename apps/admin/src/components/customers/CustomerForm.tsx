@@ -6,6 +6,7 @@ import { CustomerFormData, checkEmailExists } from '../../services/customers'
 import { fetchPriceLists } from '../../services/priceLists'
 import Modal from '../ui/Modal'
 import { isReverseChargeCountry } from '../../utils/vat'
+import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../../constants/customerType'
 
 interface CustomerFormProps {
   customer?: Customer | null
@@ -35,6 +36,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
     shipping_country: customer?.shipping_country || 'NL',
     internal_notes: customer?.internal_notes || '',
     price_list_id: customer?.price_list_id ?? null,
+    customer_type: customer?.customer_type ?? null,
   })
 
   const [saving, setSaving] = useState(false)
@@ -70,7 +72,7 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
       ...prev,
       [name]: type === 'checkbox'
         ? (e.target as HTMLInputElement).checked
-        : name === 'price_list_id'
+        : name === 'price_list_id' || name === 'customer_type'
         ? (value || null)
         : value,
     }))
@@ -432,6 +434,23 @@ export default function CustomerForm({ customer, onSubmit, onClose }: CustomerFo
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {t('customers.form.priceListHint')}
                 </p>
+              </div>
+              {/* Customer type (admin-only classification). Labels are literal / non-i18n. */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Type
+                </label>
+                <select
+                  name="customer_type"
+                  value={formData.customer_type ?? ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+                >
+                  <option value="">Geen type</option>
+                  {CUSTOMER_TYPES.map(ct => (
+                    <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

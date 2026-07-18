@@ -55,7 +55,7 @@ export async function getRevenueByDay(
     p_start: startDate,
     p_end: endDate,
     ...statusArg(statuses),
-    ...entityArg(filters, ['customerId', 'paymentMethod']),
+    ...entityArg(filters, ['customerId', 'paymentMethod', 'customerType']),
   })
 
   if (error) throw error
@@ -105,7 +105,7 @@ export async function getFinancialSummary(
     p_start: startDate,
     p_end: endDate,
     ...statusArg(statuses),
-    ...entityArg(filters, ['customerId', 'paymentMethod']),
+    ...entityArg(filters, ['customerId', 'paymentMethod', 'customerType']),
   })
 
   if (error) throw error

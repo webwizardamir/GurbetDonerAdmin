@@ -7,6 +7,7 @@ import {
   Building2,
   Loader2,
   Filter,
+  Tags,
   Upload,
   ChevronLeft,
   ChevronRight,
@@ -24,6 +25,7 @@ import { fetchCustomers } from '../services/customers'
 import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
+import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { supabase } from '../services/supabase'
 import type { CustomerAccount } from '../services/portalAuth'
 
@@ -35,6 +37,7 @@ export default function Customers() {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [cityFilter, setCityFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
@@ -70,8 +73,15 @@ export default function Customers() {
     setFilters({ city: cityFilter || undefined })
   }, [cityFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Server-side customer-type filter (skip initial mount)
+  const [typeInit, setTypeInit] = useState(false)
+  useEffect(() => {
+    if (!typeInit) { setTypeInit(true); return }
+    setFilters({ customerType: typeFilter || undefined })
+  }, [typeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Phase 6: sortable columns
-  type CustomerSortKey = 'company_name' | 'contact_person' | 'city' | 'vat_number' | 'price_list'
+  type CustomerSortKey = 'company_name' | 'contact_person' | 'city' | 'vat_number' | 'price_list' | 'customer_type'
   const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<CustomerSortKey>('company_name', 'asc')
 
   const filteredCustomers = useMemo(() => sortBy(customers, {
@@ -80,6 +90,7 @@ export default function Customers() {
     city:           c => c.billing_city ?? '',
     vat_number:     c => c.vat_number ?? '',
     price_list:     c => c.price_list?.name ?? '',
+    customer_type:  c => c.customer_type ?? '',
   }), [customers, sortBy])
 
   const handleEdit = (customer: Customer) => { setEditingCustomer(customer); setShowForm(true) }
@@ -104,7 +115,7 @@ export default function Customers() {
 
   // Row selection (export scope only — no bulk actions)
   const selectedCustomers = filteredCustomers.filter(c => selectedIds.has(c.id))
-  useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, cityFilter, page])
+  useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, cityFilter, typeFilter, page])
   const toggleSelect = (id: string) => setSelectedIds(prev => {
     const next = new Set(prev)
     if (next.has(id)) next.delete(id); else next.add(id)
@@ -133,8 +144,16 @@ export default function Customers() {
               </select>
             </div>
           )}
+          <div className="relative flex-1 sm:flex-none">
+            <Tags className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label="Type"
+              className="w-full sm:w-auto pl-10 pr-8 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
+              <option value="">Alle types</option>
+              {CUSTOMER_TYPES.map(ct => <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>)}
+            </select>
+          </div>
           <ExportMenu
-            getAllData={() => fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined })}
+            getAllData={() => fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined })}
             pageData={filteredCustomers}
             selectedData={selectedCustomers}
             totalCount={totalCount}
@@ -172,8 +191,8 @@ export default function Customers() {
         ) : filteredCustomers.length === 0 ? (
           <div className="text-center py-12">
             <Building2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-600 dark:text-slate-400">{searchQuery || cityFilter ? t('customers.noCustomersMatch') : t('customers.noCustomers')}</p>
-            {!searchQuery && !cityFilter && canCreate && <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">{t('customers.addFirstCustomer')}</p>}
+            <p className="text-slate-600 dark:text-slate-400">{searchQuery || cityFilter || typeFilter ? t('customers.noCustomersMatch') : t('customers.noCustomers')}</p>
+            {!searchQuery && !cityFilter && !typeFilter && canCreate && <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">{t('customers.addFirstCustomer')}</p>}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -188,6 +207,7 @@ export default function Customers() {
                   <SortableTh sortKey="contact_person" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.contactPerson')}</SortableTh>
                   <SortableTh sortKey="city"           current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.city')}</SortableTh>
                   <SortableTh sortKey="vat_number"     current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.vatNumber')}</SortableTh>
+                  <SortableTh sortKey="customer_type"  current={sortKey} dir={sortDir} onToggle={toggleSort} align="center">Type</SortableTh>
                   <SortableTh sortKey="price_list"     current={sortKey} dir={sortDir} onToggle={toggleSort} align="center">{t('customers.priceList')}</SortableTh>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('common.actions')}</th>
                 </tr>
@@ -225,7 +245,7 @@ export default function Customers() {
         ) : filteredCustomers.length === 0 ? (
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
             <Building2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-600 dark:text-slate-400">{searchQuery || cityFilter ? t('customers.noCustomersMatch') : t('customers.noCustomers')}</p>
+            <p className="text-slate-600 dark:text-slate-400">{searchQuery || cityFilter || typeFilter ? t('customers.noCustomersMatch') : t('customers.noCustomers')}</p>
           </div>
         ) : (
           filteredCustomers.map((customer) => (

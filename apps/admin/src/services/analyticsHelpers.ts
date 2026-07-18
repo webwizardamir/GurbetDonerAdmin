@@ -24,6 +24,7 @@ export interface AnalyticsFilters {
   productId?: string | null
   paymentMethod?: string | null   // 'cash' | 'bank'
   unitType?: string | null        // 'kg' | 'piece' | 'zak' | 'doos'
+  customerType?: string | null    // 'horeca' | 'supermarkt' | 'other' (admin-only)
 }
 
 /**
@@ -34,7 +35,7 @@ export interface AnalyticsFilters {
  */
 export function entityArg(
   f?: AnalyticsFilters | null,
-  pass: Array<keyof AnalyticsFilters> = ['customerId', 'productId', 'paymentMethod', 'unitType'],
+  pass: Array<keyof AnalyticsFilters> = ['customerId', 'productId', 'paymentMethod', 'unitType', 'customerType'],
 ): Record<string, string> {
   const out: Record<string, string> = {}
   if (!f) return out
@@ -43,6 +44,7 @@ export function entityArg(
     productId: 'p_product_id',
     paymentMethod: 'p_payment_method',
     unitType: 'p_unit_type',
+    customerType: 'p_customer_type',
   }
   for (const key of pass) {
     const v = f[key]
@@ -54,7 +56,7 @@ export function entityArg(
 // Stable string key for an AnalyticsFilters object — for hook effect deps.
 export function filtersKey(f?: AnalyticsFilters | null): string {
   if (!f) return ''
-  return `${f.customerId ?? ''}|${f.productId ?? ''}|${f.paymentMethod ?? ''}|${f.unitType ?? ''}`
+  return `${f.customerId ?? ''}|${f.productId ?? ''}|${f.paymentMethod ?? ''}|${f.unitType ?? ''}|${f.customerType ?? ''}`
 }
 
 /**

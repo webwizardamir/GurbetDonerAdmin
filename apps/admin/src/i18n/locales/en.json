@@ -1283,6 +1283,7 @@
       "none": "None",
       "city": "City",
       "customer": "Customer",
+      "customerType": "Type",
       "qty": "Qty",
       "revenue": "Revenue",
       "itemCount_one": "{{count}} product",

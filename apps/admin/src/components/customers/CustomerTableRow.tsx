@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Building2, Phone, Mail, MapPin, Globe, Tags } from 'lucide-react'
 import type { Customer } from '../../types'
 import CustomerActionMenu from './CustomerActionMenu'
+import CustomerTypeBadge from '../ui/CustomerTypeBadge'
 
 interface CustomerTableRowProps {
   customer: Customer
@@ -116,6 +117,13 @@ export default function CustomerTableRow({
           </span>
         ) : (
           <span className="text-sm text-slate-400">-</span>
+        )}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap text-center">
+        {customer.customer_type ? (
+          <CustomerTypeBadge type={customer.customer_type} />
+        ) : (
+          <span className="text-sm text-slate-300 dark:text-slate-600">—</span>
         )}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-center">

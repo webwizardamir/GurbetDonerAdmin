@@ -47,12 +47,16 @@ function arrayMove<T>(arr: T[], from: number, to: number): T[] {
  * Google — only the explicit optimize() / applyManualOrder() actions do, so we
  * never burn billed API calls on a checkbox click.
  */
-export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]) {
+export function useDeliveryRoute(day: string, endDay?: string, cities?: string[], customerType?: string) {
   // Stable primitive key so the array reference doesn't churn effect/callback deps.
   // Callbacks reconstruct the array from this key (cityArg) instead of closing
   // over the `cities` prop, so the value provably matches the dep — no stale set.
   const citiesKey = cities && cities.length ? cities.join('|') : ''
   const cityArg = citiesKey ? citiesKey.split('|') : undefined
+  // Admin-only customer-type filter (e.g. Horeca-only route). Filtering the
+  // candidate list is enough: selection/order (already type-scoped) drives the
+  // billed optimize, and mergeRoute maps back onto this filtered display list.
+  const customerTypeArg = customerType || undefined
   const [candidates, setCandidates] = useState<RouteStopInput[]>([])
   const [loadingCandidates, setLoadingCandidates] = useState(false)
   const [candidatesError, setCandidatesError] = useState<string | null>(null)
@@ -85,7 +89,7 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     setRoute(null)
     setError(null)
     setOrderDirty(false)
-    fetchRouteOrders({ day, endDay, cities: cityArg })
+    fetchRouteOrders({ day, endDay, cities: cityArg, customerType: customerTypeArg })
       .then(stops => {
         if (cancelled) return
         setCandidates(stops)
@@ -101,7 +105,7 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
       .finally(() => { if (!cancelled) setLoadingCandidates(false) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day, endDay, citiesKey])
+  }, [day, endDay, citiesKey, customerTypeArg])
 
   const departureTimeIso = useMemo(
     () => (departureHHmm ? `${day}T${departureHHmm}:00` : null),

@@ -4,12 +4,13 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Building2, Package, CreditCard, Box, X } from 'lucide-react'
+import { Building2, Package, CreditCard, Box, Tags, X } from 'lucide-react'
 import { supabase } from '../../services/supabase'
 import type { AnalyticsFilters } from '../../services/analyticsHelpers'
 import ComboPicker, { type ComboOption } from '../ui/ComboPicker'
+import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../../constants/customerType'
 
-export type FilterDim = 'customer' | 'product' | 'payment' | 'unit'
+export type FilterDim = 'customer' | 'product' | 'payment' | 'unit' | 'customerType'
 
 interface EntityFilterProps {
   value: AnalyticsFilters
@@ -53,7 +54,8 @@ export default function EntityFilter({ value, onChange, dims = ['customer', 'pro
     (show('customer') && value.customerId) ||
     (show('product') && value.productId) ||
     (show('payment') && value.paymentMethod) ||
-    (show('unit') && value.unitType)
+    (show('unit') && value.unitType) ||
+    (show('customerType') && value.customerType)
   )
 
   const customerLabel = value.customerId ? customers.find(c => c.value === value.customerId)?.label : null
@@ -114,6 +116,22 @@ export default function EntityFilter({ value, onChange, dims = ['customer', 'pro
             </select>
           </div>
         )}
+        {show('customerType') && (
+          <div className="relative inline-flex items-center">
+            <Tags className="absolute left-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+            <select
+              value={value.customerType ?? ''}
+              onChange={e => set({ customerType: e.target.value || null })}
+              aria-label="Type"
+              className={`${selectClass} pl-9`}
+            >
+              <option value="">Alle types</option>
+              {CUSTOMER_TYPES.map(ct => (
+                <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {hasActiveShown && (
@@ -130,6 +148,9 @@ export default function EntityFilter({ value, onChange, dims = ['customer', 'pro
           )}
           {show('unit') && value.unitType && (
             <Chip label={t('analytics.filters.unitType')} value={value.unitType} onClear={() => set({ unitType: null })} />
+          )}
+          {show('customerType') && value.customerType && (
+            <Chip label="Type" value={CUSTOMER_TYPE_LABELS[value.customerType as keyof typeof CUSTOMER_TYPE_LABELS] ?? value.customerType} onClear={() => set({ customerType: null })} />
           )}
           <button
             type="button"

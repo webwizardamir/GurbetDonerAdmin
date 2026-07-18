@@ -38,6 +38,7 @@ import StatusBadge from '../components/ui/StatusBadge'
 import PaymentBadge from '../components/ui/PaymentBadge'
 import BulkActionsBar from '../components/orders/BulkActionsBar'
 import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
+import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { orderExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import { formatPrice, formatDateShort, formatDateTime, formatDayMonth, formatTimeShort, formatPercent, profitClass } from '../utils/format'
@@ -216,6 +217,7 @@ export default function Orders() {
 
   const handleStatusFilter = (status: OrderStatus | '') => setFilters({ ...filters, status: status || undefined })
   const handlePaymentFilter = (method: PaymentMethod | '') => setFilters({ ...filters, paymentMethod: method || undefined })
+  const handleCustomerTypeFilter = (type: string) => setFilters({ ...filters, customerType: type || undefined })
 
   // Attach the displayed invoice number (app-generated, else legacy WC) to a row
   // so the export's optional "Factuurnummer" column can render it. The number
@@ -321,6 +323,14 @@ export default function Orders() {
               <option value="">{t('orders.allPayment')}</option>
               <option value="cash">{t('orders.payment.cash')}</option>
               <option value="bank">{t('orders.payment.bank')}</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select value={filters.customerType || ''} onChange={e => handleCustomerTypeFilter(e.target.value)} aria-label="Type"
+              className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
+              <option value="">Alle types</option>
+              {CUSTOMER_TYPES.map(ct => <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>)}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>

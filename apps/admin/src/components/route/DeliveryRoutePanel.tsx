@@ -16,6 +16,8 @@ interface Props {
   endDay?: string
   dayLabel: string
   cities?: string[]
+  /** Optional admin-only customer-type filter (e.g. a Horeca-only route). */
+  customerType?: string
   /** Fired whenever the (manual or optimized) route order changes, with the
    *  order ids flattened into exact delivery sequence — so the day-close modal
    *  can print invoices in route order. */
@@ -23,9 +25,9 @@ interface Props {
   onClose: () => void
 }
 
-export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, onRouteOrderChange, onClose }: Props) {
+export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, customerType, onRouteOrderChange, onClose }: Props) {
   const { t } = useTranslation()
-  const r = useDeliveryRoute(day, endDay, cities)
+  const r = useDeliveryRoute(day, endDay, cities, customerType)
   const cityLabel = cities && cities.length ? cities.join(', ') : ''
   const [view, setView] = useState<'delivery' | 'loading'>('delivery')
   const [showPDF, setShowPDF] = useState(false)

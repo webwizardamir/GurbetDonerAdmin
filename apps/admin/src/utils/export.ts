@@ -8,6 +8,8 @@
  * - Special characters and escaping
  */
 
+import { customerTypeLabel } from '../constants/customerType'
+
 // Format date for export (DD-MM-YYYY)
 export function formatExportDate(dateString: string | null | undefined): string {
   if (!dateString) return ''
@@ -279,6 +281,7 @@ export const orderExportColumns = [
   { key: 'invoice_number', header: 'Factuurnummer' },
   { key: 'order_date', header: 'Datum', format: (v: unknown) => formatExportDate(v as string) },
   { key: 'customer.company_name', header: 'Klant' },
+  { key: 'customer.customer_type', header: 'Klanttype', format: (v: unknown) => customerTypeLabel(v as string) },
   { key: 'status', header: 'Status', format: (v: unknown) => {
     const statusMap: Record<string, string> = {
       draft: 'Concept',
@@ -325,6 +328,7 @@ export const customerExportColumns = [
   { key: 'email', header: 'E-mail' },
   { key: 'phone', header: 'Telefoon' },
   { key: 'vat_number', header: 'BTW-nummer' },
+  { key: 'customer_type', header: 'Klanttype', format: (v: unknown) => customerTypeLabel(v as string) },
   { key: 'billing_street', header: 'Factuuradres straat' },
   { key: 'billing_postal_code', header: 'Factuuradres postcode' },
   { key: 'billing_city', header: 'Factuuradres plaats' },

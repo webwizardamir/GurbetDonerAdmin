@@ -74,6 +74,9 @@ export interface OrderFilters {
   status?: OrderStatus
   paymentMethod?: PaymentMethod
   customerId?: string
+  // Admin-only customer classification (migration 00091). Filters via the
+  // embedded customers row, see fetchOrders/fetchOrderCount.
+  customerType?: string
   dateFrom?: string
   dateTo?: string
   search?: string
@@ -95,6 +98,7 @@ export interface OrderWithItems extends Omit<Order, 'customer'> {
     phone?: string
     billing_country?: string
     vat_number?: string
+    customer_type?: 'horeca' | 'supermarkt' | 'other' | null
   } | null
 }
 
@@ -202,14 +206,21 @@ function transformOrderItemFromDb(dbItem: DbOrderItemRow): OrderItem {
 
 // Fetch total order count for pagination
 export async function fetchOrderCount(filters: OrderFilters = {}): Promise<number> {
+  // When filtering by customer type (a column on the related customers table),
+  // add an inner embed so the nested .eq restricts parent rows. Only then, to
+  // avoid an unnecessary join on the common no-filter path.
+  const countSelect = filters.customerType
+    ? 'id, customer:customers!customer_id!inner(id)'
+    : 'id'
   let query = supabase
     .from('orders')
-    .select('id', { count: 'exact', head: true })
+    .select(countSelect, { count: 'exact', head: true })
 
   query = filters.trashed ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null)
   if (filters.status) query = query.eq('status', filters.status)
   if (filters.paymentMethod) query = query.eq('payment_method', filters.paymentMethod)
   if (filters.customerId) query = query.eq('customer_id', filters.customerId)
+  if (filters.customerType) query = query.eq('customer.customer_type', filters.customerType)
   if (filters.dateFrom) query = query.gte('order_date', filters.dateFrom)
   if (filters.dateTo) query = query.lte('order_date', filters.dateTo)
 
@@ -267,6 +278,13 @@ async function buildSearchOr(term: string): Promise<string> {
 
 // Fetch orders with filters and pagination
 export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWithItems[]> {
+  // When filtering by customer type (a column on the related customers table),
+  // the customer embed must be an inner join so the nested .eq restricts parent
+  // rows. NOTE: we deliberately do NOT resolve the type to a customer-id IN-list
+  // (like buildSearchOr does for name search) — that path caps at 300 ids and a
+  // single type can hold more customers than that, silently dropping orders.
+  const customerJoin = filters.customerType ? 'customers!customer_id!inner' : 'customers!customer_id'
+
   // Fetch orders with customer and items relations
   let query = supabase
     .from('orders')
@@ -275,7 +293,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
       subtotal, discount, discount_type, discount_value, tax, total, order_date, invoice_date,
       woo_invoice_number, woo_invoice_date, refund_amount, deleted_at, pre_trash_status,
       delivery_notes, internal_notes, created_at, updated_at, created_by,
-      customer:customers!customer_id(id, company_name, contact_person, billing_country, vat_number),
+      customer:${customerJoin}(id, company_name, contact_person, customer_type, billing_country, vat_number),
       items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, discount_amount, discount_type, discount_value, tax_rate, tax_amount, total, unit_type, notes),
       refunds:order_refunds(id, woo_refund_id, woo_credit_note_number, refund_date, amount, reason)
     `)
@@ -294,6 +312,10 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
 
   if (filters.customerId) {
     query = query.eq('customer_id', filters.customerId)
+  }
+
+  if (filters.customerType) {
+    query = query.eq('customer.customer_type', filters.customerType)
   }
 
   if (filters.dateFrom) {

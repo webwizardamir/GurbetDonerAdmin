@@ -6,6 +6,7 @@ import {
   type SoldProductItem,
   type SoldProductsResult,
 } from '../services/soldProducts'
+import { CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 
 export type DateRangeKey = 'yesterday' | 'today' | 'last7Days' | 'thisWeek' | 'lastWeek' | 'custom'
 
@@ -30,7 +31,8 @@ export function useSoldProducts() {
   const [customerFilter, setCustomerFilter] = useState<string>('')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [unitFilter, setUnitFilter] = useState<string>('')
-  const [groupBy, setGroupBy] = useState<'none' | 'city' | 'customer'>('none')
+  const [customerTypeFilter, setCustomerTypeFilter] = useState<string>('')
+  const [groupBy, setGroupBy] = useState<'none' | 'city' | 'customer' | 'customerType'>('none')
 
   const setDateRange = useCallback((
     key: DateRangeKey,
@@ -92,13 +94,14 @@ export function useSoldProducts() {
   const filteredBreakdown = useMemo(() => {
     const citySet = cityFilter.length ? new Set(cityFilter) : null
     return breakdown.filter(r => {
-      if (citySet        && !(r.city && citySet.has(r.city)))   return false
-      if (customerFilter && r.customer_id   !== customerFilter) return false
-      if (categoryFilter && r.category_name !== categoryFilter) return false
-      if (unitFilter     && r.unit_type     !== unitFilter)     return false
+      if (citySet            && !(r.city && citySet.has(r.city)))       return false
+      if (customerFilter     && r.customer_id   !== customerFilter)     return false
+      if (categoryFilter     && r.category_name !== categoryFilter)     return false
+      if (unitFilter         && r.unit_type     !== unitFilter)         return false
+      if (customerTypeFilter && r.customer_type !== customerTypeFilter) return false
       return true
     })
-  }, [breakdown, cityFilter, customerFilter, categoryFilter, unitFilter])
+  }, [breakdown, cityFilter, customerFilter, categoryFilter, unitFilter, customerTypeFilter])
 
   // Aggregate to one row per (product_id, unit_type) — the legacy shape the
   // existing flat table expects. Stock/track flags are constant per product
@@ -165,8 +168,13 @@ export function useSoldProducts() {
     // Bucket breakdown rows by the chosen dimension
     const buckets = new Map<string, { name: string; rows: SoldProductBreakdownRow[] }>()
     for (const r of filteredBreakdown) {
-      const key  = groupBy === 'city' ? (r.city || '__none__') : r.customer_id
-      const name = groupBy === 'city' ? (r.city || '—') : r.customer_name
+      const ct = r.customer_type as keyof typeof CUSTOMER_TYPE_LABELS | null
+      const key  = groupBy === 'city' ? (r.city || '__none__')
+                 : groupBy === 'customerType' ? (r.customer_type || '__none__')
+                 : r.customer_id
+      const name = groupBy === 'city' ? (r.city || '—')
+                 : groupBy === 'customerType' ? (ct && CUSTOMER_TYPE_LABELS[ct] ? CUSTOMER_TYPE_LABELS[ct] : 'Geen type')
+                 : r.customer_name
       let b = buckets.get(key)
       if (!b) { b = { name, rows: [] }; buckets.set(key, b) }
       b.rows.push(r)
@@ -242,6 +250,7 @@ export function useSoldProducts() {
     customerFilter,    setCustomerFilter,
     categoryFilter,    setCategoryFilter,
     unitFilter,        setUnitFilter,
+    customerTypeFilter, setCustomerTypeFilter,
     cityOptions,
     customerOptions,
     categoryOptions,

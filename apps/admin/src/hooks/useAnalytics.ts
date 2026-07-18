@@ -55,7 +55,7 @@ export function useOverviewAnalytics(dateRange: DateRange, statuses: string[] = 
         getRevenueByDay(start, end, statuses, filters),
         getOrdersByStatus(start, end, statuses),
         getRevenueByPaymentMethod(start, end, statuses),
-        getTopCustomers(start, end, 10, statuses),
+        getTopCustomers(start, end, 10, statuses, filters),
         getTopProducts(start, end, 10, statuses, filters),
         getKPIs(start, end, statuses, filters),
       ])

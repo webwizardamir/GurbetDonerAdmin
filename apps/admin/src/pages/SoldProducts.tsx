@@ -20,9 +20,11 @@ import {
   Euro,
   Route,
   ClipboardList,
+  Tags,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSoldProducts, type DateRangeKey } from '../hooks/useSoldProducts'
+import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { formatPrice, formatQuantityWithUnit } from '../utils/format'
 import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
 import DayCloseModal from '../components/documents/DayCloseModal'
@@ -46,6 +48,7 @@ export default function SoldProducts() {
     cityFilter,     setCityFilter,
     customerFilter, setCustomerFilter,
     unitFilter,     setUnitFilter,
+    customerTypeFilter, setCustomerTypeFilter,
     cityOptions,
     customerOptions,
     unitOptions,
@@ -282,12 +285,25 @@ export default function SoldProducts() {
               </select>
             </div>
           )}
-          {(cityFilter.length > 0 || customerFilter || unitFilter) && (
+          <div className="relative">
+            <Tags className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <select
+              value={customerTypeFilter}
+              onChange={e => setCustomerTypeFilter(e.target.value)}
+              aria-label="Type"
+              className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+            >
+              <option value="">Alle types</option>
+              {CUSTOMER_TYPES.map(ct => <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>)}
+            </select>
+          </div>
+          {(cityFilter.length > 0 || customerFilter || unitFilter || customerTypeFilter) && (
             <button
               onClick={() => {
                 setCityFilter([])
                 setCustomerFilter('')
                 setUnitFilter('')
+                setCustomerTypeFilter('')
               }}
               className="inline-flex items-center gap-1 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
@@ -301,7 +317,7 @@ export default function SoldProducts() {
               <Layers className="w-3.5 h-3.5" />
               {t('soldProducts.groupBy.label')}
             </span>
-            {(['none', 'city', 'customer'] as const).map((g, i) => (
+            {(['none', 'city', 'customer', 'customerType'] as const).map((g, i) => (
               <button
                 key={g}
                 onClick={() => setGroupBy(g)}
@@ -592,6 +608,7 @@ export default function SoldProducts() {
           endDay={dateRange.end}
           dayLabel={dateRange.label}
           cities={cityFilter.length ? cityFilter : undefined}
+          customerType={customerTypeFilter || undefined}
           onRouteOrderChange={setRouteOrderedIds}
           onClose={() => setShowRoute(false)}
         />
@@ -601,6 +618,7 @@ export default function SoldProducts() {
       {showDayClose && (
         <DayCloseModal
           dateRange={dateRange}
+          customerType={customerTypeFilter || undefined}
           soldProducts={summary ? {
             items,
             summary,

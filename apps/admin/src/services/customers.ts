@@ -19,11 +19,13 @@ export interface CustomerFormData {
   shipping_country?: string
   internal_notes?: string
   price_list_id?: string | null
+  customer_type?: 'horeca' | 'supermarkt' | 'other' | null
 }
 
 export interface CustomerFilters {
   search?: string
   city?: string
+  customerType?: string
   limit?: number
   offset?: number
 }
@@ -37,6 +39,10 @@ export async function fetchCustomers(filters?: CustomerFilters): Promise<Custome
 
   if (filters?.city) {
     query = query.eq('billing_city', filters.city)
+  }
+
+  if (filters?.customerType) {
+    query = query.eq('customer_type', filters.customerType)
   }
 
   if (filters?.search) {
@@ -69,6 +75,10 @@ export async function fetchCustomerCount(filters?: CustomerFilters): Promise<num
 
   if (filters?.city) {
     query = query.eq('billing_city', filters.city)
+  }
+
+  if (filters?.customerType) {
+    query = query.eq('customer_type', filters.customerType)
   }
 
   if (filters?.search) {
