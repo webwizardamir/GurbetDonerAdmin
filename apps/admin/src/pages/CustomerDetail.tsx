@@ -32,6 +32,7 @@ import OrdersTable from '../components/orders/OrdersTable'
 import OrderDetail from '../components/orders/OrderDetail'
 import OrderNotesModal from '../components/orders/OrderNotesModal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import CustomerTypeBadge from '../components/ui/CustomerTypeBadge'
 import { deleteOrder, type OrderWithItems } from '../services/orders'
 import CustomerForm from '../components/customers/CustomerForm'
 import CustomerProductsTab from '../components/customers/CustomerProductsTab'
@@ -389,9 +390,12 @@ export default function CustomerDetail() {
               <Building2 className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {customer.company_name}
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {customer.company_name}
+                </h1>
+                <CustomerTypeBadge type={customer.customer_type} />
+              </div>
               {customer.contact_person && (
                 <p className="text-slate-500 dark:text-slate-400">
                   {customer.contact_person}
