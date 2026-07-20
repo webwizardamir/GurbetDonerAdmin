@@ -14,6 +14,7 @@ interface CustomerTableRowProps {
   canEdit: boolean
   canDelete: boolean
   deleting: boolean
+  archived?: boolean
   selected: boolean
   onToggleSelect: () => void
   onMenuToggle: () => void
@@ -22,6 +23,8 @@ interface CustomerTableRowProps {
   onPricing: () => void
   onEdit: () => void
   onDelete: () => void
+  onRestore?: () => void
+  onPurge?: () => void
 }
 
 export default function CustomerTableRow({
@@ -31,6 +34,7 @@ export default function CustomerTableRow({
   canEdit,
   canDelete,
   deleting,
+  archived,
   selected,
   onToggleSelect,
   onMenuToggle,
@@ -39,6 +43,8 @@ export default function CustomerTableRow({
   onPricing,
   onEdit,
   onDelete,
+  onRestore,
+  onPurge,
 }: CustomerTableRowProps) {
   const { t } = useTranslation()
 
@@ -64,6 +70,11 @@ export default function CustomerTableRow({
               {hasPortalAccess && (
                 <span title={t('portal.access.enabled')} className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 dark:bg-blue-900/30 rounded-full">
                   <Globe className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                </span>
+              )}
+              {archived && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                  {t('customers.archivedBadge')}
                 </span>
               )}
             </div>
@@ -151,10 +162,13 @@ export default function CustomerTableRow({
           canEdit={canEdit}
           canDelete={canDelete}
           deleting={deleting}
+          archived={archived}
           onView={onView}
           onPricing={onPricing}
           onEdit={onEdit}
           onDelete={onDelete}
+          onRestore={onRestore}
+          onPurge={onPurge}
         />
       </td>
     </tr>

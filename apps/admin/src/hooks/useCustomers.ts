@@ -6,7 +6,9 @@ import {
   fetchCustomer,
   createCustomer,
   updateCustomer,
-  deleteCustomer,
+  archiveCustomer,
+  restoreCustomer,
+  purgeCustomer,
   getCustomerCities,
   CustomerFormData,
   CustomerFilters,
@@ -26,6 +28,8 @@ interface UseCustomersReturn {
   create: (data: CustomerFormData) => Promise<Customer>
   update: (id: string, data: Partial<CustomerFormData>) => Promise<Customer>
   remove: (id: string) => Promise<void>
+  restore: (id: string) => Promise<void>
+  purge: (id: string) => Promise<void>
   setFilters: (filters: CustomerFilters) => void
   cities: string[]
   page: number
@@ -98,9 +102,25 @@ export function useCustomers(options: UseCustomersOptions = {}): UseCustomersRet
     return customer
   }
 
+  // Archive (soft delete). The customer leaves the active list.
   const remove = async (id: string): Promise<void> => {
-    await deleteCustomer(id)
+    await archiveCustomer(id)
     setCustomers(prev => prev.filter(c => c.id !== id))
+    setTotalCount(prev => Math.max(0, prev - 1))
+  }
+
+  // Restore an archived customer — it leaves the archived list.
+  const restore = async (id: string): Promise<void> => {
+    await restoreCustomer(id)
+    setCustomers(prev => prev.filter(c => c.id !== id))
+    setTotalCount(prev => Math.max(0, prev - 1))
+  }
+
+  // Permanently delete an archived customer (only if it has no orders).
+  const purge = async (id: string): Promise<void> => {
+    await purgeCustomer(id)
+    setCustomers(prev => prev.filter(c => c.id !== id))
+    setTotalCount(prev => Math.max(0, prev - 1))
   }
 
   const updateFilters = useCallback((newFilters: CustomerFilters) => {
@@ -116,6 +136,8 @@ export function useCustomers(options: UseCustomersOptions = {}): UseCustomersRet
     create,
     update,
     remove,
+    restore,
+    purge,
     setFilters: updateFilters,
     cities,
     page,

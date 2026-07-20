@@ -9,6 +9,7 @@ import {
   Filter,
   Tags,
   Upload,
+  Archive,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -33,11 +34,12 @@ export default function Customers() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { canCreate, canEdit, canDelete } = usePermission('customers')
-  const { customers, loading, error, refresh, create, update, remove, cities, page, setPage, totalPages, totalCount, setFilters } = useCustomers()
+  const { customers, loading, error, refresh, create, update, remove, restore, purge, cities, page, setPage, totalPages, totalCount, setFilters } = useCustomers()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [cityFilter, setCityFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
@@ -80,6 +82,13 @@ export default function Customers() {
     setFilters({ customerType: typeFilter || undefined })
   }, [typeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Toggle between active and archived customers (skip initial mount)
+  const [archivedInit, setArchivedInit] = useState(false)
+  useEffect(() => {
+    if (!archivedInit) { setArchivedInit(true); return }
+    setFilters({ archived: showArchived })
+  }, [showArchived]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Phase 6: sortable columns
   type CustomerSortKey = 'company_name' | 'contact_person' | 'city' | 'vat_number' | 'price_list' | 'customer_type'
   const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<CustomerSortKey>('company_name', 'asc')
@@ -95,11 +104,38 @@ export default function Customers() {
 
   const handleEdit = (customer: Customer) => { setEditingCustomer(customer); setShowForm(true) }
 
-  const handleDelete = async (customer: Customer) => {
-    if (!confirm(t('customers.confirmDelete', { name: customer.company_name }))) return
+  // "Delete" = archive (soft delete): a hard delete is blocked by order history
+  // and Dutch retention. See migration 00093.
+  const handleArchive = async (customer: Customer) => {
+    if (!confirm(t('customers.confirmArchive', { name: customer.company_name }))) return
     setDeleting(customer.id)
     try { await remove(customer.id) }
-    catch (err) { console.error('Error deleting customer:', err); alert(t('customers.deleteError')) }
+    catch (err) { console.error('Error archiving customer:', err); alert(t('customers.archiveError')) }
+    finally { setDeleting(null) }
+  }
+
+  const handleRestore = async (customer: Customer) => {
+    setDeleting(customer.id)
+    try { await restore(customer.id) }
+    catch (err) {
+      console.error('Error restoring customer:', err)
+      alert(err instanceof Error && err.message === 'EMAIL_TAKEN'
+        ? t('customers.restoreEmailTaken')
+        : t('customers.restoreError'))
+    }
+    finally { setDeleting(null) }
+  }
+
+  const handlePurge = async (customer: Customer) => {
+    if (!confirm(t('customers.confirmPermanentDelete', { name: customer.company_name }))) return
+    setDeleting(customer.id)
+    try { await purge(customer.id) }
+    catch (err) {
+      console.error('Error deleting customer:', err)
+      alert(err instanceof Error && err.message === 'HAS_ORDERS'
+        ? t('customers.purgeHasOrders')
+        : t('customers.deleteError'))
+    }
     finally { setDeleting(null) }
   }
 
@@ -115,7 +151,7 @@ export default function Customers() {
 
   // Row selection (export scope only — no bulk actions)
   const selectedCustomers = filteredCustomers.filter(c => selectedIds.has(c.id))
-  useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, cityFilter, typeFilter, page])
+  useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, cityFilter, typeFilter, showArchived, page])
   const toggleSelect = (id: string) => setSelectedIds(prev => {
     const next = new Set(prev)
     if (next.has(id)) next.delete(id); else next.add(id)
@@ -152,8 +188,18 @@ export default function Customers() {
               {CUSTOMER_TYPES.map(ct => <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>)}
             </select>
           </div>
+          <button onClick={() => setShowArchived(v => !v)}
+            aria-pressed={showArchived}
+            title={showArchived ? t('customers.showActive') : t('customers.showArchived')}
+            className={`inline-flex items-center justify-center gap-2 px-3 py-2.5 border font-medium rounded-xl transition-colors whitespace-nowrap ${
+              showArchived
+                ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
+                : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}>
+            <Archive className="w-5 h-5" /><span className="hidden lg:inline">{showArchived ? t('customers.showActive') : t('customers.showArchived')}</span>
+          </button>
           <ExportMenu
-            getAllData={() => fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined })}
+            getAllData={() => fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined, archived: showArchived })}
             pageData={filteredCustomers}
             selectedData={selectedCustomers}
             totalCount={totalCount}
@@ -162,14 +208,14 @@ export default function Customers() {
             pdfTitle="Klanten"
             storageKey="customers"
           />
-          {canCreate && (
+          {canCreate && !showArchived && (
             <button onClick={() => setShowImport(true)}
               className="inline-flex items-center justify-center gap-2 px-3 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
               <Upload className="w-5 h-5" /><span className="hidden lg:inline">{t('common.import')}</span>
             </button>
           )}
           <div className="hidden sm:block flex-1" />
-          {canCreate && (
+          {canCreate && !showArchived && (
             <button onClick={() => { setEditingCustomer(null); setShowForm(true) }}
               className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0">
               <Plus className="w-5 h-5" /><span className="hidden sm:inline">{t('customers.addCustomer')}</span>
@@ -191,8 +237,8 @@ export default function Customers() {
         ) : filteredCustomers.length === 0 ? (
           <div className="text-center py-12">
             <Building2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-600 dark:text-slate-400">{searchQuery || cityFilter || typeFilter ? t('customers.noCustomersMatch') : t('customers.noCustomers')}</p>
-            {!searchQuery && !cityFilter && !typeFilter && canCreate && <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">{t('customers.addFirstCustomer')}</p>}
+            <p className="text-slate-600 dark:text-slate-400">{showArchived ? t('customers.noArchived') : (searchQuery || cityFilter || typeFilter ? t('customers.noCustomersMatch') : t('customers.noCustomers'))}</p>
+            {!showArchived && !searchQuery && !cityFilter && !typeFilter && canCreate && <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">{t('customers.addFirstCustomer')}</p>}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -222,6 +268,7 @@ export default function Customers() {
                     canEdit={canEdit}
                     canDelete={canDelete}
                     deleting={deleting === customer.id}
+                    archived={showArchived}
                     selected={selectedIds.has(customer.id)}
                     onToggleSelect={() => toggleSelect(customer.id)}
                     onMenuToggle={() => setOpenMenuId(openMenuId === customer.id ? null : customer.id)}
@@ -229,7 +276,9 @@ export default function Customers() {
                     onView={() => navigate(`/customers/${customer.id}`)}
                     onPricing={() => setPricingCustomer(customer)}
                     onEdit={() => handleEdit(customer)}
-                    onDelete={() => handleDelete(customer)}
+                    onDelete={() => handleArchive(customer)}
+                    onRestore={() => handleRestore(customer)}
+                    onPurge={() => handlePurge(customer)}
                   />
                 ))}
               </tbody>
@@ -245,7 +294,7 @@ export default function Customers() {
         ) : filteredCustomers.length === 0 ? (
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
             <Building2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-600 dark:text-slate-400">{searchQuery || cityFilter || typeFilter ? t('customers.noCustomersMatch') : t('customers.noCustomers')}</p>
+            <p className="text-slate-600 dark:text-slate-400">{showArchived ? t('customers.noArchived') : (searchQuery || cityFilter || typeFilter ? t('customers.noCustomersMatch') : t('customers.noCustomers'))}</p>
           </div>
         ) : (
           filteredCustomers.map((customer) => (
@@ -255,14 +304,17 @@ export default function Customers() {
               canEdit={canEdit}
               canDelete={canDelete}
               deleting={deleting === customer.id}
+              archived={showArchived}
               isMenuOpen={openMenuId === customer.id}
               hasPortalAccess={portalAccounts.get(customer.id)?.is_active || false}
               onMenuToggle={() => setOpenMenuId(openMenuId === customer.id ? null : customer.id)}
               onMenuClose={() => setOpenMenuId(null)}
               onEdit={() => handleEdit(customer)}
-              onDelete={() => handleDelete(customer)}
+              onDelete={() => handleArchive(customer)}
               onPricing={() => setPricingCustomer(customer)}
               onView={() => navigate(`/customers/${customer.id}`)}
+              onRestore={() => handleRestore(customer)}
+              onPurge={() => handlePurge(customer)}
             />
           ))
         )}

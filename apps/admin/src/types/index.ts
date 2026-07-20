@@ -127,6 +127,9 @@ export interface Customer {
   longitude?: number | null
   geocoded_at?: string | null
   geocode_status?: 'ok' | 'zero_results' | 'error' | null
+  // Archive (soft delete) — migration 00093. is_active=false → archived.
+  is_active: boolean
+  archived_at?: string | null
   // Other
   internal_notes?: string
   created_by?: string

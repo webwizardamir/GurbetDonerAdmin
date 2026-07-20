@@ -8,6 +8,8 @@ import {
   Eye,
   Euro,
   Edit2,
+  Archive,
+  RotateCcw,
   Trash2,
   Loader2,
 } from 'lucide-react'
@@ -22,10 +24,15 @@ interface CustomerActionMenuProps {
   canEdit: boolean
   canDelete: boolean
   deleting: boolean
+  // When true the customer is archived → show Restore + Permanent delete
+  // instead of the Archive action.
+  archived?: boolean
   onView: () => void
   onPricing: () => void
   onEdit: () => void
   onDelete: () => void
+  onRestore?: () => void
+  onPurge?: () => void
 }
 
 export default function CustomerActionMenu({
@@ -35,10 +42,13 @@ export default function CustomerActionMenu({
   canEdit,
   canDelete,
   deleting,
+  archived,
   onView,
   onPricing,
   onEdit,
   onDelete,
+  onRestore,
+  onPurge,
 }: CustomerActionMenuProps) {
   const { t } = useTranslation()
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -82,17 +92,40 @@ export default function CustomerActionMenu({
                 {t('customers.editCustomer')}
               </button>
             )}
-            {canDelete && (
+            {canDelete && !archived && (
               <>
                 <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onDelete(); onClose(); }}
                   disabled={deleting}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                  {t('customers.archive')}
+                </button>
+              </>
+            )}
+            {canDelete && archived && (
+              <>
+                <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onRestore?.(); onClose(); }}
+                  disabled={deleting}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                  {t('customers.restore')}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onPurge?.(); onClose(); }}
+                  disabled={deleting}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors disabled:opacity-50"
                 >
                   {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  {t('customers.deleteCustomer')}
+                  {t('customers.permanentDelete')}
                 </button>
               </>
             )}

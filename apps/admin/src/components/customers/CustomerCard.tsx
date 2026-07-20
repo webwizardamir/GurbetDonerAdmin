@@ -12,6 +12,7 @@ interface CustomerCardProps {
   canEdit: boolean
   canDelete: boolean
   deleting: boolean
+  archived?: boolean
   isMenuOpen: boolean
   hasPortalAccess: boolean
   onMenuToggle: () => void
@@ -20,6 +21,8 @@ interface CustomerCardProps {
   onDelete: () => void
   onPricing: () => void
   onView: () => void
+  onRestore?: () => void
+  onPurge?: () => void
 }
 
 export default function CustomerCard({
@@ -27,6 +30,7 @@ export default function CustomerCard({
   canEdit,
   canDelete,
   deleting,
+  archived,
   isMenuOpen,
   hasPortalAccess,
   onMenuToggle,
@@ -35,6 +39,8 @@ export default function CustomerCard({
   onDelete,
   onPricing,
   onView,
+  onRestore,
+  onPurge,
 }: CustomerCardProps) {
   const { t } = useTranslation()
   return (
@@ -56,6 +62,11 @@ export default function CustomerCard({
               {hasPortalAccess && (
                 <span title={t('portal.access.enabled')} className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 dark:bg-blue-900/30 rounded-full shrink-0">
                   <Globe className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                </span>
+              )}
+              {archived && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 uppercase tracking-wide shrink-0">
+                  {t('customers.archivedBadge')}
                 </span>
               )}
             </div>
@@ -80,10 +91,13 @@ export default function CustomerCard({
             canEdit={canEdit}
             canDelete={canDelete}
             deleting={deleting}
+            archived={archived}
             onView={onView}
             onPricing={onPricing}
             onEdit={onEdit}
             onDelete={onDelete}
+            onRestore={onRestore}
+            onPurge={onPurge}
           />
         </div>
       </div>

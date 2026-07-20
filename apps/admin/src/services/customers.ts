@@ -26,6 +26,8 @@ export interface CustomerFilters {
   search?: string
   city?: string
   customerType?: string
+  // true → show archived (is_active=false) only; falsy → active customers only.
+  archived?: boolean
   limit?: number
   offset?: number
 }
@@ -35,6 +37,7 @@ export async function fetchCustomers(filters?: CustomerFilters): Promise<Custome
   let query = supabase
     .from('customers')
     .select('*, price_list:price_lists(id, name, is_active)')
+    .eq('is_active', !filters?.archived)
     .order('company_name', { ascending: true })
 
   if (filters?.city) {
@@ -72,6 +75,7 @@ export async function fetchCustomerCount(filters?: CustomerFilters): Promise<num
   let query = supabase
     .from('customers')
     .select('id', { count: 'exact', head: true })
+    .eq('is_active', !filters?.archived)
 
   if (filters?.city) {
     query = query.eq('billing_city', filters.city)
@@ -146,14 +150,52 @@ export async function updateCustomer(id: string, updates: Partial<CustomerFormDa
   return data
 }
 
-// Delete a customer
-export async function deleteCustomer(id: string): Promise<void> {
+// Archive (soft delete) a customer. A hard delete is impossible for any customer
+// with orders (orders.customer_id is ON DELETE NO ACTION), and Dutch 7-year
+// retention requires keeping order/invoice history — so "delete" archives.
+// Archiving also frees the customer's email (the unique index only covers active
+// customers), so a new customer can reuse it. See migration 00093.
+export async function archiveCustomer(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('customers')
+    .update({ is_active: false, archived_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// Restore an archived customer back to active.
+export async function restoreCustomer(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('customers')
+    .update({ is_active: true, archived_at: null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) {
+    // Another active customer may have claimed this customer's email while it was
+    // archived (the unique index only covers active rows) — surface it clearly.
+    if (error.code === '23505') {
+      throw new Error('EMAIL_TAKEN')
+    }
+    throw error
+  }
+}
+
+// Permanently delete a customer. Only succeeds for customers with NO orders
+// (orders.customer_id is ON DELETE NO ACTION); otherwise Postgres blocks it and
+// we surface a clear "has orders" error so the caller keeps it archived instead.
+export async function purgeCustomer(id: string): Promise<void> {
   const { error } = await supabase
     .from('customers')
     .delete()
     .eq('id', id)
 
-  if (error) throw error
+  if (error) {
+    if (error.code === '23503') {
+      throw new Error('HAS_ORDERS')
+    }
+    throw error
+  }
 }
 
 // Get customer stats for dashboard
@@ -315,9 +357,12 @@ export async function fetchCustomerOrders(
 export async function checkEmailExists(email: string, excludeCustomerId?: string): Promise<boolean> {
   if (!email || email.trim() === '') return false
 
+  // Only ACTIVE customers count — an archived customer's email is free to reuse
+  // (mirrors the partial unique index from migration 00093).
   let query = supabase
     .from('customers')
     .select('id')
+    .eq('is_active', true)
     .ilike('email', email.trim())
 
   if (excludeCustomerId) {
