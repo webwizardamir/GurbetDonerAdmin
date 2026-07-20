@@ -83,9 +83,15 @@ serve(async (req) => {
       )
     }
 
-    if (password.length < 8) {
+    const passwordError =
+      password.length < 12 ? 'Password must be at least 12 characters'
+      : !/[A-Z]/.test(password) ? 'Password must contain at least one uppercase letter'
+      : !/[a-z]/.test(password) ? 'Password must contain at least one lowercase letter'
+      : !/[0-9]/.test(password) ? 'Password must contain at least one number'
+      : null
+    if (passwordError) {
       return new Response(
-        JSON.stringify({ error: 'Password must be at least 8 characters' }),
+        JSON.stringify({ error: passwordError }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

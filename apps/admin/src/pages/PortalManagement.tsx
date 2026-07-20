@@ -194,7 +194,7 @@ export default function PortalManagement() {
                 </tr>
               ) : (
                 filtered.map((r) => (
-                  <tr key={r.id} className={statusOf(r) === 'disabled' ? 'bg-slate-50 dark:bg-slate-900/40' : ''}>
+                  <tr key={r.id} onClick={() => setSelected(r)} className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${statusOf(r) === 'disabled' ? 'bg-slate-50 dark:bg-slate-900/40' : ''}`}>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-slate-900 dark:text-white">{r.company_name}</div>
                       {r.contact_person && <div className="text-xs text-slate-500 dark:text-slate-400">{r.contact_person}</div>}
@@ -202,7 +202,7 @@ export default function PortalManagement() {
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 break-all">{portalEmail(r)}</td>
                     <td className="px-6 py-4 whitespace-nowrap"><StatusBadge r={r} /></td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{lastLogin(r)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => setSelected(r)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors">
@@ -234,7 +234,7 @@ export default function PortalManagement() {
           </div>
         ) : (
           filtered.map((r) => (
-            <div key={r.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
+            <div key={r.id} onClick={() => setSelected(r)} className="cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{r.company_name}</p>
@@ -243,7 +243,7 @@ export default function PortalManagement() {
                 <StatusBadge r={r} />
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">{t('settings.portal.col.lastLogin')}: {lastLogin(r)}</p>
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                 <button onClick={() => setSelected(r)}
                   className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg">
                   {r.portal_account ? <Settings2 className="w-4 h-4" /> : <Globe className="w-4 h-4" />}

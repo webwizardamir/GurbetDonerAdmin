@@ -5,6 +5,8 @@ import { UserProfile } from '../types'
 import { fetchStaffProfiles, updateUserProfile, inviteUser, deleteUser } from '../services/users'
 import { useAuth } from '../context/AuthContext'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import PasswordRequirements from '../components/ui/PasswordRequirements'
+import { PASSWORD_MIN_LENGTH, passwordProblemKey } from '../utils/password'
 
 type UserRole = 'owner' | 'shop_manager'
 
@@ -93,6 +95,11 @@ export default function Users() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    const pwProblem = passwordProblemKey(createFormData.password)
+    if (pwProblem) {
+      setFormError(t(pwProblem))
+      return
+    }
     setSubmitting(true)
     try {
       const result = await inviteUser({
@@ -252,7 +259,7 @@ export default function Users() {
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id} className={!user.is_active ? 'bg-slate-50 dark:bg-slate-900/50' : ''}>
+                  <tr key={user.id} onClick={() => openEditModal(user)} className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${!user.is_active ? 'bg-slate-50 dark:bg-slate-900/50' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
@@ -267,7 +274,7 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap">{getRoleBadge(user.role)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(user.is_active)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{formatDate(user.last_login_at)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => openEditModal(user)} className="p-2 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-colors" title={t('settings.users.editTooltip')}>
                           <Edit2 className="w-4 h-4" />
@@ -312,7 +319,7 @@ export default function Users() {
           </div>
         ) : (
           users.map((user) => (
-            <div key={user.id} className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 ${!user.is_active ? 'opacity-70' : ''}`}>
+            <div key={user.id} onClick={() => openEditModal(user)} className={`cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 ${!user.is_active ? 'opacity-70' : ''}`}>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
@@ -323,7 +330,7 @@ export default function Users() {
                     <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                   <button onClick={() => openEditModal(user)} className="p-2 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl transition-colors">
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -433,11 +440,12 @@ export default function Users() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('settings.users.password')} *</label>
                 <div className="relative">
-                  <input type={showPassword ? 'text' : 'password'} value={createFormData.password} onChange={(e) => setCreateFormData({ ...createFormData, password: e.target.value })} required minLength={8} placeholder={t('settings.users.minChars')} className={`${inputClass} pr-10`} />
+                  <input type={showPassword ? 'text' : 'password'} value={createFormData.password} onChange={(e) => setCreateFormData({ ...createFormData, password: e.target.value })} required minLength={PASSWORD_MIN_LENGTH} placeholder={t('settings.users.minChars')} className={`${inputClass} pr-10`} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <PasswordRequirements password={createFormData.password} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('settings.users.role')} *</label>

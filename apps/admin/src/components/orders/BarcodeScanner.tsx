@@ -129,7 +129,7 @@ export default function BarcodeScanner({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
 
       {/* Modal - Full screen on mobile, centered on desktop */}
       <div className="relative bg-white dark:bg-slate-800 w-full h-full sm:h-auto sm:max-w-lg sm:rounded-2xl sm:max-h-[90vh] overflow-hidden flex flex-col">

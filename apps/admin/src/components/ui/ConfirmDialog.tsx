@@ -35,7 +35,7 @@ export default function ConfirmDialog({
     : 'bg-green-600 hover:bg-green-700'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2">

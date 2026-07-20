@@ -242,7 +242,7 @@ export default function OrdersTab({ dateRange, statuses = [], filters = {} }: Or
                 </tr>
               ) : (
                 sortedOrders.map((row, idx) => (
-                  <tr key={row.orderId} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                  <tr key={row.orderId} onClick={() => openOrder(row.orderId)} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{row.orderNumber}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatDate(row.orderDate)}</td>
@@ -259,7 +259,7 @@ export default function OrdersTab({ dateRange, statuses = [], filters = {} }: Or
                     <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{formatChartCurrency(row.profit)}</td>
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{formatPercent(row.profitMargin)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{formatChartCurrency(row.taxAmount)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => openOrder(row.orderId)}
                         disabled={openingId === row.orderId}

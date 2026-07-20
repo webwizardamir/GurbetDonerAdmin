@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Users,
@@ -43,6 +43,7 @@ type SortDir = 'asc' | 'desc'
 
 export default function CustomersTab({ dateRange, statuses = [], filters = {}, onSelectCustomer }: CustomersTabProps) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { loading, error, customers } = useCustomerAnalytics(dateRange, statuses, filters)
   const { colors } = useChartColors()
   const [sortKey, setSortKey] = useState<SortKey>('totalRevenue')
@@ -231,12 +232,13 @@ export default function CustomersTab({ dateRange, statuses = [], filters = {}, o
                 </tr>
               ) : (
                 sortedCustomers.map((row, idx) => (
-                  <tr key={row.customerId} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                  <tr key={row.customerId} onClick={() => navigate(`/customers/${row.customerId}`)} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm font-medium">
                       <div className="flex items-center gap-1.5">
                         <Link
                           to={`/customers/${row.customerId}`}
+                          onClick={(e) => e.stopPropagation()}
                           className="text-slate-900 dark:text-white hover:text-green-600 dark:hover:text-green-400 hover:underline"
                         >
                           {row.companyName}
@@ -244,7 +246,7 @@ export default function CustomersTab({ dateRange, statuses = [], filters = {}, o
                         {onSelectCustomer && (
                           <button
                             type="button"
-                            onClick={() => onSelectCustomer(row.customerId)}
+                            onClick={(e) => { e.stopPropagation(); onSelectCustomer(row.customerId) }}
                             title={t('analytics.filters.customer')}
                             className="p-0.5 text-slate-300 hover:text-green-600 dark:text-slate-600 dark:hover:text-green-400"
                           >

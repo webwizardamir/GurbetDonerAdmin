@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Plus, Tags, Pencil, Trash2, Loader2, AlertCircle, CheckCircle2, X, Eye,
@@ -19,6 +19,7 @@ import { useTableSort } from '../hooks/useTableSort'
 
 export default function PriceLists() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [lists, setLists] = useState<PriceList[]>([])
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({})
   const [customerCounts, setCustomerCounts] = useState<Record<string, number>>({})
@@ -158,10 +159,15 @@ export default function PriceLists() {
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {sortedLists.map(list => (
-                <tr key={list.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                <tr
+                  key={list.id}
+                  onClick={() => navigate(`/price-lists/${list.id}`)}
+                  className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                >
                   <td className="px-4 py-3">
                     <Link
                       to={`/price-lists/${list.id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="font-medium text-slate-900 dark:text-white hover:text-green-700 dark:hover:text-green-400"
                     >
                       {list.name}
@@ -176,7 +182,7 @@ export default function PriceLists() {
                   <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">
                     {customerCounts[list.id] ?? 0}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => handleToggleActive(list)}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -190,7 +196,7 @@ export default function PriceLists() {
                       {list.is_active ? t('priceLists.active') : t('priceLists.inactive')}
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="inline-flex items-center gap-1">
                       <Link
                         to={`/price-lists/${list.id}`}
@@ -279,7 +285,7 @@ function PriceListForm({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">

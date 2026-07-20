@@ -86,7 +86,7 @@ export default function PortalDocumentActions({ doc, fullWidth = false }: { doc:
       {/* Preview modal */}
       {previewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closePreview} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closePreview} />
           <div className="relative w-full max-w-5xl h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
               <span className="font-semibold text-slate-900 dark:text-white">{doc.document_number}</span>

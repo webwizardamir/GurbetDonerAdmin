@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { PASSWORD_MIN_LENGTH, passwordProblemKey } from '../utils/password'
+import PasswordRequirements from '../components/ui/PasswordRequirements'
 import {
   Building2,
   User,
@@ -38,8 +40,9 @@ export default function PortalAccount() {
       return
     }
 
-    if (newPassword.length < 8) {
-      setPasswordError(t('validation.minLength', { min: 8 }))
+    const pwProblem = passwordProblemKey(newPassword)
+    if (pwProblem) {
+      setPasswordError(t(pwProblem))
       return
     }
 
@@ -283,9 +286,10 @@ export default function PortalAccount() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  minLength={8}
+                  minLength={PASSWORD_MIN_LENGTH}
                   className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
+                <PasswordRequirements password={newPassword} />
               </div>
 
               <div>
@@ -298,7 +302,7 @@ export default function PortalAccount() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  minLength={8}
+                  minLength={PASSWORD_MIN_LENGTH}
                   className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>

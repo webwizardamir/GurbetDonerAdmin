@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { PASSWORD_MIN_LENGTH } from '../utils/password'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -33,8 +34,8 @@ export default function ResetPassword() {
   }, [])
 
   const validatePassword = (pwd: string): string | null => {
-    if (pwd.length < 8) {
-      return 'Password must be at least 8 characters long'
+    if (pwd.length < PASSWORD_MIN_LENGTH) {
+      return `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`
     }
     if (!/[A-Z]/.test(pwd)) {
       return 'Password must contain at least one uppercase letter'
@@ -204,6 +205,9 @@ export default function ResetPassword() {
                       )}
                     </button>
                   </div>
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    At least {PASSWORD_MIN_LENGTH} characters, with an uppercase letter, a lowercase letter and a number.
+                  </p>
                 </div>
 
                 {/* Confirm Password */}

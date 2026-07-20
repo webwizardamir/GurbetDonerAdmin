@@ -49,7 +49,7 @@ function TypeBadge({ type, onClick, t }: TypeBadgeProps) {
   return (
     <span
       className={`px-2.5 py-1 text-xs font-medium rounded-full ${className} ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
-      onClick={onClick}
+      onClick={onClick ? (e) => { e.stopPropagation(); onClick() } : undefined}
     >
       {t(`documents.types.${type}`)}
     </span>
@@ -87,11 +87,12 @@ export function InvoiceTableRow({
 
   return (
     <tr
+      onClick={data.orderId ? onNavigateOrder : undefined}
       className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
-        isSelected ? 'bg-green-50/50 dark:bg-green-900/10' : ''
-      }`}
+        data.orderId ? 'cursor-pointer' : ''
+      } ${isSelected ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}
     >
-      <td className="pl-4 pr-2 py-4">
+      <td className="pl-4 pr-2 py-4" onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={isSelected}
@@ -122,7 +123,7 @@ export function InvoiceTableRow({
       <td className="px-4 py-4 whitespace-nowrap">
         {data.orderNumber ? (
           <button
-            onClick={onNavigateOrder}
+            onClick={(e) => { e.stopPropagation(); onNavigateOrder() }}
             className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 hover:underline font-mono"
           >
             <Hash className="w-3.5 h-3.5" />
@@ -141,7 +142,7 @@ export function InvoiceTableRow({
           <span className="text-sm">{formatDateTime(doc.generated_at)}</span>
         </div>
       </td>
-      <td className="px-4 py-4 text-right whitespace-nowrap">
+      <td className="px-4 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-end gap-1">
           <button
             onClick={onDownload}
@@ -201,9 +202,10 @@ export function InvoiceMobileCard({
 
   return (
     <div
+      onClick={data.orderId ? onNavigateOrder : undefined}
       className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 ${
-        isSelected ? 'ring-2 ring-green-500' : ''
-      }`}
+        data.orderId ? 'cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50' : ''
+      } ${isSelected ? 'ring-2 ring-green-500' : ''}`}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
@@ -211,6 +213,7 @@ export function InvoiceMobileCard({
             type="checkbox"
             checked={isSelected}
             onChange={onToggleSelect}
+            onClick={(e) => e.stopPropagation()}
             className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500 shrink-0 mt-1"
           />
           <div className={`w-10 h-10 rounded-xl ${iconColors.bg} flex items-center justify-center shrink-0`}>
@@ -223,7 +226,7 @@ export function InvoiceMobileCard({
             <TypeBadge type={doc.document_type} onClick={onTypeFilter} t={t} />
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={onDownload}
             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
@@ -258,7 +261,7 @@ export function InvoiceMobileCard({
         )}
         {data.orderNumber && (
           <button
-            onClick={onNavigateOrder}
+            onClick={(e) => { e.stopPropagation(); onNavigateOrder() }}
             className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 hover:underline font-mono"
           >
             <Hash className="w-3.5 h-3.5" />

@@ -101,6 +101,9 @@ serve(async (req) => {
       if (!pw || pw.length < MIN_PASSWORD) {
         return `Password must be at least ${MIN_PASSWORD} characters`
       }
+      if (!/[A-Z]/.test(pw)) return 'Password must contain at least one uppercase letter'
+      if (!/[a-z]/.test(pw)) return 'Password must contain at least one lowercase letter'
+      if (!/[0-9]/.test(pw)) return 'Password must contain at least one number'
       return null
     }
 

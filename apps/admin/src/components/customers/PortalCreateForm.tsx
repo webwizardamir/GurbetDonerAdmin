@@ -15,6 +15,8 @@ import {
   KeyRound,
   Link2,
 } from 'lucide-react'
+import { passwordProblemKey } from '../../utils/password'
+import PasswordRequirements from '../ui/PasswordRequirements'
 
 type OnboardMode = 'password' | 'invite'
 
@@ -39,6 +41,7 @@ export default function PortalCreateForm({
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
 
   const generatePassword = () => {
     const length = 12
@@ -75,8 +78,17 @@ export default function PortalCreateForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (mode === 'invite') await onSubmitInvite(email)
-    else await onSubmitPassword(email, password)
+    setLocalError(null)
+    if (mode === 'invite') {
+      await onSubmitInvite(email)
+      return
+    }
+    const problem = passwordProblemKey(password)
+    if (problem) {
+      setLocalError(t(problem))
+      return
+    }
+    await onSubmitPassword(email, password)
   }
 
   const tabBase = 'flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-colors'
@@ -148,6 +160,8 @@ export default function PortalCreateForm({
               </button>
             </div>
           </div>
+          <PasswordRequirements password={password} />
+          {localError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{localError}</p>}
         </div>
       ) : (
         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
