@@ -13,6 +13,19 @@ import { formatPrice, formatDate } from '../../utils/format'
 // A4: 595.28 x 841.89 points
 // Using Helvetica (built-in) for all text
 
+// --- Leverdatum (delivery date) fix cutoff ---------------------------------
+// The "Leverdatum" meta row used to render `data.dueDate` (the payment due
+// date) instead of the actual delivery date. Fixed to render `documentDate`
+// (the order/delivery date). To avoid re-rendering ALREADY-SENT invoices with
+// a changed date (legal fidelity of issued documents), the fix only applies to
+// invoices dated on/after this cutoff. Invoices dated before it keep rendering
+// exactly as originally sent. `documentDate` is a 'YYYY-MM-DD' string, so a
+// lexicographic compare is chronological. An invoice is never issued before its
+// delivery date, so every already-sent invoice is dated at/before today.
+const LEVERDATUM_FIX_CUTOFF = '2026-07-20'
+const deliveryDateForRow = (data: InvoiceData): string =>
+  (data.documentDate || '') >= LEVERDATUM_FIX_CUTOFF ? data.documentDate : data.dueDate
+
 const styles = StyleSheet.create({
   // ===========================================
   // PAGE
@@ -475,7 +488,7 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>{T.metaDeliveryDate}</Text>
-              <Text style={styles.metaValueDue}>{formatDate(data.dueDate)}</Text>
+              <Text style={styles.metaValueDue}>{formatDate(deliveryDateForRow(data))}</Text>
             </View>
           </View>
         </View>
