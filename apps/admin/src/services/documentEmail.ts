@@ -41,20 +41,20 @@ const DEFAULT_TEMPLATES_NL: Record<EmailTemplateKey, EmailTemplate> = {
   },
   payment_reminder: {
     subject: 'Betalingsherinnering {{document_number}}',
-    body: 'Beste {{customer_name}},\n\nWij willen u vriendelijk herinneren aan de openstaande factuur {{document_number}} ter waarde van {{total}}, met vervaldatum {{due_date}}.\n\nMet vriendelijke groet,\n{{company_name}}',
+    body: 'Beste {{customer_name}},\n\nWij willen u vriendelijk herinneren aan de openstaande factuur {{document_number}} ter waarde van {{total}}, met vervaldatum {{due_date}}.\n\nHeeft u deze factuur inmiddels betaald? Dan kunt u deze herinnering als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
   // Escalation steps for the client overdue-reminder system (tone increases).
   payment_reminder_1: {
     subject: 'Herinnering: factuur {{document_number}} openstaand',
-    body: 'Beste {{customer_name}},\n\nMogelijk is het aan uw aandacht ontsnapt: factuur {{document_number}} ter waarde van {{total}} had vervaldatum {{due_date}} en staat nog open. Wij verzoeken u vriendelijk het bedrag over te maken op IBAN {{iban}}. U kunt de factuur bekijken via {{portal_link}}.\n\nMet vriendelijke groet,\n{{company_name}}',
+    body: 'Beste {{customer_name}},\n\nMogelijk is het aan uw aandacht ontsnapt: factuur {{document_number}} ter waarde van {{total}} had vervaldatum {{due_date}} en staat nog open. Wij verzoeken u vriendelijk het bedrag over te maken op IBAN {{iban}}. U kunt de factuur bekijken via {{portal_link}}.\n\nHeeft u deze factuur inmiddels betaald? Dan kunt u deze herinnering als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
   payment_reminder_2: {
     subject: 'Tweede herinnering: factuur {{document_number}}',
-    body: 'Beste {{customer_name}},\n\nOndanks onze eerdere herinnering staat factuur {{document_number}} ({{total}}) nog steeds open. De factuur is inmiddels {{days_overdue}} dagen over de vervaldatum ({{due_date}}). Wij verzoeken u dringend het openstaande bedrag per omgaande te voldoen op IBAN {{iban}}.\n\nMet vriendelijke groet,\n{{company_name}}',
+    body: 'Beste {{customer_name}},\n\nOndanks onze eerdere herinnering staat factuur {{document_number}} ({{total}}) nog steeds open. De factuur is inmiddels {{days_overdue}} dagen over de vervaldatum ({{due_date}}). Wij verzoeken u dringend het openstaande bedrag per omgaande te voldoen op IBAN {{iban}}.\n\nHeeft u deze factuur inmiddels betaald? Dan kunt u deze herinnering als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
   payment_reminder_final: {
     subject: 'Laatste aanmaning: factuur {{document_number}}',
-    body: 'Beste {{customer_name}},\n\nDit is onze laatste aanmaning voor factuur {{document_number}} ten bedrage van {{total}}, die nu {{days_overdue}} dagen achterstallig is. Wij verzoeken u het bedrag binnen 7 dagen te voldoen op IBAN {{iban}} om verdere (incasso)kosten te voorkomen.\n\nMet vriendelijke groet,\n{{company_name}}',
+    body: 'Beste {{customer_name}},\n\nDit is onze laatste aanmaning voor factuur {{document_number}} ten bedrage van {{total}}, die nu {{days_overdue}} dagen achterstallig is. Wij verzoeken u het bedrag binnen 7 dagen te voldoen op IBAN {{iban}} om verdere (incasso)kosten te voorkomen.\n\nHeeft u deze factuur inmiddels betaald? Dan kunt u deze aanmaning als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
 }
 
@@ -81,19 +81,19 @@ const DEFAULT_TEMPLATES_EN: Record<EmailTemplateKey, EmailTemplate> = {
   },
   payment_reminder: {
     subject: 'Payment reminder {{document_number}}',
-    body: 'Dear {{customer_name}},\n\nThis is a friendly reminder of the outstanding invoice {{document_number}} for {{total}}, due on {{due_date}}.\n\nKind regards,\n{{company_name}}',
+    body: 'Dear {{customer_name}},\n\nThis is a friendly reminder of the outstanding invoice {{document_number}} for {{total}}, due on {{due_date}}.\n\nHave you already paid this invoice? If so, please disregard this reminder.\n\nKind regards,\n{{company_name}}',
   },
   payment_reminder_1: {
     subject: 'Reminder: invoice {{document_number}} outstanding',
-    body: 'Dear {{customer_name}},\n\nThis may have escaped your attention: invoice {{document_number}} for {{total}} was due on {{due_date}} and is still outstanding. We kindly ask you to transfer the amount to IBAN {{iban}}. You can view the invoice at {{portal_link}}.\n\nKind regards,\n{{company_name}}',
+    body: 'Dear {{customer_name}},\n\nThis may have escaped your attention: invoice {{document_number}} for {{total}} was due on {{due_date}} and is still outstanding. We kindly ask you to transfer the amount to IBAN {{iban}}. You can view the invoice at {{portal_link}}.\n\nHave you already paid this invoice? If so, please disregard this reminder.\n\nKind regards,\n{{company_name}}',
   },
   payment_reminder_2: {
     subject: 'Second reminder: invoice {{document_number}}',
-    body: 'Dear {{customer_name}},\n\nDespite our earlier reminder, invoice {{document_number}} ({{total}}) is still outstanding. It is now {{days_overdue}} days past the due date ({{due_date}}). We urgently request that you pay the outstanding amount immediately to IBAN {{iban}}.\n\nKind regards,\n{{company_name}}',
+    body: 'Dear {{customer_name}},\n\nDespite our earlier reminder, invoice {{document_number}} ({{total}}) is still outstanding. It is now {{days_overdue}} days past the due date ({{due_date}}). We urgently request that you pay the outstanding amount immediately to IBAN {{iban}}.\n\nHave you already paid this invoice? If so, please disregard this reminder.\n\nKind regards,\n{{company_name}}',
   },
   payment_reminder_final: {
     subject: 'Final notice: invoice {{document_number}}',
-    body: 'Dear {{customer_name}},\n\nThis is our final notice for invoice {{document_number}} for {{total}}, now {{days_overdue}} days overdue. We request that you pay the amount within 7 days to IBAN {{iban}} to avoid further (collection) costs.\n\nKind regards,\n{{company_name}}',
+    body: 'Dear {{customer_name}},\n\nThis is our final notice for invoice {{document_number}} for {{total}}, now {{days_overdue}} days overdue. We request that you pay the amount within 7 days to IBAN {{iban}} to avoid further (collection) costs.\n\nHave you already paid this invoice? If so, please disregard this notice.\n\nKind regards,\n{{company_name}}',
   },
 }
 
