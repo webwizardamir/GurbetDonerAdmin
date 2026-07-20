@@ -1179,6 +1179,56 @@ tier) — keep them separate. It is also unrelated to the old, disconnected *pro
   `has_function_privilege('anon', …)`. See `BUGS_AND_FIXES.md` + `[[customer_type_feature]]`.
 - **Out of scope (future):** stock-refill reminders aimed at Supermarkt customers.
 
+## Payment-reminder "already paid" courtesy line (2026-07-20)
+
+Every payment-reminder template now closes (before the sign-off) with a line telling the customer to
+disregard the reminder if they've already paid — softens the ~24h/overdue auto-mail race where a
+reminder can fire the same morning an order is marked paid. NL: *"Heeft u deze factuur inmiddels
+betaald? Dan kunt u deze herinnering als niet verzonden beschouwen."* (final notice: *…deze aanmaning…*);
+EN: *"Have you already paid this invoice? If so, please disregard this reminder."* (final: *…this notice.*).
+Added to `payment_reminder`, `payment_reminder_1/2/final` in **both** the app defaults
+(`services/documentEmail.ts` `DEFAULT_TEMPLATES_NL/EN`) **and** the edge-fn defaults
+(`process-invoice-reminders`, redeployed v12) — keep the two in sync. Only shows where the DEFAULT
+template is used; a **custom** template saved in `document_settings.email_templates` overrides it (edit
+in Settings → Reminders). Marking an order **completed** (= paid) already removes it from the reminder
+candidate query (`.not('status','in','(draft,completed,cancelled,refunded)')`), so paid orders stop
+dunning; this line only covers the same-day timing gap. Reminder cancellation ≠ this line.
+
+## UI conventions — row-click, modal backdrop, password policy (2026-07-20)
+
+Three app-wide consistency rules; see `[[ui_consistency_and_password_policy]]`.
+
+### Table row-click
+Every entity list gives the **whole row** a meaningful click (open detail/edit), mirroring
+`components/orders/OrdersTable.tsx`: `onClick` on the `<tr>`/mobile-card, `cursor-pointer` + a hover
+bg, and **`onClick={(e) => e.stopPropagation()}` on every cell/control that has its own action**
+(checkbox, action buttons, inline `<Link>`, dropdown trigger) so the row click never swallows them.
+Wired on Invoices (→ opens the order via `onNavigateOrder`), PriceLists **list** (→ `/price-lists/:id`),
+Users (→ edit modal), PortalManagement (→ manage modal), Analytics Orders (→ `openOrder`) + Customers
+(→ `/customers/:id`). **OverdueInvoices is intentionally excluded** — its rows are action-dense (two
+links + status button + send button + row menu); a whole-row click there mis-fires. Report/aggregate
+tables (Financial/Products/Inventory analytics, SoldProducts flat rows) have no row-click by design.
+
+### Modal backdrop
+Canonical backdrop = **`bg-black/50 backdrop-blur-sm`** — the value in the shared
+`components/ui/Modal.tsx` (22 modals inherit it). Any **bespoke** full-screen overlay (one that renders
+its own `fixed/absolute inset-0` backdrop instead of using `Modal.tsx`) must use the SAME classes. 13
+divergent overlays were standardized 2026-07-20 (import modals, DocumentGenerator, SendDocumentModal,
+EmailViewModal, route/sold-products previews, ConfirmDialog, BarcodeScanner, portal doc actions). Do
+not ship an overlay with no blur or a different dim opacity.
+
+### Strong-password policy
+Single source of truth: **`utils/password.ts`** — **min 12 chars + one upper + one lower + one digit**
+(`PASSWORD_MIN_LENGTH`, `checkPassword`, `isStrongPassword`, `passwordProblemKey` → i18n key under
+`auth.passwordPolicy.*`). Live checklist UI: `components/ui/PasswordRequirements.tsx`. Enforced at
+**every SET-password site** (never at login): admin `ResetPassword` (English-only page, uses the
+constant) + `Users` create-user, portal `PortalCreateForm` enable + `PortalAccount` self-service change.
+**Mirrored server-side** (browser check is bypassable) in edge fns `create-user` and
+`manage-portal-account` (`requirePassword`) — both redeployed 2026-07-20. **If you change the policy,
+change all three: the util, and both edge fns.** Owner-only backstops that live **only in the Supabase
+dashboard** (Auth → Policies, not in code): raise project **minimum password length** (was 6) and enable
+**leaked-password protection (HaveIBeenPwned)**.
+
 ## Custom Agents
 
 The project has specialized agents defined in `.claude/agents.md`. Use these for focused reviews and tasks:
