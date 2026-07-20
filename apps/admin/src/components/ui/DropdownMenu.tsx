@@ -34,6 +34,20 @@ export default function DropdownMenu({
 }: DropdownMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  // Dormant = the trigger is not rendered/visible (e.g. this is the mobile-card
+  // copy of a menu while the desktop table is showing, or vice-versa). List pages
+  // render BOTH layouts and share one `openMenuId`, so the same menu opens twice;
+  // the hidden copy must not render a portal at (0,0) nor install an outside-click
+  // listener that would slam both menus shut on mousedown. See the customers list.
+  const [dormant, setDormant] = useState(false)
+
+  // A display:none element reports an all-zero bounding rect.
+  const isAnchorHidden = () => {
+    const anchor = anchorRef.current
+    if (!anchor) return true
+    const rect = anchor.getBoundingClientRect()
+    return rect.width === 0 && rect.height === 0
+  }
 
   // Compute fixed coordinates from the trigger rect + measured menu height.
   const reposition = () => {
@@ -55,15 +69,21 @@ export default function DropdownMenu({
 
   // Measure + position synchronously before paint to avoid a flash.
   useLayoutEffect(() => {
-    if (isOpen) reposition()
-    else setPos(null)
+    if (isOpen) {
+      if (isAnchorHidden()) { setDormant(true); setPos(null); return }
+      setDormant(false)
+      reposition()
+    } else {
+      setDormant(false)
+      setPos(null)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   // Reposition on scroll (capture, to catch inner scroll containers) + resize;
   // close on Escape or outside mousedown.
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || dormant) return
     const onScrollOrResize = () => reposition()
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     const onMouseDown = (e: MouseEvent) => {
@@ -83,9 +103,9 @@ export default function DropdownMenu({
       document.removeEventListener('mousedown', onMouseDown)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen])
+  }, [isOpen, dormant])
 
-  if (!isOpen) return null
+  if (!isOpen || dormant) return null
 
   return createPortal(
     <div
