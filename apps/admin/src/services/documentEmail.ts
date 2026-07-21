@@ -21,7 +21,7 @@ import { sanitizeOrTerm } from '../utils/pgSearch'
 const DEFAULT_TEMPLATES_NL: Record<EmailTemplateKey, EmailTemplate> = {
   invoice: {
     subject: 'Factuur {{document_number}} van {{company_name}}',
-    body: 'Beste {{customer_name}},\n\nIn de bijlage vindt u factuur {{document_number}} ter waarde van {{total}}.\n\nGelieve te voldoen voor {{due_date}}.\n\nMet vriendelijke groet,\n{{company_name}}',
+    body: 'Beste {{customer_name}},\n\nBijgaand ontvangt u factuur {{document_number}} ter waarde van {{total}} met vervaldatum {{due_date}}. Wij verzoeken u vriendelijk het bedrag over te maken op IBAN {{iban}}.\n\nHeeft u deze factuur inmiddels betaald? Dan kunt u dit betalingsverzoek als niet verzonden beschouwen. De bijgevoegde factuur blijft uiteraard van belang voor uw administratie.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
   proforma: {
     subject: 'Proforma {{document_number}}',
@@ -61,7 +61,7 @@ const DEFAULT_TEMPLATES_NL: Record<EmailTemplateKey, EmailTemplate> = {
 const DEFAULT_TEMPLATES_EN: Record<EmailTemplateKey, EmailTemplate> = {
   invoice: {
     subject: 'Invoice {{document_number}} from {{company_name}}',
-    body: 'Dear {{customer_name}},\n\nPlease find attached invoice {{document_number}} for {{total}}.\n\nKindly settle before {{due_date}}.\n\nKind regards,\n{{company_name}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached invoice {{document_number}} for {{total}}, due on {{due_date}}. We kindly ask you to transfer the amount to IBAN {{iban}}.\n\nHave you already paid this invoice? If so, you can disregard this payment request. The attached invoice remains relevant for your records.\n\nKind regards,\n{{company_name}}',
   },
   proforma: {
     subject: 'Quotation {{document_number}}',
@@ -177,6 +177,10 @@ export const PLACEHOLDER_KEYS: Array<keyof TemplateContext> = [
   'order_number',
   'total',
   'due_date',
+  // Resolved from document_settings.bank_iban at send time (SendDocumentModal
+  // merges it into the context). The default invoice template uses it, so it
+  // must be offered as a placeholder chip in Settings → Email too.
+  'iban',
 ]
 
 // Extra placeholders available specifically to client overdue-reminder steps.

@@ -71,9 +71,14 @@ export default function SendDocumentModal({
         ])
         if (cancelled) return
 
+        // {{iban}} can only be resolved once settings are loaded, so it is
+        // merged in here rather than in the invoiceData-only ctx above. Without
+        // it renderTemplate() silently substitutes '' and the invoice template
+        // would read "op IBAN ." — see PLACEHOLDER_KEYS in documentEmail.ts.
+        const fullCtx: TemplateContext = { ...ctx, iban: settings?.bank_iban ?? '' }
         const tmpl = getTemplate(settings?.email_templates, documentType, lang)
-        setSubject(renderTemplate(tmpl.subject, ctx))
-        setBody(renderTemplate(tmpl.body, ctx))
+        setSubject(renderTemplate(tmpl.subject, fullCtx))
+        setBody(renderTemplate(tmpl.body, fullCtx))
         setRecipient(customerRow?.email ?? '')
         setBcc(settings?.email_bcc ?? '')
       } catch (e) {

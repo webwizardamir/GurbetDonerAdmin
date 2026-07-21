@@ -42,7 +42,7 @@ type Lang = 'nl' | 'en'
 const DEFAULT_TEMPLATES_NL: Record<string, Template> = {
   invoice: {
     subject: 'Factuur {{document_number}} van {{company_name}}',
-    body: 'Beste {{customer_name}},\n\nBijgaand ontvangt u factuur {{document_number}} ter waarde van {{total}} met vervaldatum {{due_date}}. Wij verzoeken u vriendelijk het bedrag over te maken op IBAN {{iban}}.\n\nMet vriendelijke groet,\n{{company_name}}',
+    body: 'Beste {{customer_name}},\n\nBijgaand ontvangt u factuur {{document_number}} ter waarde van {{total}} met vervaldatum {{due_date}}. Wij verzoeken u vriendelijk het bedrag over te maken op IBAN {{iban}}.\n\nHeeft u deze factuur inmiddels betaald? Dan kunt u dit betalingsverzoek als niet verzonden beschouwen. De bijgevoegde factuur blijft uiteraard van belang voor uw administratie.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
   payment_reminder_1: {
     subject: 'Herinnering: factuur {{document_number}} openstaand',
@@ -61,7 +61,7 @@ const DEFAULT_TEMPLATES_NL: Record<string, Template> = {
 const DEFAULT_TEMPLATES_EN: Record<string, Template> = {
   invoice: {
     subject: 'Invoice {{document_number}} from {{company_name}}',
-    body: 'Dear {{customer_name}},\n\nPlease find attached invoice {{document_number}} for {{total}}, due on {{due_date}}. We kindly ask you to transfer the amount to IBAN {{iban}}.\n\nKind regards,\n{{company_name}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached invoice {{document_number}} for {{total}}, due on {{due_date}}. We kindly ask you to transfer the amount to IBAN {{iban}}.\n\nHave you already paid this invoice? If so, you can disregard this payment request. The attached invoice remains relevant for your records.\n\nKind regards,\n{{company_name}}',
   },
   payment_reminder_1: {
     subject: 'Reminder: invoice {{document_number}} outstanding',
@@ -93,6 +93,27 @@ function langBucket(raw: Record<string, unknown>, lang: Lang): Record<string, Te
   const nested = 'nl' in raw || 'en' in raw
   if (nested) return (raw[lang] as Record<string, Template>) ?? {}
   return lang === 'nl' ? (raw as Record<string, Template>) : {}
+}
+
+/**
+ * Resolve a template with PER-FIELD fallback, mirroring getTemplate() in
+ * apps/admin/src/services/documentEmail.ts. This must not be a whole-template
+ * `saved ?? default`: the Settings UI stores whatever is typed, so saving only
+ * a custom subject leaves `body: ''` — a whole-template fallback would then
+ * email the customer an EMPTY body, while the admin UI showed the default.
+ */
+function resolveTemplate(
+  bucket: Record<string, Template>,
+  defaults: Record<string, Template>,
+  key: string,
+): Template {
+  const def = defaults[key] ?? defaults.payment_reminder_1
+  const saved = bucket[key]
+  if (!saved) return def
+  return {
+    subject: saved.subject || def.subject,
+    body: saved.body || def.body,
+  }
 }
 
 /**
@@ -276,7 +297,7 @@ serve(async (req) => {
       const lang = resolveLang(customer.billing_country as string | undefined)
       const bucket = langBucket(rawTemplates, lang)
       const defaults = DEFAULTS_BY_LANG[lang]
-      const tmpl = bucket[step.template_key] ?? defaults[step.template_key] ?? defaults.payment_reminder_1
+      const tmpl = resolveTemplate(bucket, defaults, step.template_key)
       const ctx = {
         company_name: companyName,
         customer_name: (customer.company_name as string) ?? '',
@@ -426,7 +447,7 @@ serve(async (req) => {
       const lang = resolveLang(customer.billing_country as string | undefined)
       const bucket = langBucket(rawTemplates, lang)
       const defaults = DEFAULTS_BY_LANG[lang]
-      const tmpl = bucket['invoice'] ?? defaults['invoice'] ?? defaults.payment_reminder_1
+      const tmpl = resolveTemplate(bucket, defaults, 'invoice')
       const ctx = {
         company_name: companyName,
         customer_name: (customer.company_name as string) ?? '',
