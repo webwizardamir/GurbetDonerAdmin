@@ -1370,6 +1370,7 @@
     "distance": "Afstand",
     "eta": "Aankomst",
     "departure": "Vertrektijd",
+    "allStatuses": "Alle statussen",
     "returnToDepot": "Terug naar depot",
     "products": "Producten",
     "ordersCount_one": "{{count}} order",

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   X, Loader2, Truck, Route as RouteIcon, Navigation,
-  FileText, Copy, AlertTriangle, RefreshCw, Share2, Receipt,
+  FileText, Copy, AlertTriangle, RefreshCw, Share2, Receipt, ListFilter,
 } from 'lucide-react'
 import { useDeliveryRoute } from '../../hooks/useDeliveryRoute'
 import { buildGoogleMapsUrl, formatDistance, formatDuration, etaClock } from '../../utils/route'
@@ -10,6 +10,11 @@ import { renderInvoicesToFiles, type InvoiceOutputMode } from '../../utils/rende
 import DeliveryStopList from './DeliveryStopList'
 import LoadingOrderList from './LoadingOrderList'
 import DeliveryRoutePDF from '../documents/DeliveryRouteTemplate'
+
+// Display order for the status filter. `draft` is deliberately absent — a
+// Concept order is unfinalised and never routable (it is already excluded
+// server-side in fetchRouteOrders), so it must not even be offered here.
+const ROUTE_STATUS_ORDER = ['pending', 'pending_payment', 'on_hold', 'processing', 'delivered', 'completed']
 
 interface Props {
   day: string
@@ -68,6 +73,19 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
       setInvoiceProgress(null)
     }
   }
+
+  // Only offer statuses that actually occur in this window, ordered by the
+  // lifecycle above; anything unexpected (a legacy status) is appended so it
+  // can never be silently unreachable.
+  const statusOptions = useMemo(() => {
+    const present = Object.keys(r.statusCounts).filter(s => r.statusCounts[s] > 0)
+    const known = ROUTE_STATUS_ORDER.filter(s => present.includes(s))
+    return [...known, ...present.filter(s => !ROUTE_STATUS_ORDER.includes(s)).sort()]
+  }, [r.statusCounts])
+  const totalOrderCount = useMemo(
+    () => Object.values(r.statusCounts).reduce((n, v) => n + v, 0),
+    [r.statusCounts],
+  )
 
   const allSelected = r.selectedCount === r.candidateCount && r.candidateCount > 0
   // The manual order is authoritative — export stays enabled after a reorder.
@@ -151,6 +169,18 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
           </div>
 
           <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap text-sm">
+            <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+              <ListFilter className="w-4 h-4 shrink-0" />
+              <select value={r.statusFilter} onChange={e => r.setStatusFilter(e.target.value)}
+                className="px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                <option value="">{t('route.allStatuses')} ({totalOrderCount})</option>
+                {statusOptions.map(s => (
+                  <option key={s} value={s}>
+                    {t(`orders.status.${s}`, { defaultValue: s })} ({r.statusCounts[s]})
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
               {t('route.departure')}
               <input type="time" value={r.departureHHmm} onChange={e => r.updateDeparture(e.target.value)}

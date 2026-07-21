@@ -231,7 +231,12 @@ async function deriveCandidates(admin: ReturnType<typeof createClient>, startDay
     `)
     .gte('order_date', startDay)
     .lte('order_date', endDay)
-    .not('status', 'in', '(cancelled,refunded)')
+    // `draft` (Concept) is an unfinalised order and is never delivered — keep
+    // this mirrored with fetchRouteOrders' NON_ROUTABLE_STATUSES in
+    // apps/admin/src/services/route.ts, or the MAX_STOPS cap counts stops the
+    // client never shows.
+    .not('status', 'in', '(draft,cancelled,refunded)')
+    .is('deleted_at', null)
   if (error) throw error
 
   const byId = new Map<string, Candidate>()

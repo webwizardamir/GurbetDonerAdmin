@@ -1370,6 +1370,7 @@
     "distance": "Distance",
     "eta": "ETA",
     "departure": "Departure time",
+    "allStatuses": "All statuses",
     "returnToDepot": "Return to depot",
     "products": "Products",
     "ordersCount_one": "{{count}} order",

@@ -58,6 +58,10 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
   // billed optimize, and mergeRoute maps back onto this filtered display list.
   const customerTypeArg = customerType || undefined
   const [candidates, setCandidates] = useState<RouteStopInput[]>([])
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({})
+  // Order-status filter ('' = every routable status). Drafts are never
+  // routable, so they are excluded in the service and never offered here.
+  const [statusFilter, setStatusFilter] = useState('')
   const [loadingCandidates, setLoadingCandidates] = useState(false)
   const [candidatesError, setCandidatesError] = useState<string | null>(null)
 
@@ -89,10 +93,15 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     setRoute(null)
     setError(null)
     setOrderDirty(false)
-    fetchRouteOrders({ day, endDay, cities: cityArg, customerType: customerTypeArg })
-      .then(stops => {
+    fetchRouteOrders({
+      day, endDay, cities: cityArg, customerType: customerTypeArg,
+      statuses: statusFilter ? [statusFilter] : undefined,
+    })
+      .then(({ stops, statusCounts: counts }) => {
         if (cancelled) return
         setCandidates(stops)
+        // Counts are computed pre-status-filter, so the dropdown stays stable.
+        setStatusCounts(counts)
         // Default-select local (NL) stops only. Foreign customers are export/
         // freight orders, not van deliveries — they start unticked (visible in
         // "Niet meegenomen") so a Paris order never bloats a local route, but
@@ -105,7 +114,7 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
       .finally(() => { if (!cancelled) setLoadingCandidates(false) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day, endDay, citiesKey, customerTypeArg])
+  }, [day, endDay, citiesKey, customerTypeArg, statusFilter])
 
   const departureTimeIso = useMemo(
     () => (departureHHmm ? `${day}T${departureHHmm}:00` : null),
@@ -333,6 +342,9 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     orderDirty,
     // controls
     selectedCount: selectedIds.size,
+    statusCounts,
+    statusFilter,
+    setStatusFilter,
     departureHHmm,
     returnToDepot,
     toggleStop,

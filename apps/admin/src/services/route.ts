@@ -179,8 +179,22 @@ interface OrderRow {
   items: OrderItemRow[]
 }
 
-export async function fetchRouteOrders(args: { day: string; endDay?: string; cities?: string[]; customerType?: string }): Promise<RouteStopInput[]> {
+/** Statuses that can never be delivered, so they never become a route stop.
+ *  `draft` (Concept) is an unfinalised order — it carries no invoice and must
+ *  not be planned into a van run (see CLAUDE.md → Draft orders). */
+const NON_ROUTABLE_STATUSES = ['draft', 'cancelled', 'refunded'] as const
+
+export interface RouteCandidates {
+  stops: RouteStopInput[]
+  /** Order counts per status for the window (after city/customer-type filtering
+   *  but BEFORE the status filter), so the panel's dropdown can show a stable
+   *  "Afgerond (12)" next to every option regardless of what's selected. */
+  statusCounts: Record<string, number>
+}
+
+export async function fetchRouteOrders(args: { day: string; endDay?: string; cities?: string[]; customerType?: string; statuses?: string[] }): Promise<RouteCandidates> {
   const citySet = args.cities && args.cities.length ? new Set(args.cities) : null
+  const statusSet = args.statuses && args.statuses.length ? new Set(args.statuses) : null
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -195,7 +209,8 @@ export async function fetchRouteOrders(args: { day: string; endDay?: string; cit
     `)
     .gte('order_date', args.day)
     .lte('order_date', args.endDay || args.day)
-    .not('status', 'in', '(cancelled,refunded)')
+    .not('status', 'in', `(${NON_ROUTABLE_STATUSES.join(',')})`)
+    .is('deleted_at', null)
 
   if (error) throw error
 
@@ -203,6 +218,7 @@ export async function fetchRouteOrders(args: { day: string; endDay?: string; cit
 
   // Merge all of a customer's orders for the day into one stop.
   const byCustomer = new Map<string, RouteStopInput>()
+  const statusCounts: Record<string, number> = {}
   for (const row of rows) {
     const c = row.customer
     if (!c) continue
@@ -210,6 +226,12 @@ export async function fetchRouteOrders(args: { day: string; endDay?: string; cit
     if (args.customerType && c.customer_type !== args.customerType) continue
     const address = resolveDeliveryAddress(c)
     if (citySet && !(address.city && citySet.has(address.city))) continue
+
+    // Count before the status filter so every option keeps its true count.
+    statusCounts[row.status] = (statusCounts[row.status] ?? 0) + 1
+    // Filter per ORDER, not per stop: a customer with a completed and an
+    // on-hold order for the same day keeps only the matching order's items.
+    if (statusSet && !statusSet.has(row.status)) continue
 
     let stop = byCustomer.get(c.id)
     if (!stop) {
@@ -243,9 +265,10 @@ export async function fetchRouteOrders(args: { day: string; endDay?: string; cit
     }
   }
 
-  return Array.from(byCustomer.values()).sort((a, b) =>
+  const stops = Array.from(byCustomer.values()).sort((a, b) =>
     a.customerName.localeCompare(b.customerName, 'nl'),
   )
+  return { stops, statusCounts }
 }
 
 // ===========================================================================

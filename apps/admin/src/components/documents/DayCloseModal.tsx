@@ -92,8 +92,11 @@ export default function DayCloseModal({ dateRange, customerType, soldProducts, o
       .then(rows => {
         if (cancelled) return
         setCapped(rows.length >= FETCH_LIMIT)
+        // Drafts (Concept) are unfinalised: they must not get an invoice number
+        // issued by a day-close batch, so they are excluded like cancelled and
+        // refunded orders (CLAUDE.md → Draft orders).
         const usable = rows
-          .filter(o => o.status !== 'cancelled' && o.status !== 'refunded')
+          .filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.status !== 'draft')
           .map<OrderRow>(o => ({
             orderId: o.id,
             orderNumber: o.order_number,
