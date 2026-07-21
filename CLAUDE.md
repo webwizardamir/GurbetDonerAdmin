@@ -1233,6 +1233,32 @@ in Settings → Reminders). Marking an order **completed** (= paid) already remo
 candidate query (`.not('status','in','(draft,completed,cancelled,refunded)')`), so paid orders stop
 dunning; this line only covers the same-day timing gap. Reminder cancellation ≠ this line.
 
+### Extended to INVOICE emails + manual/auto unified (2026-07-21)
+
+The same courtesy now closes the **invoice** email (manual send *and* the 24h auto-send), where it
+matters just as much: the auto-send fires the day after `order_date`, so a customer who paid on
+delivery would still be asked to transfer.
+
+- **Worded differently on purpose — do not copy the reminder sentence here.** An invoice email
+  carries the PDF the customer needs *regardless* of payment status, so it must not tell them to
+  disregard the message. NL: *"…Dan kunt u dit betalingsverzoek als niet verzonden beschouwen. De
+  bijgevoegde factuur blijft uiteraard van belang voor uw administratie."*; EN: *"…you can disregard
+  this payment request. The attached invoice remains relevant for your records."* The reminder
+  templates keep *"deze herinnering"* / *"deze aanmaning"*.
+- **The manual and automatic invoice bodies are now identical.** They had drifted (the two default
+  sets are hand-maintained duplicates), so the same customer got different wording depending on which
+  path sent it. Both use the fuller text (due date + IBAN). Keep them in sync.
+- **`{{iban}}` in a document-email template needs a context merge.** `renderTemplate` substitutes
+  `''` for unknown keys, and the manual send's ctx is built from `invoiceData` only — so the unified
+  body would have read "op IBAN .". `SendDocumentModal` merges `iban` from
+  `document_settings.bank_iban` once settings load, and `'iban'` is in `PLACEHOLDER_KEYS` so Settings
+  → Email offers the chip. Any new placeholder sourced from settings needs the same treatment.
+- **Edge-fn template resolution is per-FIELD** (`resolveTemplate`), mirroring the app's `getTemplate`.
+  It was a whole-template `saved ?? default`, so saving only a custom *subject* in Settings would have
+  emailed an **empty body** while the admin UI still showed the default. Don't collapse it back.
+- `document_settings.email_templates` is currently `{"nl":{},"en":{}}` (empty), so these defaults are
+  what customers actually receive **and** what the Settings placeholders show. Redeployed v13.
+
 ## UI conventions — row-click, modal backdrop, password policy (2026-07-20)
 
 Three app-wide consistency rules; see `[[ui_consistency_and_password_policy]]`.
