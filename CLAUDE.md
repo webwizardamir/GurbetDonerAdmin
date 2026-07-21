@@ -404,6 +404,33 @@ verlegdLabel: { fontFamily: 'Helvetica-Bold' },
 - Footer detail: `fontSize: 6.5`, `lineHeight: 1.4`
 - Footer center: `fontSize: 6.5`, `marginTop: 3`
 
+### Delivery address vs invoice address (2026-07-21)
+
+Customers who invoice to a Postbus / accounts-payable department (e.g. **Crediteurenadministratie**
+→ Bidfood: invoice to `Postbus 440, 6710 BK Ede`, goods to `Korendijk 16, 5704 RD Helmond`) had a
+shipping address on file that **no document ever read**. Now:
+
+- **`utils/address.ts`** — `resolveShippingAddress(customer)` returns the shipping address **only when
+  it is filled in AND actually differs from billing**. Do NOT simplify this to
+  `if (shipping_same_as_billing === false)`: several customers (WC imports) have that flag false with a
+  **byte-identical** shipping address, and printing the same block twice reads as a bug. Postal codes
+  are compared space-insensitively (`2521BC` == `2521 BC`). `buildAddressLines(parts)` renders the
+  compact street + `1234 AB Stad, NL` line pair.
+- **`InvoiceData.customer.deliveryAddress?`** is set by `buildInvoiceData`. **Optional on purpose** —
+  snapshots frozen before this field existed simply omit it and the templates fall back to the
+  single-address layout, so the customer portal (which renders the frozen snapshot) stays correct.
+- **Invoice / Proforma / Order confirmation** render a **dual block** when it's set: delivery address
+  **first (left)**, invoice address second. The two half-width boxes share the width the single
+  `customerBox` used (`addressGroup` 58% + `addressBoxHalf` 48.5%, name dropped to 9pt), so the block
+  costs **no extra vertical height** — verified against FC-08497: both layouts span y 688→742, and the
+  15–16 items/page spec holds. Don't stack them vertically.
+- **Packing slip** renders the delivery address in its "Afleveradres" box (falling back to billing).
+  That box was labelled "Afleveradres" but printed the *billing* address — a straight bug, now fixed.
+- **Credit note + payment reminder stay billing-only by design** — financial documents where the
+  delivery address is not relevant.
+- **No cutoff gate** (unlike the Leverdatum fix): the block is purely additive — it changes no amount,
+  date or number — so already-issued invoices show it on re-download. Deliberate product choice.
+
 ### When in doubt
 - **Customer-facing documents are bilingual by COUNTRY (since 2026-07-03), not app language:** NL/BE customers get Dutch, everyone else English. `resolveDocumentLang(country)` (`utils/documentLang.ts`) decides; `buildInvoiceData` sets `InvoiceData.lang` (stored in the snapshot) and swaps the settings labels to `EN_LABELS`/`DOC_TITLES_EN`; templates read all prose from `getDocText(data.lang)` (`services/documentLabels.ts`). This is a **different axis** than VAT reverse-charge (`country !== 'NL'`) — a BE customer gets a Dutch doc that still carries the reverse-charge notice. Do not merge the two rules. Internal docs (SoldProducts, route, data-export) stay Dutch. See **Bilingual documents + emails** below.
 - Sequential numbering and immutable price snapshots are enforced server-side; templates only render.
@@ -486,6 +513,17 @@ optimized delivery route + a truck loading order, via Google Maps through a Supa
 3. **Foreign customers auto-excluded.** Resolved delivery country ≠ NL → the stop starts **unticked**
    (in "Niet meegenomen", amber "Buitenland" badge) since it's export/freight, not a van delivery.
    Re-tickable. (`isLocalStop` in the hook.)
+3b. **Drafts are never routable + order-status filter (2026-07-21).** `NON_ROUTABLE_STATUSES`
+   (`services/route.ts`) = `draft`/`cancelled`/`refunded`; `fetchRouteOrders` also filters
+   `deleted_at IS NULL`. A **Concept** order is unfinalised (no invoice) so it must never become a
+   stop — this is **mirrored in the edge fn's `deriveCandidates`**, else the `MAX_STOPS` cap counts
+   stops the client never shows. Keep the two lists in sync. The panel has a **status dropdown**
+   (`ROUTE_STATUS_ORDER` in `DeliveryRoutePanel.tsx`) listing only statuses **present in the window**
+   with their **order counts**; `draft` is deliberately not an option. `fetchRouteOrders` returns
+   `{ stops, statusCounts }` — counts are computed **before** the status filter so an option's count
+   never changes with the selection, and the filter is applied **per order, before the per-customer
+   merge**, so a customer with a completed *and* an on-hold order keeps only the matching items.
+   Changing the filter refetches and resets selection/locks/order (same as the customer-type filter).
 4. **Geocode cache** on `customers` (lat/lng/geocoded_at/geocode_address_hash/geocode_status); a
    trigger nulls it when the address changes so it re-geocodes only that row.
 5. **Driver hand-off**: "Deel met chauffeur" opens WhatsApp with the Google Maps directions link
@@ -507,7 +545,8 @@ Launched from **Sold Products** ("Dagafsluiting"): one modal to produce the morn
 the selected day/range in one place.
 
 - **`components/documents/DayCloseModal.tsx`** — lists the day's orders (`fetchOrders` with
-  `dateFrom/dateTo`, `limit: 1000`, cancelled/refunded filtered out; trashed orders are excluded
+  `dateFrom/dateTo`, `limit: 1000`, **draft**/cancelled/refunded filtered out — a Concept order must
+  not have an invoice number issued for it by a batch (2026-07-21); trashed orders are excluded
   automatically since `fetchOrders` defaults to `deleted_at IS NULL`), default **all selected** with
   per-order checkboxes. Three opt-in outputs: **Facturen** (invoices), **Verkochte producten (PDF)**,
   **Bezorgroute**. Invoice output is **één gecombineerde PDF** or **aparte bestanden**. When a route
