@@ -9,6 +9,7 @@ import {
 import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
+import { buildAddressLines } from '../../utils/address'
 
 // A4: 595.28 x 841.89 points
 // Order Confirmation = Confirms order received, shows what's ordered
@@ -100,6 +101,21 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: '#f8fafc',
+  },
+  // Dual-address layout — see InvoiceTemplate.tsx. Only rendered when the
+  // customer has a delivery address that differs from the billing address.
+  addressGroup: {
+    width: '58%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  addressBoxHalf: {
+    width: '48.5%',
+  },
+  customerNameDual: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 1,
   },
   customerLabel: {
     fontSize: 6.5,
@@ -361,6 +377,13 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
   }
   if (cityParts.length) customerLines.push(cityParts.join(', '))
 
+  const deliveryLines = data.customer.deliveryAddress
+    ? [
+        ...(data.customer.contactPerson ? [data.customer.contactPerson] : []),
+        ...buildAddressLines(data.customer.deliveryAddress),
+      ]
+    : []
+
   // Calculate total items
   const totalItems = data.items.reduce((sum, item) => sum + item.quantity, 0)
 
@@ -405,13 +428,32 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
 
         {/* Customer + Order Metadata */}
         <View style={styles.infoRow}>
-          <View style={styles.customerBox}>
-            <Text style={styles.customerLabel}>{T.addrCustomer}</Text>
-            <Text style={styles.customerName}>{data.customer.companyName}</Text>
-            <Text style={styles.customerDetail}>
-              {customerLines.join('\n')}
-            </Text>
-          </View>
+          {deliveryLines.length > 0 ? (
+            <View style={styles.addressGroup}>
+              <View style={[styles.customerBox, styles.addressBoxHalf]}>
+                <Text style={styles.customerLabel}>{T.addrDelivery}</Text>
+                <Text style={styles.customerNameDual}>{data.customer.companyName}</Text>
+                <Text style={styles.customerDetail}>
+                  {deliveryLines.join('\n')}
+                </Text>
+              </View>
+              <View style={[styles.customerBox, styles.addressBoxHalf]}>
+                <Text style={styles.customerLabel}>{T.addrCustomer}</Text>
+                <Text style={styles.customerNameDual}>{data.customer.companyName}</Text>
+                <Text style={styles.customerDetail}>
+                  {customerLines.join('\n')}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.customerBox}>
+              <Text style={styles.customerLabel}>{T.addrCustomer}</Text>
+              <Text style={styles.customerName}>{data.customer.companyName}</Text>
+              <Text style={styles.customerDetail}>
+                {customerLines.join('\n')}
+              </Text>
+            </View>
+          )}
           <View style={styles.metaBox}>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>{T.metaOrderNumber}</Text>

@@ -3,6 +3,7 @@ import type { DocumentSettings, DocumentType, Document } from '../types'
 import { resolveDocumentLang } from '../utils/documentLang'
 import { isImportedOrder } from '../utils/vat'
 import { resolveShippingVat } from '../utils/discount'
+import { resolveShippingAddress, type AddressParts } from '../utils/address'
 import { EN_LABELS, DOC_TITLES_EN, type DocLang } from './documentLabels'
 import { sanitizeOrTerm } from '../utils/pgSearch'
 
@@ -416,7 +417,7 @@ export interface InvoiceData {
     accountHolder?: string
   }
 
-  // Customer info
+  // Customer info (street/postalCode/city/country = the BILLING address)
   customer: {
     id: string
     companyName: string
@@ -427,6 +428,14 @@ export interface InvoiceData {
     country: string
     vatNumber?: string
     customerNumber?: string
+    /**
+     * Separate delivery address, ONLY set when the customer has a shipping
+     * address that actually differs from the billing address (see
+     * `utils/address.ts` → resolveShippingAddress). Optional on purpose:
+     * snapshots frozen before this field existed simply omit it and the
+     * templates fall back to the single-address layout.
+     */
+    deliveryAddress?: AddressParts
   }
 
   // Order info
@@ -852,6 +861,10 @@ export async function buildInvoiceData(
       country: customer.billing_country || 'NL',
       vatNumber: customer.vat_number,
       customerNumber: customer.id?.substring(0, 8).toUpperCase(),
+      // Undefined unless a genuinely different shipping address is on file, so
+      // the dual-address block only appears for customers who need it (e.g. an
+      // invoice to a Postbus with delivery to the physical branch).
+      deliveryAddress: resolveShippingAddress(customer) ?? undefined,
     },
 
     order: {

@@ -111,6 +111,7 @@ Wijzigingen? Neem zo snel mogelijk contact met ons op.`,
   psNotesText: "Controleer alle artikelen bij ontvangst. Meld eventuele afwijkingen direct.",
   psSender: "Afzender",
   psReceiver: "Ontvanger",
+  psTotalLabel: "Totaal",
   // payment reminder
   prTitleFinal: "LAATSTE AANMANING",
   prTitleSecond: "TWEEDE HERINNERING",
@@ -228,6 +229,7 @@ Changes? Please contact us as soon as possible.`,
   psNotesText: "Please check all items on receipt. Report any discrepancies immediately.",
   psSender: "Sender",
   psReceiver: "Recipient",
+  psTotalLabel: "Total",
   prTitleFinal: "FINAL NOTICE",
   prTitleSecond: "SECOND REMINDER",
   prTitleFirst: "PAYMENT REMINDER",
@@ -305,8 +307,23 @@ function formatDate(dateString) {
   return dateFormatter.format(new Date(dateString));
 }
 
+// src/utils/address.ts
+function buildAddressLines(a) {
+  if (!a) return [];
+  const lines = [];
+  if (a.street) lines.push(a.street);
+  const cityParts = [];
+  if (a.postalCode && a.city) cityParts.push(`${a.postalCode} ${a.city}`);
+  else if (a.city) cityParts.push(a.city);
+  if (a.country && a.country !== a.city) cityParts.push(a.country);
+  if (cityParts.length) lines.push(cityParts.join(", "));
+  return lines;
+}
+
 // src/components/documents/InvoiceTemplate.tsx
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
+var LEVERDATUM_FIX_CUTOFF = "2026-07-20";
+var deliveryDateForRow = (data) => (data.documentDate || "") >= LEVERDATUM_FIX_CUTOFF ? data.documentDate : data.dueDate;
 var styles = StyleSheet.create({
   // ===========================================
   // PAGE
@@ -374,6 +391,23 @@ var styles = StyleSheet.create({
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: "#f8fafc"
+  },
+  // Dual-address layout — only rendered when the customer has a delivery
+  // address that differs from the billing address. Two accent boxes share
+  // roughly the width the single customer box normally takes, so the block
+  // costs no extra vertical space (the compact 15-16 items/page spec holds).
+  addressGroup: {
+    width: "58%",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  addressBoxHalf: {
+    width: "48.5%"
+  },
+  customerNameDual: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 1
   },
   customerLabel: {
     fontSize: 6.5,
@@ -696,6 +730,10 @@ function InvoicePage({ data }) {
   }
   if (cityParts.length) customerLines.push(cityParts.join(", "));
   if (data.customer.vatNumber) customerLines.push(`BTW: ${data.customer.vatNumber}`);
+  const deliveryLines = data.customer.deliveryAddress ? [
+    ...data.customer.contactPerson ? [data.customer.contactPerson] : [],
+    ...buildAddressLines(data.customer.deliveryAddress)
+  ] : [];
   return /* @__PURE__ */ jsxs(Page, { size: "A4", style: styles.page, children: [
     /* @__PURE__ */ jsxs(View, { style: styles.header, children: [
       /* @__PURE__ */ jsxs(View, { style: styles.headerLeft, children: [
@@ -713,7 +751,21 @@ function InvoicePage({ data }) {
       /* @__PURE__ */ jsx(View, { style: styles.headerRight, children: /* @__PURE__ */ jsx(Text, { style: styles.docTitle, children: data.labels.documentTitle }) })
     ] }),
     /* @__PURE__ */ jsxs(View, { style: styles.infoRow, children: [
-      /* @__PURE__ */ jsxs(View, { style: styles.customerBox, children: [
+      deliveryLines.length > 0 ? (
+        // Delivery address first (where the goods go), invoice address next.
+        /* @__PURE__ */ jsxs(View, { style: styles.addressGroup, children: [
+          /* @__PURE__ */ jsxs(View, { style: [styles.customerBox, styles.addressBoxHalf], children: [
+            /* @__PURE__ */ jsx(Text, { style: styles.customerLabel, children: T.addrDelivery }),
+            /* @__PURE__ */ jsx(Text, { style: styles.customerNameDual, children: data.customer.companyName }),
+            /* @__PURE__ */ jsx(Text, { style: styles.customerDetail, children: deliveryLines.join("\n") })
+          ] }),
+          /* @__PURE__ */ jsxs(View, { style: [styles.customerBox, styles.addressBoxHalf], children: [
+            /* @__PURE__ */ jsx(Text, { style: styles.customerLabel, children: data.labels.invoiceAddress }),
+            /* @__PURE__ */ jsx(Text, { style: styles.customerNameDual, children: data.customer.companyName }),
+            /* @__PURE__ */ jsx(Text, { style: styles.customerDetail, children: customerLines.join("\n") })
+          ] })
+        ] })
+      ) : /* @__PURE__ */ jsxs(View, { style: styles.customerBox, children: [
         /* @__PURE__ */ jsx(Text, { style: styles.customerLabel, children: data.labels.invoiceAddress }),
         /* @__PURE__ */ jsx(Text, { style: styles.customerName, children: data.customer.companyName }),
         /* @__PURE__ */ jsx(Text, { style: styles.customerDetail, children: customerLines.join("\n") })
@@ -729,7 +781,7 @@ function InvoicePage({ data }) {
         ] }),
         /* @__PURE__ */ jsxs(View, { style: styles.metaRow, children: [
           /* @__PURE__ */ jsx(Text, { style: styles.metaLabel, children: T.metaDeliveryDate }),
-          /* @__PURE__ */ jsx(Text, { style: styles.metaValueDue, children: formatDate(data.dueDate) })
+          /* @__PURE__ */ jsx(Text, { style: styles.metaValueDue, children: formatDate(deliveryDateForRow(data)) })
         ] })
       ] })
     ] }),
@@ -975,6 +1027,21 @@ var styles2 = StyleSheet2.create({
     paddingVertical: 4,
     backgroundColor: "#f8fafc"
   },
+  // Dual-address layout — see InvoiceTemplate.tsx. Only rendered when the
+  // customer has a delivery address that differs from the billing address.
+  addressGroup: {
+    width: "58%",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  addressBoxHalf: {
+    width: "48.5%"
+  },
+  customerNameDual: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 1
+  },
   customerLabel: {
     fontSize: 6.5,
     fontFamily: "Helvetica-Bold",
@@ -1192,6 +1259,10 @@ function ProformaTemplate({ data }) {
   }
   if (cityParts.length) customerLines.push(cityParts.join(", "));
   if (data.customer.vatNumber) customerLines.push(`BTW: ${data.customer.vatNumber}`);
+  const deliveryLines = data.customer.deliveryAddress ? [
+    ...data.customer.contactPerson ? [data.customer.contactPerson] : [],
+    ...buildAddressLines(data.customer.deliveryAddress)
+  ] : [];
   return /* @__PURE__ */ jsx2(Document2, { children: /* @__PURE__ */ jsxs2(Page2, { size: "A4", style: styles2.page, children: [
     /* @__PURE__ */ jsxs2(View2, { style: styles2.header, children: [
       /* @__PURE__ */ jsxs2(View2, { style: styles2.headerLeft, children: [
@@ -1213,7 +1284,18 @@ function ProformaTemplate({ data }) {
     ] }),
     /* @__PURE__ */ jsx2(View2, { style: styles2.disclaimer, children: /* @__PURE__ */ jsx2(Text2, { style: styles2.disclaimerText, children: T.pfDisclaimer }) }),
     /* @__PURE__ */ jsxs2(View2, { style: styles2.infoRow, children: [
-      /* @__PURE__ */ jsxs2(View2, { style: styles2.customerBox, children: [
+      deliveryLines.length > 0 ? /* @__PURE__ */ jsxs2(View2, { style: styles2.addressGroup, children: [
+        /* @__PURE__ */ jsxs2(View2, { style: [styles2.customerBox, styles2.addressBoxHalf], children: [
+          /* @__PURE__ */ jsx2(Text2, { style: styles2.customerLabel, children: T.addrDelivery }),
+          /* @__PURE__ */ jsx2(Text2, { style: styles2.customerNameDual, children: data.customer.companyName }),
+          /* @__PURE__ */ jsx2(Text2, { style: styles2.customerDetail, children: deliveryLines.join("\n") })
+        ] }),
+        /* @__PURE__ */ jsxs2(View2, { style: [styles2.customerBox, styles2.addressBoxHalf], children: [
+          /* @__PURE__ */ jsx2(Text2, { style: styles2.customerLabel, children: T.addrRecipient }),
+          /* @__PURE__ */ jsx2(Text2, { style: styles2.customerNameDual, children: data.customer.companyName }),
+          /* @__PURE__ */ jsx2(Text2, { style: styles2.customerDetail, children: customerLines.join("\n") })
+        ] })
+      ] }) : /* @__PURE__ */ jsxs2(View2, { style: styles2.customerBox, children: [
         /* @__PURE__ */ jsx2(Text2, { style: styles2.customerLabel, children: T.addrRecipient }),
         /* @__PURE__ */ jsx2(Text2, { style: styles2.customerName, children: data.customer.companyName }),
         /* @__PURE__ */ jsx2(Text2, { style: styles2.customerDetail, children: customerLines.join("\n") })
@@ -1440,6 +1522,21 @@ var styles3 = StyleSheet3.create({
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: "#f8fafc"
+  },
+  // Dual-address layout — see InvoiceTemplate.tsx. Only rendered when the
+  // customer has a delivery address that differs from the billing address.
+  addressGroup: {
+    width: "58%",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  addressBoxHalf: {
+    width: "48.5%"
+  },
+  customerNameDual: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 1
   },
   customerLabel: {
     fontSize: 6.5,
@@ -1688,6 +1785,10 @@ function OrderConfirmationTemplate({ data }) {
     cityParts.push(data.customer.country);
   }
   if (cityParts.length) customerLines.push(cityParts.join(", "));
+  const deliveryLines = data.customer.deliveryAddress ? [
+    ...data.customer.contactPerson ? [data.customer.contactPerson] : [],
+    ...buildAddressLines(data.customer.deliveryAddress)
+  ] : [];
   const totalItems = data.items.reduce((sum, item) => sum + item.quantity, 0);
   return /* @__PURE__ */ jsx3(Document3, { children: /* @__PURE__ */ jsxs3(Page3, { size: "A4", style: styles3.page, children: [
     /* @__PURE__ */ jsxs3(View3, { style: styles3.header, children: [
@@ -1713,7 +1814,18 @@ function OrderConfirmationTemplate({ data }) {
       /* @__PURE__ */ jsx3(Text3, { style: styles3.thankYouText, children: T.ocThankText })
     ] }),
     /* @__PURE__ */ jsxs3(View3, { style: styles3.infoRow, children: [
-      /* @__PURE__ */ jsxs3(View3, { style: styles3.customerBox, children: [
+      deliveryLines.length > 0 ? /* @__PURE__ */ jsxs3(View3, { style: styles3.addressGroup, children: [
+        /* @__PURE__ */ jsxs3(View3, { style: [styles3.customerBox, styles3.addressBoxHalf], children: [
+          /* @__PURE__ */ jsx3(Text3, { style: styles3.customerLabel, children: T.addrDelivery }),
+          /* @__PURE__ */ jsx3(Text3, { style: styles3.customerNameDual, children: data.customer.companyName }),
+          /* @__PURE__ */ jsx3(Text3, { style: styles3.customerDetail, children: deliveryLines.join("\n") })
+        ] }),
+        /* @__PURE__ */ jsxs3(View3, { style: [styles3.customerBox, styles3.addressBoxHalf], children: [
+          /* @__PURE__ */ jsx3(Text3, { style: styles3.customerLabel, children: T.addrCustomer }),
+          /* @__PURE__ */ jsx3(Text3, { style: styles3.customerNameDual, children: data.customer.companyName }),
+          /* @__PURE__ */ jsx3(Text3, { style: styles3.customerDetail, children: customerLines.join("\n") })
+        ] })
+      ] }) : /* @__PURE__ */ jsxs3(View3, { style: styles3.customerBox, children: [
         /* @__PURE__ */ jsx3(Text3, { style: styles3.customerLabel, children: T.addrCustomer }),
         /* @__PURE__ */ jsx3(Text3, { style: styles3.customerName, children: data.customer.companyName }),
         /* @__PURE__ */ jsx3(Text3, { style: styles3.customerDetail, children: customerLines.join("\n") })
@@ -2973,6 +3085,38 @@ var styles6 = StyleSheet6.create({
     borderColor: "#94a3b8",
     marginHorizontal: "auto"
   },
+  // TOTAL (quantity summary, per unit type)
+  totalsWrap: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: 8
+  },
+  totalsBox: {
+    minWidth: "45%",
+    maxWidth: "70%",
+    borderTopWidth: 2,
+    borderTopColor: "#1e293b",
+    backgroundColor: "#f8fafc",
+    padding: 7,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  totalsLabel: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    color: "#1e293b",
+    textTransform: "uppercase",
+    letterSpacing: 0.5
+  },
+  totalsValue: {
+    flex: 1,
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    color: "#1e293b",
+    textAlign: "right",
+    marginLeft: 10
+  },
   // DELIVERY NOTES (compact)
   notesSection: {
     backgroundColor: "#fef3c7",
@@ -3064,17 +3208,55 @@ function PackingSlipTemplate({ data }) {
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email;
   const customerLines = [];
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson);
-  if (data.customer.street) customerLines.push(data.customer.street);
-  const cityParts = [];
-  if (data.customer.postalCode && data.customer.city) {
-    cityParts.push(`${data.customer.postalCode} ${data.customer.city}`);
-  } else if (data.customer.city) {
-    cityParts.push(data.customer.city);
+  const shipTo = data.customer.deliveryAddress;
+  if (shipTo) {
+    customerLines.push(...buildAddressLines(shipTo));
+  } else {
+    if (data.customer.street) customerLines.push(data.customer.street);
+    const cityParts = [];
+    if (data.customer.postalCode && data.customer.city) {
+      cityParts.push(`${data.customer.postalCode} ${data.customer.city}`);
+    } else if (data.customer.city) {
+      cityParts.push(data.customer.city);
+    }
+    if (data.customer.country && data.customer.country !== data.customer.city) {
+      cityParts.push(data.customer.country);
+    }
+    if (cityParts.length) customerLines.push(cityParts.join(", "));
   }
-  if (data.customer.country && data.customer.country !== data.customer.city) {
-    cityParts.push(data.customer.country);
+  const isEn = data.lang === "en";
+  const formatUnit = (unitType, quantity) => {
+    const one = quantity === 1;
+    switch (unitType?.toLowerCase()) {
+      case "kg":
+        return "kg";
+      case "piece":
+        return isEn ? one ? "pc" : "pcs" : one ? "stuk" : "stuks";
+      case "zak":
+        return isEn ? one ? "bag" : "bags" : one ? "zak" : "zakken";
+      case "doos":
+        return isEn ? one ? "box" : "boxes" : one ? "doos" : "dozen";
+      case "package":
+        return isEn ? one ? "pack" : "packs" : one ? "pak" : "pakken";
+      default:
+        return unitType;
+    }
+  };
+  const fmtQty = (n) => Number.isInteger(n) ? String(n) : n.toLocaleString(isEn ? "en-US" : "nl-NL", { maximumFractionDigits: 3 });
+  const unitOrder = [];
+  const qtyByUnit = /* @__PURE__ */ new Map();
+  for (const it of data.items) {
+    const key = (it.unitType || it.unit || "").toLowerCase();
+    if (!qtyByUnit.has(key)) {
+      qtyByUnit.set(key, 0);
+      unitOrder.push(key);
+    }
+    qtyByUnit.set(key, (qtyByUnit.get(key) ?? 0) + (Number(it.quantity) || 0));
   }
-  if (cityParts.length) customerLines.push(cityParts.join(", "));
+  const totalParts = unitOrder.map((u) => {
+    const qty = qtyByUnit.get(u) ?? 0;
+    return `${fmtQty(qty)} ${formatUnit(u, qty)}`;
+  });
   return /* @__PURE__ */ jsx6(Document6, { children: /* @__PURE__ */ jsxs6(Page6, { size: "A4", style: styles6.page, children: [
     /* @__PURE__ */ jsxs6(View6, { style: styles6.header, children: [
       /* @__PURE__ */ jsxs6(View6, { style: styles6.headerLeft, children: [
@@ -3146,6 +3328,10 @@ function PackingSlipTemplate({ data }) {
         idx
       ))
     ] }),
+    totalParts.length > 0 && /* @__PURE__ */ jsx6(View6, { style: styles6.totalsWrap, wrap: false, children: /* @__PURE__ */ jsxs6(View6, { style: styles6.totalsBox, children: [
+      /* @__PURE__ */ jsx6(Text6, { style: styles6.totalsLabel, children: T.psTotalLabel }),
+      /* @__PURE__ */ jsx6(Text6, { style: styles6.totalsValue, children: totalParts.join(",  ") })
+    ] }) }),
     /* @__PURE__ */ jsxs6(View6, { style: styles6.notesSection, children: [
       /* @__PURE__ */ jsx6(Text6, { style: styles6.notesTitle, children: T.psNotesTitle }),
       /* @__PURE__ */ jsx6(Text6, { style: styles6.notesText, children: T.psNotesText })

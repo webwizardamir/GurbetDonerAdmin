@@ -8,6 +8,7 @@ import {
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
+import { buildAddressLines } from '../../utils/address'
 
 // A4: 595.28 x 841.89 points
 // Using Helvetica (built-in) for all text
@@ -300,20 +301,28 @@ export function PackingSlipTemplate({ data }: PackingSlipTemplateProps) {
   const T = getDocText(data.lang)
   const hasCompanyDetails = data.company.address || data.company.phone || data.company.email
 
-  // Build customer address lines (country merged into city line)
+  // Build the address lines (country merged into city line). This box is
+  // labelled "Afleveradres" and travels with the goods, so it must show the
+  // DELIVERY address when the customer has a separate one (e.g. invoicing to a
+  // Postbus) — falling back to billing, which is all we had before.
   const customerLines: string[] = []
   if (data.customer.contactPerson) customerLines.push(data.customer.contactPerson)
-  if (data.customer.street) customerLines.push(data.customer.street)
-  const cityParts: string[] = []
-  if (data.customer.postalCode && data.customer.city) {
-    cityParts.push(`${data.customer.postalCode} ${data.customer.city}`)
-  } else if (data.customer.city) {
-    cityParts.push(data.customer.city)
+  const shipTo = data.customer.deliveryAddress
+  if (shipTo) {
+    customerLines.push(...buildAddressLines(shipTo))
+  } else {
+    if (data.customer.street) customerLines.push(data.customer.street)
+    const cityParts: string[] = []
+    if (data.customer.postalCode && data.customer.city) {
+      cityParts.push(`${data.customer.postalCode} ${data.customer.city}`)
+    } else if (data.customer.city) {
+      cityParts.push(data.customer.city)
+    }
+    if (data.customer.country && data.customer.country !== data.customer.city) {
+      cityParts.push(data.customer.country)
+    }
+    if (cityParts.length) customerLines.push(cityParts.join(', '))
   }
-  if (data.customer.country && data.customer.country !== data.customer.city) {
-    cityParts.push(data.customer.country)
-  }
-  if (cityParts.length) customerLines.push(cityParts.join(', '))
 
   // Quantity total, grouped by unit type. A packing slip carries no prices, so
   // the "total" is the summed quantity per unit (kg / doos / stuks / ...). Only

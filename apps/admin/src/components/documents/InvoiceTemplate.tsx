@@ -9,6 +9,7 @@ import {
 import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
+import { buildAddressLines } from '../../utils/address'
 
 // A4: 595.28 x 841.89 points
 // Using Helvetica (built-in) for all text
@@ -95,6 +96,23 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: '#f8fafc',
+  },
+  // Dual-address layout — only rendered when the customer has a delivery
+  // address that differs from the billing address. Two accent boxes share
+  // roughly the width the single customer box normally takes, so the block
+  // costs no extra vertical space (the compact 15-16 items/page spec holds).
+  addressGroup: {
+    width: '58%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  addressBoxHalf: {
+    width: '48.5%',
+  },
+  customerNameDual: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 1,
   },
   customerLabel: {
     fontSize: 6.5,
@@ -439,6 +457,16 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
   if (cityParts.length) customerLines.push(cityParts.join(', '))
   if (data.customer.vatNumber) customerLines.push(`BTW: ${data.customer.vatNumber}`)
 
+  // A separate delivery address (invoice to a Postbus / accounts-payable
+  // department, goods to the physical branch). Empty for the vast majority of
+  // customers, and for snapshots frozen before the field existed.
+  const deliveryLines = data.customer.deliveryAddress
+    ? [
+        ...(data.customer.contactPerson ? [data.customer.contactPerson] : []),
+        ...buildAddressLines(data.customer.deliveryAddress),
+      ]
+    : []
+
   return (
     <Page size="A4" style={styles.page}>
         {/* ========== HEADER ========== */}
@@ -470,13 +498,33 @@ export function InvoicePage({ data }: InvoiceTemplateProps) {
 
         {/* ========== CUSTOMER + METADATA ========== */}
         <View style={styles.infoRow}>
-          <View style={styles.customerBox}>
-            <Text style={styles.customerLabel}>{data.labels.invoiceAddress}</Text>
-            <Text style={styles.customerName}>{data.customer.companyName}</Text>
-            <Text style={styles.customerDetail}>
-              {customerLines.join('\n')}
-            </Text>
-          </View>
+          {deliveryLines.length > 0 ? (
+            // Delivery address first (where the goods go), invoice address next.
+            <View style={styles.addressGroup}>
+              <View style={[styles.customerBox, styles.addressBoxHalf]}>
+                <Text style={styles.customerLabel}>{T.addrDelivery}</Text>
+                <Text style={styles.customerNameDual}>{data.customer.companyName}</Text>
+                <Text style={styles.customerDetail}>
+                  {deliveryLines.join('\n')}
+                </Text>
+              </View>
+              <View style={[styles.customerBox, styles.addressBoxHalf]}>
+                <Text style={styles.customerLabel}>{data.labels.invoiceAddress}</Text>
+                <Text style={styles.customerNameDual}>{data.customer.companyName}</Text>
+                <Text style={styles.customerDetail}>
+                  {customerLines.join('\n')}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.customerBox}>
+              <Text style={styles.customerLabel}>{data.labels.invoiceAddress}</Text>
+              <Text style={styles.customerName}>{data.customer.companyName}</Text>
+              <Text style={styles.customerDetail}>
+                {customerLines.join('\n')}
+              </Text>
+            </View>
+          )}
           <View style={styles.metaBox}>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>{T.metaInvoiceNumber}</Text>
