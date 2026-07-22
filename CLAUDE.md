@@ -8,19 +8,41 @@
 
 ---
 
-## Monorepo Layout (since 2026-06-24)
+## Monorepo Layout (since 2026-06-24, second tenant since 2026-07-22)
 
-This repo is a **monorepo**. This document — and every `src/...` path in it — refers to the **admin app** at `apps/admin/`. Two independently-deployed Vercel apps share one Supabase backend:
+This repo is a **monorepo**. This document — and every `src/...` path in it — refers to the **admin app** at `apps/admin/`. **Three** independently-deployed Vercel apps and **two** Supabase databases:
 
-| App | Path | Live URL |
-|-----|------|----------|
-| Admin / management UI (this doc) | `apps/admin` | `app.melekhalalfood.nl` |
-| Public website (Astro) | `apps/web` | `melekhalalfood.nl` + `www` |
+| App | Path | Live URL | Database |
+|-----|------|----------|----------|
+| Admin / management UI (this doc) | `apps/admin` | `app.melekhalalfood.nl` | `pnimvwconhhmcwxcuxcz` |
+| **Gurbet Doner admin** ("father") | `apps/admin` ← *same source* | `gurbet-doner-admin.vercel.app` | `dvpnvulxkccurqkpqqnx` |
+| Public website (Astro) | `apps/web` | `melekhalalfood.nl` + `www` | — |
 
-- `supabase/` (migrations + edge functions) and the project docs stay at the **repo root**.
+- `supabase/` (migrations + edge functions) and the project docs stay at the **repo root**. It is
+  **shared source for BOTH databases**, not Melek's alone.
 - Run admin scripts from **inside `apps/admin`** (their paths are cwd-relative). See the root `README.md`.
 - The public site has its own `apps/web/CLAUDE.md` and `apps/web/docs/`.
-- One push; Vercel rebuilds only the app whose folder changed.
+- One push; Vercel rebuilds only the app whose folder changed — but `apps/admin` feeds **two** projects.
+
+### 🚨 Two tenants — read `MULTI-TENANT.md` before finishing any change
+
+The two admin apps are **one codebase, two deployments, two separate databases**. Differences are
+config-driven via `apps/admin/src/config/tenant.ts` (`VITE_TENANT=melek|father`) — never code branches.
+
+**App code propagates automatically on push. Everything server-side does not.**
+
+> **Whenever you fix or build something for Melek, stop and ask: does this need a second action for
+> Gurbet?** If the change touches `supabase/` (migration, RPC, RLS, edge function), a Vercel env var,
+> an edge secret, a cron/Vault entry, or a Supabase dashboard setting, it must be applied to
+> **`dvpnvulxkccurqkpqqnx` as a separate step**. Committing a migration is *not* applying it, and
+> Vercel never deploys `supabase/`. The failure is silent: Melek looks fine, Gurbet is broken until
+> someone uses the feature.
+
+**`MULTI-TENANT.md` (repo root) is the runbook** — change-classification table, migration + edge
+deploy procedures (incl. the `--no-verify-jwt` list), the current Gurbet deltas (crons parked, no
+secrets, placeholder legal details, empty DB), the schema-divergence warning, and a pre-flight
+checklist. Also note: **the repo-root Supabase CLI is linked to Melek**, so a bare `db push` hits
+production — always pass an explicit `--project-ref` / `--db-url`.
 
 ---
 
