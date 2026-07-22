@@ -244,6 +244,8 @@ function escapeForOrValue(term: string): string {
 // Build a PostgREST `.or()` expression for the orders query. Matches:
 //  - order_number via ilike (full trimmed phrase)
 //  - the legacy WC invoice number exactly (when the term is a bare integer)
+//  - the app-issued document number (FC-08497, CN-0003, ...), resolved to
+//    order_ids because it lives on the related `documents` table
 //  - any order belonging to a customer whose company name OR contact person
 //    matches *every* whitespace-separated token (resolved to customer_ids in a
 //    quick lookup, since the name lives on the related `customers` table).
@@ -271,6 +273,27 @@ async function buildSearchOr(term: string): Promise<string> {
     const { data: customers } = await custQuery.limit(300)
     const ids = (customers ?? []).map(c => c.id as string)
     if (ids.length > 0) clauses.push(`customer_id.in.(${ids.join(',')})`)
+  }
+
+  // Invoice / credit-note / proforma numbers live on `documents`, not on
+  // `orders`, so resolve them to order_ids the same way customer names are.
+  // Without this the only invoice number the Orders search could find was the
+  // LEGACY woo_invoice_number above — and only when the term was a bare integer
+  // — so every invoice this app has issued ("FC-08497") was unsearchable, even
+  // though the list renders it in the Factuurnummer column.
+  //
+  // Matches any document type on purpose: searching a credit-note number should
+  // find the order it belongs to. order_id is nullable (purge_order detaches a
+  // document from a deleted order), so null rows are excluded.
+  {
+    const { data: docs } = await supabase
+      .from('documents')
+      .select('order_id')
+      .ilike('document_number', `%${trimmed}%`)
+      .not('order_id', 'is', null)
+      .limit(300)
+    const orderIds = [...new Set((docs ?? []).map(d => d.order_id as string))]
+    if (orderIds.length > 0) clauses.push(`id.in.(${orderIds.join(',')})`)
   }
 
   return clauses.join(',')
