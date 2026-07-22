@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Loader2, Mail, KeyRound, Building2, AlertCircle, Sun, Moon, ArrowLeft } from 'lucide-react'
 import { usePortalAuth } from '../context/PortalAuthContext'
 import LanguageSelector from '../components/LanguageSelector'
+import { tenant } from '../config/tenant'
 
 export default function PortalLogin() {
   const { t } = useTranslation()
@@ -79,7 +80,7 @@ export default function PortalLogin() {
               <Building2 className="w-10 h-10" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">MelekHalalFood</h1>
+              <h1 className="text-3xl font-bold">{tenant.name}</h1>
               <p className="text-green-200">{t('portal.title')}</p>
             </div>
           </div>
@@ -132,7 +133,7 @@ export default function PortalLogin() {
                 <Building2 className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">MelekHalalFood</h1>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">{tenant.name}</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400">{t('portal.title')}</p>
               </div>
             </div>
@@ -257,10 +258,29 @@ export default function PortalLogin() {
             <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-400">
               <p className="font-medium text-slate-700 dark:text-slate-300">{t('portal.login.noAccount')}</p>
               <p className="mt-1">
-                {t('portal.login.noAccountHelp')}{' '}
-                <a href="mailto:info@melekhalalfood.nl" className="text-green-600 dark:text-green-400 hover:underline">info@melekhalalfood.nl</a>
-                {' · '}
-                <a href="tel:+31712001287" className="text-green-600 dark:text-green-400 hover:underline">071 200 1287</a>
+                {t('portal.login.noAccountHelp')}
+                {tenant.portalContactEmail && (
+                  <>
+                    {' '}
+                    <a
+                      href={`mailto:${tenant.portalContactEmail}`}
+                      className="text-green-600 dark:text-green-400 hover:underline"
+                    >
+                      {tenant.portalContactEmail}
+                    </a>
+                  </>
+                )}
+                {tenant.portalContactPhone && (
+                  <>
+                    {tenant.portalContactEmail ? ' · ' : ' '}
+                    <a
+                      href={`tel:${tenant.portalContactPhoneHref ?? tenant.portalContactPhone.replace(/\s/g, '')}`}
+                      className="text-green-600 dark:text-green-400 hover:underline"
+                    >
+                      {tenant.portalContactPhone}
+                    </a>
+                  </>
+                )}
               </p>
             </div>
 
@@ -276,7 +296,7 @@ export default function PortalLogin() {
 
         {/* Footer */}
         <div className="p-4 text-center text-sm text-slate-400">
-          © {new Date().getFullYear()} MelekHalalFood
+          © {new Date().getFullYear()} {tenant.name}
         </div>
       </div>
     </div>

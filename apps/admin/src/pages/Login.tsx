@@ -244,19 +244,21 @@ export default function Login() {
           </div>
 
           {/* Footer */}
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
-            {t('auth.troubleSigningIn')}{' '}
-            <a
-              href="mailto:support@melekhalalfood.com"
-              className="text-green-600 hover:text-green-700 dark:text-green-400 font-medium"
-            >
-              {t('auth.contactSupport')}
-            </a>
-          </p>
+          {tenant.supportEmail && (
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
+              {t('auth.troubleSigningIn')}{' '}
+              <a
+                href={`mailto:${tenant.supportEmail}`}
+                className="text-green-600 hover:text-green-700 dark:text-green-400 font-medium"
+              >
+                {t('auth.contactSupport')}
+              </a>
+            </p>
+          )}
 
           {/* Copyright */}
           <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-4">
-            {t('auth.copyright', { year: new Date().getFullYear() })}
+            {t('auth.copyright', { year: new Date().getFullYear(), company: tenant.name })}
           </p>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { PASSWORD_MIN_LENGTH } from '../utils/password'
+import { tenant } from '../config/tenant'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -143,10 +144,10 @@ export default function ResetPassword() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-2xl mb-4">
-            <span className="text-2xl font-bold text-white">M</span>
+            <span className="text-2xl font-bold text-white">{tenant.name.charAt(0)}</span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            MelekHalalFood
+            {tenant.name}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
             B2B Wholesale Management

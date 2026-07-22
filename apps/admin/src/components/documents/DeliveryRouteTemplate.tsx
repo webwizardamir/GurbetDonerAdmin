@@ -7,6 +7,7 @@ import type { PlannedRoute, PlannedStop } from '../../services/route'
 import { fetchDocumentSettings } from '../../services/documents'
 import { formatDistance, formatDuration, etaClock } from '../../utils/route'
 import { formatQuantityWithUnit } from '../../utils/format'
+import { tenant } from '../../config/tenant'
 
 // Delivery-route sheet. Dutch only (operational/legal consistency). Brand cyan
 // to match the logistics/dispatch document family. Compact ruleset per CLAUDE.md.
@@ -125,7 +126,7 @@ function DocHeader({ company, title }: { company: RouteCompany | null; title: st
       <View style={styles.headerLeft}>
         {company?.logoUrl && <Image src={company.logoUrl} style={styles.logo} />}
         <View style={styles.companyInfo}>
-          <Text style={styles.companyName}>{company?.name || 'MelekHalalFood'}</Text>
+          <Text style={styles.companyName}>{company?.name || tenant.name}</Text>
           {hasDetails && (
             <Text style={styles.companyDetail}>
               {[
@@ -151,7 +152,7 @@ function DocFooter({ company, centerText }: { company: RouteCompany | null; cent
     <View style={styles.footer} wrap={false}>
       <View style={styles.footerRow}>
         <View>
-          <Text style={styles.footerCompany}>{company?.name || 'MelekHalalFood'}</Text>
+          <Text style={styles.footerCompany}>{company?.name || tenant.name}</Text>
           <Text style={styles.footerDetail}>
             {[
               company?.address,

@@ -320,7 +320,7 @@
       "customerPricing": "Klantspecifieke prijzen",
       "professionalInvoicing": "Professionele facturatie"
     },
-    "copyright": "© {{year}} Melek Halal Food. Alle rechten voorbehouden."
+    "copyright": "© {{year}} {{company}}. Alle rechten voorbehouden."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -2011,7 +2011,7 @@
       "emailGreeting": "Beste {{name}},",
       "emailIntro": "Uw klantenportaal account is aangemaakt. U kunt nu uw bestellingen, facturen en documenten online bekijken.",
       "emailOutro": "Bewaar deze gegevens veilig. U kunt uw wachtwoord wijzigen na het inloggen.",
-      "emailSignature": "Met vriendelijke groet,\nMelek Halal Food Team"
+      "emailSignature": "Met vriendelijke groet,\n{{company}} Team"
     }
   },
   "overdue": {

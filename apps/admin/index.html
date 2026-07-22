@@ -6,7 +6,10 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MelekHalalFood - B2B Portal</title>
+    <!-- Shared by both tenant builds; applyTenant() sets the real title and
+         favicon at runtime (see src/config/tenant.ts). Kept brand-neutral so
+         neither tenant flashes the other's name before React mounts. -->
+    <title>B2B Portal</title>
   </head>
   <body>
     <div id="root"></div>

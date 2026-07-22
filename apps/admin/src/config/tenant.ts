@@ -23,6 +23,24 @@ export interface TenantConfig {
   logo: string
   /** `alt` text for the logo. */
   logoAlt: string
+  /** Path to the favicon in /public. Swapped onto <link rel="icon"> at runtime. */
+  favicon: string
+  /**
+   * Support address on the admin login screen. Optional: when a tenant has no
+   * support mailbox we render plain text instead of a mailto, rather than
+   * pointing their staff at ANOTHER tenant's inbox.
+   */
+  supportEmail?: string
+  /** Same idea for the customer portal's "no account?" contact line. */
+  portalContactEmail?: string
+  /** Phone shown next to portalContactEmail. Omitted when unset. */
+  portalContactPhone?: string
+  /**
+   * Dial string for portalContactPhone's tel: link. Kept separate because the
+   * displayed national format ("071 200 1287") is not dialable internationally
+   * -- stripping its spaces would drop the country code.
+   */
+  portalContactPhoneHref?: string
   /**
    * Feature switches. These are UX-level only -- every one of them is ALSO
    * enforced server-side (analytics cost/profit columns are gated behind
@@ -39,6 +57,11 @@ const TENANTS: Record<TenantId, TenantConfig> = {
     name: 'Melek Halal Food',
     logo: logoMelek,
     logoAlt: 'Melek Halal Food',
+    favicon: '/favicon.png',
+    supportEmail: 'support@melekhalalfood.com',
+    portalContactEmail: 'info@melekhalalfood.nl',
+    portalContactPhone: '071 200 1287',
+    portalContactPhoneHref: '+31712001287',
     features: {
       analytics: true,
     },
@@ -48,6 +71,10 @@ const TENANTS: Record<TenantId, TenantConfig> = {
     name: 'Gurbet Doner',
     logo: logoGurbet,
     logoAlt: 'Gurbet Doner',
+    favicon: '/favicon-father.png',
+    // No support/contact mailbox yet -- deliberately left unset so the UI omits
+    // the link rather than sending his people to Melek's inbox. Fill in when he
+    // has a business address.
     features: {
       // Hidden at launch by client request. Owner-gated server-side regardless.
       analytics: false,
@@ -74,4 +101,12 @@ export function isFeatureEnabled(feature: keyof TenantConfig['features']): boole
 export function applyTenant(): void {
   document.documentElement.setAttribute('data-tenant', tenant.id)
   document.title = tenant.name
+
+  // index.html is shared by both builds, so the favicon is swapped here rather
+  // than in the markup. Covers the apple-touch-icon too.
+  document
+    .querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]')
+    .forEach((link) => {
+      link.href = tenant.favicon
+    })
 }

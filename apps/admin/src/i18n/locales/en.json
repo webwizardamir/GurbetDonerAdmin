@@ -320,7 +320,7 @@
       "customerPricing": "Customer-specific pricing",
       "professionalInvoicing": "Professional invoicing"
     },
-    "copyright": "© {{year}} Melek Halal Food. All rights reserved."
+    "copyright": "© {{year}} {{company}}. All rights reserved."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -2011,7 +2011,7 @@
       "emailGreeting": "Dear {{name}},",
       "emailIntro": "Your customer portal account has been created. You can now access your orders, invoices, and documents online.",
       "emailOutro": "Please keep these credentials secure. You can change your password after logging in.",
-      "emailSignature": "Kind regards,\nMelek Halal Food Team"
+      "emailSignature": "Kind regards,\n{{company}} Team"
     }
   },
   "overdue": {

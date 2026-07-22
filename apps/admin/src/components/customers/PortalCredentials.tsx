@@ -14,6 +14,7 @@ import {
   Link2 as LinkIcon,
 } from 'lucide-react'
 import type { Customer } from '../../types'
+import { tenant } from '../../config/tenant'
 
 interface PortalCredentialsProps {
   customer: Customer
@@ -57,7 +58,7 @@ export default function PortalCredentials({
   }
 
   const sendViaEmail = () => {
-    const subject = encodeURIComponent(t('portal.access.emailSubject', { company: 'Melek Halal Food' }))
+    const subject = encodeURIComponent(t('portal.access.emailSubject', { company: tenant.name }))
     const body = encodeURIComponent(
       `${t('portal.access.emailGreeting', { name: customer.company_name })}\n\n` +
       `${t('portal.access.emailIntro')}\n\n` +
@@ -67,7 +68,7 @@ export default function PortalCredentials({
           `${t('portal.access.email')}: ${credentials.email}\n` +
           `${t('portal.access.password')}: ${credentials.password}\n`) +
       `\n${t('portal.access.emailOutro')}\n\n` +
-      `${t('portal.access.emailSignature')}`
+      `${t('portal.access.emailSignature', { company: tenant.name })}`
     )
     window.open(`mailto:${credentials.email}?subject=${subject}&body=${body}`, '_blank')
   }
