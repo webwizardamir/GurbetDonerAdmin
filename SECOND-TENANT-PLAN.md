@@ -79,10 +79,18 @@ mechanical, scriptable, and far less frequent than app-code fixes. Not re-author
 2. ~~Create the father's empty Supabase project~~ ✅ `dvpnvulxkccurqkpqqnx` (eu-central-1)
 3. ~~Load the schema (all migrations) into it~~ ✅ 92 migrations + 5 bootstrap patches
 4. Deploy edge functions ✅ (all 8, verify_jwt mirrored) + **set his secrets ← open (owner)**
-5. Add the tenant-config layer to the code (branding + hide analytics) ← *next*
-6. Create the father's Vercel project → first deploy
-7. Point his domain at it
-8. Import his clients from the Excel sheet
+5. ~~Add the tenant-config layer to the code~~ ✅ `src/config/tenant.ts`, commit 0e3362a
+6. ~~Create the father's Vercel project → first deploy~~ ✅ https://gurbet-doner-admin.vercel.app
+7. Point his domain at it ← *open (free Vercel URL for now, by design)*
+8. Import his clients from the Excel sheet ← *open, waiting on the sheet*
+
+### Open items
+- **Placeholder legal details.** `document_settings` carries **Melek's** BTW/KvK/IBAN by owner
+  instruction. Must be replaced before he invoices a real customer — invoices auto-generate on
+  order save (`ensureOrderInvoice`), and anyone paying one would wire money to Melek's account.
+- **Owner login:** `webwizardamir@gmail.com` promoted to `owner` (the `handle_new_user` trigger
+  creates every profile as `customer` — always flip it after adding a staff user).
+- **Numbering starts fresh:** FC-1 / order 1, independent of Melek's sequence.
 
 ---
 
