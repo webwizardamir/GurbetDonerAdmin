@@ -21,13 +21,15 @@ import {
   Globe,
   X,
 } from 'lucide-react'
-import logoMelek from '../../assets/images/logo-melek.png'
+import { tenant, isFeatureEnabled } from '../../config/tenant'
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>
   labelKey: string
   href: string
   ownerOnly?: boolean
+  /** Hidden when this tenant has the feature switched off (see config/tenant.ts). */
+  feature?: 'analytics'
   children?: NavItem[]
 }
 
@@ -72,7 +74,7 @@ const navSections: NavSection[] = [
   {
     titleKey: 'nav.sections.analysis',
     items: [
-      { icon: BarChart3, labelKey: 'nav.analytics', href: '/analytics', ownerOnly: true },
+      { icon: BarChart3, labelKey: 'nav.analytics', href: '/analytics', ownerOnly: true, feature: 'analytics' },
     ],
   },
   {
@@ -125,11 +127,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     )
   }
 
-  // Filter items by permission, then drop any section left with no items.
+  // Filter items by permission and by tenant feature switches, then drop any
+  // section left with no items (e.g. "Analyse" disappears entirely for a tenant
+  // with analytics off, since it holds only that one item).
   const visibleSections = navSections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => !item.ownerOnly || isOwner),
+      items: section.items.filter(
+        (item) => (!item.ownerOnly || isOwner) && (!item.feature || isFeatureEnabled(item.feature))
+      ),
     }))
     .filter((section) => section.items.length > 0)
 
@@ -157,8 +163,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
         <NavLink to="/" className="flex items-center gap-3">
           <img
-            src={logoMelek}
-            alt="Melek Halal Food"
+            src={tenant.logo}
+            alt={tenant.logoAlt}
             className="h-10 w-auto"
           />
         </NavLink>

@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { lazyWithReload as lazy } from './utils/lazyWithReload'
 import { AuthProvider } from './context/AuthContext'
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext'
-import { ProtectedRoute, OwnerRoute, PublicRoute } from './components/auth'
+import { ProtectedRoute, OwnerRoute, FeatureRoute, PublicRoute } from './components/auth'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import Layout from './components/layout/Layout'
 import ReminderAlert from './components/ReminderAlert'
@@ -220,9 +220,11 @@ function App() {
                 <Route
                   path="analytics"
                   element={
-                    <OwnerRoute>
-                      <Analytics />
-                    </OwnerRoute>
+                    <FeatureRoute feature="analytics">
+                      <OwnerRoute>
+                        <Analytics />
+                      </OwnerRoute>
+                    </FeatureRoute>
                   }
                 />
 

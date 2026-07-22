@@ -3,6 +3,42 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ========================================
+   Tenant brand palette  (see src/config/tenant.ts)
+   ========================================
+
+   The app's brand color is Tailwind `green`, used across ~1275 class names in
+   114 files. Rather than migrate all of those to a `brand-*` scale -- a huge
+   diff, a permanent "did you use the right one?" tax on every new component,
+   and a regression risk for Melek -- the father tenant simply REDEFINES the
+   green ramp. Tailwind v4 compiles every utility to `var(--color-green-N)`, so
+   overriding the ten variables repaints the whole app with no component edits,
+   and anything written from here on themes automatically.
+
+   `applyTenant()` stamps data-tenant on <html>. Melek has no block here, so it
+   keeps stock Tailwind green and is byte-for-byte unaffected.
+
+   Hue 253.3 is the Gurbet Doner logo blue (#0a62b4 = oklch(49.7% 0.15 253.3)),
+   which lands on the 700 step; the rest of the ramp is derived from it.
+
+   NOTE: `emerald` is deliberately NOT remapped. It carries the profit/positive
+   semantic, and money reading green stays correct (and legible) next to a blue
+   brand. Red/amber keep their bad/warning meanings untouched. The visible
+   trade-off is that "completed/paid" badges, which use green, turn blue for
+   this tenant -- accepted; revert by deleting this block. */
+:root[data-tenant='father'] {
+  --color-green-50:  oklch(97.0% 0.014 253.3);
+  --color-green-100: oklch(93.2% 0.032 253.3);
+  --color-green-200: oklch(88.2% 0.059 253.3);
+  --color-green-300: oklch(80.9% 0.105 253.3);
+  --color-green-400: oklch(70.7% 0.150 253.3);
+  --color-green-500: oklch(60.0% 0.165 253.3);
+  --color-green-600: oklch(54.0% 0.160 253.3); /* primary actions */
+  --color-green-700: oklch(49.7% 0.150 253.3); /* exact logo blue */
+  --color-green-800: oklch(42.4% 0.130 253.3);
+  --color-green-900: oklch(37.9% 0.110 253.3);
+}
+
+/* ========================================
    Custom Scrollbars - Light & Dark Mode
    ======================================== */
 

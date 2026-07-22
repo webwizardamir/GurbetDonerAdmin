@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { Eye, EyeOff, Loader2, AlertCircle, Leaf } from 'lucide-react'
-import logoMelek from '../assets/images/logo-melek.png'
+import { tenant } from '../config/tenant'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -48,11 +48,13 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-600 via-green-700 to-emerald-800 relative overflow-hidden">
+      {/* Brand gradient uses only the green ramp (not emerald) so it re-themes
+          per tenant -- see config/tenant.ts + the palette block in index.css. */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-600 via-green-700 to-green-800 relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-green-500/20 rounded-full blur-3xl" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-green-500/10 rounded-full blur-3xl" />
         </div>
 
@@ -69,14 +71,14 @@ export default function Login() {
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
           <div className="mb-8">
             <img
-              src={logoMelek}
-              alt="Melek Halal Food"
+              src={tenant.logo}
+              alt={tenant.logoAlt}
               className="h-24 w-auto drop-shadow-2xl"
             />
           </div>
           <h1 className="text-4xl xl:text-5xl font-bold text-white mb-4 leading-tight">
             {t('auth.welcome')}<br />
-            <span className="text-green-200">{t('auth.companyName')}</span>
+            <span className="text-green-200">{tenant.name}</span>
           </h1>
           <p className="text-lg text-green-100/80 max-w-md leading-relaxed">
             {t('auth.tagline')} {t('auth.manageOrders')}
@@ -118,12 +120,12 @@ export default function Login() {
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <img
-              src={logoMelek}
-              alt="Melek Halal Food"
+              src={tenant.logo}
+              alt={tenant.logoAlt}
               className="h-16 w-auto mx-auto mb-4"
             />
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              {t('auth.companyName')}
+              {tenant.name}
             </h1>
             <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
               B2B Wholesale Portal

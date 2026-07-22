@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { Resource, Action, UserRole } from '../../types'
 import { Loader2 } from 'lucide-react'
+import { isFeatureEnabled } from '../../config/tenant'
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -114,6 +115,31 @@ export function AdminRoute({ children }: { children: ReactNode }) {
       {children}
     </ProtectedRoute>
   )
+}
+
+/**
+ * Route guard for features a tenant has switched off (see config/tenant.ts).
+ *
+ * Hiding the sidebar link is not enough -- the URL would still resolve if typed.
+ * Sends the user to the dashboard rather than /unauthorized, because for this
+ * tenant the page does not exist at all; it is not a permission failure.
+ *
+ * This is UX only. Everything gated this way is ALSO enforced server-side (the
+ * analytics RPCs gate every cost/profit column behind `is_owner()`), so it must
+ * never be the sole protection for anything sensitive.
+ */
+export function FeatureRoute({
+  feature,
+  children,
+}: {
+  feature: Parameters<typeof isFeatureEnabled>[0]
+  children: ReactNode
+}) {
+  if (!isFeatureEnabled(feature)) {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
 }
 
 /**
