@@ -11,7 +11,6 @@ import {
   Trash2,
   Calendar,
   Building2,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Banknote,
@@ -38,6 +37,7 @@ import StatusBadge from '../components/ui/StatusBadge'
 import PaymentBadge from '../components/ui/PaymentBadge'
 import BulkActionsBar from '../components/orders/BulkActionsBar'
 import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
+import MultiSelectFilter from '../components/ui/MultiSelectFilter'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { orderExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
@@ -85,7 +85,7 @@ export default function Orders() {
     }
     const urlStatus = searchParams.get('status')
     if (urlStatus) {
-      setFilters({ status: urlStatus as OrderStatus })
+      setFilters({ status: [urlStatus as OrderStatus] })
     }
     // Open a specific order's detail panel when linked via ?order=<id>
     // (e.g. clicking the order number on the Invoices page). The order may not
@@ -215,9 +215,15 @@ export default function Orders() {
     setFilters({ ...filters, trashed: !trashed, status: undefined })
   }
 
-  const handleStatusFilter = (status: OrderStatus | '') => setFilters({ ...filters, status: status || undefined })
-  const handlePaymentFilter = (method: PaymentMethod | '') => setFilters({ ...filters, paymentMethod: method || undefined })
-  const handleCustomerTypeFilter = (type: string) => setFilters({ ...filters, customerType: type || undefined })
+  // The status/payment/type filters are multi-select. Store as arrays (undefined
+  // when empty so the query skips the filter). fetchOrders normalizes single-or-array.
+  const toArr = <T,>(v: T | T[] | undefined): T[] => (v == null ? [] : Array.isArray(v) ? v : [v])
+  const statusFilter = toArr(filters.status as OrderStatus | OrderStatus[] | undefined)
+  const paymentFilter = toArr(filters.paymentMethod as PaymentMethod | PaymentMethod[] | undefined)
+  const typeFilter = toArr(filters.customerType)
+  const handleStatusFilter = (values: string[]) => setFilters({ ...filters, status: values.length ? (values as OrderStatus[]) : undefined })
+  const handlePaymentFilter = (values: string[]) => setFilters({ ...filters, paymentMethod: values.length ? (values as PaymentMethod[]) : undefined })
+  const handleCustomerTypeFilter = (values: string[]) => setFilters({ ...filters, customerType: values.length ? values : undefined })
 
   // Attach the displayed invoice number (app-generated, else legacy WC) to a row
   // so the export's optional "Factuurnummer" column can render it. The number
@@ -302,38 +308,45 @@ export default function Orders() {
             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <select value={filters.status || ''} onChange={e => handleStatusFilter(e.target.value as OrderStatus | '')}
-              className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
-              <option value="">{t('orders.allStatus')} ({statusCounts.total})</option>
-              {[
-                ...STATUS_FILTER_ORDER,
-                ...Object.keys(statusCounts).filter(s => s !== 'total' && !STATUS_FILTER_ORDER.includes(s)),
-              ]
-                .filter(s => (statusCounts[s] ?? 0) > 0 || s === filters.status)
-                .map(s => (
-                  <option key={s} value={s}>{t(`orders.status.${s}`, { defaultValue: s })} ({statusCounts[s] ?? 0})</option>
-                ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-            <select value={filters.paymentMethod || ''} onChange={e => handlePaymentFilter(e.target.value as PaymentMethod | '')}
-              className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
-              <option value="">{t('orders.allPayment')}</option>
-              <option value="cash">{t('orders.payment.cash')}</option>
-              <option value="bank">{t('orders.payment.bank')}</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-            <select value={filters.customerType || ''} onChange={e => handleCustomerTypeFilter(e.target.value)} aria-label="Type"
-              className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
-              <option value="">Alle types</option>
-              {CUSTOMER_TYPES.map(ct => <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>)}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          </div>
+          <MultiSelectFilter
+            selected={statusFilter}
+            onChange={handleStatusFilter}
+            options={[
+              ...STATUS_FILTER_ORDER,
+              ...Object.keys(statusCounts).filter(s => s !== 'total' && !STATUS_FILTER_ORDER.includes(s)),
+            ]
+              .filter(s => (statusCounts[s] ?? 0) > 0 || (statusFilter as string[]).includes(s))
+              .map(s => ({ value: s, label: `${t(`orders.status.${s}`, { defaultValue: s })} (${statusCounts[s] ?? 0})` }))}
+            allLabel={`${t('orders.allStatus')} (${statusCounts.total})`}
+            searchPlaceholder={t('orders.filterSearch')}
+            selectAllLabel={t('orders.selectAll')}
+            noResultsLabel={t('common.noResults')}
+            renderCount={n => t('orders.filterSelected', { count: n })}
+          />
+          <MultiSelectFilter
+            selected={paymentFilter}
+            onChange={handlePaymentFilter}
+            options={[
+              { value: 'cash', label: t('orders.payment.cash') },
+              { value: 'bank', label: t('orders.payment.bank') },
+            ]}
+            allLabel={t('orders.allPayment')}
+            searchPlaceholder={t('orders.filterSearch')}
+            selectAllLabel={t('orders.selectAll')}
+            noResultsLabel={t('common.noResults')}
+            renderCount={n => t('orders.filterSelected', { count: n })}
+          />
+          <MultiSelectFilter
+            aria-label="Type"
+            selected={typeFilter}
+            onChange={handleCustomerTypeFilter}
+            options={CUSTOMER_TYPES.map(ct => ({ value: ct, label: CUSTOMER_TYPE_LABELS[ct] }))}
+            allLabel={t('orders.allTypes')}
+            searchPlaceholder={t('orders.filterSearch')}
+            selectAllLabel={t('orders.selectAll')}
+            noResultsLabel={t('common.noResults')}
+            renderCount={n => t('orders.filterSelected', { count: n })}
+          />
           <CustomerFilterSelect
             value={filters.customerId}
             onChange={(customerId) => setFilters({ ...filters, customerId })}
@@ -509,19 +522,23 @@ export default function Orders() {
                         ) : (
                         <div className="flex items-center justify-end gap-0.5">
                           {docInfo.count > 1 && (
-                            <div className="relative p-1.5" title={`${docInfo.count} documents generated`}>
+                            <button type="button" onClick={() => setViewingOrder(order)} className="relative p-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors cursor-pointer" title={t('orders.docsTooltip', { count: docInfo.count })}>
                               <FileText className="w-4 h-4 text-violet-500" />
                               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-violet-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{docInfo.count}</span>
-                            </div>
+                            </button>
                           )}
                           {(() => {
                             const s = sendInfo[order.id]
                             if (!s || s.total === 0) return null
                             const allOk = s.failed === 0
                             return (
-                              <div
-                                className="relative p-1.5"
-                                title={`${s.sent}/${s.total} ${allOk ? 'sent' : `sent (${s.failed} failed)`}`}
+                              <button
+                                type="button"
+                                onClick={() => setViewingOrder(order)}
+                                className="relative p-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer"
+                                title={allOk
+                                  ? t('orders.emailsSentTooltip', { sent: s.sent, total: s.total })
+                                  : t('orders.emailsFailedTooltip', { sent: s.sent, total: s.total, failed: s.failed })}
                               >
                                 <Mail className={`w-4 h-4 ${allOk ? 'text-emerald-500' : 'text-red-500'}`} />
                                 {s.total > 1 && (
@@ -529,13 +546,13 @@ export default function Orders() {
                                     {s.total}
                                   </span>
                                 )}
-                              </div>
+                              </button>
                             )
                           })()}
                           {sendInfo[order.id]?.invoiceSent && (
-                            <div className="p-1.5" title={t('orders.invoiceSent')}>
+                            <button type="button" onClick={() => setViewingOrder(order)} className="p-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer" title={t('orders.invoiceEmailedTooltip')}>
                               <ReceiptText className="w-4 h-4 text-emerald-600" />
-                            </div>
+                            </button>
                           )}
                           {canComplete && (
                             <button onClick={() => handleQuickComplete(order.id)} className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.markComplete')}>

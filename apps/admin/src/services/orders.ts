@@ -71,12 +71,15 @@ interface DbOrderItemRow {
 }
 
 export interface OrderFilters {
-  status?: OrderStatus
-  paymentMethod?: PaymentMethod
+  // Single value (legacy callers, URL param) OR an array for multi-select
+  // filtering on the Orders page. Normalized with asFilterArray in
+  // fetchOrders/fetchOrderCount → .eq for one value, .in for several.
+  status?: OrderStatus | OrderStatus[]
+  paymentMethod?: PaymentMethod | PaymentMethod[]
   customerId?: string
   // Admin-only customer classification (migration 00091). Filters via the
-  // embedded customers row, see fetchOrders/fetchOrderCount.
-  customerType?: string
+  // embedded customers row, see fetchOrders/fetchOrderCount. Array-capable.
+  customerType?: string | string[]
   dateFrom?: string
   dateTo?: string
   search?: string
@@ -204,12 +207,36 @@ function transformOrderItemFromDb(dbItem: DbOrderItemRow): OrderItem {
   }
 }
 
+// Normalize a single-or-array filter value into a clean array (drops
+// null/undefined/empty). Lets a filter accept one value (legacy callers, URL
+// params) or several (multi-select) with the same downstream .eq/.in logic.
+function asFilterArray<T>(value: T | T[] | undefined | null): T[] {
+  if (value == null) return []
+  return (Array.isArray(value) ? value : [value]).filter(v => v != null && v !== ('' as unknown as T))
+}
+
+// Apply a column IN/EQ filter for a single-or-array value, using .eq for one
+// match (cleaner query) and .in for several. Returns the (possibly) narrowed query.
+function applyInFilter<Q extends { eq: (c: string, v: never) => Q; in: (c: string, v: readonly never[]) => Q }>(
+  query: Q,
+  column: string,
+  values: unknown[],
+): Q {
+  if (values.length === 1) return query.eq(column, values[0] as never)
+  if (values.length > 1) return query.in(column, values as unknown as readonly never[])
+  return query
+}
+
 // Fetch total order count for pagination
 export async function fetchOrderCount(filters: OrderFilters = {}): Promise<number> {
+  const statuses = asFilterArray(filters.status)
+  const paymentMethods = asFilterArray(filters.paymentMethod)
+  const customerTypes = asFilterArray(filters.customerType)
+
   // When filtering by customer type (a column on the related customers table),
-  // add an inner embed so the nested .eq restricts parent rows. Only then, to
+  // add an inner embed so the nested .eq/.in restricts parent rows. Only then, to
   // avoid an unnecessary join on the common no-filter path.
-  const countSelect = filters.customerType
+  const countSelect = customerTypes.length
     ? 'id, customer:customers!customer_id!inner(id)'
     : 'id'
   let query = supabase
@@ -217,10 +244,10 @@ export async function fetchOrderCount(filters: OrderFilters = {}): Promise<numbe
     .select(countSelect, { count: 'exact', head: true })
 
   query = filters.trashed ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null)
-  if (filters.status) query = query.eq('status', filters.status)
-  if (filters.paymentMethod) query = query.eq('payment_method', filters.paymentMethod)
+  query = applyInFilter(query, 'status', statuses)
+  query = applyInFilter(query, 'payment_method', paymentMethods)
   if (filters.customerId) query = query.eq('customer_id', filters.customerId)
-  if (filters.customerType) query = query.eq('customer.customer_type', filters.customerType)
+  query = applyInFilter(query, 'customer.customer_type', customerTypes)
   if (filters.dateFrom) query = query.gte('order_date', filters.dateFrom)
   if (filters.dateTo) query = query.lte('order_date', filters.dateTo)
 
@@ -301,12 +328,16 @@ async function buildSearchOr(term: string): Promise<string> {
 
 // Fetch orders with filters and pagination
 export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWithItems[]> {
+  const statuses = asFilterArray(filters.status)
+  const paymentMethods = asFilterArray(filters.paymentMethod)
+  const customerTypes = asFilterArray(filters.customerType)
+
   // When filtering by customer type (a column on the related customers table),
-  // the customer embed must be an inner join so the nested .eq restricts parent
+  // the customer embed must be an inner join so the nested .eq/.in restricts parent
   // rows. NOTE: we deliberately do NOT resolve the type to a customer-id IN-list
   // (like buildSearchOr does for name search) — that path caps at 300 ids and a
   // single type can hold more customers than that, silently dropping orders.
-  const customerJoin = filters.customerType ? 'customers!customer_id!inner' : 'customers!customer_id'
+  const customerJoin = customerTypes.length ? 'customers!customer_id!inner' : 'customers!customer_id'
 
   // Fetch orders with customer and items relations
   let query = supabase
@@ -325,21 +356,14 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
 
   query = filters.trashed ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null)
 
-  if (filters.status) {
-    query = query.eq('status', filters.status)
-  }
-
-  if (filters.paymentMethod) {
-    query = query.eq('payment_method', filters.paymentMethod)
-  }
+  query = applyInFilter(query, 'status', statuses)
+  query = applyInFilter(query, 'payment_method', paymentMethods)
 
   if (filters.customerId) {
     query = query.eq('customer_id', filters.customerId)
   }
 
-  if (filters.customerType) {
-    query = query.eq('customer.customer_type', filters.customerType)
-  }
+  query = applyInFilter(query, 'customer.customer_type', customerTypes)
 
   if (filters.dateFrom) {
     query = query.gte('order_date', filters.dateFrom)

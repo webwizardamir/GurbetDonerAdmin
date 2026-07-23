@@ -28,6 +28,7 @@ interface Props {
   /** Optional emptied-search message. */
   noResultsLabel?: string
   className?: string
+  'aria-label'?: string
 }
 
 /**
@@ -47,6 +48,7 @@ export default function MultiSelectFilter({
   renderCount,
   noResultsLabel,
   className = '',
+  'aria-label': ariaLabel,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -125,6 +127,7 @@ export default function MultiSelectFilter({
         onClick={() => setOpen(o => !o)}
         aria-haspopup="true"
         aria-expanded={open}
+        aria-label={ariaLabel}
         className={`relative inline-flex items-center gap-2 max-w-[220px] ${Icon ? 'pl-9' : 'pl-3'} pr-9 py-2.5 bg-white dark:bg-slate-800 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer transition-colors ${
           count > 0
             ? 'border-green-500 dark:border-green-500 text-slate-900 dark:text-white'
