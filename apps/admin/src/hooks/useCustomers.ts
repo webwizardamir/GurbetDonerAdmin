@@ -18,6 +18,8 @@ interface UseCustomersOptions {
   autoFetch?: boolean
   filters?: CustomerFilters
   pageSize?: number
+  /** Page to start on — used to restore the page from the URL (see useUrlListState). */
+  initialPage?: number
 }
 
 interface UseCustomersReturn {
@@ -41,14 +43,14 @@ interface UseCustomersReturn {
 const DEFAULT_CUSTOMER_PAGE_SIZE = 50
 
 export function useCustomers(options: UseCustomersOptions = {}): UseCustomersReturn {
-  const { autoFetch = true, filters: initialFilters = {}, pageSize = DEFAULT_CUSTOMER_PAGE_SIZE } = options
+  const { autoFetch = true, filters: initialFilters = {}, pageSize = DEFAULT_CUSTOMER_PAGE_SIZE, initialPage = 1 } = options
 
   const [customers, setCustomers] = useState<Customer[]>([])
   const [cities, setCities] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<CustomerFilters>(initialFilters)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(initialPage)
   const [totalCount, setTotalCount] = useState(0)
 
   const totalPages = Math.ceil(totalCount / pageSize)

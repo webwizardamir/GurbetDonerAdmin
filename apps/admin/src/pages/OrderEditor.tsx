@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import OrderForm from '../components/orders/OrderForm'
+import { useBackTo } from '../hooks/useUrlListState'
 import { fetchOrderById, type OrderWithItems } from '../services/orders'
 
 interface OrderEditorProps {
@@ -9,7 +10,9 @@ interface OrderEditorProps {
 }
 
 export default function OrderEditor({ mode }: OrderEditorProps) {
-  const navigate = useNavigate()
+  // A real browser-back, so the Orders list returns on the page/filters it was
+  // left on (they live in the URL — see useUrlListState).
+  const goBack = useBackTo('/orders')
   const { id } = useParams<{ id: string }>()
   const [order, setOrder] = useState<OrderWithItems | null>(null)
   const [loading, setLoading] = useState(mode === 'edit')
@@ -57,8 +60,8 @@ export default function OrderEditor({ mode }: OrderEditorProps) {
   return (
     <OrderForm
       editOrder={mode === 'edit' ? order ?? undefined : undefined}
-      onCancel={() => navigate('/orders')}
-      onSuccess={() => navigate('/orders')}
+      onCancel={goBack}
+      onSuccess={goBack}
     />
   )
 }

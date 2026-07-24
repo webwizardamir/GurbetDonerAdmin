@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FileText,
@@ -25,6 +25,7 @@ import {
 import { supabase } from '../services/supabase'
 import type { Document, DocumentType } from '../types'
 import Pagination from '../components/ui/Pagination'
+import { useUrlListState } from '../hooks/useUrlListState'
 import { usePermission } from '../hooks/usePermission'
 import { InvoiceTemplate } from '../components/documents/InvoiceTemplate'
 import { ProformaTemplate } from '../components/documents/ProformaTemplate'
@@ -127,25 +128,33 @@ const PAGE_SIZE = 50
 export default function Invoices() {
   const { t } = useTranslation()
   const { canDelete } = usePermission('documents')
+  // View state lives in the URL so opening an order from a row and coming back
+  // restores the page + filters (see useUrlListState).
+  const [urlInit, setUrlState] = useUrlListState({
+    page: 1, q: '', type: '', customer: '', range: 'all', from: '', to: '',
+  })
+
   const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
   const [documents, setDocuments] = useState<DocumentListRow[]>([])
   const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(urlInit.page)
   const [stats, setStats] = useState({ total: 0, invoices: 0, creditNotes: 0, other: 0 })
   const [customers, setCustomers] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<DocumentType | ''>('')
+  const [searchQuery, setSearchQuery] = useState(urlInit.q)
+  const [debouncedSearch, setDebouncedSearch] = useState(urlInit.q)
+  const [typeFilter, setTypeFilter] = useState<DocumentType | ''>(urlInit.type as DocumentType | '')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [sortField, setSortField] = useState<SortField>('generated_at')
   const [sortDirection, setSortDirection] = useState<SortDir>('desc')
-  const [dateRangePreset, setDateRangePreset] = useState<DatePreset>('all')
-  const [showCustomDate, setShowCustomDate] = useState(false)
-  const [customStart, setCustomStart] = useState('')
-  const [customEnd, setCustomEnd] = useState('')
-  const [customerFilter, setCustomerFilter] = useState('')
+  const [dateRangePreset, setDateRangePreset] = useState<DatePreset>(urlInit.range as DatePreset)
+  const [showCustomDate, setShowCustomDate] = useState(urlInit.range === 'custom')
+  const [customStart, setCustomStart] = useState(urlInit.from)
+  const [customEnd, setCustomEnd] = useState(urlInit.to)
+  const [customerFilter, setCustomerFilter] = useState(urlInit.customer)
+
+  const goToPage = (next: number) => { setPage(next); setUrlState({ page: next }) }
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkProcessing, setBulkProcessing] = useState(false)
 
@@ -170,11 +179,25 @@ export default function Invoices() {
     return () => clearTimeout(id)
   }, [searchQuery])
 
-  // Any filter/sort change clears the selection and returns to page 1.
+  // Any filter/sort change clears the selection and returns to page 1, and
+  // mirrors the filters into the URL. The initial run is skipped: it would
+  // otherwise reset the page we just restored from the URL back to 1, and write
+  // the URL on mount.
+  const filtersInitRef = useRef(true)
   useEffect(() => {
+    if (filtersInitRef.current) { filtersInitRef.current = false; return }
     setSelectedIds(new Set())
     setPage(1)
-  }, [filters, sortField, sortDirection])
+    setUrlState({
+      page: 1,
+      q: debouncedSearch,
+      type: typeFilter,
+      customer: customerFilter,
+      range: dateRangePreset,
+      from: dateRangePreset === 'custom' ? customStart : '',
+      to: dateRangePreset === 'custom' ? customEnd : '',
+    })
+  }, [filters, sortField, sortDirection]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadDocuments = async () => {
     setLoading(true)
@@ -577,7 +600,7 @@ export default function Invoices() {
       </div>
 
       {!loading && total > 0 && (
-        <Pagination page={page} pageSize={PAGE_SIZE} totalCount={total} onPageChange={setPage} />
+        <Pagination page={page} pageSize={PAGE_SIZE} totalCount={total} onPageChange={goToPage} />
       )}
 
       {/* Info */}

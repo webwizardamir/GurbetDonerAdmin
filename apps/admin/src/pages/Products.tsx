@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Search,
@@ -24,6 +23,7 @@ import { productExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
+import { useUrlListState } from '../hooks/useUrlListState'
 import { downloadProductTemplate } from '../utils/productTemplate'
 import { fetchAllProducts } from '../services/products'
 import { formatPrice, formatPercent } from '../utils/format'
@@ -47,12 +47,23 @@ function formatUnitType(unitType: string, t: (key: string) => string): string {
 export default function Products() {
   const { t } = useTranslation()
   const { canCreate, canEdit, canDelete } = usePermission('products')
-  const { products, loading, error, refresh, create, update, remove, page, setPage, totalPages, totalCount, setFilters } = useProducts()
   const { profile } = useAuth()
   const isOwner = profile?.role === 'owner'
 
-  const [searchParams] = useSearchParams()
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
+  // View state lives in the URL so opening a product and coming back restores the
+  // page + search (see useUrlListState). The `search` key is kept (rather than a
+  // shorter `q`) because Analytics already deep-links here with ?search=<name>.
+  const [urlInit, setUrlState] = useUrlListState({ page: 1, search: '' })
+
+  const { products, loading, error, refresh, create, update, remove, page, setPage, totalPages, totalCount, setFilters } = useProducts(
+    { search: urlInit.search || undefined },
+    undefined,
+    urlInit.page,
+  )
+
+  const goToPage = (next: number) => { setPage(next); setUrlState({ page: next }) }
+
+  const [searchQuery, setSearchQuery] = useState(urlInit.search)
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
@@ -75,12 +86,15 @@ export default function Products() {
     }
   }
 
-  // Debounced server-side search (skip initial mount)
+  // Debounced server-side search. Skips its initial run, so the URL is only
+  // written on a real user change — never on mount, where it could clobber the
+  // ?search= we just read. setFilters() resets to page 1; the URL mirror too.
   const [searchInit, setSearchInit] = useState(false)
   useEffect(() => {
     if (!searchInit) { setSearchInit(true); return }
     const timer = setTimeout(() => {
       setFilters({ search: searchQuery || undefined })
+      setUrlState({ search: searchQuery, page: 1 })
     }, 300)
     return () => clearTimeout(timer)
   }, [searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -382,7 +396,7 @@ export default function Products() {
               </p>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
+                  onClick={() => goToPage(Math.max(1, page - 1))}
                   disabled={page === 1}
                   className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
@@ -405,7 +419,7 @@ export default function Products() {
                     return (
                       <button
                         key={pageNum}
-                        onClick={() => setPage(pageNum)}
+                        onClick={() => goToPage(pageNum)}
                         className={`w-8 h-8 text-sm rounded-lg transition-colors ${
                           pageNum === page
                             ? 'bg-green-600 text-white font-medium'
@@ -418,7 +432,7 @@ export default function Products() {
                   })
                 })()}
                 <button
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  onClick={() => goToPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
                   className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >

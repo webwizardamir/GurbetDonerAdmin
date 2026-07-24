@@ -19,12 +19,13 @@ import {
 // Orders per page
 const PAGE_SIZE = 50
 
-export function useOrders(initialFilters: OrderFilters = {}) {
+/** @param initialPage page to start on — used to restore the page from the URL (see useUrlListState). */
+export function useOrders(initialFilters: OrderFilters = {}, initialPage = 1) {
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalCount, setTotalCount] = useState(0)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(initialPage)
   const [filters, setFilters] = useState<OrderFilters>({
     limit: PAGE_SIZE,
     ...initialFilters,

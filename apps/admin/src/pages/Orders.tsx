@@ -31,6 +31,7 @@ import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/do
 import { fetchSendCountsByOrder } from '../services/documentEmail'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
+import { useUrlListState } from '../hooks/useUrlListState'
 import OrderDetail from '../components/orders/OrderDetail'
 import OrderNotesModal from '../components/orders/OrderNotesModal'
 import StatusBadge from '../components/ui/StatusBadge'
@@ -57,9 +58,34 @@ export default function Orders() {
   const { isOwner } = useAuth()
   const navigate = useNavigate()
   const { canCreate, canEdit, canDelete } = usePermission('orders')
-  const { orders, loading, error, filters, setFilters, refresh, remove, page, setPage, totalPages, totalCount } = useOrders()
 
-  const [searchQuery, setSearchQuery] = useState('')
+  // View state lives in the URL so editing an order (a full route change to
+  // /orders/:id/edit) and coming back restores the page + filters — see
+  // useUrlListState. This also covers the inbound Dashboard links such as
+  // /orders?status=pending_payment, which used to be handled by a separate
+  // mount effect below.
+  const [urlInit, setUrlState] = useUrlListState({
+    page: 1,
+    q: '',
+    status: [] as string[],
+    payment: [] as string[],
+    type: [] as string[],
+    customer: '',
+    trashed: false,
+  })
+
+  const { orders, loading, error, filters, setFilters, refresh, remove, page, setPage, totalPages, totalCount } = useOrders({
+    search: urlInit.q || undefined,
+    status: urlInit.status.length ? (urlInit.status as OrderStatus[]) : undefined,
+    paymentMethod: urlInit.payment.length ? (urlInit.payment as PaymentMethod[]) : undefined,
+    customerType: urlInit.type.length ? urlInit.type : undefined,
+    customerId: urlInit.customer || undefined,
+    trashed: urlInit.trashed || undefined,
+  }, urlInit.page)
+
+  const goToPage = (next: number) => { setPage(next); setUrlState({ page: next }) }
+
+  const [searchQuery, setSearchQuery] = useState(urlInit.q)
   const [searchParams] = useSearchParams()
   const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
   const [notesOrder, setNotesOrder] = useState<OrderWithItems | null>(null)
@@ -76,16 +102,12 @@ export default function Orders() {
   const [sendInfo, setSendInfo] = useState<Record<string, { total: number; sent: number; failed: number; invoiceSent: boolean }>>({})
   const [statusCounts, setStatusCounts] = useState<Record<string, number> & { total: number }>({ total: 0 })
 
-  // Read URL params on mount to apply filters (e.g. ?status=pending_payment)
-  // and redirect legacy ?new=1 links to the new editor route.
+  // One-shot URL params on mount. The filter params (?status=, ?q=, ...) are NOT
+  // handled here — useUrlListState above already seeded the hook with them.
   useEffect(() => {
     if (searchParams.get('new') === '1') {
       navigate('/orders/new', { replace: true })
       return
-    }
-    const urlStatus = searchParams.get('status')
-    if (urlStatus) {
-      setFilters({ status: [urlStatus as OrderStatus] })
     }
     // Open a specific order's detail panel when linked via ?order=<id>
     // (e.g. clicking the order number on the Invoices page). The order may not
@@ -107,11 +129,14 @@ export default function Orders() {
   }, [showPaymentModal])
 
   // Debounced server-side search: sends order_number filter to API after 300ms
+  // Skips its initial run, so the URL is only written on a real user change —
+  // never on mount, where it could clobber the params we just read.
   const [searchInitialized, setSearchInitialized] = useState(false)
   useEffect(() => {
     if (!searchInitialized) { setSearchInitialized(true); return }
     const timer = setTimeout(() => {
       setFilters({ search: searchQuery || undefined })
+      setUrlState({ q: searchQuery, page: 1 })
     }, 300)
     return () => clearTimeout(timer)
   }, [searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -213,6 +238,7 @@ export default function Orders() {
   const toggleTrashView = () => {
     setSelectedIds(new Set())
     setFilters({ ...filters, trashed: !trashed, status: undefined })
+    setUrlState({ trashed: !trashed, status: [], page: 1 })
   }
 
   // The status/payment/type filters are multi-select. Store as arrays (undefined
@@ -221,9 +247,20 @@ export default function Orders() {
   const statusFilter = toArr(filters.status as OrderStatus | OrderStatus[] | undefined)
   const paymentFilter = toArr(filters.paymentMethod as PaymentMethod | PaymentMethod[] | undefined)
   const typeFilter = toArr(filters.customerType)
-  const handleStatusFilter = (values: string[]) => setFilters({ ...filters, status: values.length ? (values as OrderStatus[]) : undefined })
-  const handlePaymentFilter = (values: string[]) => setFilters({ ...filters, paymentMethod: values.length ? (values as PaymentMethod[]) : undefined })
-  const handleCustomerTypeFilter = (values: string[]) => setFilters({ ...filters, customerType: values.length ? values : undefined })
+  // Each handler mirrors its value into the URL alongside the fetch filter, so a
+  // round-trip to the order editor comes back to the same view.
+  const handleStatusFilter = (values: string[]) => {
+    setFilters({ ...filters, status: values.length ? (values as OrderStatus[]) : undefined })
+    setUrlState({ status: values, page: 1 })
+  }
+  const handlePaymentFilter = (values: string[]) => {
+    setFilters({ ...filters, paymentMethod: values.length ? (values as PaymentMethod[]) : undefined })
+    setUrlState({ payment: values, page: 1 })
+  }
+  const handleCustomerTypeFilter = (values: string[]) => {
+    setFilters({ ...filters, customerType: values.length ? values : undefined })
+    setUrlState({ type: values, page: 1 })
+  }
 
   // Attach the displayed invoice number (app-generated, else legacy WC) to a row
   // so the export's optional "Factuurnummer" column can render it. The number
@@ -349,7 +386,10 @@ export default function Orders() {
           />
           <CustomerFilterSelect
             value={filters.customerId}
-            onChange={(customerId) => setFilters({ ...filters, customerId })}
+            onChange={(customerId) => {
+              setFilters({ ...filters, customerId })
+              setUrlState({ customer: customerId || '', page: 1 })
+            }}
           />
           <ExportMenu
             getAllData={exportGetAllData}
@@ -698,7 +738,7 @@ export default function Orders() {
           </p>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setPage(Math.max(1, page - 1))}
+              onClick={() => goToPage(Math.max(1, page - 1))}
               disabled={page === 1}
               className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
@@ -721,7 +761,7 @@ export default function Orders() {
                 return (
                   <button
                     key={pageNum}
-                    onClick={() => setPage(pageNum)}
+                    onClick={() => goToPage(pageNum)}
                     className={`w-8 h-8 text-sm rounded-lg transition-colors ${
                       pageNum === page
                         ? 'bg-green-600 text-white font-medium'
@@ -734,7 +774,7 @@ export default function Orders() {
               })
             })()}
             <button
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              onClick={() => goToPage(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
               className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >

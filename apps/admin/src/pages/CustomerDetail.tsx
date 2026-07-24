@@ -28,6 +28,7 @@ import { useCustomerDetail } from '../hooks/useCustomerDetail'
 import { useDocumentSettings } from '../hooks/useDocumentSettings'
 import { useAuth } from '../context/AuthContext'
 import { usePermission } from '../hooks/usePermission'
+import { useBackTo } from '../hooks/useUrlListState'
 import OrdersTable from '../components/orders/OrdersTable'
 import OrderDetail from '../components/orders/OrderDetail'
 import OrderNotesModal from '../components/orders/OrderNotesModal'
@@ -258,6 +259,9 @@ export default function CustomerDetail() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  // A real browser-back, so the Customers list returns on the page/filters it
+  // was left on (they live in the URL — see useUrlListState).
+  const goBackToCustomers = useBackTo('/customers')
   const { isOwner } = useAuth()
   const { canEdit, canDelete } = usePermission('orders')
   const { loading, error, customer, orders, profitByOrder, stats, refresh } = useCustomerDetail(id)
@@ -365,7 +369,7 @@ export default function CustomerDetail() {
           {error || t('customerDetail.notFound')}
         </p>
         <button
-          onClick={() => navigate('/customers')}
+          onClick={goBackToCustomers}
           className="text-green-600 hover:text-green-700 font-medium"
         >
           {t('customerDetail.backToCustomers')}
@@ -379,7 +383,7 @@ export default function CustomerDetail() {
       {/* Header */}
       <div className="flex items-start gap-4">
         <button
-          onClick={() => navigate('/customers')}
+          onClick={goBackToCustomers}
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />

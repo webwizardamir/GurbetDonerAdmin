@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Mail, Loader2, AlertCircle, Search, RefreshCw } from 'lucide-react'
@@ -6,6 +6,7 @@ import { fetchDocumentSendsPaged, syncEmailStatus } from '../services/documentEm
 import { fetchDocumentSettings } from '../services/documents'
 import EmailViewModal, { StatusIcon } from '../components/documents/EmailViewModal'
 import Pagination from '../components/ui/Pagination'
+import { useUrlListState } from '../hooks/useUrlListState'
 import type { DocumentSend, DocumentSettings } from '../types'
 
 // 'problems' groups every delivery-failure status (bounced/complained/suppressed/failed).
@@ -15,14 +16,20 @@ const PAGE_SIZE = 50
 
 export default function Outbox() {
   const { t } = useTranslation()
+  // View state lives in the URL so opening an email and coming back restores the
+  // page + filter (see useUrlListState).
+  const [urlInit, setUrlState] = useUrlListState({ page: 1, q: '', status: 'all' })
+
   const [sends, setSends] = useState<DocumentSend[]>([])
   const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(urlInit.page)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(urlInit.status as StatusFilter)
+  const [searchQuery, setSearchQuery] = useState(urlInit.q)
+  const [debouncedSearch, setDebouncedSearch] = useState(urlInit.q)
+
+  const goToPage = (next: number) => { setPage(next); setUrlState({ page: next }) }
   const [settings, setSettings] = useState<DocumentSettings | null>(null)
   const [selected, setSelected] = useState<DocumentSend | null>(null)
   const [syncing, setSyncing] = useState(false)
@@ -56,8 +63,15 @@ export default function Outbox() {
     return () => clearTimeout(id)
   }, [searchQuery])
 
-  // Any filter/search change resets to page 1.
-  useEffect(() => { setPage(1) }, [statusFilter, debouncedSearch])
+  // Any filter/search change resets to page 1 and mirrors into the URL. The
+  // initial run is skipped: it would otherwise reset the page we just restored
+  // from the URL back to 1, and write the URL on mount.
+  const filtersInitRef = useRef(true)
+  useEffect(() => {
+    if (filtersInitRef.current) { filtersInitRef.current = false; return }
+    setPage(1)
+    setUrlState({ page: 1, q: debouncedSearch, status: statusFilter })
+  }, [statusFilter, debouncedSearch]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { void load() }, [statusFilter, debouncedSearch, page])
 
@@ -216,7 +230,7 @@ export default function Outbox() {
       </div>
 
       {!loading && total > 0 && (
-        <Pagination page={page} pageSize={PAGE_SIZE} totalCount={total} onPageChange={setPage} />
+        <Pagination page={page} pageSize={PAGE_SIZE} totalCount={total} onPageChange={goToPage} />
       )}
 
       {selected && (

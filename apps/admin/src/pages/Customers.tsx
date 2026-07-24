@@ -27,6 +27,7 @@ import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
+import { useUrlListState } from '../hooks/useUrlListState'
 import { supabase } from '../services/supabase'
 import type { CustomerAccount } from '../services/portalAuth'
 
@@ -34,12 +35,29 @@ export default function Customers() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { canCreate, canEdit, canDelete } = usePermission('customers')
-  const { customers, loading, error, refresh, create, update, remove, restore, purge, cities, page, setPage, totalPages, totalCount, setFilters } = useCustomers()
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [cityFilter, setCityFilter] = useState('')
-  const [typeFilter, setTypeFilter] = useState('')
-  const [showArchived, setShowArchived] = useState(false)
+  // View state lives in the URL so opening a customer and coming back restores
+  // the page + filters (see useUrlListState). Read once here, mirrored below
+  // from the filter/pagination handlers.
+  const [urlInit, setUrlState] = useUrlListState({ page: 1, q: '', city: '', type: '', archived: false })
+
+  const { customers, loading, error, refresh, create, update, remove, restore, purge, cities, page, setPage, totalPages, totalCount, setFilters } = useCustomers({
+    initialPage: urlInit.page,
+    filters: {
+      search: urlInit.q || undefined,
+      city: urlInit.city || undefined,
+      customerType: urlInit.type || undefined,
+      archived: urlInit.archived,
+    },
+  })
+
+  const [searchQuery, setSearchQuery] = useState(urlInit.q)
+  const [cityFilter, setCityFilter] = useState(urlInit.city)
+  const [typeFilter, setTypeFilter] = useState(urlInit.type)
+  const [showArchived, setShowArchived] = useState(urlInit.archived)
+
+  // Paging goes through here so the URL always reflects the visible page.
+  const goToPage = (next: number) => { setPage(next); setUrlState({ page: next }) }
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
@@ -58,12 +76,18 @@ export default function Customers() {
     fetchPortalAccounts()
   }, [customers])
 
+  // Each filter effect below skips its initial run, so the URL is only ever
+  // written in response to a real user change — never on mount, where it could
+  // clobber the params we just read.
+  // setFilters() resets the hook to page 1, so the URL mirror does too.
+
   // Debounced server-side search (skip initial mount)
   const [searchInit, setSearchInit] = useState(false)
   useEffect(() => {
     if (!searchInit) { setSearchInit(true); return }
     const timer = setTimeout(() => {
       setFilters({ search: searchQuery || undefined })
+      setUrlState({ q: searchQuery, page: 1 })
     }, 300)
     return () => clearTimeout(timer)
   }, [searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -73,6 +97,7 @@ export default function Customers() {
   useEffect(() => {
     if (!cityInit) { setCityInit(true); return }
     setFilters({ city: cityFilter || undefined })
+    setUrlState({ city: cityFilter, page: 1 })
   }, [cityFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Server-side customer-type filter (skip initial mount)
@@ -80,6 +105,7 @@ export default function Customers() {
   useEffect(() => {
     if (!typeInit) { setTypeInit(true); return }
     setFilters({ customerType: typeFilter || undefined })
+    setUrlState({ type: typeFilter, page: 1 })
   }, [typeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggle between active and archived customers (skip initial mount)
@@ -87,6 +113,7 @@ export default function Customers() {
   useEffect(() => {
     if (!archivedInit) { setArchivedInit(true); return }
     setFilters({ archived: showArchived })
+    setUrlState({ archived: showArchived, page: 1 })
   }, [showArchived]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Phase 6: sortable columns
@@ -328,7 +355,7 @@ export default function Customers() {
           </p>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setPage(Math.max(1, page - 1))}
+              onClick={() => goToPage(Math.max(1, page - 1))}
               disabled={page === 1}
               className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
@@ -351,7 +378,7 @@ export default function Customers() {
                 return (
                   <button
                     key={pageNum}
-                    onClick={() => setPage(pageNum)}
+                    onClick={() => goToPage(pageNum)}
                     className={`w-8 h-8 text-sm rounded-lg transition-colors ${
                       pageNum === page
                         ? 'bg-green-600 text-white font-medium'
@@ -364,7 +391,7 @@ export default function Customers() {
               })
             })()}
             <button
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              onClick={() => goToPage(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
               className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >

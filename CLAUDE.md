@@ -74,7 +74,7 @@ A comprehensive B2B wholesale management platform for halal food distribution. T
 | Backend | Supabase (PostgreSQL + Auth + Storage) |
 | PDF Generation | @react-pdf/renderer or jsPDF |
 | Barcode Scanning | html5-qrcode or quagga2 |
-| State Management | React Context + React Query |
+| State Management | React Context + hand-rolled `useState`/`useEffect` data hooks (`hooks/use*.ts`) — **React Query is NOT installed**, so there is no caching, deduping or refetch-on-focus unless a hook implements it |
 | Forms | React Hook Form + Zod validation |
 | Tables | TanStack Table |
 | Charts | Recharts |
@@ -812,6 +812,11 @@ Opt-in **"Concept"** status to park an unfinalised order. **Live `orders.status`
 1. **Gets no invoice/number** — `OrderForm`'s `ensureOrderInvoice` block is skipped while saving a draft (`!savingAsDraft`); **finalising** (draft→non-draft, via the form checkbox OR the detail status buttons) issues it then.
 2. **Gets no automatic email** — a draft has no invoice doc so the reminder cron's `if(!invDoc) skip` ignores it; belt-and-suspenders, `process-invoice-reminders` Step 4 dunning also excludes `draft` (source committed; **redeploy skipped** — proxy failure, unneeded).
 3. **Is excluded from analytics revenue/profit** — **migration 00089** (a `DO` block that reads each RPC's `pg_get_functiondef` and string-replaces the sold-set predicate to add `'draft'`) patches 20 revenue/profit RPCs. **Kept** in `get_today_stats` operational buckets (items_to_pick/pending_count), the status-distribution RPCs, and `get_order_stats_by_status` (Orders Draft filter). Do NOT hand-rewrite those functions from old migrations — the DO-block preserves live 00070 owner-gating.
+4. **Is invisible in the customer portal** (migration **00094**) — `status <> 'draft'` was added to
+   all four portal RPCs (`get_portal_orders` / `_order` / `_documents` / `_stats`). The documents
+   filter matters as much as the orders one: a draft **can** carry an issued invoice (invoiced first,
+   set back to Concept afterwards — all 3 live drafts had one), so without it the PDF of an
+   uncommitted order was downloadable from the portal's Documents page. Applied to **both** databases.
 - **Entry ("Both"):** a "Concept" checkbox in `OrderForm` + a "Concept" status action in `OrderDetail`. `CreateOrderData.status?` is threaded through `createOrder`/`updateOrderWithItems` **only when it must change** (never clobbers an existing completed/cancelled status). Drafts still **reserve stock** (deducts on `order_items` insert, status-agnostic) — unchanged. See `[[draft_status_and_line_profit]]`.
 
 ### Roles
@@ -1315,6 +1320,52 @@ constant) + `Users` create-user, portal `PortalCreateForm` enable + `PortalAccou
 change all three: the util, and both edge fns.** Owner-only backstops that live **only in the Supabase
 dashboard** (Auth → Policies, not in code): raise project **minimum password length** (was 6) and enable
 **leaked-password protection (HaveIBeenPwned)**.
+
+## List pages: view state lives in the URL (2026-07-24)
+
+Every paginated list keeps its **page + filters + search in the query string** —
+`/customers?page=2&type=horeca` — via **`hooks/useUrlListState.ts`**. Without this, opening a
+detail page unmounts the list and React throws the state away, so the back arrow dumped the user
+on page 1 with filters cleared. Bonus: a filtered list is a shareable link.
+
+Wired on **Customers, Orders, Products, Invoices, Outbox**. Detail/editor back buttons use
+**`useBackTo(fallback)`** from the same file (`navigate(-1)`; falls back to the list route when
+`location.key === 'default'`, i.e. a deep link with nothing behind it) — `CustomerDetail`,
+`OrderEditor`. A forward `navigate('/orders')` would push a bare URL and throw the state away again.
+
+**The mirroring is one-directional — keep it that way:**
+1. The URL is parsed **once** on mount (`urlInit`) and used to seed local state + the data hook
+   (`useCustomers({ initialPage, filters })`, `useOrders(filters, initialPage)`,
+   `useProducts(filters, pageSize, initialPage)`).
+2. `setUrlState({...})` is called **only from event handlers**, or from effects that already skip
+   their initial run. **Never write the URL from a mount-time effect** — an inbound link such as
+   `/orders?status=pending_payment` (Dashboard tiles) would be stripped by our own write before the
+   page read it.
+3. Any "reset to page 1 when filters change" effect must **skip its first run**, or it wipes the
+   page just restored from the URL (see the `filtersInitRef` guards in `Invoices.tsx` / `Outbox.tsx`).
+4. Values equal to their default are omitted, so an unfiltered list stays at a clean `/customers`;
+   writes use `{ replace: true }` so paging doesn't pile up history entries.
+
+## 🚨 Never `await` a Supabase call inside `onAuthStateChange`
+
+Supabase emits auth events from **inside its auth lock** and awaits every subscriber before
+releasing it. Calling back into `refreshSession()` / `getSession()` / `getUser()` — or **any**
+`.from()`/`.rpc()` query, which fetches the access token via `getSession()` — makes the lock wait on
+itself. It is never released; since supabase-js takes that lock on every PostgREST request, **every
+query in the app hangs forever**, in every tab on the origin, until a hard reload. That was the
+"stuck on the loading spinner until I refresh" bug (`BUGS_AND_FIXES.md`, 2026-07-24).
+
+Rules for `context/AuthContext.tsx` + `context/PortalAuthContext.tsx`:
+- The callback is **synchronous** and only calls `setState`. Defer async follow-up with
+  `setTimeout(fn, 0)` so it runs after the lock is released.
+- **`SIGNED_OUT` means signed out** — do not try to "recover" it with a refresh. auth-js has
+  already wiped the stored refresh token by then, so it could only fail anyway.
+- Do **not** hand-roll a session refresh on `visibilitychange`. auth-js already does it
+  (`_onVisibilityChanged` → `_recoverAndRefresh`); a second one races it and a losing racer
+  presents a just-rotated token → 400 → `SIGNED_OUT` → the deadlock above. The remaining
+  `visibilitychange` listener in `AuthContext` is inactivity-logout only and makes no network call.
+- `AuthContext` init is wrapped in a 10s watchdog that always releases the `loading` gate — a
+  safety net, not the fix.
 
 ## Custom Agents
 

@@ -12,12 +12,13 @@ import { setProductUnitPrices } from '../services/productUnitPrices'
 
 const DEFAULT_PAGE_SIZE = 50
 
-export function useProducts(initialFilters: ProductFilters = {}, pageSize: number = DEFAULT_PAGE_SIZE) {
+/** @param initialPage page to start on — used to restore the page from the URL (see useUrlListState). */
+export function useProducts(initialFilters: ProductFilters = {}, pageSize: number = DEFAULT_PAGE_SIZE, initialPage = 1) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<ProductFilters>(initialFilters)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(initialPage)
   const [totalCount, setTotalCount] = useState(0)
 
   const totalPages = Math.ceil(totalCount / pageSize)
