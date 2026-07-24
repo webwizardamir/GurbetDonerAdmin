@@ -60,8 +60,16 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
 
     checkSession()
 
-    // Listen for auth state changes AFTER initialization (use portal client)
-    const { data: { subscription } } = portalSupabase.auth.onAuthStateChange(async (event, _session) => {
+    // Listen for auth state changes AFTER initialization (use portal client).
+    //
+    // ⚠️ This callback is SYNCHRONOUS on purpose. Supabase emits these events
+    // from inside its auth lock and awaits every subscriber before releasing it,
+    // so awaiting any Supabase call here (refreshSession/getSession/getUser, or
+    // any .from()/.rpc() — those fetch the access token via getSession too)
+    // deadlocks that lock forever and freezes every portal query until a hard
+    // reload. Async follow-up work must be deferred with setTimeout(fn, 0), which
+    // runs after the lock is released. See the same note in AuthContext.tsx.
+    const { data: { subscription } } = portalSupabase.auth.onAuthStateChange((event, _session) => {
       if (!mounted) return
 
       // Only handle SIGNED_IN and SIGNED_OUT
@@ -80,53 +88,27 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       log(' Auth state changed:', event)
 
       if (event === 'SIGNED_OUT') {
-        // Backgrounded tabs miss the autoRefreshToken window and Supabase
-        // can fire SIGNED_OUT even when the refresh token is still valid.
-        // Try to recover before nuking the user.
-        try {
-          const { data, error } = await portalSupabase.auth.refreshSession()
-          if (!error && data.session) {
-            log(' SIGNED_OUT recovered via refresh — keeping user')
-            return
-          }
-        } catch (err) {
-          console.error('[PortalAuth] Refresh on SIGNED_OUT failed:', err)
-        }
-        if (mounted) setUser(null)
+        // No recovery refresh: auth-js has already wiped the stored refresh token
+        // by the time this fires, so it could only fail — and attempting it here
+        // deadlocked the lock (see above). Session gone = signed out.
+        setUser(null)
       } else if (event === 'SIGNED_IN') {
-        // Re-check portal user status
-        try {
-          const portalUser = await getPortalUser()
-          if (mounted) {
-            setUser(portalUser)
-          }
-        } catch (err) {
-          console.error('Error checking portal user on sign in:', err)
-        }
+        // Deferred out of the callback so the auth lock is released first.
+        setTimeout(() => {
+          getPortalUser()
+            .then(portalUser => { if (mounted) setUser(portalUser) })
+            .catch(err => console.error('Error checking portal user on sign in:', err))
+        }, 0)
       }
     })
 
-    // On tab return, proactively refresh the session before any UI render
-    // can decide to redirect.
-    let refreshing = false
-    const onVisibilityChange = async () => {
-      if (document.visibilityState !== 'visible') return
-      if (refreshing) return
-      refreshing = true
-      try {
-        await portalSupabase.auth.refreshSession()
-      } catch (err) {
-        console.error('[PortalAuth] Visibility refresh failed:', err)
-      } finally {
-        refreshing = false
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibilityChange)
+    // No custom visibilitychange refresh here: auth-js already recovers the
+    // session itself when the tab becomes visible. The hand-rolled one raced it
+    // and could rotate the refresh token twice, producing a spurious SIGNED_OUT.
 
     return () => {
       mounted = false
       subscription.unsubscribe()
-      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
 

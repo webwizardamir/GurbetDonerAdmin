@@ -74,6 +74,13 @@ export const portalSupabase = createClient(
       autoRefreshToken: true,
       persistSession: true,
       storage: portalAuthStorage,
+      // Both clients are created at module import, so both are live on every
+      // page — including the admin `/reset-password#access_token=...` screen.
+      // With this on, the portal client would race the admin client for that
+      // hash and could persist a STAFF token under sb-portal-auth-token. The
+      // portal's own login is OTP (verifyOtp), which never uses a URL hash, so
+      // it has no need for hash detection.
+      detectSessionInUrl: false,
     }
   }
 )
