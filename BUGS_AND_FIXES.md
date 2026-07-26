@@ -770,3 +770,70 @@ The recovery being attempted was futile anyway: `_removeSession()` wipes storage
 **Cause:** ordinary React. `page`/filters lived in `useState` inside the list component; React Router **unmounts** it on navigation, so returning mounted a fresh component and every `useState(1)` started over. Compounded by the back buttons doing a forward `navigate('/customers')` / `navigate('/orders')` rather than a real back, which pushed a bare URL even if state had been preserved.
 **Solution:** new `hooks/useUrlListState.ts` parks the view state in the query string (`/customers?page=2&type=horeca`), wired into Customers, Orders, Products, Invoices and Outbox; plus `useBackTo(fallback)` for detail/editor back buttons (`navigate(-1)`, falling back to the list route when `location.key === 'default'`, i.e. a deep link with no history behind it). Side benefit: a filtered list is now a shareable link.
 **Prevention:** the mirroring is deliberately **one-directional** — the URL is parsed **once** on mount to seed state, and written back **only from event handlers** (or from effects that skip their initial run). Never write it from a mount-time effect: an inbound link like `/orders?status=pending_payment` would be stripped by our own write before the page read it. Any effect that resets to page 1 on a filter change must also skip its first run, or it clobbers the page just restored from the URL.
+
+---
+
+## Hidden-orders RLS: a child-table gate that did the exact opposite (2026-07-26)
+
+**Symptom:** caught by my own impersonation test, not in review. With `orders.hidden_from_managers` set, a `shop_manager` correctly could not see the order row — but `SELECT count(*) FROM order_items WHERE order_id = <hidden>` returned 1, and so did its `documents` row. Line prices, COGS and the invoice PDF were all reachable.
+**Cause:** the child tables were gated with `NOT EXISTS (SELECT 1 FROM orders o WHERE o.id = order_items.order_id AND o.hidden_from_managers)`. **That inner SELECT is itself subject to `orders` RLS.** The manager cannot see the hidden `orders` row, so the subquery matches nothing, `NOT EXISTS` is TRUE, and the child row passes. The policy reads as obviously correct and does the opposite of what it says — and it fails *open*.
+**Solution (migration `00095`):** two SECURITY DEFINER helpers, `order_is_hidden(uuid)` and `refund_is_hidden(uuid)`, which see the real row regardless of the caller. Every child policy is `(SELECT is_owner()) OR NOT order_is_hidden(<fk>)`, owner first so it short-circuits. Also replaced the **entire** policy set per table rather than patching by name — Melek had a legacy permissive `orders_all` (`FOR ALL`, which also grants SELECT) that would have OR'd the whole feature away.
+**Prevention:** **an RLS policy on a child table can never reach its parent with a plain subquery.** Any cross-table predicate in RLS must go through a SECURITY DEFINER function, or it silently inherits the very filter it is trying to test. Test every gate by impersonating a real role in a rolled-back transaction — reading the policy is not enough, because this one looks right.
+
+---
+
+## `get_customer_items_summary` broke in production on a `sql` to `plpgsql` conversion (2026-07-26)
+
+**Symptom:** the customer detail page threw `42804 structure of query does not match function result type` immediately after migration 00095 — one column at a time, so fixing one revealed the next.
+**Cause:** the function was `LANGUAGE sql`, which applies **implicit assignment casts** to output columns; `plpgsql`'s `RETURN QUERY` type-checks **strictly**. Two columns had always been mistyped and it had never mattered: `unit_type` is an enum declared as `text`, and `last_ordered` is `MAX(order_date)` (a `date`) declared as `timestamptz`. The error only fires when a row is actually returned, so a customer with no items looked fine.
+**Solution:** explicit `s.unit_type::text` and `s.last_ordered::timestamptz`, folded back into 00095.
+**Prevention:** when converting a `LANGUAGE sql` function to `plpgsql` (e.g. to add a guard clause), **re-check every output column's type against the declared `RETURNS TABLE`** — the sql version silently papered over mismatches. Exercise the function against a row-returning input before calling it done.
+
+---
+
+## 372 rows of product cost were readable by `anon` (2026-07-26)
+
+**Symptom:** found by a review at the end of the session, not by a user. `product_unit_prices_select_all` was `FOR SELECT TO public USING (true)`.
+**Cause:** a pre-00035 policy. `public` includes `anon`, and the anon key ships in the client bundle — so anyone on the internet could read every product's `cost_cents`. `customer_prices` was the same shape for `authenticated`, which includes **portal customers**: any logged-in customer could read all 42 rows of other customers' negotiated pricing.
+**Solution (migration `00097`):** both replaced with `FOR SELECT TO authenticated USING (is_admin_user())`. Write policies left alone — they already required `is_admin_user()`, and `product_unit_prices`' set encodes the "shop_manager may only write `cost_cents IS NULL`" rule from 00033.
+**Gotcha worth remembering:** **the two tenants were exposed in opposite directions.** Gurbet, rebuilt from the repo migrations, already had the correct 00035-lineage policies and was never vulnerable; Melek, which never ran 00035, kept the old ones. The usual "apply everything twice" reflex would have found nothing on Gurbet and concluded the audit was done.
+**Prevention:** `USING (true)` is never acceptable on a table holding cost, pricing or order data. Audit `pg_policies` on **each** database separately — a migration existing in the repo says nothing about which database ran it.
+
+---
+
+## The inline theme script was blocked by CSP in production (2026-07-27)
+
+**Symptom (reported by owner, from the console):** `Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'wasm-unsafe-eval' blob:'`.
+**Cause:** a pre-paint dark-mode bootstrap had been added to `index.html` earlier the same session; `script-src` correctly has no `'unsafe-inline'`. Impact was cosmetic — `Header.tsx` still applies the theme in a `useEffect` — but that is exactly what the script existed to prevent, so dark-mode users silently got the white flash back.
+**Solution (commit `1cc3152`):** whitelisted the script's `sha256` in `apps/admin/vercel.json`. **Not** `'unsafe-inline'`, which would disable inline-script XSS protection app-wide to accommodate one script we wrote; and not an external file, because a `<script src>` costs a render-blocking request on every load and a module script is deferred — both let the paint happen first. Added `scripts/check-csp.mjs` to `npm run build`: it hashes every inline script in **dist/index.html** and fails with the correct hash to paste.
+**Gotcha:** `vercel.json` header entries accept only `key`/`value`; an explanatory `_comment` key fails Vercel's schema validation and breaks the deploy. The note lives in `index.html` beside the script instead.
+**Prevention:** a CSP hash is a two-file invariant that drifts **silently** — the page keeps working, so the only symptom is a console line nobody reads. Assert it in the build rather than leaving a comment asking someone to remember.
+
+---
+
+## A stale selection could silently re-deduct stock (2026-07-26)
+
+**Symptom:** found in review. Tick a `pending_payment` order in the Orders list, open it and cancel it from the detail panel (stock restored), then use bulk "mark completed" — the order was still in `completableSelected`, so `cancelled -> completed` was written and `handle_order_status_change` **re-deducted its stock**, with no confirmation.
+**Cause:** selection now survives paging and refreshes (a deliberate improvement), which turns each stored row into a **snapshot**. Bulk eligibility was computed from `.status` on that snapshot, which no longer reflected the DB.
+**Solution (commit `7cefe92`):** `Orders.tsx` re-derives the selected rows from the live list before computing eligibility, and `bulkUpdateOrderStatus` additionally constrains the UPDATE with `.in('status', legalFrom[target])` so an off-page stale row is skipped server-side rather than written.
+**Prevention:** once a selection outlives the data that produced it, **never read a mutable field off the stored row** — re-derive from current data, and enforce the transition server-side as well, because a row selected on another page may not be in memory at all. The same class of bug hit `SelectionBar`, whose "all selected" was a count comparison: 50 selected on page 1 and 50 rows on page 2 rendered the box checked on a page where nothing was selected.
+
+---
+
+## Finalising a Concept order kept the date the draft was started (2026-07-27)
+
+**Symptom (asked by owner):** "I work on a draft for days, then set it live — what is the order date?" It kept the draft's original date.
+**Cause:** none of the three finalisation paths touches `order_date` — `updateOrderStatus` and `bulkUpdateOrderStatus` write `status` only, and `OrderForm` re-sends whatever the (stale) field holds.
+**Impact, which is larger than a wrong date:** the order lands in the wrong day's route and day-close, books revenue into an already-reported period, and — because the 24h invoice auto-send window has an `order_date >= 3 days ago` floor — **its invoice email is never sent at all**. `invoice_due_date`, derived from `order_date`, is already in the past, so the dunning cron would mail the customer a reminder on day one. Live example: draft 10703 sat on 15 Jul with a due date of 22 Jul.
+**Solution (migration `00098`):** re-stamp `order_date` to today when a draft leaves `draft` for a live status. Implemented **inside `set_invoice_due_and_paid`** rather than as its own trigger, because that function recomputes `invoice_due_date` from `order_date` and **BEFORE triggers fire in alphabetical name order** — a separate trigger would depend on an invisible naming coincidence to run first, and losing that race leaves the due date anchored to the old draft date. Two guards: only when the caller did not set `order_date` in the same statement (`IS NOT DISTINCT FROM OLD`), so a date typed while unticking Concept wins; and only when the stored date is in the **past**, so a future-dated planned delivery is never pulled backwards.
+**Prevention:** when adding a BEFORE trigger to a table that already has one, check whether the existing one derives anything from the column you are writing — and prefer extending that function over adding a second trigger whose correctness depends on its name.
+
+---
+
+## A trashed order's status was editable, and Concept was missing from a cancelled order (2026-07-27)
+
+**Symptom (reported by owner):** a cancelled order offered every status except Concept.
+**Cause:** `canMarkDraft` in `OrderDetail.tsx` omitted `cancelled`. Nothing else blocked it — the stock trigger's "leaving cancelled" branch re-deducts regardless of target (and drafts do hold stock), and the revive confirmation already covered the path. The exclusion had it backwards: `cancelled -> completed` was one tap while `cancelled -> Concept`, the safest revive available (no invoice issued, stays out of analytics), was unreachable.
+**Found alongside:** the Prullenbak's eye icon opens the same panel, and a trashed order is stored as `status='cancelled' + deleted_at` — so it rendered the full status picker. Changing status there re-deducted stock for an order sitting in the bin, and `restore_order` then overwrote the status from `pre_trash_status`, so the change silently vanished on restore. Harmful *and* pointless.
+**Solution (commit `8045912`):** `cancelled` added to `canMarkDraft` (completed/refunded stay excluded — un-finalising a paid order should take the deliberate two steps); trashed orders render a plain `StatusBadge` showing the status they will return to. Refunds were already blocked there (`canRefund` excludes `cancelled`).
+**Still open, deliberately:** document generation is reachable from a trashed order, and issuing a *new* invoice number for one burns a number from the legal sequence. Re-downloading an existing document is harmless, so splitting the two is a product decision, not a bug fix.

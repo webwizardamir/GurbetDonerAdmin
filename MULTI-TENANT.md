@@ -162,6 +162,16 @@ Things deliberately different from Melek right now. Check before assuming parity
 - **Analytics hidden** (`features.analytics = false`).
 - **Empty database** — a fix verified against Melek's data is *unverified* on Gurbet.
 
+### Applied to BOTH on 2026-07-26/27 (no outstanding tenant action)
+
+`00095` hidden orders (column + full policy replacement on 6 tables + 15 RPCs),
+`00096` its follow-up gaps (reminder tables, trash/purge RPCs, documents INSERT),
+`00097` the four legacy `USING (true)` holes + `get_customer_orders` COGS gate,
+`00098` draft-finalise re-stamps `order_date` (folded into `set_invoice_due_and_paid`).
+All four verified on Melek by impersonating a real `shop_manager` in rolled-back
+transactions; **on Gurbet they are applied but behaviourally unverified — the database is
+empty**, so the first real order there is also the first real test of the hidden-order gate.
+
 ## Schema divergence — the repo does not reproduce Melek
 
 Melek's migration ledger records ~77 migrations against 94 files. Some live objects were
@@ -177,6 +187,14 @@ applied to Melek**. So the two schemas legitimately differ, in both directions.
   in **no migration file**. Copied to Gurbet by hand.
 - `audit_log_changes()` is referenced by 00009/00010 but defined nowhere (the real function
   is `log_audit_event`) — those statements have always failed.
+- 🚨 **RLS can be wrong in OPPOSITE directions on the two databases** (confirmed 2026-07-26).
+  Because 00035 never ran on Melek, Melek *kept* pre-00035 `USING (true)` SELECT policies that
+  Gurbet never had: `product_unit_prices` was `TO public`, i.e. **372 rows of COGS readable by
+  `anon`**, and `customer_prices` was readable by every portal customer. Gurbet was already
+  correct. Meanwhile Gurbet has the extra portal policies described above that Melek lacks.
+  **So "apply the fix twice" is not the rule here — checking only Gurbet would have found
+  nothing and closed the audit.** Closed by `00097`. Before assuming a hole exists on both,
+  query `pg_policies` on **each** database and compare.
 
 **Consequence:** never assume "the migrations produce the right schema." After schema work,
 diff the two catalogs (tables/columns/functions/policies/indexes) or at minimum verify the

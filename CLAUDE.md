@@ -1367,6 +1367,197 @@ Rules for `context/AuthContext.tsx` + `context/PortalAuthContext.tsx`:
 - `AuthContext` init is wrapped in a 10s watchdog that always releases the `loading` gate — a
   safety net, not the fix.
 
+## Hidden orders — owner-only privacy flag (migrations 00095–00097, 2026-07-26)
+
+Some orders carry amounts a Shop Manager has no business seeing. `orders.hidden_from_managers`
+(boolean, default false, partial index) hides such an order **everywhere** from a manager, not just
+in the list. Set at create or later, **owner-only**, via a checkbox in `OrderForm` next to Concept;
+the owner sees an `EyeOff` badge on the row plus a tri-state **Verborgen** filter
+(`OrderFilters.hidden: 'all' | 'only' | 'none'`).
+
+**Enforced in RLS, not the UI.** The app-side gate is belt-and-braces; the DB is the boundary.
+Canonical predicate, written verbatim everywhere so it is greppable:
+
+```sql
+(NOT hidden_from_managers OR (SELECT is_owner()))
+```
+
+The `(SELECT …)` wrapper makes it an InitPlan evaluated once per statement instead of once per row.
+
+### 🚨 The trap that made the first version leak — child tables
+A child table (order_items, documents, document_sends, order_refunds, order_refund_items) canNOT
+gate itself with `NOT EXISTS (SELECT 1 FROM orders o WHERE o.id = … AND o.hidden_from_managers)`.
+**That inner SELECT is itself subject to `orders` RLS.** A manager who cannot see the hidden order
+row makes the subquery return nothing, `NOT EXISTS` evaluates TRUE, and the child row is visible —
+the gate reads as correct and does the opposite. Verified by impersonation: `sees_items = 1`,
+`sees_docs = 1`.
+
+Fix: two SECURITY DEFINER helpers, `order_is_hidden(order_id)` and `refund_is_hidden(refund_id)`,
+which see the real row. Every child policy uses
+`(SELECT is_owner()) OR NOT order_is_hidden(<fk>)` — owner first so it short-circuits.
+**Any new table hanging off `orders` needs the same treatment; do not hand-roll a NOT EXISTS.**
+
+### Other invariants
+- The **entire policy set** is replaced per table, never patched by name: Melek had a legacy
+  permissive `orders_all` (`FOR ALL`, which also grants SELECT) and Gurbet two overlapping SELECT
+  policies. Policies are **OR'd**, so one leftover permissive policy defeats the whole feature.
+- The predicate is on INSERT `WITH CHECK`, UPDATE `USING` **and** `WITH CHECK`, and DELETE `USING`.
+  That, and nothing else, is what stops a manager setting or clearing the flag.
+- **15 SECURITY DEFINER RPCs** carry the predicate explicitly (they bypass RLS). Recreating one
+  **re-grants EXECUTE to `anon`** via Supabase default privileges — always
+  `REVOKE … FROM PUBLIC, anon` and assert with `has_function_privilege('anon', …)`.
+- `trash_order` / `restore_order` / `purge_order` and `empty_order_trash` are gated too (00096):
+  they are SECURITY DEFINER, so `is_admin_user()` alone let a manager purge an order they could not
+  see. `invoice_reminders` + `invoice_reminder_state` are gated for the same reason (they carry
+  `order_id`).
+- **Do NOT touch `get_portal_*`** — the customer must still see their own order.
+- **Known and accepted:** order and invoice numbers come from global sequences, so a hidden order
+  burns a number and its existence is inferable from the gap. Stock still moves. The flag hides
+  amounts and content, not existence-by-arithmetic.
+- Verification pattern that actually proves it: impersonate a real `shop_manager` in a rolled-back
+  transaction and assert the **owner's** total for a period exceeds the manager's by **exactly** the
+  hidden order's contribution — that shows the gate landed everywhere and nowhere twice.
+
+### Legacy RLS holes closed alongside (00097)
+Four pre-existing `USING (true)` SELECT policies predating 00035, all on **Melek only** (Gurbet was
+rebuilt from the repo migrations and already had the correct ones): `product_unit_prices` was
+`TO public`, i.e. **372 rows of COGS readable by `anon`**; `customer_prices` was readable by every
+authenticated user **including portal customers**; `order_discounts`/`order_fees` likewise (empty
+today). Also `get_customer_orders` returned an ungated `total_cost` next to its owner-gated profit.
+**The two databases were exposed in OPPOSITE directions — always check `pg_policies` on each rather
+than assuming the fix applies twice.**
+
+---
+
+## Owner-only export columns — `OWNER_ONLY_EXPORT_KEYS`
+
+`utils/export.ts` holds one central set of column keys a Shop Manager may never export, and
+`withoutOwnerOnlyColumns(cols)` strips them. Every `ExportMenu` call site passes its columns through
+it for non-owners (Orders, Products, Customers, price lists, customer products tab).
+
+- Covers cost/profit/margin **and `total_revenue`** (the customer-products summary, whose footer
+  total is the customer's lifetime revenue).
+- **Deliberately NOT covered:** the Orders export's `subtotal`/`total`. A manager processes orders
+  and needs each order's amount; what is owner-only is the aggregated picture of what a *customer*
+  is worth.
+- Safe against stale `localStorage` prefs — `ExportMenu` derives its valid-key list from the columns
+  it is given, so a persisted `profit` key is simply dropped.
+- **An exported file is durable and forwardable**, so hiding a column in a table without also adding
+  its key here is theatre. Add both, together.
+
+Customer revenue aggregates are owner-only in the UI too (`CustomerDetail` cards, the cash/bank
+split, the Orders-tab range strip, and the Products-tab revenue column + footer). They were gated
+together on purpose: each one alone reconstructs the others.
+
+---
+
+## Mobile toolbar system (2026-07-25)
+
+Every list page condenses its chrome into one row: `[primary filter] [⚙ Filters ③] [⋮] [action]`,
+with the rest in a bottom sheet. Sold Products went from ~7 stacked rows of controls before the
+first result to 1.
+
+- **`components/ui/filterTypes.ts` — filters are declared as DATA, not JSX.** That single
+  declaration is what lets one definition render as a desktop control bar *and* as sheet rows.
+  `noAll?: boolean` marks a select that always holds a value (otherwise it renders a duplicate
+  "all" option — the cause of the repeated date preset).
+- **`ListToolbar.tsx`** splits mobile/desktop **once in JS** via `useIsMobile()`, never with CSS
+  `hidden`/`md:`. **This is the dual-render rule**: anything that portals or owns overlay state must
+  be gated in JS, because two mounted copies sharing one open-state produce the phantom menu at
+  (0,0) (see `[[dropdown_phantom_dual_layout]]`). CSS visibility is reserved for portal-free markup.
+- **`ToolbarAction.renderOverlay`** exists because a dialog trigger inside the ⋮ menu is destroyed
+  by its own click: `DropdownMenu` returns `null` when closed, so the click that set the dialog's
+  open state unmounted the component holding it. Overlays render at the toolbar root, always
+  mounted; `ExportMenu` gained `headless` + a controlled `open` for this.
+- **`SearchSelect.tsx`** pins a search field as the sticky first row (long customer/city lists),
+  hosts its desktop popover in the `DropdownMenu` portal, and replaces `ComboPicker`'s silent 50-row
+  cap with progressive reveal + a "showing X of Y" footer. Supports `multiple`. Autofocus the search
+  on **desktop only** — on mobile it raises the keyboard over the sheet.
+- **The filter sheet live-applies** rather than committing a draft on Apply, so its footer button can
+  show the page's real `totalCount` ("Toon 42 resultaten"). One source of truth, and the URL-state
+  contract is preserved by construction.
+- `useOverlay` (scroll lock, Escape, focus trap) is shared by `Modal` and `Sheet` — a leaked
+  ref-count there freezes page scroll permanently.
+- `utils/dateRange.ts` holds Amsterdam-pinned date primitives (`ymdInAms` via
+  `Intl.DateTimeFormat('en-CA', {timeZone})`). **Never `new Date().toISOString().split('T')[0]`** —
+  between midnight and 01:00/02:00 local that returns *yesterday*, exactly when day-close and route
+  planning run.
+
+---
+
+## Order status: the pill IS the picker
+
+`components/orders/OrderStatusPicker.tsx` — the coloured status pill in `OrderDetail` is itself the
+dropdown trigger (it used to be a read-only badge followed by a select showing the same value).
+Styles come from `constants/orderStatus.ts` (`statusStyle()`); `STATUS_ALIAS` maps the legacy
+`pending` onto `pending_payment`.
+
+- **Compare against `currentKey`, not `current`**, when deciding whether a click is a change —
+  `pending` and `pending_payment` render identically, so comparing the raw value wrote a pointless
+  `pending → pending_payment` transition with no confirmation and made the Orders status filter grow
+  two identical entries.
+- **Refunded is terminal and trashed is read-only** — both render a plain `StatusBadge` instead.
+  A trashed order is `status='cancelled' + deleted_at` with its real status in `pre_trash_status`, so
+  editing its status re-deducted stock for an order sitting in the bin *and* was silently reverted by
+  `restore_order`. It shows the status it will return to.
+- **Cancelled → Concept is allowed** (and is the safest revive: no invoice is issued, stays out of
+  analytics). Completed/refunded → Concept is not — un-finalising a paid order should cost the
+  deliberate two steps. Reviving any cancelled order re-deducts stock and asks for confirmation.
+
+---
+
+## Finalising a Concept re-stamps `order_date` (migration 00098, 2026-07-27)
+
+A draft is a scratchpad — opened, filled over days, then flipped live. It used to keep the date it
+was *started*, because none of the three finalisation paths touches `order_date` (detail picker and
+bulk complete write `status` only; the form re-sends the field). The order then behaved as if placed
+weeks ago: wrong day's route and day-close, revenue booked into an already-reported period, and
+**outside the 24h invoice auto-send window** — whose `order_date >= 3 days ago` floor meant the
+invoice email was never sent at all. Its `invoice_due_date` was also already past, so the dunning
+cron would mail the customer a reminder on day one.
+
+Implemented **inside `set_invoice_due_and_paid`**, not as its own trigger: that function recomputes
+`invoice_due_date` whenever `order_date` changes, and **BEFORE triggers fire in alphabetical name
+order**, so a separate trigger would depend on an invisible naming coincidence to run first. Doing
+the bump at the top of the same function makes the ordering unbreakable.
+
+Two guards, both load-bearing:
+- `NEW.order_date IS NOT DISTINCT FROM OLD.order_date` — only re-stamp when the caller did **not**
+  set the date in that statement, so a date typed while unticking Concept is respected verbatim.
+- `< today` — a **future** date is a planned delivery and is never pulled backwards.
+
+`draft → cancelled/refunded` is not going live and is excluded. `OrderForm` mirrors the same rule
+into the visible date field on untick so the change is seen before saving, not discovered after.
+
+---
+
+## CSP: no `'unsafe-inline'` — inline scripts are hashed
+
+`apps/admin/vercel.json` sets `script-src 'self' 'wasm-unsafe-eval' blob: 'sha256-…'`. The one hash
+is `index.html`'s **pre-paint theme bootstrap**, which must be inline (an external `src` costs a
+render-blocking request on every load; a module script is deferred — both let the paint happen first
+and defeat the purpose).
+
+**Never "fix" a CSP block by adding `'unsafe-inline'`** — that disables inline-script XSS protection
+app-wide to accommodate one script we control. Edit the script and `npm run build` fails with the
+new hash to paste (`scripts/check-csp.mjs`, which hashes every inline script in **dist/**). Without
+that check the drift is near-silent: the page still works, you just get a console violation and the
+dark-mode flash quietly returns. Note `vercel.json` header entries accept only `key`/`value` — an
+extra `_comment` key fails Vercel's schema validation and breaks the deploy.
+
+---
+
+## Bulk status updates are constrained server-side
+
+Selection now survives paging and refreshes, so a stored selected row is a **snapshot**. Bulk
+eligibility must be re-derived from the live list (`Orders.tsx` maps ids back onto current data), and
+`bulkUpdateOrderStatus` additionally constrains the UPDATE to rows still in a legal source status
+(`legalFrom`). Without both, ticking a `pending_payment` order, cancelling it from the detail panel
+(stock restored), then bulk-completing wrote `cancelled → completed` and the trigger **re-deducted
+its stock** — silently, skipping the confirmation that only exists in the detail panel.
+
+---
+
 ## Custom Agents
 
 The project has specialized agents defined in `.claude/agents.md`. Use these for focused reviews and tasks:
