@@ -1,0 +1,99 @@
+import type { OrderStatus } from '../types'
+
+/**
+ * Single source of truth for order-status colours.
+ *
+ * Extracted from StatusBadge so the read-only badge and the interactive status
+ * picker (components/orders/OrderStatusPicker.tsx) cannot drift apart — they
+ * show the same value and must show the same colour.
+ */
+export interface StatusStyle {
+  /** i18n key for the status NOUN. Value pickers and badges both use nouns:
+   *  "Geannuleerd", never the verb "Annuleren", which inside a menu reads as
+   *  "dismiss this menu" rather than "cancel the order". */
+  labelKey: string
+  /** Read-only badge fill. */
+  badgeClass: string
+  /** Interactive trigger fill — badge colours plus a hover step, which is part
+   *  of what signals "this one is clickable" vs a plain badge. */
+  triggerClass: string
+  /** Solid dot, for menu rows. */
+  dotClass: string
+}
+
+export const STATUS_STYLES: Record<string, StatusStyle> = {
+  draft: {
+    labelKey: 'orders.status.draft',
+    badgeClass: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
+    triggerClass: 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200',
+    dotClass: 'bg-slate-400 dark:bg-slate-500',
+  },
+  pending: {
+    labelKey: 'orders.status.pending',
+    badgeClass: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+    triggerClass: 'bg-amber-100 hover:bg-amber-200 text-amber-700 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-400',
+    dotClass: 'bg-amber-500',
+  },
+  pending_payment: {
+    labelKey: 'orders.status.pending_payment',
+    badgeClass: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+    triggerClass: 'bg-amber-100 hover:bg-amber-200 text-amber-700 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-400',
+    dotClass: 'bg-amber-500',
+  },
+  on_hold: {
+    labelKey: 'orders.status.on_hold',
+    badgeClass: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+    triggerClass: 'bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400',
+    dotClass: 'bg-blue-500',
+  },
+  completed: {
+    labelKey: 'orders.status.completed',
+    badgeClass: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    triggerClass: 'bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-400',
+    dotClass: 'bg-green-500',
+  },
+  cancelled: {
+    labelKey: 'orders.status.cancelled',
+    badgeClass: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+    triggerClass: 'bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400',
+    dotClass: 'bg-red-500',
+  },
+  refunded: {
+    labelKey: 'orders.status.refunded',
+    badgeClass: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+    triggerClass: 'bg-purple-100 hover:bg-purple-200 text-purple-700 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 dark:text-purple-400',
+    dotClass: 'bg-purple-500',
+  },
+  // Original-schema values still present on old rows.
+  processing: {
+    labelKey: 'orders.status.processing',
+    badgeClass: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+    triggerClass: 'bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400',
+    dotClass: 'bg-blue-500',
+  },
+  delivered: {
+    labelKey: 'orders.status.delivered',
+    badgeClass: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    triggerClass: 'bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-400',
+    dotClass: 'bg-green-500',
+  },
+}
+
+export const FALLBACK_STATUS_STYLE: StatusStyle = {
+  labelKey: '',
+  badgeClass: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
+  triggerClass: 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200',
+  dotClass: 'bg-slate-400 dark:bg-slate-500',
+}
+
+export const statusStyle = (s: OrderStatus | string): StatusStyle =>
+  STATUS_STYLES[s] ?? FALLBACK_STATUS_STYLE
+
+/**
+ * `pending` and `pending_payment` render the SAME label ("Wacht op betaling"),
+ * and `pending` is the live default for new orders. Without this alias the
+ * picker would list the current status separately from the offered
+ * `pending_payment` transition and show the same words twice — exactly the
+ * duplication this redesign is fixing, in a second form.
+ */
+export const STATUS_ALIAS: Record<string, OrderStatus> = { pending: 'pending_payment' }

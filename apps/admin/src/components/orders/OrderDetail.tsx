@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Loader2,
   ShoppingCart,
   Building2,
   Calendar,
@@ -16,7 +15,6 @@ import {
   Banknote,
   Info,
   StickyNote,
-  ChevronDown,
 } from 'lucide-react'
 import { updateOrderStatus } from '../../services/orders'
 import { ensureOrderInvoice } from '../../services/documents'
@@ -29,6 +27,7 @@ import RefundModal from './RefundModal'
 import OrderNotesModal from './OrderNotesModal'
 import PaymentMethodModal from './PaymentMethodModal'
 import StatusBadge from '../ui/StatusBadge'
+import OrderStatusPicker from './OrderStatusPicker'
 import { formatQuantity, formatPrice, formatDateTime, formatPercent, profitClass } from '../../utils/format'
 import { computeOrderProfit } from '../../utils/orderProfit'
 import Modal from '../ui/Modal'
@@ -146,11 +145,20 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
       return
     }
 
+    // Reviving a cancelled order RE-DEDUCTS stock (handle_order_status_change
+    // restores on the way in and deducts again on the way out). That was one of
+    // five pills before; with the picker it is a single tap, so it gets its own
+    // confirmation naming the stock effect.
+    const revivingCancelled =
+      order.status === 'cancelled' && !['cancelled', 'refunded'].includes(newStatus)
+
     const confirmMessage = newStatus === 'cancelled'
       ? t('orders.detail.confirmCancel')
       : newStatus === 'refunded'
         ? t('orders.detail.confirmRefund')
-        : null // No confirmation for completed (already confirmed via modal)
+        : revivingCancelled
+          ? t('orders.detail.confirmRevive')
+          : null // No confirmation for completed (already confirmed via modal)
 
     if (confirmMessage && !confirm(confirmMessage)) return
 
@@ -236,9 +244,21 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
             </div>
           )}
 
-          {/* Status & Actions */}
-          <div className="flex flex-wrap items-center gap-3">
-            <StatusBadge status={order.status} />
+          {/* Status & Actions. The status pill IS the picker (see
+              OrderStatusPicker) — it used to be a read-only badge followed by a
+              select showing the same value. A refunded order is terminal, so it
+              keeps the plain badge. */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {order.status === 'refunded' ? (
+              <StatusBadge status={order.status} />
+            ) : (
+              <OrderStatusPicker
+                current={order.status}
+                options={statusActions.map(a => a.status)}
+                onSelect={handleStatusChange}
+                busy={updatingStatus}
+              />
+            )}
             {order.payment_method && order.payment_method !== 'none' && (
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${
                 order.payment_method === 'cash'
@@ -257,42 +277,6 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                 <RotateCcw className="w-3 h-3" />
                 {t('orders.refund.partiallyRefunded')}
               </span>
-            )}
-            {/* An order has exactly ONE status, so this is a dropdown, not a row
-                of pills. The pills read as five independent actions and grew a
-                line-wrapping mess on mobile; a select states the current value
-                and offers the alternatives. Same control on both breakpoints.
-                Every transition still routes through handleStatusChange, so the
-                payment-method modal, the cancel confirmation and the
-                draft-finalisation invoice all behave exactly as before. */}
-            {order.status !== 'refunded' && (
-              <label className="inline-flex items-center gap-2">
-                <span className="sr-only">{t('orders.detail.changeStatus')}</span>
-                <div className="relative">
-                  <select
-                    value={order.status}
-                    disabled={updatingStatus}
-                    onChange={e => {
-                      const next = e.target.value as OrderStatus
-                      if (next !== order.status) handleStatusChange(next)
-                    }}
-                    className="appearance-none cursor-pointer pl-3 pr-9 h-9 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
-                  >
-                    {/* The current status is always present, even when it is not
-                        an offered transition (e.g. 'pending'), so the select can
-                        never render blank. */}
-                    {!statusActions.some(a => a.status === order.status) && (
-                      <option value={order.status}>{t(`orders.status.${order.status}`, { defaultValue: order.status })}</option>
-                    )}
-                    {statusActions.map(a => (
-                      <option key={a.status} value={a.status}>{t(a.labelKey)}</option>
-                    ))}
-                  </select>
-                  {updatingStatus
-                    ? <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-slate-400 pointer-events-none" />
-                    : <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />}
-                </div>
-              </label>
             )}
             {canRefund && (
               <button

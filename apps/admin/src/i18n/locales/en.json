@@ -877,6 +877,8 @@
       "invoiceSentOn": "Invoice sent on {{date}}",
       "invoiceScheduled": "Invoice will be sent automatically around {{date}}",
       "changeStatus": "Change status",
+      "orderStatus": "Order status",
+      "confirmRevive": "This order was cancelled. Reactivating it will deduct stock again. Continue?",
       "invoiceNotSent": "Invoice not emailed yet"
     },
     "invoiceSent": "Invoice sent",

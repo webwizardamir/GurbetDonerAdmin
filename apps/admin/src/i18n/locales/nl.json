@@ -877,6 +877,8 @@
       "invoiceSentOn": "Factuur verzonden op {{date}}",
       "invoiceScheduled": "Factuur wordt automatisch verzonden rond {{date}}",
       "changeStatus": "Status wijzigen",
+      "orderStatus": "Orderstatus",
+      "confirmRevive": "Deze bestelling is geannuleerd. Opnieuw activeren boekt de voorraad opnieuw af. Doorgaan?",
       "invoiceNotSent": "Factuur nog niet gemaild"
     },
     "invoiceSent": "Factuur verzonden",

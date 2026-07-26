@@ -19,6 +19,14 @@ interface DropdownMenuProps {
   align?: 'left' | 'right'
   /** Panel width in px (default 192 = Tailwind w-48). */
   width?: number
+  /**
+   * 'menu' (default) for a list of ACTIONS; 'listbox' when the panel picks one
+   * VALUE (the order-status picker). Screen readers announce these differently
+   * and a value picker announced as a menu is misleading.
+   */
+  role?: 'menu' | 'listbox'
+  /** Panel id, so a trigger can point at it with aria-controls. */
+  id?: string
 }
 
 const GAP = 4
@@ -31,6 +39,8 @@ export default function DropdownMenu({
   children,
   align = 'right',
   width = 192,
+  role = 'menu',
+  id,
 }: DropdownMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
@@ -110,7 +120,8 @@ export default function DropdownMenu({
   return createPortal(
     <div
       ref={menuRef}
-      role="menu"
+      role={role}
+      id={id}
       style={{
         position: 'fixed',
         top: pos?.top ?? -9999,
