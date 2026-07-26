@@ -700,13 +700,12 @@ export default function Orders() {
                   <input type="checkbox" checked={selectedIds.has(order.id)} onChange={() => toggleSelect(order.id)} onClick={e => e.stopPropagation()}
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500 shrink-0" />
                   <div className="flex-1 min-w-0">
+                    {/* The invoice number used to sit here AND again in the
+                        indicator chips below, and it stole width from the
+                        customer name — "Mr Doner … FC-08497". The chip names the
+                        document and is clickable, so the name gets the row. */}
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-slate-900 dark:text-white truncate">{order.customer?.company_name || '-'}</p>
-                      {(docInfo.invoiceNumber || order.woo_invoice_number) && (
-                        <span className="text-xs text-violet-600 dark:text-violet-400 font-medium shrink-0">
-                          {docInfo.invoiceNumber || order.woo_invoice_number}
-                        </span>
-                      )}
                       <HiddenOrderBadge hidden={order.hidden_from_managers} />
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">#{order.order_number} · {formatDateShort(order.order_date)} · {order.items?.length || 0} items</p>
@@ -746,6 +745,7 @@ export default function Orders() {
                       docInfo={docInfo}
                       sendInfo={sendInfo[order.id]}
                       onOpenDocuments={() => openOrder(order, 'documents')}
+                      legacyInvoiceNumber={order.woo_invoice_number}
                       variant="chips"
                     />
                   </div>

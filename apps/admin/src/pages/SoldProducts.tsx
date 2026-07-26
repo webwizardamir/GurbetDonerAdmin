@@ -150,17 +150,18 @@ export default function SoldProducts() {
       selectAllLabel: t('soldProducts.filters.selectAll'),
     },
     {
+      // Multi-select with checkboxes, exactly like the city filter — a delivery
+      // round covers several customers, so picking one at a time was wrong.
+      // Above SEARCH_THRESHOLD this renders the searchable checkbox list rather
+      // than a chip grid, so a long customer list stays findable.
       id: 'customer',
-      kind: 'select',
+      kind: 'multiselect',
       label: t('soldProducts.filters.allCustomers'),
       icon: Users,
       hidden: customerOptions.length === 0,
       value: customerFilter,
-      // Was a raw <select>: hundreds of options, no search, and on mobile it
-      // opened the OS picker wheel. `searchable` forces the picker regardless
-      // of how few customers a given day happens to have.
-      searchable: true,
       searchPlaceholder: t('orders.searchCustomer'),
+      selectAllLabel: t('soldProducts.filters.selectAll'),
       options: customerOptions.map(c => ({ value: c.id, label: c.name })),
       onChange: setCustomerFilter,
       allLabel: t('soldProducts.filters.allCustomers'),

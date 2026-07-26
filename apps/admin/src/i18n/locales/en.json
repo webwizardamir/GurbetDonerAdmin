@@ -876,6 +876,7 @@
       "delivery": "Delivery",
       "invoiceSentOn": "Invoice sent on {{date}}",
       "invoiceScheduled": "Invoice will be sent automatically around {{date}}",
+      "changeStatus": "Change status",
       "invoiceNotSent": "Invoice not emailed yet"
     },
     "invoiceSent": "Invoice sent",

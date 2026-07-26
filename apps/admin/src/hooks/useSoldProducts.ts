@@ -45,7 +45,9 @@ export function useSoldProducts() {
   // Filter state (Phase 4)
   // City supports multi-select (empty array = all cities).
   const [cityFilter, setCityFilter] = useState<string[]>([])
-  const [customerFilter, setCustomerFilter] = useState<string>('')
+  // Multi-select, like the city filter: picking several customers at once is
+  // the normal case when checking a delivery round. Empty array = all.
+  const [customerFilter, setCustomerFilter] = useState<string[]>([])
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [unitFilter, setUnitFilter] = useState<string>('')
   const [customerTypeFilter, setCustomerTypeFilter] = useState<string>('')
@@ -120,9 +122,10 @@ export function useSoldProducts() {
   // groupings in subsequent steps.
   const filteredBreakdown = useMemo(() => {
     const citySet = cityFilter.length ? new Set(cityFilter) : null
+    const customerSet = customerFilter.length ? new Set(customerFilter) : null
     return breakdown.filter(r => {
       if (citySet            && !(r.city && citySet.has(r.city)))       return false
-      if (customerFilter     && r.customer_id   !== customerFilter)     return false
+      if (customerSet        && !customerSet.has(r.customer_id))        return false
       if (categoryFilter     && r.category_name !== categoryFilter)     return false
       if (unitFilter         && r.unit_type     !== unitFilter)         return false
       if (customerTypeFilter && r.customer_type !== customerTypeFilter) return false

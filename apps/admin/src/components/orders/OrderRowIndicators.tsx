@@ -12,6 +12,12 @@ interface OrderRowIndicatorsProps {
   /** Opens the order detail scrolled to its documents section. */
   onOpenDocuments: () => void
   /**
+   * Legacy WooCommerce invoice number. Imported orders carry one without having
+   * a `documents` row, so without this they'd show no document indicator at all
+   * once the number was removed from the card header.
+   */
+  legacyInvoiceNumber?: string | number | null
+  /**
    * 'icons' - compact icon buttons with a count badge, for desktop table rows.
    * 'chips' - labelled pills, for mobile cards. Native `title` never fires on
    *           touch, and once these navigate, "tap to reveal a tooltip" and
@@ -37,18 +43,20 @@ export default function OrderRowIndicators({
   docInfo,
   sendInfo,
   onOpenDocuments,
+  legacyInvoiceNumber,
   variant = 'icons',
 }: OrderRowIndicatorsProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
   const docCount = docInfo?.count ?? 0
+  const legacyInvoice = docCount === 0 && legacyInvoiceNumber ? String(legacyInvoiceNumber) : null
   const total = sendInfo?.total ?? 0
   const failed = sendInfo?.failed ?? 0
   const sent = sendInfo?.sent ?? 0
   const allOk = failed === 0
 
-  if (docCount === 0 && total === 0 && !sendInfo?.invoiceSent) return null
+  if (docCount === 0 && total === 0 && !sendInfo?.invoiceSent && !legacyInvoice) return null
 
   // The Outbox filters on order_id; orderNo is display-only, because
   // document_sends has no order-number column to search.
@@ -61,8 +69,9 @@ export default function OrderRowIndicators({
 
   // Name the documents rather than counting them: "1 document(en)" said nothing
   // about WHICH one. Falls back to the count if the list isn't loaded.
-  const docNames = (docInfo?.docs ?? [])
-    .map(d => {
+  const docNames = legacyInvoice
+    ? [`${t('documents.types.invoice')} ${legacyInvoice}`]
+    : (docInfo?.docs ?? []).map(d => {
       const label = t(`documents.types.${d.type}`, { defaultValue: d.type })
       return d.number ? `${label} ${d.number}` : label
     })
@@ -78,7 +87,7 @@ export default function OrderRowIndicators({
     const chip = 'inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-colors'
     return (
       <div className="flex flex-wrap items-center gap-1.5">
-        {docCount > 0 && (
+        {(docCount > 0 || legacyInvoice) && (
           <button type="button" onClick={onOpenDocuments} aria-label={docTitle} title={docTitle}
             className={`${chip} bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 max-w-full`}>
             <FileText className="w-3.5 h-3.5 shrink-0" />
@@ -111,13 +120,13 @@ export default function OrderRowIndicators({
 
   return (
     <>
-      {docCount > 0 && (
+      {(docCount > 0 || legacyInvoice) && (
         <button type="button" onClick={onOpenDocuments}
           className="relative p-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors cursor-pointer"
           title={docTitle}
           aria-label={docTitle}>
           <FileText className="w-4 h-4 text-violet-500" />
-          <span className={`${badge} bg-violet-500`}>{docCount}</span>
+          {docCount > 0 && <span className={`${badge} bg-violet-500`}>{docCount}</span>}
         </button>
       )}
       {total > 0 && (

@@ -876,6 +876,7 @@
       "delivery": "Bezorging",
       "invoiceSentOn": "Factuur verzonden op {{date}}",
       "invoiceScheduled": "Factuur wordt automatisch verzonden rond {{date}}",
+      "changeStatus": "Status wijzigen",
       "invoiceNotSent": "Factuur nog niet gemaild"
     },
     "invoiceSent": "Factuur verzonden",

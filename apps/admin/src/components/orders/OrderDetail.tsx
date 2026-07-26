@@ -16,6 +16,7 @@ import {
   Banknote,
   Info,
   StickyNote,
+  ChevronDown,
 } from 'lucide-react'
 import { updateOrderStatus } from '../../services/orders'
 import { ensureOrderInvoice } from '../../services/documents'
@@ -257,29 +258,41 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                 {t('orders.refund.partiallyRefunded')}
               </span>
             )}
+            {/* An order has exactly ONE status, so this is a dropdown, not a row
+                of pills. The pills read as five independent actions and grew a
+                line-wrapping mess on mobile; a select states the current value
+                and offers the alternatives. Same control on both breakpoints.
+                Every transition still routes through handleStatusChange, so the
+                payment-method modal, the cancel confirmation and the
+                draft-finalisation invoice all behave exactly as before. */}
             {order.status !== 'refunded' && (
-              <div className="flex flex-wrap gap-2">
-                {statusActions
-                  .filter(a => a.status !== order.status)
-                  .map(action => (
-                    <button
-                      key={action.status}
-                      onClick={() => handleStatusChange(action.status)}
-                      disabled={updatingStatus}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
-                        ${action.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50' : ''}
-                        ${action.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50' : ''}
-                        ${action.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50' : ''}
-                        ${action.color === 'red' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50' : ''}
-                        ${action.color === 'slate' ? 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600' : ''}
-                        disabled:opacity-50
-                      `}
-                    >
-                      {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : action.icon}
-                      {t(action.labelKey)}
-                    </button>
-                  ))}
-              </div>
+              <label className="inline-flex items-center gap-2">
+                <span className="sr-only">{t('orders.detail.changeStatus')}</span>
+                <div className="relative">
+                  <select
+                    value={order.status}
+                    disabled={updatingStatus}
+                    onChange={e => {
+                      const next = e.target.value as OrderStatus
+                      if (next !== order.status) handleStatusChange(next)
+                    }}
+                    className="appearance-none cursor-pointer pl-3 pr-9 h-9 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                  >
+                    {/* The current status is always present, even when it is not
+                        an offered transition (e.g. 'pending'), so the select can
+                        never render blank. */}
+                    {!statusActions.some(a => a.status === order.status) && (
+                      <option value={order.status}>{t(`orders.status.${order.status}`, { defaultValue: order.status })}</option>
+                    )}
+                    {statusActions.map(a => (
+                      <option key={a.status} value={a.status}>{t(a.labelKey)}</option>
+                    ))}
+                  </select>
+                  {updatingStatus
+                    ? <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-slate-400 pointer-events-none" />
+                    : <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />}
+                </div>
+              </label>
             )}
             {canRefund && (
               <button
