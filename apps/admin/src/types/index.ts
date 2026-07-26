@@ -328,6 +328,12 @@ export interface Order {
   refunds?: OrderRefund[]
   delivery_notes?: string
   internal_notes?: string
+  // Owner-only privacy flag (migration 00095). When true, only the owner can
+  // see this order, its items, its documents/emails and its money in any
+  // aggregate. Enforced in RLS, so a shop manager never receives the row at
+  // all — for them this is always false/absent. The customer portal is
+  // deliberately unaffected.
+  hidden_from_managers?: boolean
   created_by?: string
   created_at: string
   updated_at: string

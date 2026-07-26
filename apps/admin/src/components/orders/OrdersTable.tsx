@@ -14,6 +14,7 @@ import type { OrderDocumentInfo } from '../../services/documents'
 import StatusBadge from '../ui/StatusBadge'
 import PaymentBadge from '../ui/PaymentBadge'
 import SortableTh from '../ui/SortableTh'
+import HiddenOrderBadge from './HiddenOrderBadge'
 import { formatPrice, formatDateShort, formatPercent, profitClass } from '../../utils/format'
 import { computeOrderProfit } from '../../utils/orderProfit'
 import { useAuth } from '../../context/AuthContext'
@@ -238,7 +239,10 @@ export default function OrdersTable({
                             <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-slate-900 dark:text-white truncate">{showCustomerColumn ? (order.customer?.company_name || '-') : `#${order.order_number}`}</p>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className="font-semibold text-slate-900 dark:text-white truncate">{showCustomerColumn ? (order.customer?.company_name || '-') : `#${order.order_number}`}</p>
+                              <HiddenOrderBadge hidden={order.hidden_from_managers} />
+                            </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{showCustomerColumn ? `#${order.order_number} · ` : ''}{order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}</p>
                           </div>
                         </div>
@@ -306,6 +310,7 @@ export default function OrdersTable({
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-slate-900 dark:text-white truncate">{showCustomerColumn ? (order.customer?.company_name || '-') : `#${order.order_number}`}</p>
                       {invoice && <span className="text-xs text-violet-600 dark:text-violet-400 font-medium shrink-0">{invoice}</span>}
+                      <HiddenOrderBadge hidden={order.hidden_from_managers} />
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{showCustomerColumn ? `#${order.order_number} · ` : ''}{formatDateShort(order.order_date)} · {order.items?.length || 0} items</p>
                   </div>

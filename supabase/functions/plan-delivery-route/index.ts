@@ -98,8 +98,18 @@ serve(async (req) => {
 
     // 3. Derive candidate stops server-side (one stop per customer across the range)
     // Accept multi-city (cities[]) and fall back to the legacy single city.
+    //
+    // NOTE: this uses the CALLER's client, not the service-role `admin` one.
+    // Service role bypasses RLS, so with `admin` a shop manager's candidate list
+    // would include orders hidden from them (migration 00095) while the panel's
+    // own fetchRouteOrders — which runs as the user — would not. The two lists
+    // would disagree in length, drift the MAX_STOPS accounting, and let the
+    // manager infer that a hidden delivery exists. Running as the user makes the
+    // two byte-identical with no extra logic.
+    // getDepot below deliberately stays on `admin`: document_settings is not
+    // order data and every staff role may read it.
     const cityFilter = (body.cities && body.cities.length ? body.cities : (body.city ? [body.city] : []))
-    const candidates = await deriveCandidates(admin, body.delivery_date, endDate, cityFilter)
+    const candidates = await deriveCandidates(userClient, body.delivery_date, endDate, cityFilter)
     if (candidates.length === 0) {
       return json(emptyResponse(mode, body.departureTime ?? null, returnToDepot), 200)
     }
@@ -217,9 +227,11 @@ serve(async (req) => {
 // ===========================================================================
 // Candidate derivation
 // ===========================================================================
-async function deriveCandidates(admin: ReturnType<typeof createClient>, startDay: string, endDay: string, cities: string[] = []): Promise<Candidate[]> {
+// Takes the CALLER's client (not service role) so RLS applies — see the call
+// site. Orders hidden from shop managers must not become stops for them.
+async function deriveCandidates(db: ReturnType<typeof createClient>, startDay: string, endDay: string, cities: string[] = []): Promise<Candidate[]> {
   const citySet = cities.length ? new Set(cities) : null
-  const { data, error } = await admin
+  const { data, error } = await db
     .from('orders')
     .select(`
       customer_id,

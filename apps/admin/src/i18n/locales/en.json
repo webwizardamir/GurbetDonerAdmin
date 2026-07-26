@@ -797,6 +797,14 @@
     "selected": "selected",
     "clear": "Clear",
     "invoice": "Invoice",
+    "hidden": {
+      "badge": "Hidden",
+      "badgeTooltip": "Hidden from shop managers. Only the owner sees this order and its amount.",
+      "filterLabel": "Visibility",
+      "filterAll": "All orders",
+      "filterHidden": "Hidden only",
+      "filterVisible": "Visible only"
+    },
     "form": {
       "searchCustomers": "Search customers...",
       "noCustomersFound": "No customers found",
@@ -814,6 +822,8 @@
       "saveChanges": "Save Changes",
       "saveAsDraft": "Draft",
       "saveAsDraftHint": "Save as draft: no invoice, no automatic email, excluded from analytics. Finalise later.",
+      "hideFromManagers": "Hide",
+      "hideFromManagersHint": "Visible to the owner only. Shop managers will not see this order or its amount anywhere: not in the list, not in totals, not in invoices or emails. The customer still sees their order in the portal.",
       "deliveryNotes": "Delivery Notes",
       "deliveryPlaceholder": "Delivery instructions...",
       "internalNotes": "Internal Notes",

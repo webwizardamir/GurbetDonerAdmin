@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X, Tags, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
+import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X, Tags, ChevronLeft, ChevronRight, Building2, EyeOff } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
 import { useOrders } from '../../hooks/useOrders'
@@ -41,6 +42,7 @@ interface OrderLineItem {
 
 export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormProps) {
   const { t } = useTranslation()
+  const { isOwner } = useAuth()
   // Large pageSize so the customer picker sees ALL customers, not just page 1
   const { customers, loading: customersLoading } = useCustomers({ pageSize: 5000 })
   // Large pageSize so the product picker sees ALL products, not just page 1
@@ -75,6 +77,10 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   // and is excluded from analytics revenue/profit. Opt-in only; normal orders
   // keep defaulting to 'pending'. Initialised from the edited order's status.
   const [isDraft, setIsDraft] = useState(false)
+  // "Verbergen" — owner-only privacy flag. Large orders whose amounts a shop
+  // manager has no need to know. Enforced in RLS (migration 00095); this state
+  // only drives the checkbox. See CLAUDE.md.
+  const [isHidden, setIsHidden] = useState(false)
   // True while the customer's pricing context (customer_prices + price_list_items)
   // is being fetched. Gates the "add product" button so a product can't be added
   // with a stale/default price before the remembered customer price has loaded
@@ -211,6 +217,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     setOrderDiscountValue(editOrder.discount_value ?? null)
     setShipping(editOrder.delivery_fee ? editOrder.delivery_fee : null)
     setIsDraft(editOrder.status === 'draft')
+    setIsHidden(!!editOrder.hidden_from_managers)
     if (editOrder.items && editOrder.items.length > 0) {
       const loadedItems: OrderLineItem[] = editOrder.items.map(item => {
         const product = products.find(p => p.id === item.product_id)
@@ -390,6 +397,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
         discount_type: orderDiscountType, discount_value: orderDiscountValue,
         delivery_fee: shipping ?? 0,
         ...(statusUpdate ? { status: statusUpdate } : {}),
+        // Only the owner transmits the key at all, so a shop manager editing a
+        // visible order can never clear it. RLS backstops this regardless.
+        ...(isOwner ? { hidden_from_managers: isHidden } : {}),
       }
       const itemsData = items.map(i => ({
         product_id: i.product.id, product_name: i.product.name, product_sku: i.product.sku,
@@ -522,6 +532,22 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {/* Owner-only: hide this order from shop managers entirely. */}
+          {isOwner && (
+            <label
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg cursor-pointer select-none text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              title={t('orders.form.hideFromManagersHint')}
+            >
+              <input
+                type="checkbox"
+                checked={isHidden}
+                onChange={e => setIsHidden(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-slate-600 focus:ring-slate-500"
+              />
+              <EyeOff className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('orders.form.hideFromManagers')}</span>
+            </label>
+          )}
           <label
             className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg cursor-pointer select-none text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             title={t('orders.form.saveAsDraftHint')}

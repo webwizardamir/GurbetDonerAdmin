@@ -797,6 +797,14 @@
     "selected": "geselecteerd",
     "clear": "Wissen",
     "invoice": "Factuur",
+    "hidden": {
+      "badge": "Verborgen",
+      "badgeTooltip": "Verborgen voor winkelbeheerders. Alleen de eigenaar ziet deze bestelling en het bedrag.",
+      "filterLabel": "Zichtbaarheid",
+      "filterAll": "Alle bestellingen",
+      "filterHidden": "Alleen verborgen",
+      "filterVisible": "Alleen zichtbaar"
+    },
     "form": {
       "searchCustomers": "Zoek klanten...",
       "noCustomersFound": "Geen klanten gevonden",
@@ -814,6 +822,8 @@
       "saveChanges": "Wijzigingen opslaan",
       "saveAsDraft": "Concept",
       "saveAsDraftHint": "Bewaar als concept: geen factuur, geen automatische e-mail, telt niet mee in de analyses. Later te finaliseren.",
+      "hideFromManagers": "Verbergen",
+      "hideFromManagersHint": "Alleen zichtbaar voor de eigenaar. Winkelbeheerders zien deze bestelling en het bedrag nergens: niet in de lijst, niet in totalen, niet in facturen of e-mails. De klant ziet zijn bestelling gewoon in het klantenportaal.",
       "deliveryNotes": "Bezorgnotities",
       "deliveryPlaceholder": "Bezorginstructies...",
       "internalNotes": "Interne notities",

@@ -24,6 +24,7 @@ interface DbOrderRow {
   refund_amount?: number | null
   deleted_at?: string | null
   pre_trash_status?: OrderStatus | null
+  hidden_from_managers?: boolean
   refunds?: Array<{
     id: string
     woo_refund_id?: number | null
@@ -87,6 +88,11 @@ export interface OrderFilters {
   offset?: number
   // When true, return only trashed (soft-deleted) orders; otherwise only live ones.
   trashed?: boolean
+  // Owner-only "Verborgen" filter (migration 00095). Shop managers never need
+  // it: RLS already removes hidden orders from their result set entirely, so
+  // for them every value behaves like 'none'.
+  //   undefined | 'all' -> no filter    'only' -> hidden only    'none' -> visible only
+  hidden?: 'all' | 'only' | 'none'
 }
 
 export interface OrderWithItems extends Omit<Order, 'customer'> {
@@ -122,6 +128,10 @@ export interface CreateOrderData {
   // the DB). Set to 'draft' to park an order (no invoice/email/analytics), or to
   // 'pending' to finalise a draft. See OrderForm's draft toggle.
   status?: OrderStatus
+  // Owner-only privacy flag (migration 00095). Only sent by OrderForm when the
+  // signed-in user is the owner; the RLS WITH CHECK rejects it from anyone else,
+  // so this is a UI convenience, not the enforcement.
+  hidden_from_managers?: boolean
 }
 
 export interface CreateOrderItemData {
@@ -171,6 +181,7 @@ function transformOrderFromDb(dbOrder: DbOrderRow): OrderWithItems | null {
     woo_invoice_date: dbOrder.woo_invoice_date ?? null,
     deleted_at: dbOrder.deleted_at ?? null,
     pre_trash_status: dbOrder.pre_trash_status ?? null,
+    hidden_from_managers: dbOrder.hidden_from_managers ?? false,
     refund_amount: Number(dbOrder.refund_amount) || 0,
     refunds: dbOrder.refunds ?? [],
     delivery_notes: dbOrder.delivery_notes || dbOrder.notes || '',
@@ -248,6 +259,7 @@ export async function fetchOrderCount(filters: OrderFilters = {}): Promise<numbe
   query = applyInFilter(query, 'payment_method', paymentMethods)
   if (filters.customerId) query = query.eq('customer_id', filters.customerId)
   query = applyInFilter(query, 'customer.customer_type', customerTypes)
+  query = applyHiddenFilter(query, filters.hidden)
   if (filters.dateFrom) query = query.gte('order_date', filters.dateFrom)
   if (filters.dateTo) query = query.lte('order_date', filters.dateTo)
 
@@ -259,6 +271,19 @@ export async function fetchOrderCount(filters: OrderFilters = {}): Promise<numbe
   const { count, error } = await query
   if (error) throw error
   return count || 0
+}
+
+// Owner-only "Verborgen" filter. Must be applied identically in fetchOrders and
+// fetchOrderCount or the list and its pager disagree. Note this only narrows
+// what the OWNER sees; a shop manager's hidden orders are already gone at the
+// RLS layer, so no client filter could reintroduce them.
+function applyHiddenFilter<Q extends { eq: (c: string, v: never) => Q }>(
+  query: Q,
+  hidden: OrderFilters['hidden'],
+): Q {
+  if (hidden === 'only') return query.eq('hidden_from_managers', true as never)
+  if (hidden === 'none') return query.eq('hidden_from_managers', false as never)
+  return query
 }
 
 // Inside a double-quoted PostgREST value only `"` and `\` are special, so
@@ -346,6 +371,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
       id, order_number, customer_id, status, payment_method,
       subtotal, discount, discount_type, discount_value, tax, total, order_date, invoice_date,
       woo_invoice_number, woo_invoice_date, refund_amount, deleted_at, pre_trash_status,
+      hidden_from_managers,
       delivery_notes, internal_notes, created_at, updated_at, created_by,
       customer:${customerJoin}(id, company_name, contact_person, customer_type, billing_country, vat_number),
       items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, discount_amount, discount_type, discount_value, tax_rate, tax_amount, total, unit_type, notes),
@@ -364,6 +390,7 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
   }
 
   query = applyInFilter(query, 'customer.customer_type', customerTypes)
+  query = applyHiddenFilter(query, filters.hidden)
 
   if (filters.dateFrom) {
     query = query.gte('order_date', filters.dateFrom)
@@ -494,6 +521,9 @@ export async function createOrder(
       // Explicit status only when the caller sets one (e.g. 'draft'); otherwise
       // the DB default ('pending') applies.
       ...(orderData.status ? { status: orderData.status } : {}),
+      // Only sent when the owner ticked the box; the DB default is false and
+      // the RLS WITH CHECK rejects a true from anyone but the owner.
+      ...(orderData.hidden_from_managers ? { hidden_from_managers: true } : {}),
       created_by: userId,
     })
     .select()
@@ -705,6 +735,11 @@ export async function updateOrderWithItems(
       // Only touch status when the caller sets one (draft ↔ finalize); leaving it
       // out preserves the order's existing status.
       ...(orderData.status ? { status: orderData.status } : {}),
+      // `!== undefined`, NOT a truthy check: the owner must be able to UNSET the
+      // flag, and `false` is falsy. Absent = leave the current value alone.
+      ...(orderData.hidden_from_managers !== undefined
+        ? { hidden_from_managers: orderData.hidden_from_managers }
+        : {}),
     })
     .eq('id', orderId)
 

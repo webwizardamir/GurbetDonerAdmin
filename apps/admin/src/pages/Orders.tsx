@@ -20,11 +20,12 @@ import {
   RotateCcw,
   StickyNote,
   ReceiptText,
+  EyeOff,
 } from 'lucide-react'
 import { useOrders } from '../hooks/useOrders'
 import { usePermission } from '../hooks/usePermission'
 import type { OrderStatus, PaymentMethod } from '../types'
-import type { OrderWithItems } from '../services/orders'
+import type { OrderWithItems, OrderFilters } from '../services/orders'
 import { bulkUpdateOrderStatus, bulkDeleteOrders, fetchOrders, fetchOrderById, getOrderStatusCounts, restoreOrder, purgeOrder, emptyOrderTrash } from '../services/orders'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { fetchDocumentInfoByOrder, type OrderDocumentInfo } from '../services/documents'
@@ -38,6 +39,7 @@ import StatusBadge from '../components/ui/StatusBadge'
 import PaymentBadge from '../components/ui/PaymentBadge'
 import BulkActionsBar from '../components/orders/BulkActionsBar'
 import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
+import HiddenOrderBadge from '../components/orders/HiddenOrderBadge'
 import MultiSelectFilter from '../components/ui/MultiSelectFilter'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { orderExportColumns } from '../utils/export'
@@ -73,6 +75,8 @@ export default function Orders() {
     type: [] as string[],
     customer: '',
     trashed: false,
+    // '' (= all) is the default, so it drops out of the URL entirely.
+    hidden: '',
   })
 
   const { orders, loading, error, filters, setFilters, refresh, remove, page, setPage, totalPages, totalCount } = useOrders({
@@ -82,6 +86,7 @@ export default function Orders() {
     customerType: urlInit.type.length ? urlInit.type : undefined,
     customerId: urlInit.customer || undefined,
     trashed: urlInit.trashed || undefined,
+    hidden: (urlInit.hidden || undefined) as OrderFilters['hidden'],
   }, urlInit.page)
 
   const goToPage = (next: number) => { setPage(next); setUrlState({ page: next }) }
@@ -262,6 +267,12 @@ export default function Orders() {
     setFilters({ ...filters, customerType: values.length ? values : undefined })
     setUrlState({ type: values, page: 1 })
   }
+  // Owner-only. Written from an event handler, never an effect — see the
+  // one-directional URL contract in hooks/useUrlListState.ts.
+  const handleHiddenFilter = (value: string) => {
+    setFilters({ ...filters, hidden: (value || undefined) as OrderFilters['hidden'] })
+    setUrlState({ hidden: value, page: 1 })
+  }
 
   // Attach the displayed invoice number (app-generated, else legacy WC) to a row
   // so the export's optional "Factuurnummer" column can render it. The number
@@ -392,6 +403,23 @@ export default function Orders() {
               setUrlState({ customer: customerId || '', page: 1 })
             }}
           />
+          {/* Owner-only. A shop manager never sees hidden orders at all (RLS),
+              so the control would be meaningless for them. */}
+          {isOwner && (
+            <div className="relative">
+              <EyeOff className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <select
+                aria-label={t('orders.hidden.filterLabel')}
+                value={filters.hidden ?? ''}
+                onChange={e => handleHiddenFilter(e.target.value)}
+                className="pl-9 pr-8 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
+              >
+                <option value="">{t('orders.hidden.filterAll')}</option>
+                <option value="only">{t('orders.hidden.filterHidden')}</option>
+                <option value="none">{t('orders.hidden.filterVisible')}</option>
+              </select>
+            </div>
+          )}
           <ExportMenu
             getAllData={exportGetAllData}
             pageData={filteredOrders.map(o => withInvoiceNumber(o, documentInfo))}
@@ -498,7 +526,10 @@ export default function Orders() {
                             <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-slate-900 dark:text-white truncate">{order.customer?.company_name || '-'}</p>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className="font-semibold text-slate-900 dark:text-white truncate">{order.customer?.company_name || '-'}</p>
+                              <HiddenOrderBadge hidden={order.hidden_from_managers} />
+                            </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">#{order.order_number} · {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}</p>
                           </div>
                         </div>
@@ -668,6 +699,7 @@ export default function Orders() {
                           {docInfo.invoiceNumber || order.woo_invoice_number}
                         </span>
                       )}
+                      <HiddenOrderBadge hidden={order.hidden_from_managers} />
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">#{order.order_number} · {formatDateShort(order.order_date)} · {order.items?.length || 0} items</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 tabular-nums">{t('orders.createdColumn')} {formatDayMonth(order.created_at)} {formatTimeShort(order.created_at)}</p>
