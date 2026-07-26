@@ -105,6 +105,14 @@ DROP POLICY IF EXISTS rls_orders_admin_select   ON orders;   -- Gurbet / 00035 l
 DROP POLICY IF EXISTS rls_orders_admin_insert   ON orders;
 DROP POLICY IF EXISTS rls_orders_admin_update   ON orders;
 DROP POLICY IF EXISTS rls_orders_admin_delete   ON orders;
+-- ...and the names this file itself creates below, so a re-apply is idempotent.
+-- Without these, a second run drops every policy above, then aborts on the first
+-- duplicate CREATE — leaving `orders` with a SELECT policy and NOTHING else, i.e.
+-- no staff member can place an order. This file is not wrapped in a transaction
+-- (apply_migration runs the statements as-is), so that state would persist.
+DROP POLICY IF EXISTS orders_insert_admin       ON orders;
+DROP POLICY IF EXISTS orders_update_admin       ON orders;
+DROP POLICY IF EXISTS orders_delete_admin       ON orders;
 
 CREATE POLICY orders_select_admin ON orders FOR SELECT TO authenticated
   USING (is_admin_user() AND (NOT hidden_from_managers OR (SELECT is_owner())));
@@ -190,6 +198,9 @@ DROP POLICY IF EXISTS rls_order_items_admin_select   ON order_items;
 DROP POLICY IF EXISTS rls_order_items_admin_insert   ON order_items;
 DROP POLICY IF EXISTS rls_order_items_admin_update   ON order_items;
 DROP POLICY IF EXISTS rls_order_items_admin_delete   ON order_items;
+DROP POLICY IF EXISTS order_items_insert_admin       ON order_items;  -- created below
+DROP POLICY IF EXISTS order_items_update_admin       ON order_items;
+DROP POLICY IF EXISTS order_items_delete_admin       ON order_items;
 
 CREATE POLICY order_items_select_admin ON order_items FOR SELECT TO authenticated
   USING (is_admin_user() AND ((SELECT is_owner()) OR NOT order_is_hidden(order_items.order_id)));
@@ -260,6 +271,9 @@ CREATE POLICY "Admins view document sends" ON document_sends FOR SELECT TO authe
 -- itself is unaffected by narrowing these.)
 DROP POLICY IF EXISTS order_refunds_write  ON order_refunds;
 DROP POLICY IF EXISTS order_refunds_select ON order_refunds;
+DROP POLICY IF EXISTS order_refunds_insert ON order_refunds;  -- created below
+DROP POLICY IF EXISTS order_refunds_update ON order_refunds;
+DROP POLICY IF EXISTS order_refunds_delete ON order_refunds;
 
 CREATE POLICY order_refunds_insert ON order_refunds FOR INSERT TO authenticated
   WITH CHECK (is_admin_user());
@@ -273,6 +287,9 @@ CREATE POLICY order_refunds_select ON order_refunds FOR SELECT TO authenticated
 
 DROP POLICY IF EXISTS order_refund_items_write  ON order_refund_items;
 DROP POLICY IF EXISTS order_refund_items_select ON order_refund_items;
+DROP POLICY IF EXISTS order_refund_items_insert ON order_refund_items;  -- created below
+DROP POLICY IF EXISTS order_refund_items_update ON order_refund_items;
+DROP POLICY IF EXISTS order_refund_items_delete ON order_refund_items;
 
 CREATE POLICY order_refund_items_insert ON order_refund_items FOR INSERT TO authenticated
   WITH CHECK (is_admin_user());
