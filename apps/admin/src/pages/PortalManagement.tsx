@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Globe, Search, Loader2, Settings2, Trash2, Users as UsersIcon } from 'lucide-react'
+import { Globe, Loader2, Settings2, Trash2, Users as UsersIcon } from 'lucide-react'
 import {
   getCustomersWithPortalStatus,
   deletePortalAccount,
@@ -14,6 +14,7 @@ import {
 import type { Customer } from '../types'
 import PortalAccessModal from '../components/customers/PortalAccessModal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import ListToolbar from '../components/ui/ListToolbar'
 
 type Row = Customer & { portal_account?: CustomerAccount }
 type StatusFilter = 'all' | 'active' | 'disabled' | 'none'
@@ -127,8 +128,6 @@ export default function PortalManagement() {
     )
   }
 
-  const selectClass = "px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-
   return (
     <div className="space-y-4">
       {/* Summary */}
@@ -139,25 +138,21 @@ export default function PortalManagement() {
         <SummaryCard label={t('settings.portal.summary.none')} value={counts.none} accent="text-amber-600 dark:text-amber-400" />
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('settings.portal.searchPlaceholder')}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-        </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} className={selectClass}>
-          <option value="all">{t('settings.portal.filter.all')}</option>
-          <option value="active">{t('settings.portal.status.active')}</option>
-          <option value="disabled">{t('settings.portal.status.disabled')}</option>
-          <option value="none">{t('settings.portal.status.none')}</option>
-        </select>
-      </div>
+      <ListToolbar
+        search={{ value: search, onChange: setSearch, placeholder: t('settings.portal.searchPlaceholder') }}
+        filters={[{
+          id: 'status',
+          kind: 'select',
+          label: t('settings.portal.filter.all'),
+          // 'all' is this page's empty state, so map it to '' for the shared
+          // filter model (which treats '' as "no filter").
+          value: statusFilter === 'all' ? '' : statusFilter,
+          onChange: v => setStatusFilter((v || 'all') as StatusFilter),
+          allLabel: t('settings.portal.filter.all'),
+          options: (['active', 'disabled', 'none'] as const)
+            .map(k => ({ value: k, label: t(`settings.portal.status.${k}`) })),
+        }]}
+      />
 
       {error && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300">

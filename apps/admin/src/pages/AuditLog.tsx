@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext'
 import { AuditLog as AuditLogType, AuditAction } from '../types'
 import {
   History,
-  Search,
   Filter,
   ChevronDown,
   ChevronRight,
@@ -22,7 +21,9 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import ExportMenu from '../components/ui/ExportMenu'
-import ComboPicker, { ComboOption } from '../components/ui/ComboPicker'
+import type { ComboOption } from '../components/ui/ComboPicker'
+import ListToolbar from '../components/ui/ListToolbar'
+import type { FilterDef } from '../components/ui/filterTypes'
 import { formatDateTime, formatRelativeTime } from '../utils/format'
 import {
   type TFn,
@@ -257,6 +258,7 @@ export default function AuditLog() {
     setDateTo('')
   }
 
+
   const setPreset = (p: DatePreset) => {
     setDatePreset(p)
     if (p !== 'all') {
@@ -301,6 +303,63 @@ export default function AuditLog() {
 
   const actorOptions = actors
 
+  const auditFilterDefs = useMemo<FilterDef[]>(() => [
+    {
+      id: 'user',
+      kind: 'select',
+      label: t('auditLog.filters.allUsers'),
+      icon: Filter,
+      value: userFilter ?? '',
+      // Searchable: the actor list grows with staff and was the one control here
+      // already using a picker.
+      searchable: true,
+      searchPlaceholder: t('auditLog.filters.searchUsers'),
+      options: actorOptions.map(o => ({ value: o.value, label: o.label, sublabel: o.sublabel })),
+      onChange: v => setUserFilter(v || null),
+      allLabel: t('auditLog.filters.allUsers'),
+    },
+    {
+      id: 'entity',
+      kind: 'select',
+      label: t('auditLog.ui.entityType'),
+      value: entityFilter,
+      options: AUDIT_ENTITY_TYPES.map(e => ({ value: e, label: entityLabel(t, e) })),
+      onChange: setEntityFilter,
+      allLabel: t('auditLog.filters.allEntities'),
+    },
+    {
+      id: 'action',
+      kind: 'select',
+      label: t('settings.auditLog.action'),
+      value: actionFilter,
+      options: (['create', 'update', 'delete'] as AuditAction[]).map(a => ({ value: a, label: t(`auditLog.actions.${a}`) })),
+      onChange: setActionFilter,
+      allLabel: t('auditLog.filters.allActions'),
+    },
+    {
+      id: 'datePreset',
+      kind: 'segmented',
+      label: t('auditLog.filters.all'),
+      value: !dateFrom && !dateTo ? datePreset : 'all',
+      onChange: v => setPreset(v as DatePreset),
+      options: [
+        { value: 'today', label: t('auditLog.filters.today') },
+        { value: '7', label: t('auditLog.filters.last7') },
+        { value: '30', label: t('auditLog.filters.last30') },
+        { value: 'all', label: t('auditLog.filters.all') },
+      ],
+    },
+    {
+      id: 'grouped',
+      kind: 'toggle',
+      label: grouped ? t('auditLog.ui.groupedView') : t('auditLog.ui.flatView'),
+      icon: Layers,
+      value: grouped,
+      onChange: setGrouped,
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [t, userFilter, actorOptions, entityFilter, actionFilter, datePreset, dateFrom, dateTo, grouped])
+
   return (
     <div className="space-y-4">
       {/* Action bar */}
@@ -341,129 +400,40 @@ export default function AuditLog() {
         <StatCard label={t('auditLog.stats.activeUsers')} value={stats.users.size} />
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('auditLog.filters.searchPlaceholder')}
-            aria-label={t('auditLog.filters.searchPlaceholder')}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
+      {/* Filters. The card wrapper is dropped — ListToolbar is not card-wrapped
+          anywhere else. On mobile these four stacked full-width selects become
+          the filter sheet. */}
+      <ListToolbar
+        search={{ value: searchQuery, onChange: setSearchQuery, placeholder: t('auditLog.filters.searchPlaceholder') }}
+        filters={auditFilterDefs}
+      />
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <ComboPicker
-            value={userFilter}
-            options={actorOptions}
-            onChange={setUserFilter}
-            placeholder={t('auditLog.filters.allUsers')}
-            searchPlaceholder={t('auditLog.filters.searchUsers')}
-            icon={Filter}
-          />
-
-          <select
-            value={entityFilter}
-            onChange={(e) => setEntityFilter(e.target.value)}
-            aria-label={t('auditLog.ui.entityType')}
-            className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-          >
-            <option value="">{t('auditLog.filters.allEntities')}</option>
-            {AUDIT_ENTITY_TYPES.map((e) => (
-              <option key={e} value={e}>
-                {entityLabel(t, e)}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
-            aria-label={t('settings.auditLog.action')}
-            className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-          >
-            <option value="">{t('auditLog.filters.allActions')}</option>
-            {(['create', 'update', 'delete'] as AuditAction[]).map((a) => (
-              <option key={a} value={a}>
-                {t(`auditLog.actions.${a}`)}
-              </option>
-            ))}
-          </select>
-
-          {/* Date presets */}
-          <div className="flex items-center gap-1">
-            {(['today', '7', '30', 'all'] as DatePreset[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPreset(p)}
-                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  datePreset === p && !dateFrom && !dateTo
-                    ? 'bg-green-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-              >
-                {p === 'today'
-                  ? t('auditLog.filters.today')
-                  : p === '7'
-                    ? t('auditLog.filters.last7')
-                    : p === '30'
-                      ? t('auditLog.filters.last30')
-                      : t('auditLog.filters.all')}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom range */}
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => {
-                setDateFrom(e.target.value)
-                setDatePreset('all')
-              }}
-              aria-label={t('auditLog.filters.dateFrom')}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 dark:[color-scheme:dark]"
-            />
-            <span className="text-slate-400 text-sm">—</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => {
-                setDateTo(e.target.value)
-                setDatePreset('all')
-              }}
-              aria-label={t('auditLog.filters.dateTo')}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 dark:[color-scheme:dark]"
-            />
-          </div>
-
-          {/* Group toggle */}
+      {/* Custom range stays out of the sheet: two date inputs read better under
+          the bar than inside it, and they clear the preset when used. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => { setDateFrom(e.target.value); setDatePreset('all') }}
+          aria-label={t('auditLog.filters.dateFrom')}
+          className="px-3 h-11 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-base md:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 dark:[color-scheme:dark]"
+        />
+        <span className="text-slate-400 text-sm">{t('common.to')}</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => { setDateTo(e.target.value); setDatePreset('all') }}
+          aria-label={t('auditLog.filters.dateTo')}
+          className="px-3 h-11 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-base md:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 dark:[color-scheme:dark]"
+        />
+        {hasActiveFilters && (
           <button
-            onClick={() => setGrouped((g) => !g)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border transition-colors ${
-              grouped
-                ? 'border-green-300 dark:border-green-800 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}
-            title={grouped ? t('auditLog.ui.groupedView') : t('auditLog.ui.flatView')}
+            onClick={clearFilters}
+            className="px-3 h-11 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           >
-            <Layers className="w-4 h-4" />
-            {grouped ? t('auditLog.ui.groupedView') : t('auditLog.ui.flatView')}
+            {t('auditLog.filters.clear')}
           </button>
-
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            >
-              {t('auditLog.filters.clear')}
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* List */}

@@ -11,7 +11,6 @@ import {
   Layers,
   ChevronDown,
   ChevronRight,
-  X,
   Copy,
   Printer,
   FileText,
@@ -30,7 +29,8 @@ import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
 import DayCloseModal from '../components/documents/DayCloseModal'
 import DeliveryRoutePanel from '../components/route/DeliveryRoutePanel'
 import SortableTh from '../components/ui/SortableTh'
-import MultiSelectFilter from '../components/ui/MultiSelectFilter'
+import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
+import type { FilterDef } from '../components/ui/filterTypes'
 import { useTableSort } from '../hooks/useTableSort'
 
 export default function SoldProducts() {
@@ -115,222 +115,146 @@ export default function SoldProducts() {
     setShowPDF(true)
   }
 
+  // --- Toolbar definitions --------------------------------------------------
+  // Filters are declared as DATA so one definition drives both the desktop
+  // inline row and the mobile filter sheet; see components/ui/filterTypes.ts.
+  const filterDefs = useMemo<FilterDef[]>(() => [
+    {
+      id: 'dateRange',
+      kind: 'select',
+      label: t('soldProducts.dateRange'),
+      icon: Calendar,
+      value: dateRangeKey,
+      allLabel: t('soldProducts.ranges.today'),
+      options: DATE_RANGE_KEYS.map(k => ({ value: k, label: t(`soldProducts.ranges.${k}`) })),
+      onChange: v => {
+        const key = (v || 'today') as DateRangeKey
+        if (key === 'custom') setShowCustomDate(true)
+        else { setShowCustomDate(false); setDateRange(key) }
+      },
+    },
+    {
+      id: 'city',
+      kind: 'multiselect',
+      label: t('soldProducts.filters.allCities'),
+      icon: MapPin,
+      hidden: cityOptions.length === 0,
+      value: cityFilter,
+      options: cityFilterOptions,
+      onChange: setCityFilter,
+      allLabel: t('soldProducts.filters.allCities'),
+      searchPlaceholder: t('soldProducts.filters.searchCities'),
+      selectAllLabel: t('soldProducts.filters.selectAll'),
+    },
+    {
+      id: 'customer',
+      kind: 'select',
+      label: t('soldProducts.filters.allCustomers'),
+      icon: Users,
+      hidden: customerOptions.length === 0,
+      value: customerFilter,
+      // Was a raw <select>: hundreds of options, no search, and on mobile it
+      // opened the OS picker wheel. `searchable` forces the picker regardless
+      // of how few customers a given day happens to have.
+      searchable: true,
+      searchPlaceholder: t('orders.searchCustomer'),
+      options: customerOptions.map(c => ({ value: c.id, label: c.name })),
+      onChange: setCustomerFilter,
+      allLabel: t('soldProducts.filters.allCustomers'),
+    },
+    {
+      id: 'unit',
+      kind: 'select',
+      label: t('soldProducts.filters.allUnits'),
+      icon: Ruler,
+      hidden: unitOptions.length <= 1,
+      value: unitFilter,
+      options: unitOptions.map(u => ({ value: u, label: u })),
+      onChange: setUnitFilter,
+      allLabel: t('soldProducts.filters.allUnits'),
+    },
+    {
+      id: 'customerType',
+      kind: 'select',
+      label: t('orders.allTypes'),
+      icon: Tags,
+      value: customerTypeFilter,
+      options: CUSTOMER_TYPES.map(ct => ({ value: ct, label: CUSTOMER_TYPE_LABELS[ct] })),
+      onChange: setCustomerTypeFilter,
+      allLabel: t('orders.allTypes'),
+    },
+    {
+      id: 'groupBy',
+      kind: 'segmented',
+      label: t('soldProducts.groupBy.label'),
+      icon: Layers,
+      value: groupBy,
+      options: (['none', 'city', 'customer', 'customerType'] as const).map(g => ({
+        value: g, label: t(`soldProducts.groupBy.${g}`),
+      })),
+      onChange: v => setGroupBy(v as typeof groupBy),
+    },
+  ], [t, dateRangeKey, setDateRange, cityOptions, cityFilterOptions, cityFilter, setCityFilter,
+      customerOptions, customerFilter, setCustomerFilter, unitOptions, unitFilter, setUnitFilter,
+      customerTypeFilter, setCustomerTypeFilter, groupBy, setGroupBy])
+
+  const noItems = items.length === 0
+  const toolbarActions = useMemo<ToolbarAction[]>(() => [
+    { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, priority: 'iconOnly', onClick: refresh, busy: loading },
+    { id: 'copy', label: t('common.copy'), icon: Copy, priority: 'iconOnly', onClick: handleCopy, disabled: noItems },
+    { id: 'print', label: t('common.print'), icon: Printer, priority: 'iconOnly', onClick: handlePrint, disabled: noItems },
+    { id: 'route', label: t('route.planRoute'), icon: Route, priority: 'secondary', onClick: () => setShowRoute(true), disabled: noItems },
+    { id: 'dayClose', label: t('dayClose.title'), icon: ClipboardList, priority: 'secondary', onClick: () => setShowDayClose(true), disabled: noItems },
+    { id: 'pdf', label: t('soldProducts.actions.exportPdf'), icon: FileText, priority: 'primary', onClick: () => setShowPDF(true), disabled: noItems },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [t, refresh, loading, noItems, copied])
+
   // Shared sticky-header cell background so the pinned <thead> stays opaque
   // while rows scroll underneath it.
   const stickyTh = 'px-6 bg-slate-50 dark:bg-slate-900'
 
   return (
     <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Date Range Selector */}
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <select
-              value={dateRangeKey}
-              onChange={(e) => {
-                const key = e.target.value as DateRangeKey
-                if (key === 'custom') {
-                  setShowCustomDate(true)
-                } else {
-                  setShowCustomDate(false)
-                  setDateRange(key)
-                }
-              }}
-              className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-            >
-              {/* Mapped from one ordered list so the options can't drift out of
-                  sync with the ranges again. Previously `lastWeek` reused
-                  analytics.last7Days, so "Laatste 7 dagen" appeared twice. */}
-              {DATE_RANGE_KEYS.map(k => (
-                <option key={k} value={k}>{t(`soldProducts.ranges.${k}`)}</option>
-              ))}
-            </select>
-          </div>
+      {/* One toolbar for both breakpoints. On mobile this collapses the seven
+          stacked rows this page used to spend on chrome into a single line:
+          [date range] [Filters (n)] [⋮] [PDF]. */}
+      <ListToolbar
+        filters={filterDefs}
+        pinnedFilterId="dateRange"
+        actions={toolbarActions}
+        resultCount={items.length}
+        resultsLoading={loading}
+        renderResultLabel={n => t('common.filters.showResults', { count: n })}
+      />
 
-          {/* Custom Date Inputs */}
-          {showCustomDate && (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                className="px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              <span className="text-slate-400">{t('common.to')}</span>
-              <input
-                type="date"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                className="px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              <button
-                onClick={() => {
-                  if (customStart && customEnd) {
-                    setDateRange('custom', { start: customStart, end: customEnd })
-                  }
-                }}
-                disabled={!customStart || !customEnd}
-                className="px-3 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white text-sm font-medium rounded-xl transition-colors"
-              >
-                {t('common.apply')}
-              </button>
-            </div>
-          )}
-
-          {/* Refresh */}
+      {/* Custom range inputs stay inline (desktop) / directly under the bar
+          (mobile) — they only appear once "Aangepast" is chosen. */}
+      {showCustomDate && (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            value={customStart}
+            onChange={(e) => setCustomStart(e.target.value)}
+            className="px-3 h-11 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base md:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+          <span className="text-slate-400">{t('common.to')}</span>
+          <input
+            type="date"
+            value={customEnd}
+            onChange={(e) => setCustomEnd(e.target.value)}
+            className="px-3 h-11 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base md:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
           <button
-            onClick={refresh}
-            disabled={loading}
-            className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-            title="Refresh"
+            onClick={() => {
+              if (customStart && customEnd) {
+                setDateRange('custom', { start: customStart, end: customEnd })
+              }
+            }}
+            disabled={!customStart || !customEnd}
+            className="px-3 h-11 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white text-sm font-medium rounded-xl transition-colors"
           >
-            <RefreshCw className={`w-4 h-4 text-slate-600 dark:text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+            {t('common.apply')}
           </button>
-
-          {/* Copy */}
-          <button
-            onClick={handleCopy}
-            disabled={items.length === 0}
-            className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-            title="Copy to clipboard"
-          >
-            <Copy className={`w-4 h-4 ${copied ? 'text-green-500' : 'text-slate-600 dark:text-slate-400'}`} />
-          </button>
-
-          {/* Print */}
-          <button
-            onClick={handlePrint}
-            disabled={items.length === 0}
-            className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-            title="Print / Export PDF"
-          >
-            <Printer className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-          </button>
-
-          {/* Plan delivery route */}
-          <button
-            onClick={() => setShowRoute(true)}
-            disabled={items.length === 0}
-            title={t('route.planRoute')}
-            className="inline-flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-          >
-            <Route className="w-4 h-4" />
-            {t('route.planRoute')}
-          </button>
-
-          {/* Day close — batch invoices + sold products + route in one place */}
-          <button
-            onClick={() => setShowDayClose(true)}
-            disabled={items.length === 0}
-            title={t('dayClose.title')}
-            className="inline-flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-          >
-            <ClipboardList className="w-4 h-4" />
-            {t('dayClose.title')}
-          </button>
-
-          {/* PDF Export */}
-          <button
-            onClick={() => setShowPDF(true)}
-            disabled={items.length === 0}
-            className="inline-flex items-center gap-2 px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
-          >
-            <FileText className="w-4 h-4" />
-            {t('soldProducts.actions.exportPdf')}
-          </button>
-        </div>
-      </div>
-
-      {/* Filters row (Phase 4) — appears once data has loaded */}
-      {(cityOptions.length > 0 || customerOptions.length > 0 || unitOptions.length > 1) && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {cityOptions.length > 0 && (
-            <MultiSelectFilter
-              icon={MapPin}
-              options={cityFilterOptions}
-              selected={cityFilter}
-              onChange={setCityFilter}
-              allLabel={t('soldProducts.filters.allCities')}
-              searchPlaceholder={t('soldProducts.filters.searchCities')}
-              selectAllLabel={t('soldProducts.filters.selectAll')}
-              noResultsLabel={t('soldProducts.filters.noCities')}
-              renderCount={n => t('soldProducts.filters.citiesSelected', { count: n })}
-            />
-          )}
-          {customerOptions.length > 0 && (
-            <div className="relative">
-              <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <select
-                value={customerFilter}
-                onChange={e => setCustomerFilter(e.target.value)}
-                className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer max-w-[220px]"
-              >
-                <option value="">{t('soldProducts.filters.allCustomers')}</option>
-                {customerOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-          )}
-          {unitOptions.length > 1 && (
-            <div className="relative">
-              <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <select
-                value={unitFilter}
-                onChange={e => setUnitFilter(e.target.value)}
-                className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-              >
-                <option value="">{t('soldProducts.filters.allUnits')}</option>
-                {unitOptions.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
-          )}
-          <div className="relative">
-            <Tags className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <select
-              value={customerTypeFilter}
-              onChange={e => setCustomerTypeFilter(e.target.value)}
-              aria-label="Type"
-              className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-            >
-              <option value="">Alle types</option>
-              {CUSTOMER_TYPES.map(ct => <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>)}
-            </select>
-          </div>
-          {(cityFilter.length > 0 || customerFilter || unitFilter || customerTypeFilter) && (
-            <button
-              onClick={() => {
-                setCityFilter([])
-                setCustomerFilter('')
-                setUnitFilter('')
-                setCustomerTypeFilter('')
-              }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-              {t('soldProducts.filters.clear')}
-            </button>
-          )}
-          <div className="flex-1" />
-          <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
-            <span className="px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5" />
-              {t('soldProducts.groupBy.label')}
-            </span>
-            {(['none', 'city', 'customer', 'customerType'] as const).map((g, i) => (
-              <button
-                key={g}
-                onClick={() => setGroupBy(g)}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${
-                  groupBy === g
-                    ? 'bg-green-600 text-white'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                } ${i > 0 ? 'border-l border-slate-200 dark:border-slate-700' : ''}`}
-              >
-                {t(`soldProducts.groupBy.${g}`)}
-              </button>
-            ))}
-          </div>
         </div>
       )}
 
@@ -343,9 +267,12 @@ export default function SoldProducts() {
 
       {/* Two-column layout: summary cards (left) + table/groups (right) */}
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left: summary cards — horizontal grid on mobile, vertical stack on desktop */}
+        {/* Left: summary cards — horizontal grid on mobile, vertical stack on
+            desktop. `order-last` below lg: the KPIs are a summary, not a
+            control, and chrome-before-content was the complaint. Desktop keeps
+            them in the left rail. */}
         {summary && (
-          <div className="grid grid-cols-2 lg:flex lg:flex-col gap-4 lg:w-56 lg:shrink-0">
+          <div className="order-last lg:order-first grid grid-cols-2 lg:flex lg:flex-col gap-4 lg:w-56 lg:shrink-0">
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">

@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Search,
   Plus,
   Pencil,
   Trash2,
@@ -23,6 +22,7 @@ import { productExportColumns, withoutCostColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
 import SelectionBar from '../components/ui/SelectionBar'
+import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
 import { useTableSort } from '../hooks/useTableSort'
 import { useUrlListState } from '../hooks/useUrlListState'
 import { downloadProductTemplate } from '../utils/productTemplate'
@@ -161,36 +161,20 @@ export default function Products() {
   const toggleSelectAll = () => setSelectedIds(prev =>
     prev.size === filteredProducts.length ? new Set() : new Set(filteredProducts.map(p => p.id)))
 
-  return (
-    <div className="space-y-6">
-      {/* Search & Filters - Combined on desktop, stacked on mobile */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative w-full sm:w-auto sm:flex-1 lg:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input type="text" placeholder={t('products.searchPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500" />
-        </div>
-        {isOwner && (
-          <>
-            <button
-              onClick={handleDownloadTemplate}
-              disabled={downloadingTemplate}
-              className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title={t('products.downloadTemplateWithData')}
-            >
-              {downloadingTemplate
-                ? <Loader2 className="w-5 h-5 animate-spin" />
-                : <FileDown className="w-5 h-5" />}
-            </button>
-            <button
-              onClick={() => setShowImport(true)}
-              className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-              title={t('products.import.title')}
-            >
-              <Upload className="w-5 h-5" />
-            </button>
-          </>
-        )}
+  // No filters on this page yet, so ListToolbar renders no Filters button; the
+  // slot is here for when category/stock filters arrive.
+  const toolbarActions = useMemo<ToolbarAction[]>(() => {
+    const list: ToolbarAction[] = []
+    if (isOwner) {
+      list.push({ id: 'template', label: t('products.downloadTemplateWithData'), icon: FileDown, priority: 'iconOnly', onClick: handleDownloadTemplate, busy: downloadingTemplate })
+      list.push({ id: 'import', label: t('products.import.title'), icon: Upload, priority: 'iconOnly', onClick: () => setShowImport(true) })
+    }
+    list.push({
+      id: 'export',
+      label: t('common.export'),
+      icon: FileDown,
+      priority: 'secondary',
+      render: () => (
         <ExportMenu
           getAllData={fetchAllProducts}
           pageData={filteredProducts}
@@ -201,15 +185,21 @@ export default function Products() {
           pdfTitle="Producten"
           storageKey="products"
         />
-        <div className="flex-1" />
-        {canCreate && (
-          <button onClick={handleCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap">
-            <Plus className="w-5 h-5" />
-            <span className="hidden sm:inline">{t('products.addProduct')}</span>
-          </button>
-        )}
-      </div>
+      ),
+    })
+    if (canCreate) {
+      list.push({ id: 'add', label: t('products.addProduct'), icon: Plus, priority: 'primary', onClick: handleCreate })
+    }
+    return list
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, isOwner, canCreate, downloadingTemplate, filteredProducts, selectedProducts, totalCount, exportColumns])
+
+  return (
+    <div className="space-y-6">
+      <ListToolbar
+        search={{ value: searchQuery, onChange: setSearchQuery, placeholder: t('products.searchPlaceholder') }}
+        actions={toolbarActions}
+      />
 
       {/* Error Message */}
       {error && (

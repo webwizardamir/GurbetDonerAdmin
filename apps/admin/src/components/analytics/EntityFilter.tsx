@@ -2,12 +2,14 @@
 // payment method and unit type. Wraps on mobile and shows an active-filter
 // chip row with clear-all. Date range + status stay in the page's own row.
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Building2, Package, CreditCard, Box, Tags, X } from 'lucide-react'
 import { supabase } from '../../services/supabase'
 import type { AnalyticsFilters } from '../../services/analyticsHelpers'
-import ComboPicker, { type ComboOption } from '../ui/ComboPicker'
+import type { ComboOption } from '../ui/ComboPicker'
+import ListToolbar from '../ui/ListToolbar'
+import type { FilterDef } from '../ui/filterTypes'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../../constants/customerType'
 
 export type FilterDim = 'customer' | 'product' | 'payment' | 'unit' | 'customerType'
@@ -23,9 +25,6 @@ interface EntityFilterProps {
 
 const UNIT_TYPES = ['kg', 'piece', 'zak', 'doos']
 const PAYMENT_METHODS = ['cash', 'bank']
-
-const selectClass =
-  'pl-3 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer'
 
 export default function EntityFilter({ value, onChange, dims = ['customer', 'product', 'payment', 'unit'] }: EntityFilterProps) {
   const { t } = useTranslation()
@@ -61,78 +60,77 @@ export default function EntityFilter({ value, onChange, dims = ['customer', 'pro
   const customerLabel = value.customerId ? customers.find(c => c.value === value.customerId)?.label : null
   const productLabel = value.productId ? products.find(p => p.value === value.productId)?.label : null
 
+  // Analytics tabs are aggregates, not row lists, so no result count is passed
+  // — the sheet's footer button falls back to "Klaar" rather than inventing a
+  // number. `dims` still decides which dimensions are meaningful per tab.
+  const filterDefs = useMemo<FilterDef[]>(() => [
+    {
+      id: 'customer',
+      kind: 'select',
+      label: t('analytics.filters.customer'),
+      icon: Building2,
+      hidden: !show('customer'),
+      value: value.customerId ?? '',
+      searchable: true,
+      searchPlaceholder: t('analytics.filters.searchCustomer'),
+      options: customers.map(c => ({ value: c.value, label: c.label })),
+      onChange: v => set({ customerId: v || null }),
+      allLabel: t('analytics.filters.allCustomers'),
+    },
+    {
+      id: 'product',
+      kind: 'select',
+      label: t('analytics.filters.product'),
+      icon: Package,
+      hidden: !show('product'),
+      value: value.productId ?? '',
+      searchable: true,
+      searchPlaceholder: t('analytics.filters.searchProduct'),
+      options: products.map(p => ({ value: p.value, label: p.label })),
+      onChange: v => set({ productId: v || null }),
+      allLabel: t('analytics.filters.allProducts'),
+    },
+    {
+      id: 'payment',
+      kind: 'select',
+      label: t('analytics.filters.payment'),
+      icon: CreditCard,
+      hidden: !show('payment'),
+      value: value.paymentMethod ?? '',
+      options: PAYMENT_METHODS.map(m => ({ value: m, label: t(`analytics.filters.${m}`) })),
+      onChange: v => set({ paymentMethod: v || null }),
+      allLabel: t('analytics.filters.allPayments'),
+    },
+    {
+      id: 'unit',
+      kind: 'select',
+      label: t('analytics.filters.unitType'),
+      icon: Box,
+      hidden: !show('unit'),
+      value: value.unitType ?? '',
+      options: UNIT_TYPES.map(u => ({ value: u, label: u })),
+      onChange: v => set({ unitType: v || null }),
+      allLabel: t('analytics.filters.allUnits'),
+    },
+    {
+      id: 'customerType',
+      kind: 'select',
+      label: t('orders.allTypes'),
+      icon: Tags,
+      hidden: !show('customerType'),
+      value: value.customerType ?? '',
+      options: CUSTOMER_TYPES.map(ct => ({ value: ct, label: CUSTOMER_TYPE_LABELS[ct] })),
+      onChange: v => set({ customerType: v || null }),
+      allLabel: t('orders.allTypes'),
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [t, dims, value, customers, products, loading])
+
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        {show('customer') && (
-          <ComboPicker
-            value={value.customerId ?? null}
-            options={customers}
-            loading={loading}
-            onChange={v => set({ customerId: v })}
-            placeholder={t('analytics.filters.allCustomers')}
-            searchPlaceholder={t('analytics.filters.searchCustomer')}
-            icon={Building2}
-          />
-        )}
-        {show('product') && (
-          <ComboPicker
-            value={value.productId ?? null}
-            options={products}
-            loading={loading}
-            onChange={v => set({ productId: v })}
-            placeholder={t('analytics.filters.allProducts')}
-            searchPlaceholder={t('analytics.filters.searchProduct')}
-            icon={Package}
-          />
-        )}
-        {show('payment') && (
-          <div className="relative inline-flex items-center">
-            <CreditCard className="absolute left-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
-            <select
-              value={value.paymentMethod ?? ''}
-              onChange={e => set({ paymentMethod: e.target.value || null })}
-              className={`${selectClass} pl-9`}
-            >
-              <option value="">{t('analytics.filters.allPayments')}</option>
-              {PAYMENT_METHODS.map(m => (
-                <option key={m} value={m}>{t(`analytics.filters.${m}`)}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        {show('unit') && (
-          <div className="relative inline-flex items-center">
-            <Box className="absolute left-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
-            <select
-              value={value.unitType ?? ''}
-              onChange={e => set({ unitType: e.target.value || null })}
-              className={`${selectClass} pl-9`}
-            >
-              <option value="">{t('analytics.filters.allUnits')}</option>
-              {UNIT_TYPES.map(u => (
-                <option key={u} value={u}>{u}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        {show('customerType') && (
-          <div className="relative inline-flex items-center">
-            <Tags className="absolute left-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
-            <select
-              value={value.customerType ?? ''}
-              onChange={e => set({ customerType: e.target.value || null })}
-              aria-label="Type"
-              className={`${selectClass} pl-9`}
-            >
-              <option value="">Alle types</option>
-              {CUSTOMER_TYPES.map(ct => (
-                <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
+      {/* Chips below are this component's own (they carry per-dimension
+          labels), so the toolbar's generic chip row is suppressed. */}
+      <ListToolbar filters={filterDefs} chips={null} />
 
       {hasActiveShown && (
         <div className="flex flex-wrap items-center gap-2">

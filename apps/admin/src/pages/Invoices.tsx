@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FileText,
-  Search,
   Loader2,
   Download,
   Trash2,
@@ -40,6 +39,8 @@ import { fetchOrderById, type OrderWithItems } from '../services/orders'
 import { documentExportColumns } from '../utils/export'
 import { shareOrDownloadBlob } from '../utils/shareBlob'
 import ExportMenu from '../components/ui/ExportMenu'
+import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
+import type { FilterDef } from '../components/ui/filterTypes'
 
 // ─── Helpers ──────────────────────────────────────────
 
@@ -383,6 +384,69 @@ export default function Invoices() {
 
   const hasFilters = searchQuery || typeFilter || customerFilter || dateRangePreset !== 'all'
 
+  const filterDefs = useMemo<FilterDef[]>(() => [
+    {
+      id: 'type',
+      kind: 'select',
+      label: t('documents.allTypes'),
+      value: typeFilter,
+      onChange: v => setTypeFilter(v as DocumentType | ''),
+      allLabel: t('documents.allTypes'),
+      options: (['invoice', 'proforma', 'credit_note', 'packing_slip', 'order_confirmation', 'payment_reminder'] as const)
+        .map(k => ({ value: k, label: t(`documents.types.${k}`) })),
+    },
+    {
+      id: 'range',
+      kind: 'select',
+      label: t('documents.dateRange.label', { defaultValue: t('soldProducts.dateRange') }),
+      icon: Calendar,
+      value: dateRangePreset === 'all' ? '' : dateRangePreset,
+      onChange: v => {
+        const val = (v || 'all') as DatePreset
+        setDateRangePreset(val)
+        setShowCustomDate(val === 'custom')
+      },
+      allLabel: t('documents.dateRange.all'),
+      options: (['today', 'thisWeek', 'thisMonth', 'thisYear', 'custom'] as const)
+        .map(k => ({ value: k, label: t(`documents.dateRange.${k}`) })),
+    },
+    {
+      id: 'customer',
+      kind: 'select',
+      label: t('documents.allCustomers'),
+      icon: Building2,
+      hidden: customers.length === 0,
+      value: customerFilter,
+      // Long list -> searchable picker rather than a native select.
+      searchable: true,
+      searchPlaceholder: t('orders.searchCustomer'),
+      options: customers.map(name => ({ value: name, label: name })),
+      onChange: setCustomerFilter,
+      allLabel: t('documents.allCustomers'),
+    },
+  ], [t, typeFilter, dateRangePreset, customers, customerFilter])
+
+  const toolbarActions = useMemo<ToolbarAction[]>(() => [{
+    id: 'export',
+    label: t('common.export'),
+    icon: FileText,
+    // Only action on this page, so it stays visible on mobile rather than
+    // hiding a lone item behind an overflow menu.
+    priority: 'primary',
+    render: () => (
+      <ExportMenu
+        getAllData={getAllExportData}
+        selectedData={selectedExportData}
+        totalCount={total}
+        columns={documentExportColumns as never}
+        filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
+        pdfTitle="Documenten"
+        storageKey="documents"
+      />
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }], [t, total, selectedExportData])
+
   // ─── Render ───────────────────────────────────────────
 
   return (
@@ -391,59 +455,14 @@ export default function Invoices() {
       {!loading && <InvoiceStats stats={stats} t={t} />}
 
       {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('documents.searchPlaceholder')}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-        </div>
-        <div className="relative w-full sm:w-auto">
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as DocumentType | '')}
-            className="w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
-            <option value="">{t('documents.allTypes')}</option>
-            <option value="invoice">{t('documents.types.invoice')}</option>
-            <option value="proforma">{t('documents.types.proforma')}</option>
-            <option value="credit_note">{t('documents.types.credit_note')}</option>
-            <option value="packing_slip">{t('documents.types.packing_slip')}</option>
-            <option value="order_confirmation">{t('documents.types.order_confirmation')}</option>
-            <option value="payment_reminder">{t('documents.types.payment_reminder')}</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-        </div>
-        <div className="relative w-full sm:w-auto">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <select value={dateRangePreset} onChange={e => { const val = e.target.value as DatePreset; setDateRangePreset(val); setShowCustomDate(val === 'custom') }}
-            className="w-full sm:w-auto pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
-            <option value="all">{t('documents.dateRange.all')}</option>
-            <option value="today">{t('documents.dateRange.today')}</option>
-            <option value="thisWeek">{t('documents.dateRange.thisWeek')}</option>
-            <option value="thisMonth">{t('documents.dateRange.thisMonth')}</option>
-            <option value="thisYear">{t('documents.dateRange.thisYear')}</option>
-            <option value="custom">{t('documents.dateRange.custom')}</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-        </div>
-        {customers.length > 0 && (
-          <div className="relative w-full sm:w-auto">
-            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <select value={customerFilter} onChange={e => setCustomerFilter(e.target.value)}
-              className="w-full sm:w-auto pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
-              <option value="">{t('documents.allCustomers')}</option>
-              {customers.map(name => <option key={name} value={name}>{name}</option>)}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          </div>
-        )}
-        <ExportMenu
-          getAllData={getAllExportData}
-          selectedData={selectedExportData}
-          totalCount={total}
-          columns={documentExportColumns as never}
-          filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
-          pdfTitle="Documenten"
-          storageKey="documents"
-        />
-      </div>
+      <ListToolbar
+        search={{ value: searchQuery, onChange: setSearchQuery, placeholder: t('documents.searchPlaceholder') }}
+        filters={filterDefs}
+        actions={toolbarActions}
+        resultCount={total}
+        resultsLoading={loading}
+        renderResultLabel={n => t('common.filters.showResults', { count: n })}
+      />
 
       {/* Custom Date Inputs */}
       {showCustomDate && (

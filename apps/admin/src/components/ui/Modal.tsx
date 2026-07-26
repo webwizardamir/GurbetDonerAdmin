@@ -1,5 +1,6 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useBodyScrollLock, useEscapeKey, useFocusTrap } from '../../hooks/useOverlay'
 
 interface ModalProps {
   isOpen: boolean
@@ -18,53 +19,12 @@ export default function Modal({
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (!isOpen) return
-    const original = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = original }
-  }, [isOpen])
-
-  // Escape key listener
-  useEffect(() => {
-    if (!isOpen) return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [isOpen, onClose])
-
-  // Focus trap
-  useEffect(() => {
-    if (!isOpen || !modalRef.current) return
-    const modal = modalRef.current
-    const focusable = modal.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
-    if (focusable.length === 0) return
-    const first = focusable[0]
-    const last = focusable[focusable.length - 1]
-    first.focus()
-
-    const handleTab = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault()
-          last.focus()
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault()
-          first.focus()
-        }
-      }
-    }
-    modal.addEventListener('keydown', handleTab)
-    return () => modal.removeEventListener('keydown', handleTab)
-  }, [isOpen])
+  // Scroll lock / Escape / focus trap all live in useOverlay so Sheet shares
+  // exactly this behaviour. The scroll lock is ref-counted, so a Sheet opening
+  // on top of a Modal no longer unlocks the page when it closes.
+  useBodyScrollLock(isOpen)
+  useEscapeKey(isOpen, onClose)
+  useFocusTrap(modalRef, isOpen)
 
   if (!isOpen) return null
 

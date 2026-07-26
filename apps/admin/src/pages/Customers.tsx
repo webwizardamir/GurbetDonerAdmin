@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  Search,
   Plus,
   Building2,
   Loader2,
@@ -27,6 +26,8 @@ import { getCustomerPerformance, type CustomerPerformanceRow } from '../services
 import { useAuth } from '../context/AuthContext'
 import ExportMenu from '../components/ui/ExportMenu'
 import SelectionBar from '../components/ui/SelectionBar'
+import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
+import type { FilterDef } from '../components/ui/filterTypes'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
@@ -222,69 +223,81 @@ export default function Customers() {
     [isOwner],
   )
 
+  // The city and type selects used to sit in the toolbar as `flex-1 sm:flex-none`
+  // pairs, which on a phone collapsed into two ~40%-wide stubs showing an icon
+  // and a truncated first letter ("A , A"). They now live in the filter sheet.
+  const filterDefs = useMemo<FilterDef[]>(() => [
+    {
+      id: 'city',
+      kind: 'select',
+      label: t('customers.allCities'),
+      icon: Filter,
+      hidden: cities.length === 0,
+      value: cityFilter,
+      // Long list -> searchable picker instead of a native select.
+      searchable: true,
+      searchPlaceholder: t('common.search'),
+      options: cities.map(c => ({ value: c, label: c })),
+      onChange: setCityFilter,
+      allLabel: t('customers.allCities'),
+    },
+    {
+      id: 'type',
+      kind: 'select',
+      label: t('orders.allTypes'),
+      icon: Tags,
+      value: typeFilter,
+      options: CUSTOMER_TYPES.map(ct => ({ value: ct, label: CUSTOMER_TYPE_LABELS[ct] })),
+      onChange: setTypeFilter,
+      allLabel: t('orders.allTypes'),
+    },
+    {
+      id: 'archived',
+      kind: 'toggle',
+      label: t('customers.showArchived'),
+      icon: Archive,
+      value: showArchived,
+      onChange: setShowArchived,
+    },
+  ], [t, cities, cityFilter, setCityFilter, typeFilter, setTypeFilter, showArchived, setShowArchived])
+
+  const toolbarActions = useMemo<ToolbarAction[]>(() => {
+    const list: ToolbarAction[] = [{
+      id: 'export',
+      label: t('common.export'),
+      icon: Upload,
+      priority: 'secondary',
+      render: () => (
+        <ExportMenu
+          getAllData={async () => (await fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined, archived: showArchived })).map(withCostFields)}
+          pageData={filteredCustomers.map(withCostFields)}
+          selectedData={selectedCustomers.map(withCostFields)}
+          totalCount={totalCount}
+          columns={customerExportColumnsGated as never}
+          filename={`customers-${new Date().toISOString().split('T')[0]}`}
+          pdfTitle="Klanten"
+          storageKey="customers"
+        />
+      ),
+    }]
+    if (canCreate && !showArchived) {
+      list.push({ id: 'import', label: t('common.import'), icon: Upload, priority: 'secondary', onClick: () => setShowImport(true) })
+      list.push({ id: 'add', label: t('customers.addCustomer'), icon: Plus, priority: 'primary', onClick: () => { setEditingCustomer(null); setShowForm(true) } })
+    }
+    return list
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, canCreate, showArchived, searchQuery, cityFilter, typeFilter, filteredCustomers, selectedCustomers, totalCount, customerExportColumnsGated, withCostFields])
+
   return (
     <div className="space-y-4 min-w-0">
-      {/* Search & Filters */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <div className="relative w-full sm:w-64 lg:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t('customers.searchPlaceholder')}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {cities.length > 0 && (
-            <div className="relative flex-1 sm:flex-none">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-              <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}
-                className="w-full sm:w-auto pl-10 pr-8 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
-                <option value="">{t('customers.allCities')}</option>
-                {cities.map(city => <option key={city} value={city}>{city}</option>)}
-              </select>
-            </div>
-          )}
-          <div className="relative flex-1 sm:flex-none">
-            <Tags className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label="Type"
-              className="w-full sm:w-auto pl-10 pr-8 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer">
-              <option value="">Alle types</option>
-              {CUSTOMER_TYPES.map(ct => <option key={ct} value={ct}>{CUSTOMER_TYPE_LABELS[ct]}</option>)}
-            </select>
-          </div>
-          <button onClick={() => setShowArchived(v => !v)}
-            aria-pressed={showArchived}
-            title={showArchived ? t('customers.showActive') : t('customers.showArchived')}
-            className={`inline-flex items-center justify-center gap-2 px-3 py-2.5 border font-medium rounded-xl transition-colors whitespace-nowrap ${
-              showArchived
-                ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
-                : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}>
-            <Archive className="w-5 h-5" /><span className="hidden lg:inline">{showArchived ? t('customers.showActive') : t('customers.showArchived')}</span>
-          </button>
-          <ExportMenu
-            getAllData={async () => (await fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined, archived: showArchived })).map(withCostFields)}
-            pageData={filteredCustomers.map(withCostFields)}
-            selectedData={selectedCustomers.map(withCostFields)}
-            totalCount={totalCount}
-            columns={customerExportColumnsGated as never}
-            filename={`customers-${new Date().toISOString().split('T')[0]}`}
-            pdfTitle="Klanten"
-            storageKey="customers"
-          />
-          {canCreate && !showArchived && (
-            <button onClick={() => setShowImport(true)}
-              className="inline-flex items-center justify-center gap-2 px-3 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
-              <Upload className="w-5 h-5" /><span className="hidden lg:inline">{t('common.import')}</span>
-            </button>
-          )}
-          <div className="hidden sm:block flex-1" />
-          {canCreate && !showArchived && (
-            <button onClick={() => { setEditingCustomer(null); setShowForm(true) }}
-              className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0">
-              <Plus className="w-5 h-5" /><span className="hidden sm:inline">{t('customers.addCustomer')}</span>
-            </button>
-          )}
-        </div>
-      </div>
+      <ListToolbar
+        search={{ value: searchQuery, onChange: setSearchQuery, placeholder: t('customers.searchPlaceholder') }}
+        filters={filterDefs}
+        actions={toolbarActions}
+        resultCount={totalCount}
+        resultsLoading={loading}
+        renderResultLabel={n => t('common.filters.showResults', { count: n })}
+      />
 
       {error && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">

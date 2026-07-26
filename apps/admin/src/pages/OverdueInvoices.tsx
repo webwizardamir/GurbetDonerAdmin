@@ -29,6 +29,7 @@ import { fetchDocumentSettings } from '../services/documents'
 import DocumentGenerator from '../components/documents/DocumentGenerator'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import DropdownMenu from '../components/ui/DropdownMenu'
+import SegmentedControl from '../components/ui/SegmentedControl'
 import Modal from '../components/ui/Modal'
 import EmailViewModal from '../components/documents/EmailViewModal'
 import type { ClientReminderConfig, DocumentSend, DocumentSettings, OverdueInvoice } from '../types'
@@ -149,30 +150,22 @@ export default function OverdueInvoices() {
         />
       </div>
 
-      {/* Filter tabs with count pills */}
-      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700">
-        {(['active', 'snoozed', 'all'] as Filter[]).map(f => {
-          const n = f === 'active' ? active.length : f === 'snoozed' ? snoozed.length : invoices.length
-          return (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors inline-flex items-center gap-2 ${
-                filter === f
-                  ? 'border-green-500 text-green-600 dark:text-green-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
-              }`}
-            >
-              {t(`overdue.filters.${f}`)}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full tabular-nums ${
-                filter === f
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                  : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-              }`}>{n}</span>
-            </button>
-          )
-        })}
-      </div>
+      {/* Three view tabs, so no Filters sheet here — a sheet for three options
+          is worse than the tabs. SegmentedControl just adds horizontal scroll
+          instead of overflowing a narrow phone. Row-click stays deliberately
+          off this page: the rows are action-dense (2 links + status + send +
+          row menu) and a whole-row click mis-fires. */}
+      <SegmentedControl
+        as="tabs"
+        value={filter}
+        onChange={v => setFilter(v as Filter)}
+        aria-label={t('overdue.filters.all')}
+        options={(['active', 'snoozed', 'all'] as Filter[]).map(f => ({
+          value: f,
+          label: t(`overdue.filters.${f}`),
+          count: f === 'active' ? active.length : f === 'snoozed' ? snoozed.length : invoices.length,
+        }))}
+      />
 
       {rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">

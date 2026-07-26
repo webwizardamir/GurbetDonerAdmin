@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  Search,
   Plus,
   ShoppingCart,
   Loader2,
@@ -39,7 +38,8 @@ import BulkActionsBar from '../components/orders/BulkActionsBar'
 import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
 import HiddenOrderBadge from '../components/orders/HiddenOrderBadge'
 import OrderRowIndicators from '../components/orders/OrderRowIndicators'
-import MultiSelectFilter from '../components/ui/MultiSelectFilter'
+import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
+import type { FilterDef } from '../components/ui/filterTypes'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { orderExportColumns, withoutCostColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
@@ -370,79 +370,93 @@ export default function Orders() {
     finally { setBulkProcessing(false) }
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Search & Filters */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <div className="relative w-full sm:w-64 lg:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('orders.searchPlaceholder')}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <MultiSelectFilter
-            selected={statusFilter}
-            onChange={handleStatusFilter}
-            options={[
-              ...STATUS_FILTER_ORDER,
-              ...Object.keys(statusCounts).filter(s => s !== 'total' && !STATUS_FILTER_ORDER.includes(s)),
-            ]
-              .filter(s => (statusCounts[s] ?? 0) > 0 || (statusFilter as string[]).includes(s))
-              .map(s => ({ value: s, label: `${t(`orders.status.${s}`, { defaultValue: s })} (${statusCounts[s] ?? 0})` }))}
-            allLabel={`${t('orders.allStatus')} (${statusCounts.total})`}
-            searchPlaceholder={t('orders.filterSearch')}
-            selectAllLabel={t('orders.selectAll')}
-            noResultsLabel={t('common.noResults')}
-            renderCount={n => t('orders.filterSelected', { count: n })}
-          />
-          <MultiSelectFilter
-            selected={paymentFilter}
-            onChange={handlePaymentFilter}
-            options={[
-              { value: 'cash', label: t('orders.payment.cash') },
-              { value: 'bank', label: t('orders.payment.bank') },
-            ]}
-            allLabel={t('orders.allPayment')}
-            searchPlaceholder={t('orders.filterSearch')}
-            selectAllLabel={t('orders.selectAll')}
-            noResultsLabel={t('common.noResults')}
-            renderCount={n => t('orders.filterSelected', { count: n })}
-          />
-          <MultiSelectFilter
-            aria-label="Type"
-            selected={typeFilter}
-            onChange={handleCustomerTypeFilter}
-            options={CUSTOMER_TYPES.map(ct => ({ value: ct, label: CUSTOMER_TYPE_LABELS[ct] }))}
-            allLabel={t('orders.allTypes')}
-            searchPlaceholder={t('orders.filterSearch')}
-            selectAllLabel={t('orders.selectAll')}
-            noResultsLabel={t('common.noResults')}
-            renderCount={n => t('orders.filterSelected', { count: n })}
-          />
-          <CustomerFilterSelect
-            value={filters.customerId}
-            onChange={(customerId) => {
-              setFilters({ ...filters, customerId })
-              setUrlState({ customer: customerId || '', page: 1 })
-            }}
-          />
-          {/* Owner-only. A shop manager never sees hidden orders at all (RLS),
-              so the control would be meaningless for them. */}
-          {isOwner && (
-            <div className="relative">
-              <EyeOff className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              <select
-                aria-label={t('orders.hidden.filterLabel')}
-                value={filters.hidden ?? ''}
-                onChange={e => handleHiddenFilter(e.target.value)}
-                className="pl-9 pr-8 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
-              >
-                <option value="">{t('orders.hidden.filterAll')}</option>
-                <option value="only">{t('orders.hidden.filterHidden')}</option>
-                <option value="none">{t('orders.hidden.filterVisible')}</option>
-              </select>
-            </div>
-          )}
+  // Filters as data. Every onChange below is an EXISTING page handler that
+  // already does `setFilters(...)` + `setUrlState(...)` — ListToolbar/FilterSheet
+  // never own filter state and never touch the URL, which is what keeps the
+  // one-directional useUrlListState contract intact.
+  const filterDefs = useMemo<FilterDef[]>(() => [
+    {
+      id: 'status',
+      kind: 'multiselect',
+      label: t('orders.allStatus'),
+      value: statusFilter,
+      onChange: handleStatusFilter,
+      allLabel: `${t('orders.allStatus')} (${statusCounts.total})`,
+      searchPlaceholder: t('orders.filterSearch'),
+      selectAllLabel: t('orders.selectAll'),
+      options: [
+        ...STATUS_FILTER_ORDER,
+        ...Object.keys(statusCounts).filter(s => s !== 'total' && !STATUS_FILTER_ORDER.includes(s)),
+      ]
+        .filter(s => (statusCounts[s] ?? 0) > 0 || (statusFilter as string[]).includes(s))
+        .map(s => ({ value: s, label: t(`orders.status.${s}`, { defaultValue: s }), count: statusCounts[s] ?? 0 })),
+    },
+    {
+      id: 'payment',
+      kind: 'multiselect',
+      label: t('orders.allPayment'),
+      value: paymentFilter,
+      onChange: handlePaymentFilter,
+      allLabel: t('orders.allPayment'),
+      selectAllLabel: t('orders.selectAll'),
+      options: [
+        { value: 'cash', label: t('orders.payment.cash') },
+        { value: 'bank', label: t('orders.payment.bank') },
+      ],
+    },
+    {
+      id: 'type',
+      kind: 'multiselect',
+      label: t('orders.allTypes'),
+      value: typeFilter,
+      onChange: handleCustomerTypeFilter,
+      allLabel: t('orders.allTypes'),
+      selectAllLabel: t('orders.selectAll'),
+      options: CUSTOMER_TYPES.map(ct => ({ value: ct, label: CUSTOMER_TYPE_LABELS[ct] })),
+    },
+    {
+      // Keeps its own component: it lazy-loads customers and owns that state.
+      id: 'customer',
+      kind: 'custom',
+      label: t('orders.allCustomers'),
+      isActive: !!filters.customerId,
+      onClear: () => { setFilters({ ...filters, customerId: undefined }); setUrlState({ customer: '', page: 1 }) },
+      render: () => (
+        <CustomerFilterSelect
+          value={filters.customerId}
+          onChange={(customerId) => {
+            setFilters({ ...filters, customerId })
+            setUrlState({ customer: customerId || '', page: 1 })
+          }}
+        />
+      ),
+    },
+    {
+      // Owner-only: RLS already removes hidden orders for a shop manager, so the
+      // control would do nothing for them.
+      id: 'hidden',
+      kind: 'select',
+      label: t('orders.hidden.filterLabel'),
+      icon: EyeOff,
+      hidden: !isOwner,
+      value: filters.hidden ?? '',
+      onChange: handleHiddenFilter,
+      allLabel: t('orders.hidden.filterAll'),
+      options: [
+        { value: 'only', label: t('orders.hidden.filterHidden') },
+        { value: 'none', label: t('orders.hidden.filterVisible') },
+      ],
+    },
+  ], [t, statusFilter, statusCounts, paymentFilter, typeFilter, filters, isOwner]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toolbarActions = useMemo<ToolbarAction[]>(() => {
+    const list: ToolbarAction[] = [
+      {
+        id: 'export',
+        label: t('common.export'),
+        icon: FileText,
+        priority: 'secondary',
+        render: () => (
           <ExportMenu
             getAllData={exportGetAllData}
             pageData={filteredOrders.map(o => withExportFields(o, documentInfo))}
@@ -453,33 +467,32 @@ export default function Orders() {
             pdfTitle="Bestellingen"
             storageKey="orders"
           />
-          <button onClick={toggleTrashView}
-            className={`inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 font-medium rounded-xl transition-colors whitespace-nowrap shrink-0 border ${
-              trashed
-                ? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
-                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-            }`}
-            title={t('orders.trash.title')} aria-label={t('orders.trash.title')}>
-            <Trash2 className="w-5 h-5" />
-            <span className="hidden sm:inline">{t('orders.trash.title')}</span>
-          </button>
-          <div className="hidden sm:block flex-1" />
-          {trashed && totalCount > 0 && (
-            <button onClick={() => setConfirmEmpty(true)}
-              className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0">
-              <Trash2 className="w-5 h-5" />
-              <span className="hidden sm:inline">{t('orders.trash.emptyTrash')}</span>
-            </button>
-          )}
-          {canCreate && !trashed && (
-            <button onClick={() => navigate('/orders/new')}
-              className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap shrink-0">
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">{t('orders.newOrder')}</span>
-            </button>
-          )}
-        </div>
-      </div>
+        ),
+      },
+      // Trash is a VIEW MODE, not a filter — keeping it out of the sheet also
+      // keeps the Filters badge count honest.
+      { id: 'trash', label: t('orders.trash.title'), icon: Trash2, priority: 'secondary', onClick: toggleTrashView, active: trashed },
+    ]
+    if (trashed && totalCount > 0) {
+      list.push({ id: 'empty', label: t('orders.trash.emptyTrash'), icon: Trash2, priority: 'secondary', tone: 'danger', onClick: () => setConfirmEmpty(true) })
+    }
+    if (canCreate && !trashed) {
+      list.push({ id: 'new', label: t('orders.newOrder'), icon: Plus, priority: 'primary', onClick: () => navigate('/orders/new') })
+    }
+    return list
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, trashed, totalCount, canCreate, filteredOrders, selectedOrders, documentInfo, orderExportColumnsGated])
+
+  return (
+    <div className="space-y-4">
+      <ListToolbar
+        search={{ value: searchQuery, onChange: setSearchQuery, placeholder: t('orders.searchPlaceholder') }}
+        filters={filterDefs}
+        actions={toolbarActions}
+        resultCount={totalCount}
+        resultsLoading={loading}
+        renderResultLabel={n => t('common.filters.showResults', { count: n })}
+      />
 
       {error && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">

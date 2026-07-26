@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Mail, Loader2, AlertCircle, Search, RefreshCw, X } from 'lucide-react'
+import { Mail, Loader2, AlertCircle, RefreshCw, X } from 'lucide-react'
+import ListToolbar from '../components/ui/ListToolbar'
 import { fetchDocumentSendsPaged, syncEmailStatus } from '../services/documentEmail'
 import { fetchDocumentSettings } from '../services/documents'
 import EmailViewModal, { StatusIcon } from '../components/documents/EmailViewModal'
@@ -140,42 +141,32 @@ export default function Outbox() {
         </div>
       )}
 
-      {/* Toolbar */}
+      {/* Toolbar. The status strip is a `segmented` filter, so on mobile it
+          moves into the sheet (full width) instead of overflowing the row. */}
+      <ListToolbar
+        search={{ value: searchQuery, onChange: setSearchQuery, placeholder: t('outbox.searchPlaceholder') }}
+        filters={[{
+          id: 'status',
+          kind: 'segmented',
+          label: t('outbox.status.all'),
+          value: statusFilter,
+          onChange: v => setStatusFilter(v as StatusFilter),
+          options: FILTERS.map(s => ({ value: s, label: t(`outbox.status.${s}`) })),
+        }]}
+        actions={[{
+          id: 'sync',
+          label: syncing ? t('outbox.refreshing') : t('outbox.refresh'),
+          icon: RefreshCw,
+          priority: 'secondary',
+          onClick: handleSync,
+          busy: syncing,
+        }]}
+        resultCount={total}
+        resultsLoading={loading}
+        renderResultLabel={n => t('common.filters.showResults', { count: n })}
+      />
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder={t('outbox.searchPlaceholder')}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-        </div>
-        <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
-          {FILTERS.map((s, i) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-2 text-sm font-medium transition-colors ${
-                statusFilter === s
-                  ? 'bg-green-600 text-white'
-                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-              } ${i > 0 ? 'border-l border-slate-200 dark:border-slate-700' : ''}`}
-            >
-              {t(`outbox.status.${s}`)}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          title={t('outbox.refreshHint')}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-60 transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? t('outbox.refreshing') : t('outbox.refresh')}
-        </button>
+        {/* Status text, not a control — kept out of the toolbar row. */}
         {syncMsg && (
           <span className="text-xs text-slate-500 dark:text-slate-400">{syncMsg}</span>
         )}
