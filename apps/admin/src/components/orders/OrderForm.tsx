@@ -16,6 +16,7 @@ import { formatPrice } from '../../utils/format'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 import { computeOrderTotals, resolveShippingVat, type DiscountType } from '../../utils/discount'
 import { setCustomerPrice, clearCustomerPrice } from '../../services/pricing'
+import { ymdInAms } from '../../utils/dateRange'
 import { ensureOrderInvoice } from '../../services/documents'
 
 interface OrderFormProps {
@@ -555,7 +556,21 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
             <input
               type="checkbox"
               checked={isDraft}
-              onChange={e => setIsDraft(e.target.checked)}
+              onChange={e => {
+                setIsDraft(e.target.checked)
+                // Finalising a draft re-stamps order_date to today (migration
+                // 00098) — a Concept is a scratchpad, so its start date is not
+                // the order date. The DB is authoritative; this mirrors the same
+                // rule into the VISIBLE field so the user sees the new date
+                // before saving instead of discovering it afterwards, and can
+                // still type something else (which the trigger then respects,
+                // because the submitted date differs from the stored one).
+                // Only past dates move: a future date is a planned delivery.
+                const today = ymdInAms()
+                if (!e.target.checked && editOrder?.status === 'draft' && orderDate < today) {
+                  setOrderDate(today)
+                }
+              }}
               className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-slate-600 focus:ring-slate-500"
             />
             <span className="hidden sm:inline">{t('orders.form.saveAsDraft')}</span>
