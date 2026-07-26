@@ -17,7 +17,19 @@
     <!-- Set the theme class BEFORE first paint. Header.tsx applies it in a
          useEffect, which runs after React mounts, so a dark-mode user saw a
          white flash on every load. Must stay in sync with Header.tsx's
-         `darkMode` initializer and PortalLayout/PortalLogin's toggles. -->
+         `darkMode` initializer and PortalLayout/PortalLogin's toggles.
+
+         ⚠️ EDITING THIS SCRIPT? Its sha256 is whitelisted in vercel.json's CSP,
+         which has no 'unsafe-inline' in script-src. Change one byte — even the
+         indentation — and the browser BLOCKS it in production; the app still
+         works, so the only symptom is a console error and the return of the
+         flash this exists to prevent. `npm run build` fails loudly and prints
+         the new hash to paste (scripts/check-csp.mjs). Never "fix" a CSP block
+         by adding 'unsafe-inline'; that turns off XSS protection app-wide.
+
+         It has to be INLINE: an external src costs a render-blocking request on
+         every load, and a module script is deferred, so both let the paint
+         happen first and defeat the purpose. -->
     <script>
       (function () {
         try {
