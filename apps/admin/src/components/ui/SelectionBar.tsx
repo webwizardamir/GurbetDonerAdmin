@@ -6,6 +6,16 @@ interface SelectionBarProps {
   selectedCount: number
   /** How many rows are currently rendered — the target of "select all". */
   visibleCount: number
+  /**
+   * Whether every VISIBLE row is selected. Must be passed, not inferred from
+   * counts: selection survives paging, so `selectedCount === visibleCount` can
+   * be true on a page where nothing is selected (50 picked on page 1, 50 rows
+   * on page 2) — the box then renders checked and tapping it SELECTS 50 more
+   * instead of clearing. The desktop header checkbox already computes this with
+   * .every(); this keeps the two in agreement.
+   */
+  allVisibleSelected: boolean
+  someVisibleSelected?: boolean
   onToggleSelectAll: () => void
   onClear: () => void
   /** Bulk actions, right-aligned on desktop, wrapping to a second row on mobile. */
@@ -28,6 +38,8 @@ interface SelectionBarProps {
 export default function SelectionBar({
   selectedCount,
   visibleCount,
+  allVisibleSelected,
+  someVisibleSelected,
   onToggleSelectAll,
   onClear,
   children,
@@ -36,8 +48,8 @@ export default function SelectionBar({
   const { t } = useTranslation()
   const boxRef = useRef<HTMLInputElement>(null)
 
-  const allSelected = visibleCount > 0 && selectedCount === visibleCount
-  const partial = selectedCount > 0 && selectedCount < visibleCount
+  const allSelected = visibleCount > 0 && allVisibleSelected
+  const partial = !allSelected && (someVisibleSelected ?? selectedCount > 0)
 
   // `indeterminate` is a DOM property, not an HTML attribute — React cannot set
   // it via JSX, so it has to be written through the ref.

@@ -910,11 +910,25 @@ export async function bulkUpdateOrderStatus(
     updateData.payment_method = paymentMethod
   }
 
-  const { error } = await supabase
-    .from('orders')
-    .update(updateData)
-    .in('id', ids)
+  // Only touch rows that are STILL in a state this transition is legal from.
+  //
+  // Selection survives refreshes (see hooks/useRowSelection), so the caller may
+  // hand us an id whose status changed after it was ticked — and every status
+  // write here fires handle_order_status_change, which moves stock. Without
+  // this, completing a stale "pending_payment" row that is now 'cancelled'
+  // silently RE-DEDUCTS its stock, and the confirmation the detail panel shows
+  // for that transition is bypassed entirely. Rows that no longer qualify are
+  // skipped rather than erroring: a partially-stale bulk selection should still
+  // do the right thing for the rows that are valid.
+  const legalFrom: Record<string, OrderStatus[]> = {
+    completed: ['draft', 'pending', 'pending_payment', 'on_hold'],
+    cancelled: ['draft', 'pending', 'pending_payment', 'on_hold'],
+  }
+  let query = supabase.from('orders').update(updateData).in('id', ids)
+  const allowed = legalFrom[status]
+  if (allowed) query = query.in('status', allowed)
 
+  const { error } = await query
   if (error) throw error
 }
 

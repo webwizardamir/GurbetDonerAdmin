@@ -28,6 +28,16 @@ export interface ToolbarAction {
   /** For actions that own their own overlay (ExportMenu). Rendered instead of a
    *  plain button; `mode` lets it present as a toolbar button or a menu row. */
   render?: (mode: 'toolbar' | 'menuitem') => ReactNode
+  /**
+   * The action's overlay, rendered at the TOOLBAR ROOT and always mounted.
+   *
+   * Required for any `render` action on mobile: its trigger would otherwise live
+   * inside the ⋮ menu, and DropdownMenu returns null when closed — so the click
+   * that set the overlay's open state ALSO closed the menu, unmounting the
+   * component and discarding that state. The dialog never appeared. Keeping the
+   * overlay outside the menu is what makes it survive.
+   */
+  renderOverlay?: (open: boolean, onClose: () => void) => ReactNode
 }
 
 interface ListToolbarProps {
@@ -81,6 +91,8 @@ export default function ListToolbar({
   const isMobile = useIsMobile()
   const [sheetOpen, setSheetOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  // Which root-level overlay (if any) an overflow menu item has opened.
+  const [openOverlayId, setOpenOverlayId] = useState<string | null>(null)
   const menuRef = useRef<HTMLButtonElement>(null)
 
   const visibleFilters = filters.filter(f => !f.hidden)
@@ -304,9 +316,23 @@ export default function ListToolbar({
             </button>
             <DropdownMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={menuRef} width={224}>
               {overflow.map(a => {
+                if (a.renderOverlay) {
+                  // Trigger only — the overlay lives at the toolbar root.
+                  const OIcon = a.icon
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => { setMenuOpen(false); setOpenOverlayId(a.id) }}
+                      className={menuItem}
+                    >
+                      <OIcon className="w-4 h-4 shrink-0" />
+                      {a.label}
+                    </button>
+                  )
+                }
                 if (a.render) {
-                  // The action renders its own trigger; `menuitem` tells it to
-                  // use a full-width row so it isn't clipped by the 224px menu.
                   return <div key={a.id} onClick={() => setMenuOpen(false)}>{a.render('menuitem')}</div>
                 }
                 const Icon = a.icon
@@ -352,6 +378,11 @@ export default function ListToolbar({
       </div>
 
       {chipRow}
+
+      {/* Always mounted, deliberately OUTSIDE the ⋮ menu — see renderOverlay. */}
+      {actions.filter(a => a.renderOverlay).map(a => (
+        <span key={a.id}>{a.renderOverlay!(openOverlayId === a.id, () => setOpenOverlayId(null))}</span>
+      ))}
 
       <FilterSheet
         isOpen={sheetOpen}

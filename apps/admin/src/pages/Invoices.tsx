@@ -445,6 +445,21 @@ export default function Invoices() {
         storageKey="documents"
       />
     ),
+    // Mounted at the toolbar root so the ⋮ menu closing cannot unmount it.
+    renderOverlay: (open, onClose) => (
+      <ExportMenu
+        headless
+        open={open}
+        onOpenChange={o => { if (!o) onClose() }}
+                getAllData={getAllExportData}
+        selectedData={selectedExportData}
+        totalCount={total}
+        columns={documentExportColumns as never}
+        filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
+        pdfTitle="Documenten"
+        storageKey="documents"
+      />
+    ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }], [t, total, selectedExportData])
 

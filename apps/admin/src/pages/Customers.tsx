@@ -280,6 +280,22 @@ export default function Customers() {
           storageKey="customers"
         />
       ),
+      // Mounted at the toolbar root so the ⋮ menu closing cannot unmount it.
+      renderOverlay: (open, onClose) => (
+        <ExportMenu
+          headless
+          open={open}
+          onOpenChange={o => { if (!o) onClose() }}
+                    getAllData={async () => (await fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined, archived: showArchived })).map(withCostFields)}
+          pageData={filteredCustomers.map(withCostFields)}
+          selectedData={selectedCustomers.map(withCostFields)}
+          totalCount={totalCount}
+          columns={customerExportColumnsGated as never}
+          filename={`customers-${new Date().toISOString().split('T')[0]}`}
+          pdfTitle="Klanten"
+          storageKey="customers"
+        />
+      ),
     }]
     if (canCreate && !showArchived) {
       list.push({ id: 'import', label: t('common.import'), icon: Upload, priority: 'secondary', onClick: () => setShowImport(true) })
@@ -369,6 +385,8 @@ export default function Customers() {
           <SelectionBar
             selectedCount={selectedCount}
             visibleCount={filteredCustomers.length}
+            allVisibleSelected={filteredCustomers.length > 0 && filteredCustomers.every(c => selectedIds.has(c.id))}
+            someVisibleSelected={filteredCustomers.some(c => selectedIds.has(c.id))}
             onToggleSelectAll={toggleSelectAll}
             onClear={clearSelection}
           />

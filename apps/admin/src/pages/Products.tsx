@@ -188,6 +188,22 @@ export default function Products() {
           storageKey="products"
         />
       ),
+      // Mounted at the toolbar root so the ⋮ menu closing cannot unmount it.
+      renderOverlay: (open, onClose) => (
+        <ExportMenu
+          headless
+          open={open}
+          onOpenChange={o => { if (!o) onClose() }}
+                    getAllData={fetchAllProducts}
+          pageData={filteredProducts}
+          selectedData={selectedProducts}
+          totalCount={totalCount}
+          columns={exportColumns as never}
+          filename={`products-${new Date().toISOString().split('T')[0]}`}
+          pdfTitle="Producten"
+          storageKey="products"
+        />
+      ),
     })
     if (canCreate) {
       list.push({ id: 'add', label: t('products.addProduct'), icon: Plus, priority: 'primary', onClick: handleCreate })
@@ -449,6 +465,8 @@ export default function Products() {
             <SelectionBar
               selectedCount={selectedCount}
               visibleCount={filteredProducts.length}
+            allVisibleSelected={filteredProducts.length > 0 && filteredProducts.every(p => selectedIds.has(p.id))}
+            someVisibleSelected={filteredProducts.some(p => selectedIds.has(p.id))}
               onToggleSelectAll={toggleSelectAll}
               onClear={clearSelection}
             />

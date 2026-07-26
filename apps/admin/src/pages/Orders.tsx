@@ -217,7 +217,18 @@ export default function Orders() {
   // (not just ids) so bulk actions and the export's "selected" scope include
   // orders ticked under an earlier search that are no longer on screen.
   const { selectedIds, selectedItems, selectedCount, toggle, toggleAllVisible, clear: clearSelection } = useRowSelection<OrderWithItems>()
-  const selectedOrders = selectedItems
+
+  // ⚠️ Re-derive from the LIVE list. Because selection now survives refreshes,
+  // a stored row is a snapshot that can be stale — change an order's status in
+  // the detail panel and the ticked copy still says what it said when you
+  // ticked it. Bulk eligibility below decides which STOCK-AFFECTING writes are
+  // offered, so acting on a stale status can re-deduct or restore stock on the
+  // wrong order. Rows no longer on screen keep their snapshot; the server-side
+  // status guard in bulkUpdateOrderStatus is the backstop for those.
+  const selectedOrders = useMemo(
+    () => selectedItems.map(sel => orders.find(o => o.id === sel.id) ?? sel),
+    [selectedItems, orders],
+  )
   const completableSelected = selectedOrders.filter(o => ['draft', 'pending_payment', 'on_hold'].includes(o.status))
   const deletableSelected = selectedOrders.filter(o => ['draft', 'pending', 'pending_payment', 'on_hold', 'cancelled'].includes(o.status))
 
@@ -467,6 +478,22 @@ export default function Orders() {
             storageKey="orders"
           />
         ),
+        // Mounted at the toolbar root so the ⋮ menu closing cannot unmount it.
+        renderOverlay: (open, onClose) => (
+          <ExportMenu
+            headless
+            open={open}
+            onOpenChange={o => { if (!o) onClose() }}
+                        getAllData={exportGetAllData}
+            pageData={filteredOrders.map(o => withExportFields(o, documentInfo))}
+            selectedData={selectedOrders.map(o => withExportFields(o, documentInfo))}
+            totalCount={totalCount}
+            columns={orderExportColumnsGated as never}
+            filename={`orders-${new Date().toISOString().split('T')[0]}`}
+            pdfTitle="Bestellingen"
+            storageKey="orders"
+          />
+        ),
       },
       // Trash is a VIEW MODE, not a filter — keeping it out of the sheet also
       // keeps the Filters badge count honest.
@@ -678,6 +705,8 @@ export default function Orders() {
           <SelectionBar
             selectedCount={selectedCount}
             visibleCount={filteredOrders.length}
+            allVisibleSelected={filteredOrders.length > 0 && filteredOrders.every(o => selectedIds.has(o.id))}
+            someVisibleSelected={filteredOrders.some(o => selectedIds.has(o.id))}
             onToggleSelectAll={toggleSelectAll}
             onClear={clearSelection}
           />

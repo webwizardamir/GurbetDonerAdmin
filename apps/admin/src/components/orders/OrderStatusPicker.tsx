@@ -71,7 +71,13 @@ export default function OrderStatusPicker({ current, options, onSelect, busy }: 
     // that dialog.
     setOpen(false)
     triggerRef.current?.focus()
-    if (next !== current) onSelect(next)
+    // Compare against currentKey, NOT current. `pending` aliases to
+    // `pending_payment`, so on a freshly-created order the pending_payment row
+    // is the one drawn with the checkmark — comparing against `current` would
+    // treat clicking that already-checked row as a real change and silently
+    // write pending -> pending_payment, with no confirmation and no visible
+    // difference (both render "Wacht op betaling").
+    if (next !== currentKey) onSelect(next)
   }
 
   return (

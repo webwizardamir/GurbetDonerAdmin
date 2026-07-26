@@ -55,6 +55,17 @@ export interface ExportMenuProps<T> {
    *   the toolbar button renders inside a 224px dropdown and gets clipped.
    */
   variant?: 'button' | 'menuitem'
+  /**
+   * Render ONLY the dialog, no trigger. Used by ListToolbar's mobile overflow:
+   * the trigger has to live inside the ⋮ menu, but the dialog must not, because
+   * closing the menu unmounts its children and would discard the open state
+   * before the dialog could render. So the toolbar mounts a headless copy at its
+   * own root and drives it with `open`.
+   */
+  headless?: boolean
+  /** Controlled open state. Omit for the normal self-contained button. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 type Format = 'excel' | 'csv' | 'pdf'
@@ -101,9 +112,18 @@ export default function ExportMenu<T>({
   size = 'md',
   label,
   variant = 'button',
+  headless = false,
+  open: openProp,
+  onOpenChange,
 }: ExportMenuProps<T>) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
+  // Controlled when `open` is supplied (headless mode), self-managed otherwise.
+  const [openState, setOpenState] = useState(false)
+  const open = openProp ?? openState
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) setOpenState(next)
+    onOpenChange?.(next)
+  }
   const [busy, setBusy] = useState(false)
 
   const allKeys = useMemo(() => columns.map(colId), [columns])
@@ -250,6 +270,7 @@ export default function ExportMenu<T>({
 
   return (
     <>
+      {!headless && (
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -264,6 +285,7 @@ export default function ExportMenu<T>({
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 shrink-0" />}
         <span className={variant === 'menuitem' ? '' : 'truncate'}>{buttonLabel}</span>
       </button>
+      )}
 
       <Modal isOpen={open} onClose={() => !busy && setOpen(false)} title={t('export.title')} maxWidth="max-w-lg">
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
