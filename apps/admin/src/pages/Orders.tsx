@@ -42,6 +42,7 @@ import MultiSelectFilter from '../components/ui/MultiSelectFilter'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { orderExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
+import SelectionBar from '../components/ui/SelectionBar'
 import { formatPrice, formatDateShort, formatDateTime, formatDayMonth, formatTimeShort, formatPercent, profitClass } from '../utils/format'
 import { computeOrderProfit } from '../utils/orderProfit'
 import { useAuth } from '../context/AuthContext'
@@ -632,6 +633,16 @@ export default function Orders() {
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
+        {/* The cards already have per-row checkboxes; this adds the select-all
+            that only existed in the desktop table header. */}
+        {!loading && filteredOrders.length > 0 && (
+          <SelectionBar
+            selectedCount={selectedIds.size}
+            visibleCount={filteredOrders.length}
+            onToggleSelectAll={toggleSelectAll}
+            onClear={() => setSelectedIds(new Set())}
+          />
+        )}
         {loading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 text-green-600 animate-spin" /></div>
         ) : filteredOrders.length === 0 ? (

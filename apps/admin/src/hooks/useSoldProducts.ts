@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { formatDateShort } from '../utils/format'
 import {
   getSoldProductsBreakdown,
   getDateRangePresets,
@@ -8,18 +10,34 @@ import {
 } from '../services/soldProducts'
 import { CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 
-export type DateRangeKey = 'yesterday' | 'today' | 'last7Days' | 'thisWeek' | 'lastWeek' | 'custom'
+/**
+ * Preset keys in the order they appear in the UI: shortest span first.
+ * Ranges live in `getDateRangePresets()`; labels in `soldProducts.ranges.*`.
+ */
+export const DATE_RANGE_KEYS = [
+  'today', 'yesterday', 'thisWeek', 'lastWeek',
+  'last7Days', 'last30Days', 'thisMonth', 'lastMonth', 'custom',
+] as const
+
+export type DateRangeKey = typeof DATE_RANGE_KEYS[number]
 
 interface DateRange {
   start: string
   end: string
+  /**
+   * Human label, DERIVED (not stored) so it re-renders in the new language when
+   * the user switches NL/EN. Consumers — the clipboard export, the PDF template,
+   * DeliveryRoutePanel and DayCloseModal — read this and used to get hardcoded
+   * English.
+   */
   label: string
 }
 
 export function useSoldProducts() {
+  const { t } = useTranslation()
   const presets = getDateRangePresets()
 
-  const [dateRange, setDateRangeState] = useState<DateRange>(presets.today)
+  const [range, setRangeState] = useState<{ start: string; end: string }>(presets.today)
   const [dateRangeKey, setDateRangeKey] = useState<DateRangeKey>('today')
   const [breakdown, setBreakdown] = useState<SoldProductBreakdownRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -38,13 +56,23 @@ export function useSoldProducts() {
     key: DateRangeKey,
     customRange?: { start: string; end: string },
   ) => {
-    const next: DateRange = (key === 'custom' && customRange)
-      ? { ...customRange, label: 'Custom' }
-      : (getDateRangePresets()[key as keyof typeof presets] || getDateRangePresets().yesterday)
-    setDateRangeState(next)
+    const next = (key === 'custom' && customRange)
+      ? customRange
+      // Fall back to `today`, matching the initial state above.
+      : (getDateRangePresets()[key] || getDateRangePresets().today)
+    setRangeState(next)
     setDateRangeKey(key)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const dateRange = useMemo<DateRange>(() => ({
+    ...range,
+    label: dateRangeKey === 'custom'
+      ? t('soldProducts.ranges.customRange', {
+          start: formatDateShort(range.start),
+          end: formatDateShort(range.end),
+        })
+      : t(`soldProducts.ranges.${dateRangeKey}`),
+  }), [range, dateRangeKey, t])
 
   const fetchData = useCallback(async () => {
     setLoading(true)

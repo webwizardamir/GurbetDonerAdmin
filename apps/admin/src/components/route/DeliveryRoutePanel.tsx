@@ -93,7 +93,8 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
   const canExport = r.exportReady
 
   // Driver-facing text is always Dutch (like the PDFs), regardless of app
-  // language. The range label is English, so format the date(s) in Dutch.
+  // language — so it formats the raw dates itself rather than reusing the
+  // page's range label, which now follows the UI language.
   const dutchDate = () => {
     const f = (d: string) => new Date(d).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
     return endDay && endDay !== day ? `${f(day)} t/m ${f(endDay)}` : f(day)

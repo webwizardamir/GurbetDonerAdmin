@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react'
 import { tenant, isFeatureEnabled } from '../../config/tenant'
+import LanguageSelector from '../LanguageSelector'
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>
@@ -263,6 +264,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* User Profile Footer */}
       <div className="p-2.5 border-t border-slate-200 dark:border-slate-800">
+        {/* Language picker, mobile only -- it is hidden in the Header below md so
+            the page title has room to breathe (see Header.tsx). Mirrored, not
+            moved: both read i18n.language, so they cannot disagree. */}
+        <div className="md:hidden mb-1.5 pb-1.5 border-b border-slate-200 dark:border-slate-800">
+          <LanguageSelector variant="full" placement="up" />
+        </div>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-medium text-sm shrink-0">
             {profile?.full_name ? getInitials(profile.full_name) : 'U'}

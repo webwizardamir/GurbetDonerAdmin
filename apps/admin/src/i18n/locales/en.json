@@ -182,6 +182,11 @@
       "active": "Active filters",
       "clearAll": "Clear all"
     },
+    "selectAll": "Select all",
+    "clearSelection": "Clear selection",
+    "selectRow": "Select {{name}}",
+    "nSelected_one": "{{count}} selected",
+    "nSelected_other": "{{count}} selected",
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -1296,10 +1301,18 @@
     "title": "Sold Products",
     "subtitle": "Daily sales summary for refill workflow",
     "dateRange": "Date Range",
-    "yesterday": "Yesterday",
-    "today": "Today",
-    "thisWeek": "This Week",
-    "custom": "Custom",
+    "ranges": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This week",
+      "lastWeek": "Last week",
+      "last7Days": "Last 7 days",
+      "last30Days": "Last 30 days",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "custom": "Custom",
+      "customRange": "{{start}} to {{end}}"
+    },
     "filters": {
       "allCities": "All cities",
       "allCustomers": "All customers",
@@ -1792,6 +1805,9 @@
   "header": {
     "searchPlaceholder": "Search orders, customers, products...",
     "noResultsFound": "No results found",
+    "toggleTheme": "Toggle theme",
+    "notifications": "Notifications",
+    "changeLanguage": "Change language",
     "relativeTime": {
       "justNow": "Just now",
       "inLessThanMinute": "In less than a minute",

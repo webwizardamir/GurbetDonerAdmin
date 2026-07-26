@@ -21,8 +21,11 @@ export default function Layout() {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
 
+  // min-h-[100dvh], not min-h-screen: on mobile Safari 100vh is the *large*
+  // viewport (URL bar hidden), so a 100vh container is taller than what's
+  // actually visible and the bottom gets cut off. dvh tracks the live viewport.
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 overflow-x-hidden">
+    <div className="flex min-h-[100dvh] bg-slate-50 dark:bg-slate-900 overflow-x-hidden">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div

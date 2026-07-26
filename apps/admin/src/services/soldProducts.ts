@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { ymdInAms, addDays, mondayOf, firstOfMonth, lastOfMonth } from '../utils/dateRange'
 
 export interface SoldProductItem {
   product_id: string
@@ -97,38 +98,36 @@ export async function getSoldProductsBreakdown(
   }))
 }
 
-// Get date helpers
-export function getDateRangePresets() {
-  const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
-
-  // Yesterday
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayStr = yesterday.toISOString().split('T')[0]
-
-  // Last 7 days
-  const last7Start = new Date(today)
-  last7Start.setDate(last7Start.getDate() - 6)
-
-  // This week (Monday to today)
-  const thisWeekStart = new Date(today)
-  const dayOfWeek = thisWeekStart.getDay()
-  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-  thisWeekStart.setDate(thisWeekStart.getDate() - daysToMonday)
-
-  // Last week
-  const lastWeekEnd = new Date(thisWeekStart)
-  lastWeekEnd.setDate(lastWeekEnd.getDate() - 1)
-  const lastWeekStart = new Date(lastWeekEnd)
-  lastWeekStart.setDate(lastWeekStart.getDate() - 6)
+/**
+ * Date-range presets for the Sold Products page, ordered shortest to longest.
+ *
+ * Returns bounds only — NO label. Labels are i18n keys resolved in
+ * `useSoldProducts` (`soldProducts.ranges.*`) so they follow a language switch
+ * and stop leaking hardcoded English into the clipboard export, the route panel
+ * and the day-close modal.
+ *
+ * Dates come from `ymdInAms`, not `toISOString()`: see utils/dateRange.ts for
+ * why the old code returned yesterday's date shortly after midnight.
+ *
+ * NOTE: `last7Days` here is 7 calendar days INCLUDING today (-6). The similarly
+ * named preset in analyticsHelpers.ts is deliberately 8 days (-7, "matching
+ * WooCommerce"). Do not "align" them — that would shift every dashboard total.
+ */
+export function getDateRangePresets(): Record<string, { start: string; end: string }> {
+  const today = ymdInAms()
+  const thisWeekStart = mondayOf(today)
+  const lastWeekEnd = addDays(thisWeekStart, -1)
+  const lastMonthDay = addDays(firstOfMonth(today), -1)
 
   return {
-    yesterday: { start: yesterdayStr, end: yesterdayStr, label: 'Yesterday' },
-    today: { start: todayStr, end: todayStr, label: 'Today' },
-    last7Days: { start: last7Start.toISOString().split('T')[0], end: todayStr, label: 'Last 7 days' },
-    thisWeek: { start: thisWeekStart.toISOString().split('T')[0], end: todayStr, label: 'This week' },
-    lastWeek: { start: lastWeekStart.toISOString().split('T')[0], end: lastWeekEnd.toISOString().split('T')[0], label: 'Last week' },
+    today:      { start: today,                      end: today },
+    yesterday:  { start: addDays(today, -1),         end: addDays(today, -1) },
+    thisWeek:   { start: thisWeekStart,              end: today },
+    lastWeek:   { start: addDays(lastWeekEnd, -6),   end: lastWeekEnd },
+    last7Days:  { start: addDays(today, -6),         end: today },
+    last30Days: { start: addDays(today, -29),        end: today },
+    thisMonth:  { start: firstOfMonth(today),        end: today },
+    lastMonth:  { start: firstOfMonth(lastMonthDay), end: lastOfMonth(lastMonthDay) },
   }
 }
 

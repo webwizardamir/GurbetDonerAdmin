@@ -23,6 +23,10 @@ interface CustomerCardProps {
   onView: () => void
   onRestore?: () => void
   onPurge?: () => void
+  /** Show the selection checkbox. Off unless the page has row selection. */
+  showSelection?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }
 
 export default function CustomerCard({
@@ -41,16 +45,34 @@ export default function CustomerCard({
   onView,
   onRestore,
   onPurge,
+  showSelection,
+  selected,
+  onToggleSelect,
 }: CustomerCardProps) {
   const { t } = useTranslation()
   return (
     <div
-      className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50"
+      className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50 ${selected ? 'ring-2 ring-green-500' : ''}`}
       onClick={onView}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
+          {showSelection && (
+            /* stopPropagation: the card's onClick navigates to the detail page. */
+            <label
+              onClick={e => e.stopPropagation()}
+              className="inline-flex items-center justify-center w-11 h-11 -m-2 shrink-0 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={!!selected}
+                onChange={() => onToggleSelect?.()}
+                aria-label={t('common.selectRow', { name: customer.company_name })}
+                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500"
+              />
+            </label>
+          )}
           <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>

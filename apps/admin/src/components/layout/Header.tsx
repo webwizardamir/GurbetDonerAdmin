@@ -103,7 +103,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <Menu className="w-5 h-5 text-slate-600 dark:text-slate-400" />
           </button>
           <div className="flex items-center gap-3 min-w-0">
-            <h1 className="text-lg font-semibold text-slate-900 dark:text-white whitespace-nowrap">{title}</h1>
+            {/* `truncate`, not `whitespace-nowrap`: nowrap made the title refuse to
+                shrink, so long Dutch titles ("Verkochte Producten", "Herinneringen")
+                pushed into -- and rendered under -- the icon cluster on mobile.
+                truncate implies nowrap AND clips with an ellipsis instead. */}
+            <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white truncate">{title}</h1>
             {description && (
               <>
                 <span className="hidden md:block w-px h-4 bg-slate-300 dark:bg-slate-600" />
@@ -113,8 +117,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
         </div>
 
-        {/* Right: Search, Theme Toggle, Notifications */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Right: Search, Theme Toggle, Notifications.
+            `shrink-0` is the other half of the title-overlap fix -- without it
+            flexbox shrinks these icons to make room for the title instead of
+            the other way round, and they visually collide. */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Mobile Search Toggle */}
           <button onClick={() => setShowMobileSearch(!showMobileSearch)}
             className="md:hidden p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
@@ -127,18 +134,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {/* Theme Toggle */}
           <button onClick={toggleDarkMode}
             className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-            title="Toggle theme">
+            title={t('header.toggleTheme')} aria-label={t('header.toggleTheme')}>
             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
-          {/* Language Selector */}
-          <LanguageSelector />
+          {/* Language Selector -- desktop only. It is a set-once preference that
+              was eating ~64px of a ~190px mobile control strip; below md it lives
+              in the sidebar footer instead (the sidebar IS the mobile nav drawer,
+              so it stays one tap away). Both render between md and lg; they are
+              independent stateless components reading i18n.language, so there is
+              no divergence. */}
+          <div className="hidden md:block">
+            <LanguageSelector />
+          </div>
 
           {/* Notifications */}
           <div ref={notifRef} className="relative">
             <button onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              title="Notifications">
+              title={t('header.notifications')} aria-label={t('header.notifications')}>
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">

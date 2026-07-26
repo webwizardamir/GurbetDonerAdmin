@@ -22,6 +22,7 @@ import type { Product } from '../types'
 import { productExportColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
+import SelectionBar from '../components/ui/SelectionBar'
 import { useTableSort } from '../hooks/useTableSort'
 import { useUrlListState } from '../hooks/useUrlListState'
 import { downloadProductTemplate } from '../utils/productTemplate'
@@ -444,14 +445,37 @@ export default function Products() {
 
           {/* Mobile Cards */}
           <div className="md:hidden space-y-3">
+            {/* Without this the mobile list has no select-all and no per-row
+                checkbox, so ExportMenu's "selected rows" scope is unreachable
+                below md. */}
+            <SelectionBar
+              selectedCount={selectedIds.size}
+              visibleCount={filteredProducts.length}
+              onToggleSelectAll={toggleSelectAll}
+              onClear={() => setSelectedIds(new Set())}
+            />
             {filteredProducts.map(product => (
               <div
                 key={product.id}
                 onClick={() => canEdit && handleEdit(product)}
-                className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 ${canEdit ? 'cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50' : ''}`}
+                className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 ${canEdit ? 'cursor-pointer active:bg-slate-50 dark:active:bg-slate-700/50' : ''} ${selectedIds.has(product.id) ? 'ring-2 ring-green-500' : ''}`}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
+                <div className="flex items-start gap-3 mb-2">
+                  {/* stopPropagation is mandatory: the card's onClick opens the
+                      editor and would otherwise swallow the toggle. */}
+                  <label
+                    onClick={e => e.stopPropagation()}
+                    className="inline-flex items-center justify-center w-11 h-11 -m-2 shrink-0 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(product.id)}
+                      onChange={() => toggleSelect(product.id)}
+                      aria-label={t('common.selectRow', { name: product.name })}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500"
+                    />
+                  </label>
+                  <div className="flex-1 min-w-0">
                     {product.product_code && (
                       <div className="text-xs font-mono font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
                         {product.product_code}

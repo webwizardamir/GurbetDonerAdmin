@@ -5,11 +5,30 @@
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets `env(safe-area-inset-*)` resolve to real values so
+         index.css can pad the notch/home-indicator gutters instead of leaving them
+         unpainted. Deliberately NO maximum-scale / user-scalable=no: that blocks
+         pinch-zoom and fails WCAG 1.4.4. iOS focus-zoom is handled by font-size. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- Shared by both tenant builds; applyTenant() sets the real title and
          favicon at runtime (see src/config/tenant.ts). Kept brand-neutral so
          neither tenant flashes the other's name before React mounts. -->
     <title>B2B Portal</title>
+    <!-- Set the theme class BEFORE first paint. Header.tsx applies it in a
+         useEffect, which runs after React mounts, so a dark-mode user saw a
+         white flash on every load. Must stay in sync with Header.tsx's
+         `darkMode` initializer and PortalLayout/PortalLogin's toggles. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('darkMode')
+          var dark = saved !== null
+            ? saved === 'true'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (e) { /* private mode / storage disabled - fall through to light */ }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -182,6 +182,11 @@
       "active": "Actieve filters",
       "clearAll": "Alles wissen"
     },
+    "selectAll": "Alles selecteren",
+    "clearSelection": "Selectie wissen",
+    "selectRow": "{{name}} selecteren",
+    "nSelected_one": "{{count}} geselecteerd",
+    "nSelected_other": "{{count}} geselecteerd",
     "loading": "Laden...",
     "save": "Opslaan",
     "cancel": "Annuleren",
@@ -1296,10 +1301,18 @@
     "title": "Verkochte Producten",
     "subtitle": "Dagelijks verkoopoverzicht voor aanvulling",
     "dateRange": "Datumbereik",
-    "yesterday": "Gisteren",
-    "today": "Vandaag",
-    "thisWeek": "Deze week",
-    "custom": "Aangepast",
+    "ranges": {
+      "today": "Vandaag",
+      "yesterday": "Gisteren",
+      "thisWeek": "Deze week",
+      "lastWeek": "Vorige week",
+      "last7Days": "Laatste 7 dagen",
+      "last30Days": "Laatste 30 dagen",
+      "thisMonth": "Deze maand",
+      "lastMonth": "Vorige maand",
+      "custom": "Aangepast",
+      "customRange": "{{start}} t/m {{end}}"
+    },
     "filters": {
       "allCities": "Alle steden",
       "allCustomers": "Alle klanten",
@@ -1792,6 +1805,9 @@
   "header": {
     "searchPlaceholder": "Zoek bestellingen, klanten, producten...",
     "noResultsFound": "Geen resultaten gevonden",
+    "toggleTheme": "Thema wisselen",
+    "notifications": "Meldingen",
+    "changeLanguage": "Taal wijzigen",
     "relativeTime": {
       "justNow": "Zojuist",
       "inLessThanMinute": "Binnen minder dan een minuut",

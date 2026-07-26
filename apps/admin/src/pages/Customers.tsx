@@ -24,6 +24,7 @@ import CustomerCard from '../components/customers/CustomerCard'
 import { customerExportColumns } from '../utils/export'
 import { fetchCustomers } from '../services/customers'
 import ExportMenu from '../components/ui/ExportMenu'
+import SelectionBar from '../components/ui/SelectionBar'
 import SortableTh from '../components/ui/SortableTh'
 import { useTableSort } from '../hooks/useTableSort'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
@@ -316,6 +317,14 @@ export default function Customers() {
 
       {/* Mobile Card View */}
       <div className="md:hidden space-y-3">
+        {!loading && filteredCustomers.length > 0 && (
+          <SelectionBar
+            selectedCount={selectedIds.size}
+            visibleCount={filteredCustomers.length}
+            onToggleSelectAll={toggleSelectAll}
+            onClear={() => setSelectedIds(new Set())}
+          />
+        )}
         {loading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 text-green-600 animate-spin" /></div>
         ) : filteredCustomers.length === 0 ? (
@@ -332,6 +341,9 @@ export default function Customers() {
               canDelete={canDelete}
               deleting={deleting === customer.id}
               archived={showArchived}
+              showSelection
+              selected={selectedIds.has(customer.id)}
+              onToggleSelect={() => toggleSelect(customer.id)}
               isMenuOpen={openMenuId === customer.id}
               hasPortalAccess={portalAccounts.get(customer.id)?.is_active || false}
               onMenuToggle={() => setOpenMenuId(openMenuId === customer.id ? null : customer.id)}

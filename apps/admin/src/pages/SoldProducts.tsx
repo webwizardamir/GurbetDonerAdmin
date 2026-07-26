@@ -23,7 +23,7 @@ import {
   Tags,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { useSoldProducts, type DateRangeKey } from '../hooks/useSoldProducts'
+import { useSoldProducts, DATE_RANGE_KEYS, type DateRangeKey } from '../hooks/useSoldProducts'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { formatPrice, formatQuantityWithUnit } from '../utils/format'
 import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
@@ -103,7 +103,7 @@ export default function SoldProducts() {
       return `${item.product_name}: ${formatQty(item.total_quantity, item.unit_type)}${rev}`.trim()
     })
 
-    const text = `Sold Products (${dateRange.label})\n${'='.repeat(30)}\n${lines.join('\n')}`
+    const text = `${t('soldProducts.title')} (${dateRange.label})\n${'='.repeat(30)}\n${lines.join('\n')}`
 
     navigator.clipboard.writeText(text)
     setCopied(true)
@@ -140,12 +140,12 @@ export default function SoldProducts() {
               }}
               className="pl-9 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
             >
-              <option value="yesterday">{t('soldProducts.yesterday')}</option>
-              <option value="today">{t('soldProducts.today')}</option>
-              <option value="last7Days">{t('analytics.last7Days')}</option>
-              <option value="thisWeek">{t('soldProducts.thisWeek')}</option>
-              <option value="lastWeek">{t('analytics.last7Days')}</option>
-              <option value="custom">{t('soldProducts.custom')}</option>
+              {/* Mapped from one ordered list so the options can't drift out of
+                  sync with the ranges again. Previously `lastWeek` reused
+                  analytics.last7Days, so "Laatste 7 dagen" appeared twice. */}
+              {DATE_RANGE_KEYS.map(k => (
+                <option key={k} value={k}>{t(`soldProducts.ranges.${k}`)}</option>
+              ))}
             </select>
           </div>
 
