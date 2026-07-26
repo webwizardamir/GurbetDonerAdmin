@@ -26,6 +26,7 @@ import { getCustomerPerformance, type CustomerPerformanceRow } from '../services
 import { useAuth } from '../context/AuthContext'
 import ExportMenu from '../components/ui/ExportMenu'
 import SelectionBar from '../components/ui/SelectionBar'
+import { useRowSelection } from '../hooks/useRowSelection'
 import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
 import type { FilterDef } from '../components/ui/filterTypes'
 import SortableTh from '../components/ui/SortableTh'
@@ -70,7 +71,6 @@ export default function Customers() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [portalAccounts, setPortalAccounts] = useState<Map<string, CustomerAccount>>(new Map())
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Fetch portal accounts
   useEffect(() => {
@@ -182,15 +182,15 @@ export default function Customers() {
   const handleFormClose = () => { setShowForm(false); setEditingCustomer(null) }
 
   // Row selection (export scope only — no bulk actions)
-  const selectedCustomers = filteredCustomers.filter(c => selectedIds.has(c.id))
-  useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, cityFilter, typeFilter, showArchived, page])
-  const toggleSelect = (id: string) => setSelectedIds(prev => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id); else next.add(id)
-    return next
-  })
-  const toggleSelectAll = () => setSelectedIds(prev =>
-    prev.size === filteredCustomers.length ? new Set() : new Set(filteredCustomers.map(c => c.id)))
+  // NOT cleared on search/filter/page change — see useRowSelection. Keeping the
+  // rows (not just ids) means the export's "selected" scope also covers picks
+  // made under an earlier search that are no longer on screen.
+  const { selectedIds, selectedItems: selectedCustomers, selectedCount, toggle, toggleAllVisible, clear: clearSelection } = useRowSelection<Customer>()
+  const toggleSelect = (id: string) => {
+    const row = filteredCustomers.find(c => c.id === id)
+    if (row) toggle(row)
+  }
+  const toggleSelectAll = () => toggleAllVisible(filteredCustomers)
 
   // --- Owner-only COG/profit columns for the export -------------------------
   // `customers` rows carry no cost or profit, and a per-customer rollup would be
@@ -267,8 +267,9 @@ export default function Customers() {
       label: t('common.export'),
       icon: Upload,
       priority: 'secondary',
-      render: () => (
+      render: (mode) => (
         <ExportMenu
+          variant={mode === 'menuitem' ? 'menuitem' : 'button'}
           getAllData={async () => (await fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined, archived: showArchived })).map(withCostFields)}
           pageData={filteredCustomers.map(withCostFields)}
           selectedData={selectedCustomers.map(withCostFields)}
@@ -321,7 +322,7 @@ export default function Customers() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
                   <th className="pl-4 pr-2 py-3 w-10">
-                    <input type="checkbox" checked={selectedIds.size === filteredCustomers.length && filteredCustomers.length > 0} onChange={toggleSelectAll}
+                    <input type="checkbox" checked={filteredCustomers.length > 0 && filteredCustomers.every(c => selectedIds.has(c.id))} onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
                   </th>
                   <SortableTh sortKey="company_name"   current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customers.companyName')}</SortableTh>
@@ -366,10 +367,10 @@ export default function Customers() {
       <div className="md:hidden space-y-3">
         {!loading && filteredCustomers.length > 0 && (
           <SelectionBar
-            selectedCount={selectedIds.size}
+            selectedCount={selectedCount}
             visibleCount={filteredCustomers.length}
             onToggleSelectAll={toggleSelectAll}
-            onClear={() => setSelectedIds(new Set())}
+            onClear={clearSelection}
           />
         )}
         {loading ? (

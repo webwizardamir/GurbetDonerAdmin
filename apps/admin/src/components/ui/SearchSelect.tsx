@@ -3,14 +3,25 @@ import { useTranslation } from 'react-i18next'
 import { Search, X, ChevronDown, Loader2, Check, type LucideIcon } from 'lucide-react'
 import DropdownMenu from './DropdownMenu'
 import Sheet from './Sheet'
+import CheckboxBox from './CheckboxBox'
 import { useIsMobile } from '../../hooks/useMediaQuery'
 import type { FilterOption } from './filterTypes'
 
 interface SearchSelectProps {
-  /** null = nothing selected ("all"). */
+  /** null = nothing selected ("all"). Ignored when `multiple`. */
   value: string | null
   options: FilterOption[]
   onChange: (v: string | null) => void
+  /**
+   * Multi-select mode: rows become checkboxes, an indeterminate select-all sits
+   * above the list, and the panel stays open between picks. Used for long lists
+   * such as the Sold Products city filter, which as a flat chip grid was the
+   * same "scroll to find it" problem this component exists to solve.
+   */
+  multiple?: boolean
+  values?: string[]
+  onChangeMulti?: (v: string[]) => void
+  selectAllLabel?: string
   /** The "all" row label and the trigger's empty text. */
   placeholder: string
   searchPlaceholder: string
@@ -50,6 +61,10 @@ export default function SearchSelect({
   value,
   options,
   onChange,
+  multiple = false,
+  values = [],
+  onChangeMulti,
+  selectAllLabel,
   placeholder,
   searchPlaceholder,
   icon: Icon,
@@ -88,8 +103,26 @@ export default function SearchSelect({
   }, [open, isMobile, variant])
 
   const pick = (v: string | null) => {
+    if (multiple) {
+      // Stay open: picking several is the whole point.
+      if (v === null) { onChangeMulti?.([]); return }
+      onChangeMulti?.(values.includes(v) ? values.filter(x => x !== v) : [...values, v])
+      return
+    }
     onChange(v)
     setOpen(false)
+  }
+
+  const isPicked = (v: string) => (multiple ? values.includes(v) : v === value)
+  const nonePicked = multiple ? values.length === 0 : value === null
+
+  // Select-all operates on the FILTERED subset, so searching then "select all"
+  // adds only the matches (same behaviour as MultiSelectFilter).
+  const filteredValues = filtered.map(o => o.value)
+  const allFilteredPicked = filteredValues.length > 0 && filteredValues.every(v => values.includes(v))
+  const toggleAllFiltered = () => {
+    if (allFilteredPicked) onChangeMulti?.(values.filter(v => !filteredValues.includes(v)))
+    else onChangeMulti?.([...new Set([...values, ...filteredValues])])
   }
 
   const panel = (
@@ -119,37 +152,49 @@ export default function SearchSelect({
         </div>
       </div>
 
-      <div role="listbox" className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        <button
-          type="button"
-          role="option"
-          aria-selected={value === null}
-          onClick={() => pick(null)}
-          className={`flex w-full items-center justify-between gap-2 px-3 py-3 min-h-[44px] text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 ${
-            value === null ? 'bg-green-50 dark:bg-green-900/20' : ''
-          } text-slate-500 dark:text-slate-400`}
-        >
-          {placeholder}
-          {value === null && <Check className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />}
-        </button>
+      <div role="listbox" aria-multiselectable={multiple || undefined} className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+        {multiple ? (
+          <button
+            type="button"
+            onClick={toggleAllFiltered}
+            className="flex w-full items-center gap-2.5 px-3 py-3 min-h-[44px] text-left text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700"
+          >
+            <CheckboxBox checked={allFilteredPicked} indeterminate={!allFilteredPicked && values.length > 0} />
+            {selectAllLabel ?? placeholder}
+          </button>
+        ) : (
+          <button
+            type="button"
+            role="option"
+            aria-selected={nonePicked}
+            onClick={() => pick(null)}
+            className={`flex w-full items-center justify-between gap-2 px-3 py-3 min-h-[44px] text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 ${
+              nonePicked ? 'bg-green-50 dark:bg-green-900/20' : ''
+            } text-slate-500 dark:text-slate-400`}
+          >
+            {placeholder}
+            {nonePicked && <Check className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />}
+          </button>
+        )}
 
         {filtered.slice(0, visible).map(o => (
           <button
             key={o.value}
             type="button"
             role="option"
-            aria-selected={o.value === value}
+            aria-selected={isPicked(o.value)}
             onClick={() => pick(o.value)}
-            className={`flex w-full items-start gap-2 px-3 py-3 min-h-[44px] text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 ${
-              o.value === value ? 'bg-green-50 dark:bg-green-900/20' : ''
+            className={`flex w-full items-start gap-2.5 px-3 py-3 min-h-[44px] text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 ${
+              isPicked(o.value) && !multiple ? 'bg-green-50 dark:bg-green-900/20' : ''
             }`}
           >
+            {multiple && <span className="pt-0.5"><CheckboxBox checked={isPicked(o.value)} /></span>}
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium text-slate-900 dark:text-white truncate">{o.label}</span>
               {o.sublabel && <span className="block text-xs text-slate-500 dark:text-slate-400 truncate">{o.sublabel}</span>}
             </span>
             {o.count != null && <span className="ml-auto shrink-0 text-xs text-slate-400 tabular-nums">{o.count}</span>}
-            {o.value === value && <Check className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />}
+            {!multiple && isPicked(o.value) && <Check className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />}
           </button>
         ))}
 
@@ -185,6 +230,10 @@ export default function SearchSelect({
     )
   }
 
+  const triggerLabel = multiple
+    ? (values.length === 0 ? placeholder : `${placeholder} (${values.length})`)
+    : (selected?.label ?? placeholder)
+
   const trigger = (
     <button
       ref={triggerRef}
@@ -193,13 +242,13 @@ export default function SearchSelect({
       aria-haspopup="listbox"
       aria-expanded={open}
       className={`flex items-center gap-2 pl-3 pr-2 h-11 ${triggerClass} bg-white dark:bg-slate-800 border rounded-xl text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 cursor-pointer ${
-        selected
+        !nonePicked
           ? 'border-green-300 dark:border-green-800 text-slate-900 dark:text-white'
           : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
       }`}
     >
       {Icon && <Icon className="w-4 h-4 shrink-0 text-slate-400" />}
-      <span className="flex-1 truncate text-left">{selected?.label ?? placeholder}</span>
+      <span className="flex-1 truncate text-left">{triggerLabel}</span>
       {loading
         ? <Loader2 className="w-4 h-4 shrink-0 animate-spin text-slate-400" />
         : <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />}

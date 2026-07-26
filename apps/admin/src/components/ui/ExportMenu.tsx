@@ -7,6 +7,8 @@ import {
   FileType2,
   Loader2,
   RotateCcw,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react'
 import Modal from './Modal'
 import {
@@ -47,6 +49,12 @@ export interface ExportMenuProps<T> {
   disabled?: boolean
   size?: 'sm' | 'md'
   label?: string
+  /**
+   * 'button' (default) — a normal toolbar button.
+   * 'menuitem' — a full-width row for the mobile overflow (⋮) menu. Without it
+   *   the toolbar button renders inside a 224px dropdown and gets clipped.
+   */
+  variant?: 'button' | 'menuitem'
 }
 
 type Format = 'excel' | 'csv' | 'pdf'
@@ -92,6 +100,7 @@ export default function ExportMenu<T>({
   disabled,
   size = 'md',
   label,
+  variant = 'button',
 }: ExportMenuProps<T>) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -101,7 +110,10 @@ export default function ExportMenu<T>({
 
   const [format, setFormat] = useState<Format>('pdf')
   const [orientation, setOrientation] = useState<Orientation>('portrait')
-  const [selectedCols, setSelectedCols] = useState<Set<string>>(new Set(allKeys))
+  // ORDERED, not a Set: the array order IS the column order in the exported
+  // file, so the user can move a column and it stays put next time (the same
+  // array is what gets persisted under export:<storageKey>).
+  const [selectedCols, setSelectedCols] = useState<string[]>(allKeys)
   const [scope, setScope] = useState<Scope>('all')
 
   const hasSelection = (selectedData?.length ?? 0) > 0
@@ -112,7 +124,7 @@ export default function ExportMenu<T>({
     if (!open) return
     const prefs = loadPrefs(storageKey)
     const validCols = prefs?.columns?.filter(k => allKeys.includes(k)) ?? []
-    setSelectedCols(new Set(validCols.length > 0 ? validCols : allKeys))
+    setSelectedCols(validCols.length > 0 ? validCols : allKeys)
     if (prefs?.format) setFormat(prefs.format)
     if (prefs?.orientation) setOrientation(prefs.orientation)
     setScope(hasSelection ? 'selected' : 'all')
@@ -121,25 +133,34 @@ export default function ExportMenu<T>({
   const buttonLabel = label ?? t('export.menu')
   const padding = size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm'
 
+  // Follows the user's order, not the declaration order.
   const orderedSelectedColumns = useMemo(
-    () => columns.filter(c => selectedCols.has(colId(c))),
+    () => selectedCols
+      .map(k => columns.find(c => colId(c) === k))
+      .filter((c): c is ExportColumn<T> => !!c),
     [columns, selectedCols],
   )
 
-  const toggleCol = (key: string) => {
+  // Newly ticked columns append to the END, so ticking Kostprijs after Totaal
+  // puts it after Totaal — then move it with the arrows if you want it earlier.
+  const toggleCol = (key: string) =>
+    setSelectedCols(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]))
+
+  const moveCol = (key: string, dir: -1 | 1) =>
     setSelectedCols(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      const i = prev.indexOf(key)
+      const j = i + dir
+      if (i < 0 || j < 0 || j >= prev.length) return prev
+      const next = [...prev]
+      ;[next[i], next[j]] = [next[j], next[i]]
       return next
     })
-  }
 
-  const allChecked = selectedCols.size === allKeys.length
-  const toggleAll = () => setSelectedCols(allChecked ? new Set() : new Set(allKeys))
+  const allChecked = selectedCols.length === allKeys.length
+  const toggleAll = () => setSelectedCols(allChecked ? [] : allKeys)
 
   const reset = () => {
-    setSelectedCols(new Set(allKeys))
+    setSelectedCols(allKeys)
     setFormat('pdf')
     setOrientation('portrait')
     try {
@@ -162,7 +183,7 @@ export default function ExportMenu<T>({
     if (orderedSelectedColumns.length === 0) return
     setBusy(true)
     try {
-      savePrefs(storageKey, { columns: [...selectedCols], format, orientation })
+      savePrefs(storageKey, { columns: selectedCols, format, orientation })
       const rows = await resolveRows()
 
       if (format === 'excel') {
@@ -235,10 +256,13 @@ export default function ExportMenu<T>({
         disabled={disabled || busy}
         aria-haspopup="dialog"
         aria-label={t('export.openAria')}
-        className={`inline-flex items-center gap-2 ${padding} bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
+        role={variant === 'menuitem' ? 'menuitem' : undefined}
+        className={variant === 'menuitem'
+          ? 'flex w-full items-center gap-3 px-4 py-3 min-h-[44px] text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50'
+          : `inline-flex items-center gap-2 shrink-0 whitespace-nowrap ${padding} bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
       >
-        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-        <span>{buttonLabel}</span>
+        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 shrink-0" />}
+        <span className={variant === 'menuitem' ? '' : 'truncate'}>{buttonLabel}</span>
       </button>
 
       <Modal isOpen={open} onClose={() => !busy && setOpen(false)} title={t('export.title')} maxWidth="max-w-lg">
@@ -336,20 +360,58 @@ export default function ExportMenu<T>({
                 {allChecked ? t('export.deselectAll') : t('export.selectAll')}
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 max-h-56 overflow-y-auto pr-1">
-              {columns.map(c => {
+            {/* Selected columns first, IN EXPORT ORDER, each movable. The order
+                is saved with the rest of the prefs, so it is remembered. */}
+            <div className="max-h-56 overflow-y-auto pr-1 space-y-1">
+              {orderedSelectedColumns.map((c, i) => {
                 const id = colId(c)
                 return (
-                  <label
-                    key={id}
-                    className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer py-0.5"
-                  >
+                  <div key={id} className="flex items-center gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/40 pl-2 pr-1 py-1">
                     <input
                       type="checkbox"
-                      checked={selectedCols.has(id)}
+                      checked
                       onChange={() => toggleCol(id)}
-                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500"
+                      aria-label={c.header}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500 shrink-0"
                     />
+                    <span className="w-5 shrink-0 text-xs text-slate-400 tabular-nums text-right">{i + 1}</span>
+                    <span className="flex-1 min-w-0 truncate text-sm text-slate-700 dark:text-slate-300">{c.header}</span>
+                    <button
+                      type="button"
+                      onClick={() => moveCol(id, -1)}
+                      disabled={i === 0}
+                      aria-label={t('export.moveUp')}
+                      title={t('export.moveUp')}
+                      className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveCol(id, 1)}
+                      disabled={i === orderedSelectedColumns.length - 1}
+                      aria-label={t('export.moveDown')}
+                      title={t('export.moveDown')}
+                      className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
+                )
+              })}
+
+              {/* Not included — ticking one appends it at the end. */}
+              {columns.filter(c => !selectedCols.includes(colId(c))).map(c => {
+                const id = colId(c)
+                return (
+                  <label key={id} className="flex items-center gap-2 pl-2 py-1 text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={false}
+                      onChange={() => toggleCol(id)}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500 shrink-0"
+                    />
+                    <span className="w-5 shrink-0" />
                     <span className="truncate">{c.header}</span>
                   </label>
                 )

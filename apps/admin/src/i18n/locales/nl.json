@@ -275,6 +275,8 @@
     "landscape": "Liggend",
     "selectAll": "Alles selecteren",
     "deselectAll": "Niets selecteren",
+    "moveUp": "Kolom omhoog",
+    "moveDown": "Kolom omlaag",
     "reset": "Standaardinstellingen",
     "atLeastOneColumn": "Selecteer minimaal één kolom.",
     "run": "Exporteren"
@@ -734,6 +736,7 @@
     "filterSearch": "Zoeken...",
     "selectAll": "Alles selecteren",
     "docsTooltip": "{{count}} document(en). Klik om de documenten van deze bestelling te openen.",
+    "docsOpenHint": "Klik om te openen.",
     "emailsSentTooltip": "{{sent}} van {{total}} e-mail(s) verzonden. Klik om de verzendgeschiedenis te openen.",
     "emailsFailedTooltip": "{{sent}} van {{total}} verzonden, {{failed}} mislukt. Klik om de verzendgeschiedenis te openen.",
     "invoiceEmailedTooltip": "Factuur per e-mail verzonden. Klik om de factuurverzending te bekijken.",
@@ -873,7 +876,7 @@
       "delivery": "Bezorging",
       "invoiceSentOn": "Factuur verzonden op {{date}}",
       "invoiceScheduled": "Factuur wordt automatisch verzonden rond {{date}}",
-      "invoiceNotSent": "Factuur nog niet verzonden"
+      "invoiceNotSent": "Factuur nog niet gemaild"
     },
     "invoiceSent": "Factuur verzonden",
     "paymentModal": {

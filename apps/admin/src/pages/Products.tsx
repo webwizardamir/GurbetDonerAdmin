@@ -22,6 +22,7 @@ import { productExportColumns, withoutCostColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
 import SelectionBar from '../components/ui/SelectionBar'
+import { useRowSelection } from '../hooks/useRowSelection'
 import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
 import { useTableSort } from '../hooks/useTableSort'
 import { useUrlListState } from '../hooks/useUrlListState'
@@ -69,7 +70,6 @@ export default function Products() {
   const [showImport, setShowImport] = useState(false)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Fetch ALL products (paginated) then download as a re-importable .xlsx.
   // Falls back to blank template if the fetch returns no rows.
@@ -150,16 +150,17 @@ export default function Products() {
     [isOwner],
   )
 
-  // Row selection (export scope only — no bulk actions)
-  const selectedProducts = filteredProducts.filter(p => selectedIds.has(p.id))
-  useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, page])
-  const toggleSelect = (id: string) => setSelectedIds(prev => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id); else next.add(id)
-    return next
-  })
-  const toggleSelectAll = () => setSelectedIds(prev =>
-    prev.size === filteredProducts.length ? new Set() : new Set(filteredProducts.map(p => p.id)))
+  // Row selection (export scope only — no bulk actions).
+  // Deliberately NOT cleared on search/page change: searching, ticking a few,
+  // searching again and ticking more is the whole point. The rows themselves are
+  // kept, so the export's "selected" scope includes picks made under an earlier
+  // search that are no longer on screen.
+  const { selectedIds, selectedItems: selectedProducts, selectedCount, toggle, toggleAllVisible, clear: clearSelection } = useRowSelection<Product>()
+  const toggleSelect = (id: string) => {
+    const row = filteredProducts.find(p => p.id === id)
+    if (row) toggle(row)
+  }
+  const toggleSelectAll = () => toggleAllVisible(filteredProducts)
 
   // No filters on this page yet, so ListToolbar renders no Filters button; the
   // slot is here for when category/stock filters arrive.
@@ -174,8 +175,9 @@ export default function Products() {
       label: t('common.export'),
       icon: FileDown,
       priority: 'secondary',
-      render: () => (
+      render: (mode) => (
         <ExportMenu
+          variant={mode === 'menuitem' ? 'menuitem' : 'button'}
           getAllData={fetchAllProducts}
           pageData={filteredProducts}
           selectedData={selectedProducts}
@@ -244,7 +246,7 @@ export default function Products() {
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
                   <th className="pl-4 pr-2 py-3 w-10">
-                    <input type="checkbox" checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0} onChange={toggleSelectAll}
+                    <input type="checkbox" checked={filteredProducts.length > 0 && filteredProducts.every(p => selectedIds.has(p.id))} onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
                   </th>
                   <SortableTh sortKey="product_code" current={sortKey} dir={sortDir} onToggle={toggleSort} className="px-3 py-3">{t('products.id')}</SortableTh>
@@ -445,10 +447,10 @@ export default function Products() {
                 checkbox, so ExportMenu's "selected rows" scope is unreachable
                 below md. */}
             <SelectionBar
-              selectedCount={selectedIds.size}
+              selectedCount={selectedCount}
               visibleCount={filteredProducts.length}
               onToggleSelectAll={toggleSelectAll}
-              onClear={() => setSelectedIds(new Set())}
+              onClear={clearSelection}
             />
             {filteredProducts.map(product => (
               <div

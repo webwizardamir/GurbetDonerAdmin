@@ -275,6 +275,8 @@
     "landscape": "Landscape",
     "selectAll": "Select all",
     "deselectAll": "Deselect all",
+    "moveUp": "Move column up",
+    "moveDown": "Move column down",
     "reset": "Reset to defaults",
     "atLeastOneColumn": "Select at least one column.",
     "run": "Export"
@@ -734,6 +736,7 @@
     "filterSearch": "Search...",
     "selectAll": "Select all",
     "docsTooltip": "{{count}} document(s). Click to open this order's documents.",
+    "docsOpenHint": "Click to open.",
     "emailsSentTooltip": "{{sent}} of {{total}} email(s) sent. Click to open the send history.",
     "emailsFailedTooltip": "{{sent}} of {{total}} sent, {{failed}} failed. Click to open the send history.",
     "invoiceEmailedTooltip": "Invoice emailed. Click to view the invoice send.",
@@ -873,7 +876,7 @@
       "delivery": "Delivery",
       "invoiceSentOn": "Invoice sent on {{date}}",
       "invoiceScheduled": "Invoice will be sent automatically around {{date}}",
-      "invoiceNotSent": "Invoice not sent yet"
+      "invoiceNotSent": "Invoice not emailed yet"
     },
     "invoiceSent": "Invoice sent",
     "paymentModal": {

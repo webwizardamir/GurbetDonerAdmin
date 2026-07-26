@@ -15,8 +15,7 @@ import { CUSTOMER_TYPE_LABELS } from '../constants/customerType'
  * Ranges live in `getDateRangePresets()`; labels in `soldProducts.ranges.*`.
  */
 export const DATE_RANGE_KEYS = [
-  'today', 'yesterday', 'thisWeek', 'lastWeek',
-  'last7Days', 'last30Days', 'thisMonth', 'lastMonth', 'custom',
+  'today', 'yesterday', 'thisWeek', 'lastWeek', 'thisMonth', 'lastMonth', 'custom',
 ] as const
 
 export type DateRangeKey = typeof DATE_RANGE_KEYS[number]

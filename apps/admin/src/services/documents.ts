@@ -177,9 +177,15 @@ export async function fetchAllDocumentsForExport(f: DocumentListFilters): Promis
 export interface OrderDocumentInfo {
   count: number
   invoiceNumber?: string
+  /**
+   * The actual documents, newest first. The Orders row indicator names them
+   * ("Factuur FC-08497") instead of saying "1 document(en)", which told you
+   * nothing about WHICH document existed.
+   */
+  docs?: { type: DocumentType; number: string }[]
 }
 
-// Fetch document info per order (count and invoice number)
+// Fetch document info per order (count, invoice number, and the document list)
 export async function fetchDocumentInfoByOrder(
   orderIds: string[]
 ): Promise<Map<string, OrderDocumentInfo>> {
@@ -187,8 +193,9 @@ export async function fetchDocumentInfoByOrder(
 
   const { data, error } = await supabase
     .from('documents')
-    .select('order_id, document_type, document_number')
+    .select('order_id, document_type, document_number, generated_at')
     .in('order_id', orderIds)
+    .order('generated_at', { ascending: false })
 
   if (error) throw error
 
@@ -196,8 +203,12 @@ export async function fetchDocumentInfoByOrder(
   const infoMap = new Map<string, OrderDocumentInfo>()
 
   for (const doc of data || []) {
-    const existing = infoMap.get(doc.order_id) || { count: 0 }
+    const existing = infoMap.get(doc.order_id) || { count: 0, docs: [] }
     existing.count++
+    existing.docs!.push({
+      type: doc.document_type as DocumentType,
+      number: doc.document_number ?? '',
+    })
 
     // Store invoice number if this is an invoice document
     if (doc.document_type === 'invoice' && doc.document_number) {

@@ -433,8 +433,9 @@ export default function Invoices() {
     // Only action on this page, so it stays visible on mobile rather than
     // hiding a lone item behind an overflow menu.
     priority: 'primary',
-    render: () => (
+    render: (mode) => (
       <ExportMenu
+        variant={mode === 'menuitem' ? 'menuitem' : 'button'}
         getAllData={getAllExportData}
         selectedData={selectedExportData}
         totalCount={total}

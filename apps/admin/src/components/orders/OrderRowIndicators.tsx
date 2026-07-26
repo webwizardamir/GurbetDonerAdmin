@@ -59,15 +59,30 @@ export default function OrderRowIndicators({
     ? t('orders.emailsSentTooltip', { sent, total })
     : t('orders.emailsFailedTooltip', { sent, total, failed })
 
+  // Name the documents rather than counting them: "1 document(en)" said nothing
+  // about WHICH one. Falls back to the count if the list isn't loaded.
+  const docNames = (docInfo?.docs ?? [])
+    .map(d => {
+      const label = t(`documents.types.${d.type}`, { defaultValue: d.type })
+      return d.number ? `${label} ${d.number}` : label
+    })
+  const docTitle = docNames.length
+    ? `${docNames.join(' · ')}. ${t('orders.docsOpenHint')}`
+    : t('orders.docsTooltip', { count: docCount })
+  // Short form for the mobile chip: name the single document, else count them.
+  const docChipLabel = docNames.length === 1
+    ? docNames[0]
+    : t('orders.indicators.docs', { count: docCount })
+
   if (variant === 'chips') {
     const chip = 'inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-colors'
     return (
       <div className="flex flex-wrap items-center gap-1.5">
         {docCount > 0 && (
-          <button type="button" onClick={onOpenDocuments} aria-label={t('orders.docsTooltip', { count: docCount })}
-            className={`${chip} bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300`}>
+          <button type="button" onClick={onOpenDocuments} aria-label={docTitle} title={docTitle}
+            className={`${chip} bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 max-w-full`}>
             <FileText className="w-3.5 h-3.5 shrink-0" />
-            {t('orders.indicators.docs', { count: docCount })}
+            <span className="truncate">{docChipLabel}</span>
           </button>
         )}
         {total > 0 && (
@@ -99,8 +114,8 @@ export default function OrderRowIndicators({
       {docCount > 0 && (
         <button type="button" onClick={onOpenDocuments}
           className="relative p-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors cursor-pointer"
-          title={t('orders.docsTooltip', { count: docCount })}
-          aria-label={t('orders.docsTooltip', { count: docCount })}>
+          title={docTitle}
+          aria-label={docTitle}>
           <FileText className="w-4 h-4 text-violet-500" />
           <span className={`${badge} bg-violet-500`}>{docCount}</span>
         </button>

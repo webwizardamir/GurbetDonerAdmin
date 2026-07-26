@@ -109,9 +109,12 @@ export async function getSoldProductsBreakdown(
  * Dates come from `ymdInAms`, not `toISOString()`: see utils/dateRange.ts for
  * why the old code returned yesterday's date shortly after midnight.
  *
- * NOTE: `last7Days` here is 7 calendar days INCLUDING today (-6). The similarly
- * named preset in analyticsHelpers.ts is deliberately 8 days (-7, "matching
- * WooCommerce"). Do not "align" them — that would shift every dashboard total.
+ * CALENDAR periods only — deliberately no rolling "laatste 7/30 dagen". Having
+ * both read as duplicated ("vorige week" next to "laatste 7 dagen", "vorige
+ * maand" next to "laatste 30 dagen") even though the spans differ, and for a
+ * day-close / restocking workflow the calendar week and month are what get
+ * reviewed. Re-adding a rolling window is a two-line change here plus a key in
+ * soldProducts.ranges and an entry in DATE_RANGE_KEYS.
  */
 export function getDateRangePresets(): Record<string, { start: string; end: string }> {
   const today = ymdInAms()
@@ -124,8 +127,6 @@ export function getDateRangePresets(): Record<string, { start: string; end: stri
     yesterday:  { start: addDays(today, -1),         end: addDays(today, -1) },
     thisWeek:   { start: thisWeekStart,              end: today },
     lastWeek:   { start: addDays(lastWeekEnd, -6),   end: lastWeekEnd },
-    last7Days:  { start: addDays(today, -6),         end: today },
-    last30Days: { start: addDays(today, -29),        end: today },
     thisMonth:  { start: firstOfMonth(today),        end: today },
     lastMonth:  { start: firstOfMonth(lastMonthDay), end: lastOfMonth(lastMonthDay) },
   }

@@ -35,6 +35,16 @@ export type FilterDef =
       options: FilterOption[]
       onChange: (v: string) => void
       allLabel: string
+      /**
+       * This select has no "all"/empty state — it ALWAYS holds one of `options`
+       * (a date range, for instance: there is no such thing as "no period").
+       *
+       * Without it the renderers emit an extra `<option value="">{allLabel}</option>`
+       * on top of the real options, which is what produced two "Vandaag" entries
+       * in the Sold Products period filter. Such a filter also never counts as
+       * "active", since it is a choice rather than a narrowing.
+       */
+      noAll?: boolean
       /** Force the searchable picker regardless of length. Otherwise it upgrades
        *  automatically above SEARCH_THRESHOLD. */
       searchable?: boolean
@@ -78,7 +88,7 @@ export const SEARCH_THRESHOLD = 12
  *  drives the toolbar badge, the chip row and Reset. Never re-derive per page. */
 export function isFilterActive(def: FilterDef): boolean {
   switch (def.kind) {
-    case 'select':      return def.value !== ''
+    case 'select':      return !def.noAll && def.value !== ''
     case 'multiselect': return def.value.length > 0
     case 'toggle':      return def.value === true
     case 'custom':      return def.isActive
@@ -112,7 +122,7 @@ export function filterChipValue(def: FilterDef): string {
 /** Reset one filter to its inactive state. */
 export function clearFilter(def: FilterDef): void {
   switch (def.kind) {
-    case 'select':      def.onChange(''); break
+    case 'select':      if (!def.noAll) def.onChange(''); break
     case 'multiselect': def.onChange([]); break
     case 'toggle':      def.onChange(false); break
     case 'custom':      def.onClear(); break

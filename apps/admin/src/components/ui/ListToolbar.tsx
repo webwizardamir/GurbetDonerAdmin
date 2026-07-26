@@ -123,7 +123,7 @@ export default function ListToolbar({
               onChange={e => { def.onChange(e.target.value); onFiltersChanged?.() }}
               className={`${Icon ? 'pl-9' : 'pl-4'} pr-10 h-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base md:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer`}
             >
-              <option value="">{def.allLabel}</option>
+              {!def.noAll && <option value="">{def.allLabel}</option>}
               {def.options.map(o => (
                 <option key={o.value} value={o.value}>{o.label}{o.count != null ? ` (${o.count})` : ''}</option>
               ))}
@@ -132,6 +132,25 @@ export default function ListToolbar({
         )
       }
       case 'multiselect':
+        // Long lists get the searchable picker (portal-hosted, progressive
+        // reveal); short ones keep the existing MultiSelectFilter.
+        if (def.options.length > SEARCH_THRESHOLD) {
+          return (
+            <SearchSelect
+              key={def.id}
+              multiple
+              values={def.value}
+              onChangeMulti={v => { def.onChange(v); onFiltersChanged?.() }}
+              value={null}
+              onChange={() => {}}
+              options={def.options}
+              placeholder={def.allLabel}
+              selectAllLabel={def.selectAllLabel ?? t('common.selectAll')}
+              searchPlaceholder={def.searchPlaceholder ?? t('common.search')}
+              icon={def.icon}
+            />
+          )
+        }
         return (
           <MultiSelectFilter
             key={def.id}
@@ -242,11 +261,18 @@ export default function ListToolbar({
   }
 
   // ----------------------------------------------------------------- mobile --
+  // Exactly ONE element in this row may grow; everything else is shrink-0, or
+  // the row overflows and the last control (typically the primary action) gets
+  // clipped. The search box grows when present; otherwise the pinned filter does.
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         {searchBox}
-        {pinned && <span className="shrink-0">{inline(pinned)}</span>}
+        {pinned && (
+          <span className={search ? 'shrink-0 max-w-[45%] min-w-0 [&>*]:w-full [&_select]:w-full' : 'flex-1 min-w-0 [&>*]:w-full [&_select]:w-full'}>
+            {inline(pinned)}
+          </span>
+        )}
 
         {sheetFilters.length > 0 && (
           <button
@@ -279,6 +305,8 @@ export default function ListToolbar({
             <DropdownMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={menuRef} width={224}>
               {overflow.map(a => {
                 if (a.render) {
+                  // The action renders its own trigger; `menuitem` tells it to
+                  // use a full-width row so it isn't clipped by the 224px menu.
                   return <div key={a.id} onClick={() => setMenuOpen(false)}>{a.render('menuitem')}</div>
                 }
                 const Icon = a.icon
@@ -302,6 +330,9 @@ export default function ListToolbar({
           </>
         )}
 
+        {/* Icon-only on mobile, always. A labelled primary plus a pinned filter
+            plus Filters plus ⋮ does not fit a 390px row — that is what cut the
+            export button in half. The label lives on aria-label/title. */}
         {primary && (
           primary.render
             ? <span className="shrink-0">{primary.render('toolbar')}</span>
@@ -311,10 +342,10 @@ export default function ListToolbar({
                 onClick={primary.onClick}
                 disabled={primary.disabled || primary.busy}
                 aria-label={primary.label}
-                className={btnPrimary}
+                title={primary.label}
+                className={`${btnPrimary} !px-0 w-11`}
               >
-                {primary.busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <primary.icon className="w-5 h-5" />}
-                {!search && <span>{primary.label}</span>}
+                {primary.busy ? <Loader2 className="w-5 h-5" /> : <primary.icon className="w-5 h-5" />}
               </button>
             )
         )}

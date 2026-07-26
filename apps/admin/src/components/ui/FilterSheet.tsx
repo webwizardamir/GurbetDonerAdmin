@@ -83,10 +83,12 @@ export default function FilterSheet({
         }
         return (
           <div role="radiogroup" className="flex flex-wrap gap-2">
-            <button type="button" role="radio" aria-checked={def.value === ''}
-              onClick={() => change(def.onChange)('')} className={chip(def.value === '')}>
-              {def.allLabel}
-            </button>
+            {!def.noAll && (
+              <button type="button" role="radio" aria-checked={def.value === ''}
+                onClick={() => change(def.onChange)('')} className={chip(def.value === '')}>
+                {def.allLabel}
+              </button>
+            )}
             {def.options.map(o => (
               <button key={o.value} type="button" role="radio" aria-checked={def.value === o.value}
                 onClick={() => change(def.onChange)(o.value)} className={chip(def.value === o.value)}>
@@ -99,6 +101,26 @@ export default function FilterSheet({
       }
 
       case 'multiselect': {
+        // Long lists (cities, customers) get the searchable list, not a flat
+        // chip grid — a wall of pills you have to scan is the same problem the
+        // raw <select> had.
+        if (def.options.length > SEARCH_THRESHOLD) {
+          return (
+            <SearchSelect
+              variant="inline"
+              multiple
+              values={def.value}
+              onChangeMulti={change(def.onChange)}
+              value={null}
+              onChange={() => {}}
+              options={def.options}
+              placeholder={def.allLabel}
+              selectAllLabel={def.selectAllLabel ?? t('common.selectAll')}
+              searchPlaceholder={def.searchPlaceholder ?? t('common.search')}
+              z={60}
+            />
+          )
+        }
         const toggle = (v: string) => {
           const next = def.value.includes(v) ? def.value.filter(x => x !== v) : [...def.value, v]
           def.onChange(next)

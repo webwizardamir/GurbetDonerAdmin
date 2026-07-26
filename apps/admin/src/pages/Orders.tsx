@@ -44,6 +44,7 @@ import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { orderExportColumns, withoutCostColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SelectionBar from '../components/ui/SelectionBar'
+import { useRowSelection } from '../hooks/useRowSelection'
 import { formatPrice, formatDateShort, formatDateTime, formatDayMonth, formatTimeShort, formatPercent, profitClass } from '../utils/format'
 import { computeOrderProfit } from '../utils/orderProfit'
 import { useAuth } from '../context/AuthContext'
@@ -106,7 +107,6 @@ export default function Orders() {
   const [confirmEmpty, setConfirmEmpty] = useState(false)
   const [emptying, setEmptying] = useState(false)
   const trashed = !!filters.trashed
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkProcessing, setBulkProcessing] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState<'single' | 'bulk' | null>(null)
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null)
@@ -213,9 +213,11 @@ export default function Orders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders])
 
-  useEffect(() => { setSelectedIds(new Set()) }, [filters, searchQuery])
-
-  const selectedOrders = filteredOrders.filter(o => selectedIds.has(o.id))
+  // NOT cleared on filter/search change — see useRowSelection. Rows are kept
+  // (not just ids) so bulk actions and the export's "selected" scope include
+  // orders ticked under an earlier search that are no longer on screen.
+  const { selectedIds, selectedItems, selectedCount, toggle, toggleAllVisible, clear: clearSelection } = useRowSelection<OrderWithItems>()
+  const selectedOrders = selectedItems
   const completableSelected = selectedOrders.filter(o => ['draft', 'pending_payment', 'on_hold'].includes(o.status))
   const deletableSelected = selectedOrders.filter(o => ['draft', 'pending', 'pending_payment', 'on_hold', 'cancelled'].includes(o.status))
 
@@ -248,7 +250,7 @@ export default function Orders() {
   }
 
   const toggleTrashView = () => {
-    setSelectedIds(new Set())
+    clearSelection()
     setFilters({ ...filters, trashed: !trashed, status: undefined })
     setUrlState({ trashed: !trashed, status: [], page: 1 })
   }
@@ -313,15 +315,11 @@ export default function Orders() {
   }
 
   const toggleSelect = (id: string) => {
-    const newSet = new Set(selectedIds)
-    if (newSet.has(id)) newSet.delete(id); else newSet.add(id)
-    setSelectedIds(newSet)
+    const row = filteredOrders.find(o => o.id === id)
+    if (row) toggle(row)
   }
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredOrders.length) setSelectedIds(new Set())
-    else setSelectedIds(new Set(filteredOrders.map(o => o.id)))
-  }
+  const toggleSelectAll = () => toggleAllVisible(filteredOrders)
 
   const handleQuickComplete = (orderId: string) => {
     setPendingCompleteId(orderId)
@@ -340,7 +338,7 @@ export default function Orders() {
         await bulkUpdateOrderStatus([pendingCompleteId], 'completed', method)
       } else if (showPaymentModal === 'bulk') {
         await bulkUpdateOrderStatus(completableSelected.map(o => o.id), 'completed', method)
-        setSelectedIds(new Set())
+        clearSelection()
       }
       refresh()
     } catch (err) { console.error('Failed to complete order(s):', err) }
@@ -354,7 +352,7 @@ export default function Orders() {
     try {
       setBulkProcessing(true)
       await bulkUpdateOrderStatus(cancellable.map(o => o.id), 'cancelled')
-      setSelectedIds(new Set()); refresh()
+      clearSelection(); refresh()
     } catch (err) { console.error('Failed to cancel orders:', err) }
     finally { setBulkProcessing(false) }
   }
@@ -365,7 +363,7 @@ export default function Orders() {
     try {
       setBulkProcessing(true)
       await bulkDeleteOrders(deletableSelected.map(o => o.id))
-      setSelectedIds(new Set()); refresh()
+      clearSelection(); refresh()
     } catch (err) { console.error('Failed to delete orders:', err) }
     finally { setBulkProcessing(false) }
   }
@@ -456,8 +454,9 @@ export default function Orders() {
         label: t('common.export'),
         icon: FileText,
         priority: 'secondary',
-        render: () => (
+        render: (mode) => (
           <ExportMenu
+            variant={mode === 'menuitem' ? 'menuitem' : 'button'}
             getAllData={exportGetAllData}
             pageData={filteredOrders.map(o => withExportFields(o, documentInfo))}
             selectedData={selectedOrders.map(o => withExportFields(o, documentInfo))}
@@ -502,12 +501,12 @@ export default function Orders() {
 
       {!trashed && (
         <BulkActionsBar
-          selectedCount={selectedIds.size}
+          selectedCount={selectedCount}
           completableCount={completableSelected.length}
           deletableCount={deletableSelected.length}
           bulkProcessing={bulkProcessing}
           canDelete={canDelete}
-          onClear={() => setSelectedIds(new Set())}
+          onClear={clearSelection}
           onBulkComplete={handleBulkComplete}
           onBulkCancel={handleBulkCancel}
           onBulkDelete={handleBulkDelete}
@@ -530,7 +529,7 @@ export default function Orders() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
                   <th className="pl-4 pr-2 py-3 w-10">
-                    <input type="checkbox" checked={selectedIds.size === filteredOrders.length && filteredOrders.length > 0} onChange={toggleSelectAll}
+                    <input type="checkbox" checked={filteredOrders.length > 0 && filteredOrders.every(o => selectedIds.has(o.id))} onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
                   </th>
                   <SortableTh sortKey="order_number" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('orders.orderColumn')}</SortableTh>
@@ -677,10 +676,10 @@ export default function Orders() {
             that only existed in the desktop table header. */}
         {!loading && filteredOrders.length > 0 && (
           <SelectionBar
-            selectedCount={selectedIds.size}
+            selectedCount={selectedCount}
             visibleCount={filteredOrders.length}
             onToggleSelectAll={toggleSelectAll}
-            onClear={() => setSelectedIds(new Set())}
+            onClear={clearSelection}
           />
         )}
         {loading ? (

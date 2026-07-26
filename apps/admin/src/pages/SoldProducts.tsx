@@ -125,7 +125,10 @@ export default function SoldProducts() {
       label: t('soldProducts.dateRange'),
       icon: Calendar,
       value: dateRangeKey,
-      allLabel: t('soldProducts.ranges.today'),
+      // A period always has a value — no "all" entry. Without noAll the
+      // renderers add an extra option and "Vandaag" appeared twice.
+      noAll: true,
+      allLabel: t('soldProducts.dateRange'),
       options: DATE_RANGE_KEYS.map(k => ({ value: k, label: t(`soldProducts.ranges.${k}`) })),
       onChange: v => {
         const key = (v || 'today') as DateRangeKey
