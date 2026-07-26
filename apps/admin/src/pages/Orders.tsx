@@ -41,7 +41,7 @@ import OrderRowIndicators from '../components/orders/OrderRowIndicators'
 import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
 import type { FilterDef } from '../components/ui/filterTypes'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
-import { orderExportColumns, withoutCostColumns } from '../utils/export'
+import { orderExportColumns, withoutOwnerOnlyColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SelectionBar from '../components/ui/SelectionBar'
 import { useRowSelection } from '../hooks/useRowSelection'
@@ -315,7 +315,7 @@ export default function Orders() {
   }
 
   const orderExportColumnsGated = useMemo(
-    () => (isOwner ? orderExportColumns : withoutCostColumns(orderExportColumns)),
+    () => (isOwner ? orderExportColumns : withoutOwnerOnlyColumns(orderExportColumns)),
     [isOwner],
   )
 

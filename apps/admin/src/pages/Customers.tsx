@@ -20,7 +20,7 @@ import CustomerImport from '../components/customers/CustomerImport'
 import CustomerPricing from '../components/pricing/CustomerPricing'
 import CustomerTableRow from '../components/customers/CustomerTableRow'
 import CustomerCard from '../components/customers/CustomerCard'
-import { customerExportColumns, withoutCostColumns } from '../utils/export'
+import { customerExportColumns, withoutOwnerOnlyColumns } from '../utils/export'
 import { fetchCustomers } from '../services/customers'
 import { getCustomerPerformance, type CustomerPerformanceRow } from '../services/analyticsCustomers'
 import { useAuth } from '../context/AuthContext'
@@ -219,7 +219,7 @@ export default function Customers() {
   }, [isOwner, perfByCustomer])
 
   const customerExportColumnsGated = useMemo(
-    () => (isOwner ? customerExportColumns : withoutCostColumns(customerExportColumns)),
+    () => (isOwner ? customerExportColumns : withoutOwnerOnlyColumns(customerExportColumns)),
     [isOwner],
   )
 

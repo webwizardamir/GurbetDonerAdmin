@@ -20,7 +20,7 @@ import PriceListCustomers from '../components/priceLists/PriceListCustomers'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import SortableTh from '../components/ui/SortableTh'
 import ExportMenu from '../components/ui/ExportMenu'
-import { priceListItemExportColumns, withoutCostColumns, marginPct } from '../utils/export'
+import { priceListItemExportColumns, withoutOwnerOnlyColumns, marginPct } from '../utils/export'
 import { useTableSort } from '../hooks/useTableSort'
 import { useAuth } from '../context/AuthContext'
 import type { PriceList } from '../types'
@@ -93,7 +93,7 @@ export default function PriceListDetail() {
   }), [items, isOwner])
 
   const exportColumns = useMemo(
-    () => (isOwner ? priceListItemExportColumns : withoutCostColumns(priceListItemExportColumns)),
+    () => (isOwner ? priceListItemExportColumns : withoutOwnerOnlyColumns(priceListItemExportColumns)),
     [isOwner],
   )
 

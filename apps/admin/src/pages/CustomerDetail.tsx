@@ -447,21 +447,30 @@ export default function CustomerDetail() {
         />
       )}
 
-      {/* Stats Cards */}
-      <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <Euro className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.totalRevenue')}</p>
-              <p className="text-lg font-bold text-slate-900 dark:text-white">
-                {formatPrice(stats.totalRevenue)}
-              </p>
+      {/* Stats Cards.
+          Owner sees all five. A Shop Manager sees only the two COUNT cards
+          (orders, items): every MONETARY aggregate here — lifetime revenue,
+          average order value, and the cash/bank split below — is customer
+          analytics, which the role matrix gives the owner alone. They still see
+          individual order totals in the list, because processing an order needs
+          its amount; what is withheld is the aggregated picture of what a
+          customer is worth. */}
+      <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-2'} gap-4`}>
+        {isOwner && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <Euro className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.totalRevenue')}</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
+                  {formatPrice(stats.totalRevenue)}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Profit — owner only. Cost/profit is never shown to Shop Managers
             (and the source RPC returns NULL profit for them anyway). */}
@@ -498,19 +507,21 @@ export default function CustomerDetail() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.avgOrderValue')}</p>
-              <p className="text-lg font-bold text-slate-900 dark:text-white">
-                {formatPrice(stats.avgOrderValue)}
-              </p>
+        {isOwner && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t('customers.avgOrderValue')}</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
+                  {formatPrice(stats.avgOrderValue)}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
@@ -527,8 +538,10 @@ export default function CustomerDetail() {
         </div>
       </div>
 
-      {/* Payment Breakdown */}
-      {(stats.paymentBreakdown.cash > 0 || stats.paymentBreakdown.bank > 0) && (
+      {/* Payment Breakdown — owner only: these are lifetime revenue totals split
+          by payment method, so leaving them would hand back the revenue figure
+          the cards above now withhold (cash + bank ≈ total revenue). */}
+      {isOwner && (stats.paymentBreakdown.cash > 0 || stats.paymentBreakdown.bank > 0) && (
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 flex items-center gap-3">
             <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
@@ -666,11 +679,17 @@ export default function CustomerDetail() {
             }
             const margin = base > 0 ? (profit / base) * 100 : 0
             return (
-              <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-3`}>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('customerDetail.ordersSummary.revenue')}</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white tabular-nums">{formatPrice(revenue)}</p>
-                </div>
+              <div className={`grid ${isOwner ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'} gap-3`}>
+                {/* Revenue for the filtered range — owner only, same reason as the
+                    cards at the top of the page. Without this the manager could
+                    read a customer's revenue simply by setting the range filter
+                    to "all time". */}
+                {isOwner && (
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('customerDetail.ordersSummary.revenue')}</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-white tabular-nums">{formatPrice(revenue)}</p>
+                  </div>
+                )}
                 {isOwner && (
                   <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
                     <p className="text-xs text-slate-500 dark:text-slate-400">{t('customerDetail.ordersSummary.profit')}</p>

@@ -13,7 +13,7 @@ import { formatPrice } from '../../utils/format'
 import ExportMenu from '../ui/ExportMenu'
 import SortableTh from '../ui/SortableTh'
 import { useTableSort } from '../../hooks/useTableSort'
-import { customerItemsSummaryExportColumns, withoutCostColumns } from '../../utils/export'
+import { customerItemsSummaryExportColumns, withoutOwnerOnlyColumns } from '../../utils/export'
 
 interface CustomerProductsTabProps {
   customerId: string
@@ -126,10 +126,12 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
     return Array.from(s).sort()
   }, [rows])
 
-  // Phase 6: sortable columns. Default = revenue desc (matches the RPC's
-  // own ORDER BY total_revenue DESC).
+  // Phase 6: sortable columns. Owner defaults to revenue desc (matching the
+  // RPC's own ORDER BY total_revenue DESC); a Shop Manager has no revenue
+  // column, so it defaults to quantity desc — sorting by a column that is not
+  // rendered just looks like no order at all.
   type ItemSortKey = 'product_code' | 'name' | 'unit' | 'qty' | 'orders' | 'last_ordered' | 'avg_price' | 'revenue' | 'profit'
-  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<ItemSortKey>('revenue', 'desc')
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<ItemSortKey>(isOwner ? 'revenue' : 'qty', 'desc')
 
   const filteredRows = useMemo(() => {
     const filtered = rows.filter(r => {
@@ -202,7 +204,7 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
             totalCount={filteredRows.length}
             columns={(isOwner
               ? customerItemsSummaryExportColumns
-              : withoutCostColumns(customerItemsSummaryExportColumns)
+              : withoutOwnerOnlyColumns(customerItemsSummaryExportColumns)
             ) as never}
             filename={`producten-${customerName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().split('T')[0]}`}
             pdfTitle={`Producten · ${customerName}`}
@@ -244,7 +246,14 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
                   <SortableTh sortKey="orders"       current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.orders')}</SortableTh>
                   <SortableTh sortKey="last_ordered" current={sortKey} dir={sortDir} onToggle={toggleSort}>{t('customerDetail.products.columns.lastOrdered')}</SortableTh>
                   <SortableTh sortKey="avg_price"    current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.avgPrice')}</SortableTh>
-                  <SortableTh sortKey="revenue"      current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.revenue')}</SortableTh>
+                  {/* Revenue is owner-only, like the customer's KPI cards. Its
+                      footer total is the customer's lifetime revenue, so leaving
+                      it here would hand back exactly what those cards withhold.
+                      Quantity / order count / average price stay: a manager needs
+                      them to answer "what does this customer buy, at what price". */}
+                  {isOwner && (
+                    <SortableTh sortKey="revenue" current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.revenue')}</SortableTh>
+                  )}
                   {isOwner && (
                     <SortableTh sortKey="profit" current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">{t('customerDetail.products.columns.profit')}</SortableTh>
                   )}
@@ -255,7 +264,11 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
                   const key = rowKey(r)
                   const isOpen = expanded.has(key)
                   const isLoadingOrders = loadingOrders.has(key)
-                  const colSpan = isOwner ? 9 : 8
+                  // Total columns: chevron + code/name/unit/qty/orders/last/avg
+                  // (8), plus revenue and profit for the owner. Was 9/8, one
+                  // short of the real count, so the expanded panel stopped a
+                  // column early.
+                  const colSpan = isOwner ? 10 : 8
                   return (
                     <Fragment key={`${r.product_id ?? 'x'}-${r.unit_type}-${idx}`}>
                       <tr
@@ -280,7 +293,9 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
                           {r.last_ordered ? new Date(r.last_ordered).toLocaleDateString('nl-NL') : '—'}
                         </td>
                         <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">{formatPrice(r.avg_unit_price)}</td>
-                        <td className="px-4 py-3 text-right text-sm font-medium text-slate-900 dark:text-white tabular-nums">{formatPrice(r.total_revenue)}</td>
+                        {isOwner && (
+                          <td className="px-4 py-3 text-right text-sm font-medium text-slate-900 dark:text-white tabular-nums">{formatPrice(r.total_revenue)}</td>
+                        )}
                         {isOwner && (
                           <td className={`px-4 py-3 text-right text-sm tabular-nums ${r.total_profit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                             {formatPrice(r.total_profit)}
@@ -317,7 +332,9 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
                   <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900 dark:text-white tabular-nums">{totals.orders}</td>
                   <td />
                   <td />
-                  <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900 dark:text-white tabular-nums">{formatPrice(totals.revenue)}</td>
+                  {isOwner && (
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900 dark:text-white tabular-nums">{formatPrice(totals.revenue)}</td>
+                  )}
                   {isOwner && (
                     <td className={`px-4 py-3 text-right text-sm font-semibold tabular-nums ${totals.profit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                       {formatPrice(totals.profit)}

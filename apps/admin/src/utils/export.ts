@@ -47,14 +47,23 @@ export function formatExportPercent(pct: number | null | undefined): string {
 }
 
 /**
- * Column keys that expose cost of goods, profit or margin.
+ * Column keys only the owner may export: cost of goods, profit, margin — and
+ * customer-level revenue AGGREGATES.
  *
- * Cost is owner-only across the whole app, and an exported file is durable and
- * forwardable — a slip here is worse than a mis-rendered table cell. One central
- * set so a new cost column can never be added to an export and then forgotten at
- * a call site.
+ * An exported file is durable and forwardable, so a slip here is worse than a
+ * mis-rendered table cell. One central set means a new owner-only column cannot
+ * be added to an export and then forgotten at a call site.
+ *
+ * `total_revenue` is the customer-products summary's per-product revenue, whose
+ * footer total is the customer's lifetime revenue — the exact figure the
+ * customer KPI cards withhold from a Shop Manager. It belongs here even though
+ * it is not a cost.
+ *
+ * NOT here, deliberately: the Orders export's `subtotal` / `total`. A manager
+ * processes orders and needs each order's amount; what is owner-only is the
+ * aggregated view of what a CUSTOMER is worth, not the value of one order.
  */
-export const COST_EXPORT_KEYS = new Set([
+export const OWNER_ONLY_EXPORT_KEYS = new Set([
   'cost_cents',
   'cost_effective',
   'cost_source',
@@ -62,20 +71,21 @@ export const COST_EXPORT_KEYS = new Set([
   'profit',
   'total_profit',
   'margin_pct',
+  'total_revenue',
 ])
 
 /**
- * Strip every cost/profit column. Call sites pass their column array through
+ * Strip every owner-only column. Call sites pass their column array through
  * this for non-owners:
  *
- *   columns={useMemo(() => (isOwner ? cols : withoutCostColumns(cols)), [isOwner])}
+ *   columns={useMemo(() => (isOwner ? cols : withoutOwnerOnlyColumns(cols)), [isOwner])}
  *
  * Safe against stale localStorage prefs: ExportMenu derives its valid-key list
  * from the columns it is given, so a persisted 'profit' key is dropped, and the
  * empty-selection fallback also only ever selects from the passed columns.
  */
-export function withoutCostColumns<C extends { key: unknown }>(cols: C[]): C[] {
-  return cols.filter(c => !COST_EXPORT_KEYS.has(String(c.key)))
+export function withoutOwnerOnlyColumns<C extends { key: unknown }>(cols: C[]): C[] {
+  return cols.filter(c => !OWNER_ONLY_EXPORT_KEYS.has(String(c.key)))
 }
 
 // Unit labels shared by the product-shaped exports. UnitType is
@@ -357,7 +367,7 @@ export const orderExportColumns = [
   { key: 'subtotal', header: 'Subtotaal', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
   { key: 'tax_amount', header: 'BTW', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
   { key: 'total', header: 'Totaal', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
-  // OWNER ONLY (COST_EXPORT_KEYS). Attached to the rows by Orders.tsx via
+  // OWNER ONLY (OWNER_ONLY_EXPORT_KEYS). Attached to the rows by Orders.tsx via
   // computeOrderProfit — derived values must be real fields on the row or
   // computeTotalsRow, which reads row[key], sums 0.
   { key: 'total_cost', header: 'Inkoopwaarde', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
@@ -376,7 +386,7 @@ export const productExportColumns = [
   { key: 'barcode', header: 'Barcode' },
   { key: 'unit_type', header: 'Eenheid', format: formatExportUnit },
   { key: 'base_price', header: 'Prijs', format: (v: unknown) => formatExportCurrency(v as number) },
-  // OWNER ONLY (COST_EXPORT_KEYS). cost_cents is already in the fetchProducts
+  // OWNER ONLY (OWNER_ONLY_EXPORT_KEYS). cost_cents is already in the fetchProducts
   // payload; it was simply never exposed as a column.
   { key: 'cost_cents', header: 'Kostprijs', format: (v: unknown) => formatExportCurrency(v as number) },
   { key: 'margin_pct', header: 'Marge %', format: (_v: unknown, row: Record<string, unknown>) =>
@@ -405,7 +415,7 @@ export const customerExportColumns = [
   { key: 'shipping_country', header: 'Bezorgadres land' },
   { key: 'internal_notes', header: 'Notities' },
   { key: 'created_at', header: 'Aangemaakt', format: (v: unknown) => formatExportDateTime(v as string) },
-  // OWNER ONLY (COST_EXPORT_KEYS). Attached by Customers.tsx from the
+  // OWNER ONLY (OWNER_ONLY_EXPORT_KEYS). Attached by Customers.tsx from the
   // server-gated get_customer_performance RPC, which returns NULL cost/profit
   // for non-owners — so unlike the other three exports this one is gated in the
   // RPC as well as the UI.
@@ -419,7 +429,7 @@ export const customerExportColumns = [
 ]
 
 // Price-list detail: one row per (product, unit_type).
-// Cost columns are OWNER ONLY (COST_EXPORT_KEYS) — the page itself is reachable
+// Cost columns are OWNER ONLY (OWNER_ONLY_EXPORT_KEYS) — the page itself is reachable
 // by a shop manager, who sees prices but no cost.
 export const priceListItemExportColumns = [
   { key: 'product_code',  header: 'Product ID' },

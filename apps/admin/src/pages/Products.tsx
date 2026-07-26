@@ -18,7 +18,7 @@ import { useAuth } from '../context/AuthContext'
 import ProductForm, { type ProductFormData } from '../components/products/ProductForm'
 import ProductImport from '../components/products/ProductImport'
 import type { Product } from '../types'
-import { productExportColumns, withoutCostColumns } from '../utils/export'
+import { productExportColumns, withoutOwnerOnlyColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
 import SelectionBar from '../components/ui/SelectionBar'
@@ -146,7 +146,7 @@ export default function Products() {
 
   // Kostprijs / Marge are owner-only, stripped for everyone else.
   const exportColumns = useMemo(
-    () => (isOwner ? productExportColumns : withoutCostColumns(productExportColumns)),
+    () => (isOwner ? productExportColumns : withoutOwnerOnlyColumns(productExportColumns)),
     [isOwner],
   )
 
