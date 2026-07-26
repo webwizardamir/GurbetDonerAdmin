@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Loader2,
@@ -41,6 +41,12 @@ interface OrderDetailProps {
   /** Called after a document is generated/sent so the parent list can refresh
    *  its invoice-number + send-status columns without a full page refresh. */
   onDocGenerated?: () => void
+  /**
+   * Scroll straight to a section on open. Set when the user clicked the row's
+   * document indicator rather than the row itself. The panel is one long scroll
+   * container, not tabs, so this is a scrollIntoView on a ref.
+   */
+  focusSection?: 'documents'
 }
 
 // Format date with long month name
@@ -80,7 +86,7 @@ function formatUnitDutch(unitType: string, quantity: number, t?: (key: string) =
   }
 }
 
-export default function OrderDetail({ order, onClose, onStatusChange, onDocGenerated }: OrderDetailProps) {
+export default function OrderDetail({ order, onClose, onStatusChange, onDocGenerated, focusSection }: OrderDetailProps) {
   const { t } = useTranslation()
   const { isOwner } = useAuth()
   const [updatingStatus, setUpdatingStatus] = useState(false)
@@ -90,6 +96,21 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showRefundModal, setShowRefundModal] = useState(false)
   const [showNotesModal, setShowNotesModal] = useState(false)
+
+  // Deep-link to the documents section (row document indicator -> here).
+  const docsRef = useRef<HTMLDivElement>(null)
+  const [highlightDocs, setHighlightDocs] = useState(false)
+  useEffect(() => {
+    if (focusSection !== 'documents') return
+    // rAF, not a synchronous call: Modal mounts through a portal and the node
+    // has no layout yet on the first commit, so scrollIntoView would no-op.
+    const raf = requestAnimationFrame(() => {
+      docsRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      setHighlightDocs(true)
+    })
+    const off = setTimeout(() => setHighlightDocs(false), 1600)
+    return () => { cancelAnimationFrame(raf); clearTimeout(off) }
+  }, [focusSection])
 
   // Invoice email status — undefined while loading, null = not sent yet, else the
   // timestamp it was sent (manual or the 24h auto-send).
@@ -484,7 +505,12 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
           )}
 
           {/* Document Actions */}
-          <div>
+          <div
+            ref={docsRef}
+            className={`scroll-mt-4 rounded-xl transition-shadow ${
+              highlightDocs ? 'ring-2 ring-violet-400 dark:ring-violet-500' : ''
+            }`}
+          >
             <div className="flex items-center gap-2 mb-3">
               <Printer className="w-4 h-4 text-slate-400" />
               <h3 className="font-medium text-slate-900 dark:text-white">

@@ -15,11 +15,9 @@ import {
   ChevronRight,
   Banknote,
   FileText,
-  Mail,
   Check,
   RotateCcw,
   StickyNote,
-  ReceiptText,
   EyeOff,
 } from 'lucide-react'
 import { useOrders } from '../hooks/useOrders'
@@ -40,6 +38,7 @@ import PaymentBadge from '../components/ui/PaymentBadge'
 import BulkActionsBar from '../components/orders/BulkActionsBar'
 import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
 import HiddenOrderBadge from '../components/orders/HiddenOrderBadge'
+import OrderRowIndicators from '../components/orders/OrderRowIndicators'
 import MultiSelectFilter from '../components/ui/MultiSelectFilter'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { orderExportColumns, withoutCostColumns } from '../utils/export'
@@ -93,7 +92,14 @@ export default function Orders() {
 
   const [searchQuery, setSearchQuery] = useState(urlInit.q)
   const [searchParams] = useSearchParams()
-  const [viewingOrder, setViewingOrder] = useState<OrderWithItems | null>(null)
+  // Order + which section the detail panel should scroll to. Kept as ONE state
+  // object rather than two: with a separate `focus` state, every plain
+  // setViewingOrder call site would have to remember to reset it, and one
+  // forgotten reset means the panel jumps to the documents section when the
+  // user simply clicked the row.
+  const [viewing, setViewing] = useState<{ order: OrderWithItems; focus?: 'documents' } | null>(null)
+  const openOrder = (order: OrderWithItems, focus?: 'documents') => setViewing({ order, focus })
+  const setViewingOrder = (order: OrderWithItems | null) => setViewing(order ? { order } : null)
   const [notesOrder, setNotesOrder] = useState<OrderWithItems | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [purgeTarget, setPurgeTarget] = useState<OrderWithItems | null>(null)
@@ -610,39 +616,12 @@ export default function Orders() {
                           </div>
                         ) : (
                         <div className="flex items-center justify-end gap-0.5">
-                          {docInfo.count > 1 && (
-                            <button type="button" onClick={() => setViewingOrder(order)} className="relative p-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors cursor-pointer" title={t('orders.docsTooltip', { count: docInfo.count })}>
-                              <FileText className="w-4 h-4 text-violet-500" />
-                              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-violet-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{docInfo.count}</span>
-                            </button>
-                          )}
-                          {(() => {
-                            const s = sendInfo[order.id]
-                            if (!s || s.total === 0) return null
-                            const allOk = s.failed === 0
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => setViewingOrder(order)}
-                                className="relative p-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer"
-                                title={allOk
-                                  ? t('orders.emailsSentTooltip', { sent: s.sent, total: s.total })
-                                  : t('orders.emailsFailedTooltip', { sent: s.sent, total: s.total, failed: s.failed })}
-                              >
-                                <Mail className={`w-4 h-4 ${allOk ? 'text-emerald-500' : 'text-red-500'}`} />
-                                {s.total > 1 && (
-                                  <span className={`absolute -top-0.5 -right-0.5 w-4 h-4 ${allOk ? 'bg-emerald-500' : 'bg-red-500'} text-white text-[10px] font-bold rounded-full flex items-center justify-center`}>
-                                    {s.total}
-                                  </span>
-                                )}
-                              </button>
-                            )
-                          })()}
-                          {sendInfo[order.id]?.invoiceSent && (
-                            <button type="button" onClick={() => setViewingOrder(order)} className="p-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer" title={t('orders.invoiceEmailedTooltip')}>
-                              <ReceiptText className="w-4 h-4 text-emerald-600" />
-                            </button>
-                          )}
+                          <OrderRowIndicators
+                            order={order}
+                            docInfo={docInfo}
+                            sendInfo={sendInfo[order.id]}
+                            onOpenDocuments={() => openOrder(order, 'documents')}
+                          />
                           {canComplete && (
                             <button onClick={() => handleQuickComplete(order.id)} className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.markComplete')}>
                               <Check className="w-4 h-4 text-green-600" />
@@ -745,6 +724,20 @@ export default function Orders() {
                     <PaymentBadge method={order.payment_method} />
                   </div>
                 )}
+                {/* Document / email indicators. Labelled chips rather than icons:
+                    a native title never fires on touch. Inside a
+                    stopPropagation wrapper so they don't open the card's detail. */}
+                {!trashed && (
+                  <div className="mb-3 pl-7" onClick={e => e.stopPropagation()}>
+                    <OrderRowIndicators
+                      order={order}
+                      docInfo={docInfo}
+                      sendInfo={sendInfo[order.id]}
+                      onOpenDocuments={() => openOrder(order, 'documents')}
+                      variant="chips"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 flex-wrap" onClick={e => e.stopPropagation()}>
                   {trashed ? (
                     <>
@@ -844,7 +837,7 @@ export default function Orders() {
         </div>
       )}
 
-      {viewingOrder && <OrderDetail order={viewingOrder} onClose={() => setViewingOrder(null)} onStatusChange={() => { setViewingOrder(null); refresh() }} onDocGenerated={refreshDocInfo} />}
+      {viewing && <OrderDetail order={viewing.order} focusSection={viewing.focus} onClose={() => setViewing(null)} onStatusChange={() => { setViewing(null); refresh() }} onDocGenerated={refreshDocInfo} />}
 
       {notesOrder && (
         <OrderNotesModal

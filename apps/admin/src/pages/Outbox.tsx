@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Mail, Loader2, AlertCircle, Search, RefreshCw } from 'lucide-react'
+import { Mail, Loader2, AlertCircle, Search, RefreshCw, X } from 'lucide-react'
 import { fetchDocumentSendsPaged, syncEmailStatus } from '../services/documentEmail'
 import { fetchDocumentSettings } from '../services/documents'
 import EmailViewModal, { StatusIcon } from '../components/documents/EmailViewModal'
 import Pagination from '../components/ui/Pagination'
 import { useUrlListState } from '../hooks/useUrlListState'
-import type { DocumentSend, DocumentSettings } from '../types'
+import type { DocumentSend, DocumentSettings, EmailDocumentType } from '../types'
 
 // 'problems' groups every delivery-failure status (bounced/complained/suppressed/failed).
 type StatusFilter = 'all' | 'delivered' | 'sent' | 'pending' | 'problems'
@@ -18,7 +18,12 @@ export default function Outbox() {
   const { t } = useTranslation()
   // View state lives in the URL so opening an email and coming back restores the
   // page + filter (see useUrlListState).
-  const [urlInit, setUrlState] = useUrlListState({ page: 1, q: '', status: 'all' })
+  // `order`/`orderNo`/`type` come from the Orders row indicators. orderNo is
+  // display-only: document_sends has no order-number column, so the id does the
+  // filtering and the number is passed along purely to label the chip.
+  const [urlInit, setUrlState] = useUrlListState({
+    page: 1, q: '', status: 'all', order: '', orderNo: '', type: '',
+  })
 
   const [sends, setSends] = useState<DocumentSend[]>([])
   const [total, setTotal] = useState(0)
@@ -28,6 +33,16 @@ export default function Outbox() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(urlInit.status as StatusFilter)
   const [searchQuery, setSearchQuery] = useState(urlInit.q)
   const [debouncedSearch, setDebouncedSearch] = useState(urlInit.q)
+  const [orderFilter, setOrderFilter] = useState({
+    id: urlInit.order,
+    number: urlInit.orderNo,
+    type: urlInit.type,
+  })
+  const clearOrderFilter = () => {
+    setOrderFilter({ id: '', number: '', type: '' })
+    setPage(1)
+    setUrlState({ order: '', orderNo: '', type: '', page: 1 })
+  }
 
   const goToPage = (next: number) => { setPage(next); setUrlState({ page: next }) }
   const [settings, setSettings] = useState<DocumentSettings | null>(null)
@@ -45,6 +60,8 @@ export default function Outbox() {
           : undefined,
         failedOnly: statusFilter === 'problems',
         search: debouncedSearch,
+        orderId: orderFilter.id || undefined,
+        documentType: (orderFilter.type || undefined) as EmailDocumentType | undefined,
         page,
         pageSize: PAGE_SIZE,
       })
@@ -73,7 +90,7 @@ export default function Outbox() {
     setUrlState({ page: 1, q: debouncedSearch, status: statusFilter })
   }, [statusFilter, debouncedSearch]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { void load() }, [statusFilter, debouncedSearch, page])
+  useEffect(() => { void load() }, [statusFilter, debouncedSearch, page, orderFilter.id, orderFilter.type])
 
   // Pull the real delivery outcomes from Resend now (the cron also does this
   // every 15 min). A wide window backfills older rows too.
@@ -104,6 +121,25 @@ export default function Outbox() {
 
   return (
     <div className="space-y-4">
+      {/* Scoped to one order (arrived from an Orders row indicator). */}
+      {orderFilter.id && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+            {orderFilter.type === 'invoice'
+              ? t('outbox.filteredByOrderInvoice', { number: orderFilter.number })
+              : t('outbox.filteredByOrder', { number: orderFilter.number })}
+            <button
+              type="button"
+              onClick={clearOrderFilter}
+              aria-label={t('outbox.clearOrderFilter')}
+              className="p-0.5 -mr-1 rounded-full hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </span>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">

@@ -259,6 +259,14 @@ export async function fetchDocumentSendsPaged(opts: {
   status?: DocumentSendStatus
   failedOnly?: boolean
   search?: string
+  /**
+   * Scope to one order. Used by the Orders row indicators, which link to
+   * /outbox?order=<id>. NOTE this cannot be done through `search`:
+   * document_sends has no order-number column, and the search clause only
+   * covers recipient_email / subject / error_message.
+   */
+  orderId?: string
+  documentType?: EmailDocumentType
   page?: number
   pageSize?: number
 } = {}): Promise<{ rows: DocumentSend[]; total: number }> {
@@ -271,8 +279,11 @@ export async function fetchDocumentSendsPaged(opts: {
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
 
-  if (opts.status)     q = q.eq('status', opts.status)
-  if (opts.failedOnly) q = q.in('status', FAILED_SEND_STATUSES)
+  if (opts.status)       q = q.eq('status', opts.status)
+  if (opts.failedOnly)   q = q.in('status', FAILED_SEND_STATUSES)
+  // idx_document_sends_order already covers this (migration 00048).
+  if (opts.orderId)      q = q.eq('order_id', opts.orderId)
+  if (opts.documentType) q = q.eq('document_type', opts.documentType)
 
   const term = sanitizeOrTerm(opts.search ?? '')
   if (term) {

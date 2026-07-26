@@ -6,8 +6,8 @@
 
 import { useTranslation } from 'react-i18next'
 import {
-  ShoppingCart, Loader2, Eye, Pencil, Trash2, Calendar, FileText, Mail,
-  Check, RotateCcw, StickyNote, ReceiptText,
+  ShoppingCart, Loader2, Eye, Pencil, Trash2, Calendar, FileText,
+  Check, RotateCcw, StickyNote,
 } from 'lucide-react'
 import type { OrderWithItems } from '../../services/orders'
 import type { OrderDocumentInfo } from '../../services/documents'
@@ -15,6 +15,7 @@ import StatusBadge from '../ui/StatusBadge'
 import PaymentBadge from '../ui/PaymentBadge'
 import SortableTh from '../ui/SortableTh'
 import HiddenOrderBadge from './HiddenOrderBadge'
+import OrderRowIndicators from './OrderRowIndicators'
 import { formatPrice, formatDateShort, formatPercent, profitClass } from '../../utils/format'
 import { computeOrderProfit } from '../../utils/orderProfit'
 import { useAuth } from '../../context/AuthContext'
@@ -47,7 +48,9 @@ interface OrdersTableProps {
   getSendInfo?: (id: string) => SendInfo | undefined
   getProfit?: (order: OrderWithItems) => { profit: number; margin: number; totalCost: number } | null
   // actions (each opt-in)
-  onView?: (order: OrderWithItems) => void
+  /** `focus` opens the detail panel scrolled to a section. Optional 2nd arg, so
+   *  existing `onView={setViewingOrder}` call sites keep working unchanged. */
+  onView?: (order: OrderWithItems, focus?: 'documents') => void
   onEdit?: (order: OrderWithItems) => void   // parent branches notes-vs-editor; icon picked here
   onDelete?: (order: OrderWithItems) => void
   onQuickComplete?: (id: string) => void
@@ -141,28 +144,14 @@ export default function OrdersTable({
     const sendI = getSendInfo?.(order.id)
     return (
       <div className="flex items-center justify-end gap-1">
-        {docInfo.count > 1 && (
-          <div className="relative p-2" title={`${docInfo.count} documents generated`}>
-            <FileText className="w-4 h-4 text-violet-500" />
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-violet-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{docInfo.count}</span>
-          </div>
-        )}
-        {sendI && sendI.total > 0 && (() => {
-          const allOk = sendI.failed === 0
-          return (
-            <div className="relative p-2" title={`${sendI.sent}/${sendI.total} ${allOk ? 'sent' : `sent (${sendI.failed} failed)`}`}>
-              <Mail className={`w-4 h-4 ${allOk ? 'text-emerald-500' : 'text-red-500'}`} />
-              {sendI.total > 1 && (
-                <span className={`absolute -top-0.5 -right-0.5 w-4 h-4 ${allOk ? 'bg-emerald-500' : 'bg-red-500'} text-white text-[10px] font-bold rounded-full flex items-center justify-center`}>{sendI.total}</span>
-              )}
-            </div>
-          )
-        })()}
-        {sendI?.invoiceSent && (
-          <div className="p-2" title={t('orders.invoiceSent')}>
-            <ReceiptText className="w-4 h-4 text-emerald-600" />
-          </div>
-        )}
+        {/* Shared with Orders.tsx so the two copies cannot diverge again — this
+            one still had hardcoded English titles and the >1 badge threshold. */}
+        <OrderRowIndicators
+          order={order}
+          docInfo={docInfo}
+          sendInfo={sendI}
+          onOpenDocuments={() => onView?.(order, 'documents')}
+        />
         {onQuickComplete && canComplete && (
           <button onClick={() => onQuickComplete(order.id)} className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors cursor-pointer" title={t('orders.actions.markComplete')}>
             <Check className="w-4 h-4 text-green-600" />
