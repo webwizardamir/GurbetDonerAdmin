@@ -965,10 +965,15 @@ BEGIN
     p.product_code,
     s.product_name,
     COALESCE(c.name, ''),
-    s.unit_type,
+    -- Explicit casts REQUIRED: unit_type is an ENUM (declared text) and
+    -- last_ordered is MAX(order_date), a DATE (declared timestamptz). LANGUAGE
+    -- sql cast both implicitly; plpgsql's RETURN QUERY type-checks strictly and
+    -- raises 42804 on the first row produced. Missing these shipped a broken
+    -- function to production -- see 00096.
+    s.unit_type::text,
     (s.qty_gross - COALESCE(rf.qty_refunded, 0))::numeric,
     s.order_count,
-    s.last_ordered,
+    s.last_ordered::timestamptz,
     CASE
       WHEN s.qty_gross > 0
       THEN ROUND(s.revenue_gross::numeric / s.qty_gross)::bigint
