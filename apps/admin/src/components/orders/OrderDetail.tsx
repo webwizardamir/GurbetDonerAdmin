@@ -188,11 +188,25 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
     await handleStatusChange('completed', method)
   }
 
+  // A TRASHED order is stored as status='cancelled' + deleted_at, with its real
+  // status parked in pre_trash_status. Editing its status from here was both
+  // harmful and pointless: leaving 'cancelled' RE-DEDUCTS stock for an order
+  // sitting in the bin, and restore_order overwrites status with
+  // pre_trash_status anyway, so the change silently vanished on restore. The bin
+  // has its own Restore action; this panel is read-only for those.
+  const isTrashed = !!order.deleted_at
+
   // Available status transitions
-  // The "Concept" (draft) action only makes sense for early/live orders — not for
-  // completed/cancelled/refunded ones. It parks the order: no invoice, no auto-email,
-  // out of analytics revenue. Finalising (any other action) re-issues the invoice.
-  const canMarkDraft = ['pending', 'pending_payment', 'on_hold', 'draft'].includes(order.status)
+  // "Concept" (draft) parks an order: no invoice, no auto-email, out of analytics
+  // revenue. It is offered for early/live statuses AND for cancelled — reviving a
+  // cancelled order to Concept is the SAFEST revive there is (nothing is issued
+  // and it stays out of the books), so blocking it while allowing cancelled →
+  // completed had it backwards. Stock is correct either way: the trigger's
+  // "leaving cancelled" branch re-deducts regardless of target, and drafts hold
+  // stock. handleStatusChange's revive confirmation already covers this path.
+  // Still excluded for completed/refunded: un-finalising a paid order should take
+  // the deliberate two steps (→ on hold → concept), not one tap.
+  const canMarkDraft = ['pending', 'pending_payment', 'on_hold', 'draft', 'cancelled'].includes(order.status)
   const statusActions: { status: OrderStatus; labelKey: string; icon: React.ReactNode; color: string }[] = [
     ...(canMarkDraft ? [{ status: 'draft' as OrderStatus, labelKey: 'orders.actions.markDraft', icon: <FileText className="w-4 h-4" />, color: 'slate' }] : []),
     { status: 'pending_payment', labelKey: 'orders.status.pending', icon: <Clock className="w-4 h-4" />, color: 'amber' },
@@ -246,10 +260,13 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
 
           {/* Status & Actions. The status pill IS the picker (see
               OrderStatusPicker) — it used to be a read-only badge followed by a
-              select showing the same value. A refunded order is terminal, so it
-              keeps the plain badge. */}
+              select showing the same value. Refunded is terminal and trashed is
+              read-only (see isTrashed), so both keep the plain badge — trashed
+              shows the status it will return to, matching the list's column. */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            {order.status === 'refunded' ? (
+            {isTrashed ? (
+              <StatusBadge status={order.pre_trash_status || order.status} />
+            ) : order.status === 'refunded' ? (
               <StatusBadge status={order.status} />
             ) : (
               <OrderStatusPicker
