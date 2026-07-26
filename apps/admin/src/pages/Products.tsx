@@ -19,7 +19,7 @@ import { useAuth } from '../context/AuthContext'
 import ProductForm, { type ProductFormData } from '../components/products/ProductForm'
 import ProductImport from '../components/products/ProductImport'
 import type { Product } from '../types'
-import { productExportColumns } from '../utils/export'
+import { productExportColumns, withoutCostColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
 import SelectionBar from '../components/ui/SelectionBar'
@@ -144,6 +144,12 @@ export default function Products() {
     setEditingProduct(null)
   }
 
+  // Kostprijs / Marge are owner-only, stripped for everyone else.
+  const exportColumns = useMemo(
+    () => (isOwner ? productExportColumns : withoutCostColumns(productExportColumns)),
+    [isOwner],
+  )
+
   // Row selection (export scope only — no bulk actions)
   const selectedProducts = filteredProducts.filter(p => selectedIds.has(p.id))
   useEffect(() => { setSelectedIds(new Set()) }, [searchQuery, page])
@@ -190,7 +196,7 @@ export default function Products() {
           pageData={filteredProducts}
           selectedData={selectedProducts}
           totalCount={totalCount}
-          columns={productExportColumns as never}
+          columns={exportColumns as never}
           filename={`products-${new Date().toISOString().split('T')[0]}`}
           pdfTitle="Producten"
           storageKey="products"

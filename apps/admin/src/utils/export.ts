@@ -40,6 +40,63 @@ export function formatExportCurrency(cents: number | null | undefined): string {
   return (cents / 100).toFixed(2).replace('.', ',')
 }
 
+// Percentage with one decimal, Dutch separator (e.g., 23.456 -> "23,5%").
+export function formatExportPercent(pct: number | null | undefined): string {
+  if (pct === null || pct === undefined || !Number.isFinite(Number(pct))) return ''
+  return `${Number(pct).toFixed(1).replace('.', ',')}%`
+}
+
+/**
+ * Column keys that expose cost of goods, profit or margin.
+ *
+ * Cost is owner-only across the whole app, and an exported file is durable and
+ * forwardable — a slip here is worse than a mis-rendered table cell. One central
+ * set so a new cost column can never be added to an export and then forgotten at
+ * a call site.
+ */
+export const COST_EXPORT_KEYS = new Set([
+  'cost_cents',
+  'cost_effective',
+  'cost_source',
+  'total_cost',
+  'profit',
+  'total_profit',
+  'margin_pct',
+])
+
+/**
+ * Strip every cost/profit column. Call sites pass their column array through
+ * this for non-owners:
+ *
+ *   columns={useMemo(() => (isOwner ? cols : withoutCostColumns(cols)), [isOwner])}
+ *
+ * Safe against stale localStorage prefs: ExportMenu derives its valid-key list
+ * from the columns it is given, so a persisted 'profit' key is dropped, and the
+ * empty-selection fallback also only ever selects from the passed columns.
+ */
+export function withoutCostColumns<C extends { key: unknown }>(cols: C[]): C[] {
+  return cols.filter(c => !COST_EXPORT_KEYS.has(String(c.key)))
+}
+
+// Unit labels shared by the product-shaped exports. UnitType is
+// kg | piece | zak | doos — the old fallback collapsed zak AND doos to "pak".
+export function formatExportUnit(v: unknown): string {
+  if (v === 'kg') return 'kg'
+  if (v === 'piece') return 'stuk'
+  if (v === 'zak') return 'zak'
+  if (v === 'doos') return 'doos'
+  return typeof v === 'string' ? v : ''
+}
+
+// Margin % from a sell price and a cost, both in cents. Blank when either is
+// missing or zero — a 0 cost means "unknown", not "100% margin" (same
+// convention as resolveItemCostCents).
+export function marginPct(priceCents?: number | null, costCents?: number | null): number | null {
+  if (!priceCents || priceCents <= 0) return null
+  if (!costCents || costCents <= 0) return null
+  return ((priceCents - costCents) / priceCents) * 100
+}
+
 // Escape CSV value (handle commas, quotes, newlines)
 function escapeCSVValue(value: unknown): string {
   if (value === null || value === undefined) return ''
@@ -300,6 +357,14 @@ export const orderExportColumns = [
   { key: 'subtotal', header: 'Subtotaal', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
   { key: 'tax_amount', header: 'BTW', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
   { key: 'total', header: 'Totaal', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
+  // OWNER ONLY (COST_EXPORT_KEYS). Attached to the rows by Orders.tsx via
+  // computeOrderProfit — derived values must be real fields on the row or
+  // computeTotalsRow, which reads row[key], sums 0.
+  { key: 'total_cost', header: 'Inkoopwaarde', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
+  { key: 'profit', header: 'Winst', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
+  // Deliberately NOT summable: computeTotalsRow can only add, and a sum of
+  // margins is meaningless. It renders blank in the "Totaal" row — expected.
+  { key: 'margin_pct', header: 'Marge %', format: (v: unknown) => formatExportPercent(v as number) },
   { key: 'delivery_notes', header: 'Bezorgnotities' },
   { key: 'created_at', header: 'Aangemaakt', format: (v: unknown) => formatExportDateTime(v as string) },
 ]
@@ -309,12 +374,13 @@ export const productExportColumns = [
   { key: 'name', header: 'Naam' },
   { key: 'sku', header: 'SKU' },
   { key: 'barcode', header: 'Barcode' },
-  { key: 'unit_type', header: 'Eenheid', format: (v: unknown) => {
-    if (v === 'kg') return 'kg'
-    if (v === 'piece') return 'stuk'
-    return 'pak'
-  }},
+  { key: 'unit_type', header: 'Eenheid', format: formatExportUnit },
   { key: 'base_price', header: 'Prijs', format: (v: unknown) => formatExportCurrency(v as number) },
+  // OWNER ONLY (COST_EXPORT_KEYS). cost_cents is already in the fetchProducts
+  // payload; it was simply never exposed as a column.
+  { key: 'cost_cents', header: 'Kostprijs', format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'margin_pct', header: 'Marge %', format: (_v: unknown, row: Record<string, unknown>) =>
+    formatExportPercent(marginPct(row?.base_price as number, row?.cost_cents as number)) },
   { key: 'tax_rate', header: 'BTW %', format: (v: unknown) => v ? `${v}%` : '' },
   { key: 'stock_quantity', header: 'Voorraad' },
   { key: 'track_stock', header: 'Voorraad bijhouden', format: (v: unknown) => v ? 'Ja' : 'Nee' },
@@ -339,6 +405,33 @@ export const customerExportColumns = [
   { key: 'shipping_country', header: 'Bezorgadres land' },
   { key: 'internal_notes', header: 'Notities' },
   { key: 'created_at', header: 'Aangemaakt', format: (v: unknown) => formatExportDateTime(v as string) },
+  // OWNER ONLY (COST_EXPORT_KEYS). Attached by Customers.tsx from the
+  // server-gated get_customer_performance RPC, which returns NULL cost/profit
+  // for non-owners — so unlike the other three exports this one is gated in the
+  // RPC as well as the UI.
+  //
+  // "(totaal)" is in the header on purpose: these are ALL-TIME figures for the
+  // customer, NOT scoped to the list's city/type/search filters, and the RPC
+  // excludes draft orders — so they will not equal a hand-sum of the Orders list.
+  { key: 'total_cost', header: 'Inkoopwaarde (totaal)', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
+  { key: 'total_profit', header: 'Winst (totaal)', format: (v: unknown) => formatExportCurrency(v as number), summable: true },
+  { key: 'margin_pct', header: 'Marge %', format: (v: unknown) => formatExportPercent(v as number) },
+]
+
+// Price-list detail: one row per (product, unit_type).
+// Cost columns are OWNER ONLY (COST_EXPORT_KEYS) — the page itself is reachable
+// by a shop manager, who sees prices but no cost.
+export const priceListItemExportColumns = [
+  { key: 'product_code',  header: 'Product ID' },
+  { key: 'product_name',  header: 'Naam' },
+  { key: 'unit_type',     header: 'Eenheid', format: formatExportUnit },
+  { key: 'list_price',    header: 'Lijstprijs', format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'default_price', header: 'Standaardprijs', format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'price_source',  header: 'Prijs bron' },
+  { key: 'tax_rate',      header: 'BTW %', format: (v: unknown) => v != null ? `${v}%` : '' },
+  { key: 'cost_effective', header: 'Kostprijs', format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'cost_source',    header: 'Kostprijs bron' },
+  { key: 'margin_pct',     header: 'Marge %', format: (v: unknown) => formatExportPercent(v as number) },
 ]
 
 // Customer products summary (one row per (product, unit_type))

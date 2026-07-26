@@ -16,6 +16,8 @@ export interface CustomerPerformanceRow {
   customerId: string
   companyName: string
   totalRevenue: number
+  /** COGS. NULL-gated to 0 server-side for non-owners (is_owner() in the RPC). */
+  totalCost: number
   totalProfit: number
   totalTax: number
   profitMargin: number
@@ -104,6 +106,7 @@ export async function getCustomerPerformance(
       customerId: String(row.customer_id || ''),
       companyName: String(row.customer_name || 'Unknown'),
       totalRevenue,
+      totalCost,
       totalProfit,
       totalTax,
       profitMargin,

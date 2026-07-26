@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -21,8 +21,10 @@ import CustomerImport from '../components/customers/CustomerImport'
 import CustomerPricing from '../components/pricing/CustomerPricing'
 import CustomerTableRow from '../components/customers/CustomerTableRow'
 import CustomerCard from '../components/customers/CustomerCard'
-import { customerExportColumns } from '../utils/export'
+import { customerExportColumns, withoutCostColumns } from '../utils/export'
 import { fetchCustomers } from '../services/customers'
+import { getCustomerPerformance, type CustomerPerformanceRow } from '../services/analyticsCustomers'
+import { useAuth } from '../context/AuthContext'
 import ExportMenu from '../components/ui/ExportMenu'
 import SelectionBar from '../components/ui/SelectionBar'
 import SortableTh from '../components/ui/SortableTh'
@@ -36,6 +38,7 @@ export default function Customers() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { canCreate, canEdit, canDelete } = usePermission('customers')
+  const { isOwner } = useAuth()
 
   // View state lives in the URL so opening a customer and coming back restores
   // the page + filters (see useUrlListState). Read once here, mirrored below
@@ -188,6 +191,37 @@ export default function Customers() {
   const toggleSelectAll = () => setSelectedIds(prev =>
     prev.size === filteredCustomers.length ? new Set() : new Set(filteredCustomers.map(c => c.id)))
 
+  // --- Owner-only COG/profit columns for the export -------------------------
+  // `customers` rows carry no cost or profit, and a per-customer rollup would be
+  // an N+1. get_customer_performance returns all-time totals for every customer
+  // in ONE call and is server-gated (is_owner() -> NULL cost/profit), so unlike
+  // the Products/Orders exports this one is gated in the RPC too, not just here.
+  // Loaded once on mount, owner only.
+  const [perfByCustomer, setPerfByCustomer] = useState<Map<string, CustomerPerformanceRow>>(new Map())
+  useEffect(() => {
+    if (!isOwner) return
+    let cancelled = false
+    getCustomerPerformance()
+      .then(rows => {
+        if (!cancelled) setPerfByCustomer(new Map(rows.map(r => [r.customerId, r])))
+      })
+      // Never let this kill the export — the cost cells just come out blank.
+      .catch(err => console.error('customer performance (export columns)', err))
+    return () => { cancelled = true }
+  }, [isOwner])
+
+  const withCostFields = useCallback((c: Customer) => {
+    if (!isOwner) return c
+    const p = perfByCustomer.get(c.id)
+    if (!p) return c
+    return { ...c, total_cost: p.totalCost, total_profit: p.totalProfit, margin_pct: p.profitMargin }
+  }, [isOwner, perfByCustomer])
+
+  const customerExportColumnsGated = useMemo(
+    () => (isOwner ? customerExportColumns : withoutCostColumns(customerExportColumns)),
+    [isOwner],
+  )
+
   return (
     <div className="space-y-4 min-w-0">
       {/* Search & Filters */}
@@ -227,11 +261,11 @@ export default function Customers() {
             <Archive className="w-5 h-5" /><span className="hidden lg:inline">{showArchived ? t('customers.showActive') : t('customers.showArchived')}</span>
           </button>
           <ExportMenu
-            getAllData={() => fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined, archived: showArchived })}
-            pageData={filteredCustomers}
-            selectedData={selectedCustomers}
+            getAllData={async () => (await fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined, archived: showArchived })).map(withCostFields)}
+            pageData={filteredCustomers.map(withCostFields)}
+            selectedData={selectedCustomers.map(withCostFields)}
             totalCount={totalCount}
-            columns={customerExportColumns as never}
+            columns={customerExportColumnsGated as never}
             filename={`customers-${new Date().toISOString().split('T')[0]}`}
             pdfTitle="Klanten"
             storageKey="customers"

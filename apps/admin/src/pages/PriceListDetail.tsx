@@ -8,6 +8,7 @@ import {
   fetchPriceListById,
   fetchPriceListItems,
   deletePriceListItem,
+  resolveItemCostCents,
   type PriceListItemWithProduct,
 } from '../services/priceLists'
 import type { UnitType } from '../types'
@@ -18,6 +19,8 @@ import ProductUnitsEditor from '../components/priceLists/ProductUnitsEditor'
 import PriceListCustomers from '../components/priceLists/PriceListCustomers'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import SortableTh from '../components/ui/SortableTh'
+import ExportMenu from '../components/ui/ExportMenu'
+import { priceListItemExportColumns, withoutCostColumns, marginPct } from '../utils/export'
 import { useTableSort } from '../hooks/useTableSort'
 import { useAuth } from '../context/AuthContext'
 import type { PriceList } from '../types'
@@ -59,6 +62,40 @@ export default function PriceListDetail() {
     }
     return Array.from(m.values())
   }, [items])
+
+  // Export rows: one per (product, unit_type), i.e. flattened `items` rather
+  // than the per-product `groups` the table renders. Cost columns are added for
+  // the owner only; `cost_source` mirrors resolveItemCostCents' branch order
+  // exactly — keep the two in sync or the label lies about where cost came from.
+  const exportRows = useMemo(() => items.map(it => {
+    const unit = it.product?.unit_prices?.find(u => u.unit_type === it.unit_type)
+    const defaultPrice = unit?.price ?? it.product?.base_price ?? null
+    const price = it.price_cents ?? defaultPrice
+    const row: Record<string, unknown> = {
+      product_code:  it.product?.product_code ?? '',
+      product_name:  it.product?.name ?? '',
+      unit_type:     it.unit_type,
+      list_price:    it.price_cents,
+      default_price: defaultPrice,
+      price_source:  it.price_cents != null ? 'Lijst' : 'Standaard',
+      tax_rate:      it.tax_rate,
+    }
+    if (!isOwner) return row
+    const cost = resolveItemCostCents(it)
+    row.cost_effective = cost || null
+    row.cost_source =
+      it.cost_cents != null            ? 'Lijst-override'
+      : unit?.cost_cents != null       ? 'Eenheid'
+      : it.product?.cost_cents != null ? 'Product'
+      : 'Onbekend'
+    row.margin_pct = marginPct(price, cost)
+    return row
+  }), [items, isOwner])
+
+  const exportColumns = useMemo(
+    () => (isOwner ? priceListItemExportColumns : withoutCostColumns(priceListItemExportColumns)),
+    [isOwner],
+  )
 
   // Sort the grouped rows by product code / name.
   type PLIKey = 'product_code' | 'product_name'
@@ -190,6 +227,15 @@ export default function PriceListDetail() {
             <Upload className="w-4 h-4" />
             <span className="hidden sm:inline">{t('priceLists.detail.importItems')}</span>
           </button>
+          <ExportMenu
+            getAllData={async () => exportRows}
+            totalCount={exportRows.length}
+            columns={exportColumns as never}
+            filename={`prijslijst-${(list?.name ?? 'lijst').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().split('T')[0]}`}
+            pdfTitle={`Prijslijst · ${list?.name ?? ''}`}
+            storageKey="price-list-items"
+            size="sm"
+          />
           <button
             onClick={() => setShowPicker(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"

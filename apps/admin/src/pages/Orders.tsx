@@ -42,7 +42,7 @@ import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
 import HiddenOrderBadge from '../components/orders/HiddenOrderBadge'
 import MultiSelectFilter from '../components/ui/MultiSelectFilter'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
-import { orderExportColumns } from '../utils/export'
+import { orderExportColumns, withoutCostColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SelectionBar from '../components/ui/SelectionBar'
 import { formatPrice, formatDateShort, formatDateTime, formatDayMonth, formatTimeShort, formatPercent, profitClass } from '../utils/format'
@@ -283,10 +283,27 @@ export default function Orders() {
       || (order.woo_invoice_number ? String(order.woo_invoice_number) : ''),
   })
 
+  // Same idea for the owner-only COG columns: computeTotalsRow reads row[key],
+  // so Inkoopwaarde/Winst/Marge have to be REAL fields on the exported object,
+  // not just a format() callback, or the "Totaal" row sums zero.
+  // computeOrderProfit is the single definition of the ex-VAT profit convention
+  // (revenue = subtotal, shipping excluded) — do not inline a second one here.
+  const withExportFields = (order: OrderWithItems, info: Map<string, OrderDocumentInfo>) => {
+    const base = withInvoiceNumber(order, info)
+    if (!isOwner) return base
+    const p = computeOrderProfit(order)
+    return { ...base, total_cost: p.totalCost, profit: p.profit, margin_pct: p.margin }
+  }
+
+  const orderExportColumnsGated = useMemo(
+    () => (isOwner ? orderExportColumns : withoutCostColumns(orderExportColumns)),
+    [isOwner],
+  )
+
   const exportGetAllData = async () => {
     const all = await fetchOrders({ ...filters, limit: 100000, offset: 0 })
     const info = await fetchDocumentInfoByOrder(all.map(o => o.id))
-    return all.map(o => withInvoiceNumber(o, info))
+    return all.map(o => withExportFields(o, info))
   }
 
   const toggleSelect = (id: string) => {
@@ -422,10 +439,10 @@ export default function Orders() {
           )}
           <ExportMenu
             getAllData={exportGetAllData}
-            pageData={filteredOrders.map(o => withInvoiceNumber(o, documentInfo))}
-            selectedData={selectedOrders.map(o => withInvoiceNumber(o, documentInfo))}
+            pageData={filteredOrders.map(o => withExportFields(o, documentInfo))}
+            selectedData={selectedOrders.map(o => withExportFields(o, documentInfo))}
             totalCount={totalCount}
-            columns={orderExportColumns as never}
+            columns={orderExportColumnsGated as never}
             filename={`orders-${new Date().toISOString().split('T')[0]}`}
             pdfTitle="Bestellingen"
             storageKey="orders"

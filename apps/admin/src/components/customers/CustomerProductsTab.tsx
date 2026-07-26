@@ -13,7 +13,7 @@ import { formatPrice } from '../../utils/format'
 import ExportMenu from '../ui/ExportMenu'
 import SortableTh from '../ui/SortableTh'
 import { useTableSort } from '../../hooks/useTableSort'
-import { customerItemsSummaryExportColumns } from '../../utils/export'
+import { customerItemsSummaryExportColumns, withoutCostColumns } from '../../utils/export'
 
 interface CustomerProductsTabProps {
   customerId: string
@@ -202,10 +202,10 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
             totalCount={filteredRows.length}
             columns={(isOwner
               ? customerItemsSummaryExportColumns
-              : customerItemsSummaryExportColumns.filter(c => c.key !== 'total_profit')
+              : withoutCostColumns(customerItemsSummaryExportColumns)
             ) as never}
             filename={`producten-${customerName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().split('T')[0]}`}
-            pdfTitle={`Producten — ${customerName}`}
+            pdfTitle={`Producten · ${customerName}`}
             storageKey="customer-products"
             size="sm"
           />
