@@ -224,9 +224,19 @@ customer-facing output changes for either tenant.
   an **empty string** into live UI ("Order  moved to trash"). Run
   **`node scripts/check-locales.mjs`** (from `apps/admin`) after touching any locale — it diffs
   keys *and* placeholder sets against `nl.json` and exits non-zero on a mismatch.
-- **Known gap:** `AuditLog.tsx` formats snapshot-derived titles via `i18n.language.startsWith('en')
-  ? 'en' : 'nl'`, so a Turkish session gets **Dutch** audit titles. The surrounding chrome is
-  Turkish. Left as-is (audit titles are derived, not keyed); extend `utils/audit.ts` if it matters.
+- **Known gaps — both deliberately left, pending real feedback from Gurbet's staff:**
+  1. **Dates stay Dutch.** Every date in the app is formatted `nl-NL`, so a Turkish session shows
+     `Günaydın, …` above **`maandag 27 juli 2026`**, and `27 juli 2026` in the order panel. A fix
+     was built and **reverted** on 2026-07-27 (owner: *"let's see what they do — date looks good
+     for now"*). If it comes back, the shape that works is a `uiLocale()` helper used **only for
+     prose dates in app chrome** — the dashboard greeting and `OrderDetail.formatDateLong`. Do
+     **not** reach into `utils/format.ts`: it is verified to feed `InvoiceTemplate`,
+     `CreditNoteTemplate`, `ProformaTemplate`, `PackingSlipTemplate`, `PaymentReminderTemplate`
+     and `SoldProductsTemplate`, so changing it changes **customer PDFs**. Numeric table dates
+     (`27-07-2026`) are language-neutral and fine as they are.
+  2. **Audit titles stay Dutch.** `AuditLog.tsx` formats snapshot-derived titles via
+     `i18n.language.startsWith('en') ? 'en' : 'nl'`, so a Turkish session gets Dutch titles inside
+     otherwise Turkish chrome. Titles are derived, not keyed; extend `utils/audit.ts` if it matters.
 - **Nothing server-side to mirror.** Pure app code — one push updates both Vercel projects. No
   migration, edge function, secret or dashboard setting is involved.
 
