@@ -1529,6 +1529,32 @@ Two guards, both load-bearing:
 `draft → cancelled/refunded` is not going live and is excluded. `OrderForm` mirrors the same rule
 into the visible date field on untick so the change is seen before saving, not discovered after.
 
+### …and lands at the TOP of that day (`activated_at`, migration 00099)
+
+The date bump alone still hid the order. The list sorts `order_date DESC, created_at DESC`, and a
+draft's `created_at` is the day the **scratchpad was opened** — so a finalised draft joined the right
+day and then sank to the **bottom of it**, below everything entered that morning. Order 10767 was
+dead last of 25.
+
+`created_at` can't answer this: for a draft, "row written" and "order became live" are two different
+moments, and it must keep answering the first (audit data, and a visible sortable column). So there
+is a second timestamp — **`orders.activated_at`** — meaning *the moment the order became live*, and
+`fetchOrders` tiebreaks on it. For any order that was never a draft it **equals `created_at` and
+never moves**, so nothing else in the list reorders. Set to `now()`, so a genuinely newer order
+outranks it immediately: it floats to the top and stays only until real newer work arrives.
+
+- Stamped in the **same `set_invoice_due_and_paid` draft-goes-live block**, but the transition test
+  is **split from the two date guards**. `activated_at` is set on **every** finalisation; the
+  `IS NOT DISTINCT FROM` / `< today` guards stay nested inside, governing only the date. Do not fold
+  it back under them — a draft opened 08:00 and finalised 17:00 the *same day* already has
+  `order_date = today`, skips the date branch entirely, and would still sort below the whole morning.
+- The backfill (`activated_at = created_at`) is **trigger-suppressed** and both suppressions are
+  load-bearing: `orders_updated_at` is BEFORE UPDATE FOR EACH ROW and would stamp `updated_at = now()`
+  on **every order in the system**, destroying the real edit history; `audit_orders` would write ~6k
+  junk rows. The status triggers are `AFTER UPDATE **OF status**` and cannot fire on a backfill.
+- Drafts finalised *before* 00099 are not guessed at (`updated_at` is any edit, not the finalisation).
+  10767 was corrected by hand to its known finalisation time.
+
 ---
 
 ## CSP: no `'unsafe-inline'` — inline scripts are hashed

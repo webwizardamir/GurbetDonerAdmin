@@ -378,7 +378,12 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
       refunds:order_refunds(id, woo_refund_id, woo_credit_note_number, refund_date, amount, reason)
     `)
     .order('order_date', { ascending: false })
-    .order('created_at', { ascending: false })
+    // Tiebreaker within a day is `activated_at`, NOT `created_at`: a Concept order
+    // carries the created_at of the day the scratchpad was opened, so finalising it
+    // dropped it to the BOTTOM of today's orders — the exact spot nobody scrolls to
+    // (00098 fixed its date, this fixes its position). activated_at equals created_at
+    // for every order that was never a draft, so nothing else reorders. See 00099.
+    .order('activated_at', { ascending: false })
 
   query = filters.trashed ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null)
 
