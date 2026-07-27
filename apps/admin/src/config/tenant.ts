@@ -15,6 +15,21 @@ import logoGurbet from '../assets/images/Gurbet-Doner-Logo.png'
 
 export type TenantId = 'melek' | 'father'
 
+/** Every locale that ships in the bundle (`i18n/locales/*.json`). */
+export type AppLanguage = 'nl' | 'en' | 'tr'
+
+/**
+ * The customer portal is CUSTOMER-facing and stays NL/EN for both tenants, so it
+ * does not follow `TenantConfig.languages` -- Turkish was requested for the admin
+ * dashboard only. Pass `scope="portal"` to LanguageSelector to get this list.
+ *
+ * Caveat worth knowing: i18next's active language is global to the origin. Staff
+ * who pick Turkish in the admin and then open the portal in the SAME browser see
+ * Turkish there too (the keys are translated). Real customers have their own
+ * browser, so they only ever get what this list offers.
+ */
+export const PORTAL_LANGUAGES: readonly AppLanguage[] = ['nl', 'en']
+
 export interface TenantConfig {
   id: TenantId
   /** Product name shown in the UI + browser tab. */
@@ -42,6 +57,13 @@ export interface TenantConfig {
    */
   portalContactPhoneHref?: string
   /**
+   * Languages offered in the ADMIN language switcher, in menu order. The first
+   * entry is NOT a default -- `i18n` falls back to `nl` and the detector only
+   * ever picks a language from this list, so a Turkish-language BROWSER on Melek
+   * still gets Dutch. Staff opt in via the switcher, and it is remembered.
+   */
+  languages: readonly AppLanguage[]
+  /**
    * Feature switches. These are UX-level only -- every one of them is ALSO
    * enforced server-side (analytics cost/profit columns are gated behind
    * `is_owner()` in the RPCs), so flipping one here never grants access.
@@ -62,6 +84,7 @@ const TENANTS: Record<TenantId, TenantConfig> = {
     portalContactEmail: 'info@melekhalalfood.nl',
     portalContactPhone: '071 200 1287',
     portalContactPhoneHref: '+31712001287',
+    languages: ['nl', 'en'],
     features: {
       analytics: true,
     },
@@ -75,6 +98,10 @@ const TENANTS: Record<TenantId, TenantConfig> = {
     // No support/contact mailbox yet -- deliberately left unset so the UI omits
     // the link rather than sending his people to Melek's inbox. Fill in when he
     // has a business address.
+    // Turkish is offered here ONLY. Documents and emails are unaffected: those
+    // pick their language from the CUSTOMER's country (resolveDocumentLang), not
+    // from the app language, so a Turkish admin session still invoices in NL/EN.
+    languages: ['nl', 'en', 'tr'],
     features: {
       // Hidden at launch by client request. Owner-gated server-side regardless.
       analytics: false,

@@ -165,12 +165,15 @@ src/
 - Support past/future order dates
 
 ### Internationalization (i18n)
-- **Languages**: Dutch (NL) as default, English (EN) as secondary
+- **Languages**: Dutch (NL) default, English (EN) secondary, **Turkish (TR) on the Gurbet tenant only**
 - **Library**: react-i18next with i18next-browser-languagedetector
-- **Translation files**: `src/i18n/locales/nl.json` and `src/i18n/locales/en.json`
-- **IMPORTANT**: When creating or modifying features, ALWAYS add translations to BOTH language files
+- **Translation files**: `src/i18n/locales/nl.json`, `en.json` and `tr.json`
+- **IMPORTANT**: When creating or modifying features, ALWAYS add translations to ALL THREE files
   - Add Dutch (NL) translations FIRST
   - Add English (EN) translations SECOND
+  - Add Turkish (TR) THIRD. A missing `tr` key falls back to Dutch **silently** — no error,
+    no console warning, just a Dutch string in an otherwise Turkish screen. The three files
+    must stay key-identical; see **Turkish (Gurbet only)** below for the parity check.
 - **PDF Documents**: Always remain in Dutch regardless of app language (legal compliance)
 - **Key naming**: Use nested keys like `section.subsection.key` (e.g., `orders.status.completed`)
 - **Usage**:
@@ -182,6 +185,50 @@ src/
     return <button>{t('common.save')}</button>
   }
   ```
+
+---
+
+## Turkish (Gurbet tenant only) — 2026-07-27
+
+Gurbet's staff can run the **admin dashboard** in Turkish. Melek cannot, and no
+customer-facing output changes for either tenant.
+
+- **Config-driven, not branched.** `TenantConfig.languages` (`config/tenant.ts`) lists what the
+  admin switcher offers: melek `['nl','en']`, father `['nl','en','tr']`. `LanguageSelector` renders
+  that list; language names are **never translated** (someone stranded in a language they can't
+  read has to find their own).
+- **`supportedLngs: tenant.languages`** gates the **detector**, not just the switcher — otherwise a
+  Turkish-language browser would get a Turkish UI on **Melek** too, purely because the locale is in
+  the repo. `load: 'languageOnly'` normalises `nl-NL` → `nl` so region tags still match.
+- **Turkish is opt-in, never inferred.** `navigator` stays in the detection chain (an English
+  browser getting English is long-standing), so `i18n/index.ts` explicitly demotes a
+  browser-inferred `tr` back to `nl`. It reads `localStorage` **before `init()`** — the detector's
+  `caches: ['localStorage']` writes the detected value straight back, after which an explicit
+  choice is indistinguishable from a guess.
+- **`tr.json` is lazily imported** (own chunk, ~21 KB gzip) and only when Turkish is the active
+  language. Static-importing it put ~20 KB gzip into the entry chunk of **both** tenants for a
+  language Melek can never display. `main.tsx` awaits `i18nReady` before the first render: a late
+  `addResourceBundle` does **not** re-render react-i18next unless `bindI18nStore` is set, so an
+  unawaited load would show Dutch forever. `ensureLanguageLoaded()` is awaited in the switcher for
+  the same reason. Both paths swallow a failed fetch → Dutch, never a blank app.
+- **The portal stays NL/EN for both tenants** (`PORTAL_LANGUAGES`, `scope="portal"`) — Turkish was
+  scoped to the admin. Note i18next's language is global to the origin, so staff who pick Turkish
+  in the admin and open the portal in the *same browser* see Turkish there; real customers have
+  their own browser and only ever get what the portal switcher offers.
+- **Documents and emails are unaffected by design** — they pick their language from the
+  **customer's country** (`resolveDocumentLang`), never from the app language, and money/date
+  formatting is hardcoded `nl-NL` everywhere. A Turkish admin session still invoices in NL/EN with
+  `€1.234,56` and `DD-MM-YYYY`. Do not wire app language into either.
+- **Key parity is the thing that breaks.** All three locales must hold the same 1834 keys with the
+  same `{{placeholders}}`; a missing key silently renders Dutch, and a dropped placeholder renders
+  an **empty string** into live UI ("Order  moved to trash"). Run
+  **`node scripts/check-locales.mjs`** (from `apps/admin`) after touching any locale — it diffs
+  keys *and* placeholder sets against `nl.json` and exits non-zero on a mismatch.
+- **Known gap:** `AuditLog.tsx` formats snapshot-derived titles via `i18n.language.startsWith('en')
+  ? 'en' : 'nl'`, so a Turkish session gets **Dutch** audit titles. The surrounding chrome is
+  Turkish. Left as-is (audit titles are derived, not keyed); extend `utils/audit.ts` if it matters.
+- **Nothing server-side to mirror.** Pure app code — one push updates both Vercel projects. No
+  migration, edge function, secret or dashboard setting is involved.
 
 ---
 

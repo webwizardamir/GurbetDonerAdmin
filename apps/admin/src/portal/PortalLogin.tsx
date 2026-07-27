@@ -116,7 +116,7 @@ export default function PortalLogin() {
       <div className="flex-1 flex flex-col">
         {/* Top bar with language and theme */}
         <div className="flex justify-end items-center gap-2 p-4">
-          <LanguageSelector />
+          <LanguageSelector scope="portal" />
           <button
             onClick={toggleDarkMode}
             className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"

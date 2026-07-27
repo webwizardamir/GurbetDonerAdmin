@@ -160,6 +160,12 @@ Things deliberately different from Melek right now. Check before assuming parity
 - **Numbering is independent** — Gurbet starts at FC-1 / order 1.
 - **No custom domain** (free `*.vercel.app`). Worth fixing before portal links go out.
 - **Analytics hidden** (`features.analytics = false`).
+- **Turkish in the admin UI** (`languages: ['nl','en','tr']`; Melek is `['nl','en']`). Opt-in via
+  the switcher, Dutch still the default. `tr.json` must stay key-identical to `nl.json`/`en.json`
+  — a missing key silently renders Dutch. **Admin only**: the portal is `PORTAL_LANGUAGES`
+  (NL/EN) for both tenants, and documents/emails follow the *customer's country*, not the app
+  language, so nothing customer-facing changed. No server-side action — app code propagates on
+  push. See "Turkish (Gurbet tenant only)" in `CLAUDE.md`.
 - **Empty database** — a fix verified against Melek's data is *unverified* on Gurbet.
 
 ### Applied to BOTH on 2026-07-26/27 (no outstanding tenant action)

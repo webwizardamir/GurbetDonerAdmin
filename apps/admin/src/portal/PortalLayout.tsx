@@ -97,7 +97,7 @@ export default function PortalLayout() {
             {/* Right Side Actions */}
             <div className="flex items-center gap-2">
               {/* Language Selector */}
-              <LanguageSelector />
+              <LanguageSelector scope="portal" />
 
               {/* Dark Mode Toggle */}
               <button

@@ -2,10 +2,17 @@ import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Globe, ChevronDown, Check } from 'lucide-react'
 
-const languages = [
-  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-]
+import { tenant, PORTAL_LANGUAGES, type AppLanguage } from '../config/tenant'
+import { ensureLanguageLoaded } from '../i18n'
+
+// Names stay in their OWN language (never translated) — that is the point of a
+// language switcher: someone stuck in a language they can't read must still be
+// able to find their own.
+const LANGUAGES: Record<AppLanguage, { name: string; flag: string }> = {
+  nl: { name: 'Nederlands', flag: '🇳🇱' },
+  en: { name: 'English', flag: '🇬🇧' },
+  tr: { name: 'Türkçe', flag: '🇹🇷' },
+}
 
 interface LanguageSelectorProps {
   /**
@@ -19,13 +26,24 @@ interface LanguageSelectorProps {
    * viewport, so a downward menu would be clipped off-screen.
    */
   placement?: 'down' | 'up'
+  /**
+   * 'admin' (default) - offers whatever the tenant enables (Gurbet also gets tr).
+   * 'portal'          - customer-facing, deliberately NL/EN for both tenants.
+   */
+  scope?: 'admin' | 'portal'
 }
 
-export default function LanguageSelector({ variant = 'compact', placement = 'down' }: LanguageSelectorProps = {}) {
+export default function LanguageSelector({ variant = 'compact', placement = 'down', scope = 'admin' }: LanguageSelectorProps = {}) {
   const { i18n, t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
+  const codes = scope === 'portal' ? PORTAL_LANGUAGES : tenant.languages
+  const languages = codes.map(code => ({ code, ...LANGUAGES[code] }))
+
+  // i18n.language can be a language this scope does not offer (the origin-wide
+  // caveat in tenant.ts), so fall back to the first entry rather than rendering
+  // an undefined flag.
   const currentLang = languages.find(l => l.code === i18n.language) || languages[0]
 
   useEffect(() => {
@@ -41,9 +59,13 @@ export default function LanguageSelector({ variant = 'compact', placement = 'dow
     }
   }, [isOpen])
 
-  const handleLanguageChange = (code: string) => {
-    i18n.changeLanguage(code)
+  const handleLanguageChange = async (code: AppLanguage) => {
     setIsOpen(false)
+    // Some locales ship as their own chunk, so make sure the strings are in the
+    // store BEFORE switching — otherwise the UI renders the fallback language and
+    // never re-renders once the bundle lands.
+    await ensureLanguageLoaded(code)
+    void i18n.changeLanguage(code)
   }
 
   const isFull = variant === 'full'
