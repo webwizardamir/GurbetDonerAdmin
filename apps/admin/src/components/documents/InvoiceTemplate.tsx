@@ -10,6 +10,7 @@ import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 import { buildAddressLines } from '../../utils/address'
+import { docBrand } from './brandPalette'
 
 // A4: 595.28 x 841.89 points
 // Using Helvetica (built-in) for all text
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: '#16a34a',
+    color: docBrand.invoice.primary,
   },
 
   // ===========================================
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
   customerBox: {
     width: '55%',
     borderLeftWidth: 2,
-    borderLeftColor: '#22c55e',
+    borderLeftColor: docBrand.invoice.accent,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: '#f8fafc',
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#166534',
+    backgroundColor: docBrand.invoice.dark,
     paddingVertical: 4,
     paddingHorizontal: 5,
   },
@@ -247,13 +248,13 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: '#e2e8f0',
     borderTopWidth: 2,
-    borderTopColor: '#16a34a',
+    borderTopColor: docBrand.invoice.primary,
     padding: 6,
   },
   actionTitle: {
     fontSize: 7,
     fontFamily: 'Helvetica-Bold',
-    color: '#166534',
+    color: docBrand.invoice.dark,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
@@ -297,7 +298,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: '#e2e8f0',
     borderTopWidth: 2,
-    borderTopColor: '#16a34a',
+    borderTopColor: docBrand.invoice.primary,
     padding: 7,
   },
   totalRow: {
@@ -319,27 +320,27 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     marginTop: 3,
     borderTopWidth: 1.5,
-    borderTopColor: '#16a34a',
+    borderTopColor: docBrand.invoice.primary,
   },
   grandTotalLabel: {
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
-    color: '#166534',
+    color: docBrand.invoice.dark,
   },
   grandTotalValue: {
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
     textAlign: 'right',
-    color: '#16a34a',
+    color: docBrand.invoice.primary,
   },
 
   // ===========================================
   // PAYMENT TERMS
   // ===========================================
   paymentTerms: {
-    backgroundColor: '#dcfce7',
+    backgroundColor: docBrand.invoice.tint,
     borderWidth: 0.5,
-    borderColor: '#16a34a',
+    borderColor: docBrand.invoice.primary,
     paddingVertical: 4,
     paddingHorizontal: 8,
     marginBottom: 6,
@@ -347,7 +348,7 @@ const styles = StyleSheet.create({
   paymentTermsText: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#166534',
+    color: docBrand.invoice.dark,
     textAlign: 'center',
   },
 
@@ -358,8 +359,8 @@ const styles = StyleSheet.create({
   // ===========================================
   ibanCallout: {
     borderWidth: 0.5,
-    borderColor: '#16a34a',
-    backgroundColor: '#f0fdf4',
+    borderColor: docBrand.invoice.primary,
+    backgroundColor: docBrand.invoice.tintSoft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     marginBottom: 6,
@@ -367,18 +368,18 @@ const styles = StyleSheet.create({
   },
   ibanCalloutLabel: {
     fontSize: 8,
-    color: '#166534',
+    color: docBrand.invoice.dark,
     marginBottom: 2,
   },
   ibanCalloutIban: {
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    color: '#16a34a',
+    color: docBrand.invoice.primary,
     letterSpacing: 0.5,
   },
   ibanCalloutHolder: {
     fontSize: 7.5,
-    color: '#166534',
+    color: docBrand.invoice.dark,
     marginTop: 1,
   },
 
@@ -387,7 +388,7 @@ const styles = StyleSheet.create({
   // ===========================================
   footer: {
     borderTopWidth: 1,
-    borderTopColor: '#16a34a',
+    borderTopColor: docBrand.invoice.primary,
     paddingTop: 6,
   },
   footerRow: {
@@ -409,7 +410,7 @@ const styles = StyleSheet.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#166534',
+    color: docBrand.invoice.dark,
   },
   footerSeparator: {
     fontSize: 7,

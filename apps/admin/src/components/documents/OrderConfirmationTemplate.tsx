@@ -10,6 +10,7 @@ import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 import { buildAddressLines } from '../../utils/address'
+import { docBrand } from './brandPalette'
 
 // A4: 595.28 x 841.89 points
 // Order Confirmation = Confirms order received, shows what's ordered
@@ -59,12 +60,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 3,
-    color: '#0891b2',
+    color: docBrand.orderConfirmation.primary,
   },
   docNumber: {
     fontSize: 8.5,
     color: '#475569',
-    backgroundColor: '#cffafe',
+    backgroundColor: docBrand.orderConfirmation.tint,
     padding: 4,
     paddingHorizontal: 10,
   },
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
   customerBox: {
     width: '55%',
     borderLeftWidth: 2,
-    borderLeftColor: '#0891b2',
+    borderLeftColor: docBrand.orderConfirmation.primary,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: '#f8fafc',
@@ -154,14 +155,14 @@ const styles = StyleSheet.create({
   metaValueHighlight: {
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    color: '#0891b2',
+    color: docBrand.orderConfirmation.primary,
   },
 
   // Order summary section (compact)
   orderSummary: {
-    backgroundColor: '#f0fdfa',
+    backgroundColor: docBrand.orderConfirmation.tintSoft,
     borderLeftWidth: 2,
-    borderLeftColor: '#0891b2',
+    borderLeftColor: docBrand.orderConfirmation.primary,
     paddingHorizontal: 8,
     paddingVertical: 5,
     marginBottom: 6,
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#0891b2',
+    color: docBrand.orderConfirmation.primary,
     marginBottom: 4,
   },
   summaryRow: {
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#0e7490',
+    backgroundColor: docBrand.orderConfirmation.dark,
     paddingVertical: 4,
     paddingHorizontal: 5,
   },
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
     width: '40%',
     backgroundColor: '#f8fafc',
     borderTopWidth: 2,
-    borderTopColor: '#0891b2',
+    borderTopColor: docBrand.orderConfirmation.primary,
     padding: 7,
   },
   totalRow: {
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     marginTop: 3,
     borderTopWidth: 1.5,
-    borderTopColor: '#0891b2',
+    borderTopColor: docBrand.orderConfirmation.primary,
   },
   grandTotalLabel: {
     fontSize: 9,
@@ -322,7 +323,7 @@ const styles = StyleSheet.create({
 
   footer: {
     borderTopWidth: 1,
-    borderTopColor: '#0891b2',
+    borderTopColor: docBrand.orderConfirmation.primary,
     paddingTop: 6,
   },
   footerRow: {
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#0e7490',
+    color: docBrand.orderConfirmation.dark,
   },
   footerCenter: {
     fontSize: 6.5,

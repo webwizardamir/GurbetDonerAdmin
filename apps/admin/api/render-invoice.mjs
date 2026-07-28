@@ -320,6 +320,140 @@ function buildAddressLines(a) {
   return lines;
 }
 
+// src/config/tenantId.ts
+function resolveTenantId() {
+  const raw = "melek";
+  return raw === "father" ? "father" : "melek";
+}
+var tenantId = resolveTenantId();
+
+// src/components/documents/brandPalette.ts
+var MELEK = {
+  invoice: {
+    primary: "#16a34a",
+    dark: "#166534",
+    accent: "#22c55e",
+    tint: "#dcfce7",
+    tintSoft: "#f0fdf4"
+  },
+  proforma: {
+    primary: "#3b82f6",
+    dark: "#1e40af",
+    tint: "#dbeafe"
+  },
+  creditNote: {
+    primary: "#7c3aed",
+    dark: "#6d28d9",
+    deep: "#5b21b6",
+    accent: "#6b21a8",
+    tint: "#ede9fe",
+    tintSoft: "#faf5ff"
+  },
+  orderConfirmation: {
+    primary: "#0891b2",
+    dark: "#0e7490",
+    tint: "#cffafe",
+    tintSoft: "#f0fdfa"
+  },
+  paymentReminder: {
+    primary: "#dc2626",
+    dark: "#991b1b",
+    accent: "#fca5a5",
+    tint: "#fecaca",
+    tintSoft: "#fef2f2"
+  },
+  packingSlip: {
+    primary: "#1e293b",
+    dark: "#1e293b",
+    accent: "#3b82f6"
+  },
+  soldProducts: {
+    primary: "#16a34a",
+    dark: "#166534",
+    badgeTint: "#dbeafe",
+    badgeText: "#2563eb"
+  },
+  dataExport: {
+    primary: "#16a34a",
+    dark: "#166534"
+  },
+  deliveryRoute: {
+    primary: "#0891b2",
+    dark: "#0e7490"
+  }
+};
+var FATHER = {
+  invoice: {
+    primary: "#0a62b4",
+    dark: "#07406f",
+    // 10.65:1 on white — the heaviest band in the family
+    accent: "#2b82d4",
+    tint: "#dbeafe",
+    tintSoft: "#eff6ff"
+  },
+  proforma: {
+    primary: "#b45309",
+    // 183° from the invoice, and 11 L* lighter in greyscale
+    dark: "#92400e",
+    deep: "#92400e",
+    accent: "#b45309",
+    tint: "#ffedd5",
+    // NOT #fef3c7 — that would blend into the amber verlegd notice
+    tintSoft: "#fff7ed"
+  },
+  creditNote: {
+    primary: "#9333ea",
+    dark: "#7e22ce",
+    deep: "#6b21a8",
+    accent: "#6b21a8",
+    tint: "#f3e8ff",
+    tintSoft: "#faf5ff"
+  },
+  orderConfirmation: {
+    // Teal, not green: this template's thank-you banner IS green (#10b981), and a
+    // green primary would swallow it.
+    primary: "#0f766e",
+    dark: "#115e59",
+    deep: "#134e4a",
+    tint: "#ccfbf1",
+    tintSoft: "#f0fdfa"
+  },
+  paymentReminder: {
+    // Unchanged. Red is the only correct hue for a dunning letter.
+    primary: "#dc2626",
+    dark: "#991b1b",
+    accent: "#fca5a5",
+    tint: "#fecaca",
+    tintSoft: "#fef2f2"
+  },
+  packingSlip: {
+    // Unchanged neutral — a warehouse pick list, not a branding surface. Only the
+    // customer rule moves: it was #3b82f6, which lands 8° off the new brand and
+    // would read as almost-but-not-quite the brand. Made exact instead.
+    primary: "#1e293b",
+    dark: "#1e293b",
+    accent: "#0a62b4"
+  },
+  soldProducts: {
+    primary: "#0a62b4",
+    dark: "#07406f",
+    // Melek's blue refill badge would collide with the brand here.
+    badgeTint: "#f3e8ff",
+    badgeText: "#7e22ce"
+  },
+  dataExport: {
+    primary: "#0a62b4",
+    dark: "#07406f"
+  },
+  deliveryRoute: {
+    // Keeps cyan: now uniquely cyan (order confirmation vacated it), and it is an
+    // internal driver sheet that never sits in a customer's stack of paperwork.
+    primary: "#0891b2",
+    dark: "#0e7490"
+  }
+};
+var docBrand = tenantId === "father" ? FATHER : MELEK;
+
 // src/components/documents/InvoiceTemplate.tsx
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 var LEVERDATUM_FIX_CUTOFF = "2026-07-20";
@@ -374,7 +508,7 @@ var styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     textTransform: "uppercase",
     letterSpacing: 1,
-    color: "#16a34a"
+    color: docBrand.invoice.primary
   },
   // ===========================================
   // INFO ROW (Customer + Metadata)
@@ -387,7 +521,7 @@ var styles = StyleSheet.create({
   customerBox: {
     width: "55%",
     borderLeftWidth: 2,
-    borderLeftColor: "#22c55e",
+    borderLeftColor: docBrand.invoice.accent,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: "#f8fafc"
@@ -475,7 +609,7 @@ var styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#166534",
+    backgroundColor: docBrand.invoice.dark,
     paddingVertical: 4,
     paddingHorizontal: 5
   },
@@ -538,13 +672,13 @@ var styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: "#e2e8f0",
     borderTopWidth: 2,
-    borderTopColor: "#16a34a",
+    borderTopColor: docBrand.invoice.primary,
     padding: 6
   },
   actionTitle: {
     fontSize: 7,
     fontFamily: "Helvetica-Bold",
-    color: "#166534",
+    color: docBrand.invoice.dark,
     textTransform: "uppercase",
     marginBottom: 4
   },
@@ -587,7 +721,7 @@ var styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: "#e2e8f0",
     borderTopWidth: 2,
-    borderTopColor: "#16a34a",
+    borderTopColor: docBrand.invoice.primary,
     padding: 7
   },
   totalRow: {
@@ -609,26 +743,26 @@ var styles = StyleSheet.create({
     paddingTop: 4,
     marginTop: 3,
     borderTopWidth: 1.5,
-    borderTopColor: "#16a34a"
+    borderTopColor: docBrand.invoice.primary
   },
   grandTotalLabel: {
     fontSize: 9,
     fontFamily: "Helvetica-Bold",
-    color: "#166534"
+    color: docBrand.invoice.dark
   },
   grandTotalValue: {
     fontSize: 9,
     fontFamily: "Helvetica-Bold",
     textAlign: "right",
-    color: "#16a34a"
+    color: docBrand.invoice.primary
   },
   // ===========================================
   // PAYMENT TERMS
   // ===========================================
   paymentTerms: {
-    backgroundColor: "#dcfce7",
+    backgroundColor: docBrand.invoice.tint,
     borderWidth: 0.5,
-    borderColor: "#16a34a",
+    borderColor: docBrand.invoice.primary,
     paddingVertical: 4,
     paddingHorizontal: 8,
     marginBottom: 6
@@ -636,7 +770,7 @@ var styles = StyleSheet.create({
   paymentTermsText: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
-    color: "#166534",
+    color: docBrand.invoice.dark,
     textAlign: "center"
   },
   // ===========================================
@@ -646,8 +780,8 @@ var styles = StyleSheet.create({
   // ===========================================
   ibanCallout: {
     borderWidth: 0.5,
-    borderColor: "#16a34a",
-    backgroundColor: "#f0fdf4",
+    borderColor: docBrand.invoice.primary,
+    backgroundColor: docBrand.invoice.tintSoft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     marginBottom: 6,
@@ -655,18 +789,18 @@ var styles = StyleSheet.create({
   },
   ibanCalloutLabel: {
     fontSize: 8,
-    color: "#166534",
+    color: docBrand.invoice.dark,
     marginBottom: 2
   },
   ibanCalloutIban: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
-    color: "#16a34a",
+    color: docBrand.invoice.primary,
     letterSpacing: 0.5
   },
   ibanCalloutHolder: {
     fontSize: 7.5,
-    color: "#166534",
+    color: docBrand.invoice.dark,
     marginTop: 1
   },
   // ===========================================
@@ -674,7 +808,7 @@ var styles = StyleSheet.create({
   // ===========================================
   footer: {
     borderTopWidth: 1,
-    borderTopColor: "#16a34a",
+    borderTopColor: docBrand.invoice.primary,
     paddingTop: 6
   },
   footerRow: {
@@ -696,7 +830,7 @@ var styles = StyleSheet.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
-    color: "#166534"
+    color: docBrand.invoice.dark
   },
   footerSeparator: {
     fontSize: 7,
@@ -990,20 +1124,20 @@ var styles2 = StyleSheet2.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 3,
-    color: "#3b82f6"
+    color: docBrand.proforma.primary
   },
   docNumber: {
     fontSize: 8.5,
     color: "#475569",
-    backgroundColor: "#dbeafe",
+    backgroundColor: docBrand.proforma.tint,
     padding: 4,
     paddingHorizontal: 10
   },
   // Disclaimer banner (compact)
   disclaimer: {
-    backgroundColor: "#dbeafe",
+    backgroundColor: docBrand.proforma.tint,
     borderLeftWidth: 2,
-    borderLeftColor: "#3b82f6",
+    borderLeftColor: docBrand.proforma.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginBottom: 6
@@ -1011,7 +1145,7 @@ var styles2 = StyleSheet2.create({
   disclaimerText: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
-    color: "#1e40af",
+    color: docBrand.proforma.dark,
     textAlign: "center"
   },
   infoRow: {
@@ -1022,7 +1156,7 @@ var styles2 = StyleSheet2.create({
   customerBox: {
     width: "55%",
     borderLeftWidth: 2,
-    borderLeftColor: "#3b82f6",
+    borderLeftColor: docBrand.proforma.primary,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: "#f8fafc"
@@ -1079,7 +1213,7 @@ var styles2 = StyleSheet2.create({
   metaValueHighlight: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
-    color: "#3b82f6"
+    color: docBrand.proforma.primary
   },
   // BTW verlegd notice (single-line, professional)
   verlegdBox: {
@@ -1103,7 +1237,7 @@ var styles2 = StyleSheet2.create({
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#1e40af",
+    backgroundColor: docBrand.proforma.dark,
     paddingVertical: 4,
     paddingHorizontal: 5
   },
@@ -1152,7 +1286,7 @@ var styles2 = StyleSheet2.create({
     width: "45%",
     backgroundColor: "#f8fafc",
     borderTopWidth: 2,
-    borderTopColor: "#3b82f6",
+    borderTopColor: docBrand.proforma.primary,
     padding: 7
   },
   totalRow: {
@@ -1174,7 +1308,7 @@ var styles2 = StyleSheet2.create({
     paddingTop: 4,
     marginTop: 3,
     borderTopWidth: 1.5,
-    borderTopColor: "#1e40af"
+    borderTopColor: docBrand.proforma.dark
   },
   grandTotalLabel: {
     fontSize: 9,
@@ -1204,7 +1338,7 @@ var styles2 = StyleSheet2.create({
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: "#3b82f6",
+    borderTopColor: docBrand.proforma.primary,
     paddingTop: 6
   },
   footerRow: {
@@ -1226,7 +1360,7 @@ var styles2 = StyleSheet2.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
-    color: "#1e40af"
+    color: docBrand.proforma.dark
   },
   footerCenter: {
     fontSize: 6.5,
@@ -1482,12 +1616,12 @@ var styles3 = StyleSheet3.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 3,
-    color: "#0891b2"
+    color: docBrand.orderConfirmation.primary
   },
   docNumber: {
     fontSize: 8.5,
     color: "#475569",
-    backgroundColor: "#cffafe",
+    backgroundColor: docBrand.orderConfirmation.tint,
     padding: 4,
     paddingHorizontal: 10
   },
@@ -1518,7 +1652,7 @@ var styles3 = StyleSheet3.create({
   customerBox: {
     width: "55%",
     borderLeftWidth: 2,
-    borderLeftColor: "#0891b2",
+    borderLeftColor: docBrand.orderConfirmation.primary,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: "#f8fafc"
@@ -1575,13 +1709,13 @@ var styles3 = StyleSheet3.create({
   metaValueHighlight: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
-    color: "#0891b2"
+    color: docBrand.orderConfirmation.primary
   },
   // Order summary section (compact)
   orderSummary: {
-    backgroundColor: "#f0fdfa",
+    backgroundColor: docBrand.orderConfirmation.tintSoft,
     borderLeftWidth: 2,
-    borderLeftColor: "#0891b2",
+    borderLeftColor: docBrand.orderConfirmation.primary,
     paddingHorizontal: 8,
     paddingVertical: 5,
     marginBottom: 6
@@ -1589,7 +1723,7 @@ var styles3 = StyleSheet3.create({
   summaryTitle: {
     fontSize: 8.5,
     fontFamily: "Helvetica-Bold",
-    color: "#0891b2",
+    color: docBrand.orderConfirmation.primary,
     marginBottom: 4
   },
   summaryRow: {
@@ -1610,7 +1744,7 @@ var styles3 = StyleSheet3.create({
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#0e7490",
+    backgroundColor: docBrand.orderConfirmation.dark,
     paddingVertical: 4,
     paddingHorizontal: 5
   },
@@ -1657,7 +1791,7 @@ var styles3 = StyleSheet3.create({
     width: "40%",
     backgroundColor: "#f8fafc",
     borderTopWidth: 2,
-    borderTopColor: "#0891b2",
+    borderTopColor: docBrand.orderConfirmation.primary,
     padding: 7
   },
   totalRow: {
@@ -1679,7 +1813,7 @@ var styles3 = StyleSheet3.create({
     paddingTop: 4,
     marginTop: 3,
     borderTopWidth: 1.5,
-    borderTopColor: "#0891b2"
+    borderTopColor: docBrand.orderConfirmation.primary
   },
   grandTotalLabel: {
     fontSize: 9,
@@ -1737,7 +1871,7 @@ var styles3 = StyleSheet3.create({
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: "#0891b2",
+    borderTopColor: docBrand.orderConfirmation.primary,
     paddingTop: 6
   },
   footerRow: {
@@ -1759,7 +1893,7 @@ var styles3 = StyleSheet3.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
-    color: "#0e7490"
+    color: docBrand.orderConfirmation.dark
   },
   footerCenter: {
     fontSize: 6.5,
@@ -2019,20 +2153,20 @@ var styles4 = StyleSheet4.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 3,
-    color: "#dc2626"
+    color: docBrand.paymentReminder.primary
   },
   docNumber: {
     fontSize: 8.5,
     color: "#475569",
-    backgroundColor: "#fecaca",
+    backgroundColor: docBrand.paymentReminder.tint,
     padding: 4,
     paddingHorizontal: 10
   },
   // Urgent banner (compact)
   urgentBanner: {
-    backgroundColor: "#fef2f2",
+    backgroundColor: docBrand.paymentReminder.tintSoft,
     borderLeftWidth: 2,
-    borderLeftColor: "#dc2626",
+    borderLeftColor: docBrand.paymentReminder.primary,
     paddingHorizontal: 8,
     paddingVertical: 5,
     marginBottom: 8
@@ -2040,13 +2174,13 @@ var styles4 = StyleSheet4.create({
   urgentTitle: {
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
-    color: "#dc2626",
+    color: docBrand.paymentReminder.primary,
     textAlign: "center",
     marginBottom: 1
   },
   urgentText: {
     fontSize: 7.5,
-    color: "#991b1b",
+    color: docBrand.paymentReminder.dark,
     textAlign: "center"
   },
   infoRow: {
@@ -2057,7 +2191,7 @@ var styles4 = StyleSheet4.create({
   customerBox: {
     width: "55%",
     borderLeftWidth: 2,
-    borderLeftColor: "#dc2626",
+    borderLeftColor: docBrand.paymentReminder.primary,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: "#f8fafc"
@@ -2099,13 +2233,13 @@ var styles4 = StyleSheet4.create({
   metaValueRed: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
-    color: "#dc2626"
+    color: docBrand.paymentReminder.primary
   },
   // Invoice reference box (compact)
   invoiceRefBox: {
-    backgroundColor: "#fef2f2",
+    backgroundColor: docBrand.paymentReminder.tintSoft,
     borderLeftWidth: 2,
-    borderLeftColor: "#fca5a5",
+    borderLeftColor: docBrand.paymentReminder.accent,
     paddingHorizontal: 8,
     paddingVertical: 5,
     marginBottom: 8
@@ -2135,7 +2269,7 @@ var styles4 = StyleSheet4.create({
   },
   // Amount due box (compact)
   amountDueBox: {
-    backgroundColor: "#dc2626",
+    backgroundColor: docBrand.paymentReminder.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginBottom: 8,
@@ -2237,7 +2371,7 @@ var styles4 = StyleSheet4.create({
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: "#dc2626",
+    borderTopColor: docBrand.paymentReminder.primary,
     paddingTop: 6
   },
   footerRow: {
@@ -2259,7 +2393,7 @@ var styles4 = StyleSheet4.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
-    color: "#991b1b"
+    color: docBrand.paymentReminder.dark
   },
   footerCenter: {
     fontSize: 6.5,
@@ -2465,20 +2599,20 @@ var styles5 = StyleSheet5.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 3,
-    color: "#7c3aed"
+    color: docBrand.creditNote.primary
   },
   docNumber: {
     fontSize: 8.5,
     color: "#475569",
-    backgroundColor: "#ede9fe",
+    backgroundColor: docBrand.creditNote.tint,
     padding: 4,
     paddingHorizontal: 10
   },
   // Credit banner (compact)
   creditBanner: {
-    backgroundColor: "#ede9fe",
+    backgroundColor: docBrand.creditNote.tint,
     borderLeftWidth: 2,
-    borderLeftColor: "#7c3aed",
+    borderLeftColor: docBrand.creditNote.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginBottom: 6
@@ -2486,7 +2620,7 @@ var styles5 = StyleSheet5.create({
   creditBannerText: {
     fontSize: 8.5,
     fontFamily: "Helvetica-Bold",
-    color: "#5b21b6",
+    color: docBrand.creditNote.deep,
     textAlign: "center"
   },
   infoRow: {
@@ -2497,7 +2631,7 @@ var styles5 = StyleSheet5.create({
   customerBox: {
     width: "55%",
     borderLeftWidth: 2,
-    borderLeftColor: "#7c3aed",
+    borderLeftColor: docBrand.creditNote.primary,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: "#f8fafc"
@@ -2539,13 +2673,13 @@ var styles5 = StyleSheet5.create({
   metaValueHighlight: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
-    color: "#7c3aed"
+    color: docBrand.creditNote.primary
   },
   // Reference section (compact, single line)
   referenceBox: {
-    backgroundColor: "#faf5ff",
+    backgroundColor: docBrand.creditNote.tintSoft,
     borderLeftWidth: 2,
-    borderLeftColor: "#7c3aed",
+    borderLeftColor: docBrand.creditNote.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginBottom: 6
@@ -2557,14 +2691,14 @@ var styles5 = StyleSheet5.create({
   },
   referenceText: {
     fontSize: 7.5,
-    color: "#6b21a8"
+    color: docBrand.creditNote.accent
   },
   table: {
     marginBottom: 8
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#6d28d9",
+    backgroundColor: docBrand.creditNote.dark,
     paddingVertical: 4,
     paddingHorizontal: 5
   },
@@ -2583,7 +2717,7 @@ var styles5 = StyleSheet5.create({
     borderBottomColor: "#e2e8f0"
   },
   rowEven: {
-    backgroundColor: "#faf5ff"
+    backgroundColor: docBrand.creditNote.tintSoft
   },
   rowOdd: {
     backgroundColor: "#ffffff"
@@ -2640,7 +2774,7 @@ var styles5 = StyleSheet5.create({
     width: "40%",
     backgroundColor: "#f8fafc",
     borderTopWidth: 2,
-    borderTopColor: "#7c3aed",
+    borderTopColor: docBrand.creditNote.primary,
     padding: 7
   },
   totalRow: {
@@ -2667,7 +2801,7 @@ var styles5 = StyleSheet5.create({
     paddingTop: 4,
     marginTop: 3,
     borderTopWidth: 1.5,
-    borderTopColor: "#7c3aed"
+    borderTopColor: docBrand.creditNote.primary
   },
   grandTotalLabel: {
     fontSize: 9,
@@ -2701,7 +2835,7 @@ var styles5 = StyleSheet5.create({
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: "#7c3aed",
+    borderTopColor: docBrand.creditNote.primary,
     paddingTop: 6
   },
   footerRow: {
@@ -2723,7 +2857,7 @@ var styles5 = StyleSheet5.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
-    color: "#5b21b6"
+    color: docBrand.creditNote.deep
   },
   footerCenter: {
     fontSize: 6.5,
@@ -2997,7 +3131,7 @@ var styles6 = StyleSheet6.create({
   customerBox: {
     width: "55%",
     borderLeftWidth: 2,
-    borderLeftColor: "#3b82f6",
+    borderLeftColor: docBrand.packingSlip.accent,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: "#f8fafc"

@@ -395,17 +395,57 @@ All components must support dark mode using Tailwind's `dark:` prefix:
 
 All PDF templates live in `src/components/documents/` and use `@react-pdf/renderer`. They share a **compact ruleset** designed to fit ~15–16 line items on a single A4 page (even with 2-line product descriptions). When creating or editing a template, follow these conventions verbatim — they have been applied consistently across every document type.
 
-### Templates and brand colors
+### Templates and brand colors — per tenant, in `brandPalette.ts` (2026-07-28)
 
-| Template | File | Primary | Dark accent |
+**Never hardcode a brand hex in a template.** All of them come from
+`components/documents/brandPalette.ts` (`docBrand.<docType>.<slot>`), which picks a map by
+tenant. Melek's values there are byte-identical to what shipped before, so no Melek document
+changed; Gurbet gets its own family built around the logo blue.
+
+| Template | File | Melek primary / dark | Gurbet primary / dark |
 |---|---|---|---|
-| Invoice | `InvoiceTemplate.tsx` | `#16a34a` (green) | `#166534` |
-| Proforma | `ProformaTemplate.tsx` | `#3b82f6` (blue) | `#1e40af` |
-| Credit Note | `CreditNoteTemplate.tsx` | `#7c3aed` (purple) | `#6d28d9` |
-| Order Confirmation | `OrderConfirmationTemplate.tsx` | `#0891b2` (cyan) | `#0e7490` |
-| Payment Reminder | `PaymentReminderTemplate.tsx` | `#dc2626` (red) | `#991b1b` |
-| Packing Slip | `PackingSlipTemplate.tsx` | `#1e293b` (dark slate) | — |
-| Sold Products | `SoldProductsTemplate.tsx` | `#16a34a` (green) | — |
+| Invoice | `InvoiceTemplate.tsx` | `#16a34a` green / `#166534` | `#0a62b4` **brand blue** / `#07406f` |
+| Proforma | `ProformaTemplate.tsx` | `#3b82f6` blue / `#1e40af` | `#b45309` amber / `#92400e` |
+| Credit Note | `CreditNoteTemplate.tsx` | `#7c3aed` purple / `#6d28d9` | `#9333ea` / `#7e22ce` |
+| Order Confirmation | `OrderConfirmationTemplate.tsx` | `#0891b2` cyan / `#0e7490` | `#0f766e` teal / `#115e59` |
+| Payment Reminder | `PaymentReminderTemplate.tsx` | `#dc2626` red / `#991b1b` | unchanged |
+| Packing Slip | `PackingSlipTemplate.tsx` | `#1e293b` dark slate | unchanged |
+| Sold Products | `SoldProductsTemplate.tsx` | `#16a34a` green | `#0a62b4` |
+| Data Export | `DataExportTemplate.tsx` | `#16a34a` / `#166534` | `#0a62b4` / `#07406f` |
+| Delivery Route | `DeliveryRouteTemplate.tsx` | `#0891b2` cyan / `#0e7490` | unchanged |
+
+**Why the whole family moved for Gurbet, not just the invoice:** the invoice takes the brand
+blue, so Melek's *proforma* blue (`#3b82f6`) landed on top of it — and a proforma is **not
+payable**, so it must never read as the invoice. It moved 183° to amber; order confirmation
+left cyan (only 16° off the brand) for teal. Accepted limit: holding every table-header band at
+≥7:1 on white compresses all six into L\* 26–38, so they are *not* all separable in pure
+greyscale. The rule that survives a photocopy is **darkest navy band = money is due** — the
+invoice sits ≥6.9 L\* from every other customer document.
+
+🚨 **BRAND ≠ SEMANTIC. Do not sweep the remaining hex values out of the templates.** These are
+meaning, not branding, and stay identical on every tenant: the amber `verlegd` notice, the red
+due-date, the **green** in `CreditNoteTemplate` (money coming back) and in
+`PaymentReminderTemplate`'s bank block (pay here — a deliberate positive island in a red
+letter), and `SoldProductsTemplate`'s critical/low/ok badges. It is the same reason `index.css`
+refuses to remap `emerald` for the dashboard. Recolouring them destroys what they communicate.
+This is also why Gurbet's order confirmation is teal and not green: that template's thank-you
+banner *is* green, and a green primary would swallow it.
+
+**The two rendering paths — a template cannot import `config/tenant.ts`.** The dashboard
+recolours via CSS custom properties (`:root[data-tenant='father']` in `index.css`); PDFs are
+`@react-pdf/renderer`, which never sees a stylesheet, which is why the dashboard swap left
+Gurbet's invoices green in the first place. Worse, `InvoiceTemplate` is **also bundled into the
+Vercel Node function** (`api-src/render-invoice.tsx` → `api/render-invoice.mjs`) that renders
+the 24h auto-send. So the tenant is resolved by `config/tenantId.ts` — asset-free (the full
+config imports logo PNGs, which die in a Node bundle) and referencing
+`import.meta.env.VITE_TENANT` as a **plain member expression**, because that exact shape is
+what both Vite *and* esbuild's `define` in `scripts/build-api.mjs` substitute. Optional
+chaining would match neither and throw in Node. If you change one, change both.
+
+**Known, not fixed:** Melek's `#16a34a` is used as *text* at 9–11pt in `ibanCalloutIban`,
+`grandTotalValue` and the credit note's credit amounts — 3.15:1, below WCAG AA. Fix is a
+one-token change (those `color:` values to `#166534` → 6.81:1); left alone pending sign-off
+because it repaints live Melek invoices. Gurbet is unaffected (its blue is 5.6:1).
 
 ### Compact ruleset (use these exact values)
 
@@ -514,7 +554,7 @@ shipping address on file that **no document ever read**. Now:
 - **Customer-facing documents are bilingual by COUNTRY (since 2026-07-03), not app language:** NL/BE customers get Dutch, everyone else English. `resolveDocumentLang(country)` (`utils/documentLang.ts`) decides; `buildInvoiceData` sets `InvoiceData.lang` (stored in the snapshot) and swaps the settings labels to `EN_LABELS`/`DOC_TITLES_EN`; templates read all prose from `getDocText(data.lang)` (`services/documentLabels.ts`). This is a **different axis** than VAT reverse-charge (`country !== 'NL'`) — a BE customer gets a Dutch doc that still carries the reverse-charge notice. Do not merge the two rules. Internal docs (SoldProducts, route, data-export) stay Dutch. See **Bilingual documents + emails** below.
 - Sequential numbering and immutable price snapshots are enforced server-side; templates only render.
 - The only WC-frozen behavior on these templates is the BTW notice — it appears whenever `customer.country !== 'NL'`. Imported orders preserve the original BTW from WC, but the notice block still renders if applicable.
-- If you're tempted to enlarge any of these values "for readability," resist — the spec was tuned to fit 15–16 items per page across all templates. Add a new template by copying `InvoiceTemplate.tsx` and swapping the brand color.
+- If you're tempted to enlarge any of these values "for readability," resist — the spec was tuned to fit 15–16 items per page across all templates. Add a new template by copying `InvoiceTemplate.tsx`, adding a doc type to `brandPalette.ts` (**both** tenant maps) and pointing the new template's styles at it — never at a literal hex.
 
 ---
 

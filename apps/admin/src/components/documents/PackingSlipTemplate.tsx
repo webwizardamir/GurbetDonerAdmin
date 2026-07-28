@@ -9,6 +9,7 @@ import {
 import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
 import { buildAddressLines } from '../../utils/address'
+import { docBrand } from './brandPalette'
 
 // A4: 595.28 x 841.89 points
 // Using Helvetica (built-in) for all text
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
   customerBox: {
     width: '55%',
     borderLeftWidth: 2,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: docBrand.packingSlip.accent,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: '#f8fafc',

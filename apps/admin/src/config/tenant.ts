@@ -1,5 +1,6 @@
 import logoMelek from '../assets/images/logo-melek.png'
 import logoGurbet from '../assets/images/Gurbet-Doner-Logo.png'
+import { tenantId, type TenantId } from './tenantId'
 
 /**
  * Multi-tenant config.
@@ -13,7 +14,7 @@ import logoGurbet from '../assets/images/Gurbet-Doner-Logo.png'
  * See SECOND-TENANT-PLAN.md.
  */
 
-export type TenantId = 'melek' | 'father'
+export type { TenantId }
 
 /** Every locale that ships in the bundle (`i18n/locales/*.json`). */
 export type AppLanguage = 'nl' | 'en' | 'tr'
@@ -109,12 +110,9 @@ const TENANTS: Record<TenantId, TenantConfig> = {
   },
 }
 
-function resolveTenantId(): TenantId {
-  const raw = import.meta.env.VITE_TENANT
-  return raw === 'father' ? 'father' : 'melek' // unset/unknown => Melek, never a broken build
-}
-
-export const tenant: TenantConfig = TENANTS[resolveTenantId()]
+// Resolution lives in `./tenantId` — the PDF templates need it too, and they
+// cannot import this module (it pulls in the logo PNGs). See that file.
+export const tenant: TenantConfig = TENANTS[tenantId]
 
 /** Convenience: `isFeatureEnabled('analytics')`. */
 export function isFeatureEnabled(feature: keyof TenantConfig['features']): boolean {

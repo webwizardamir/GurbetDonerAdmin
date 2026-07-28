@@ -9,6 +9,7 @@ import {
 import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
+import { docBrand } from './brandPalette'
 
 // A4: 595.28 x 841.89 points
 // Payment Reminder = Reminder for overdue invoice payment
@@ -58,21 +59,21 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 3,
-    color: '#dc2626',
+    color: docBrand.paymentReminder.primary,
   },
   docNumber: {
     fontSize: 8.5,
     color: '#475569',
-    backgroundColor: '#fecaca',
+    backgroundColor: docBrand.paymentReminder.tint,
     padding: 4,
     paddingHorizontal: 10,
   },
 
   // Urgent banner (compact)
   urgentBanner: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: docBrand.paymentReminder.tintSoft,
     borderLeftWidth: 2,
-    borderLeftColor: '#dc2626',
+    borderLeftColor: docBrand.paymentReminder.primary,
     paddingHorizontal: 8,
     paddingVertical: 5,
     marginBottom: 8,
@@ -80,13 +81,13 @@ const styles = StyleSheet.create({
   urgentTitle: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
-    color: '#dc2626',
+    color: docBrand.paymentReminder.primary,
     textAlign: 'center',
     marginBottom: 1,
   },
   urgentText: {
     fontSize: 7.5,
-    color: '#991b1b',
+    color: docBrand.paymentReminder.dark,
     textAlign: 'center',
   },
 
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
   customerBox: {
     width: '55%',
     borderLeftWidth: 2,
-    borderLeftColor: '#dc2626',
+    borderLeftColor: docBrand.paymentReminder.primary,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: '#f8fafc',
@@ -140,14 +141,14 @@ const styles = StyleSheet.create({
   metaValueRed: {
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    color: '#dc2626',
+    color: docBrand.paymentReminder.primary,
   },
 
   // Invoice reference box (compact)
   invoiceRefBox: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: docBrand.paymentReminder.tintSoft,
     borderLeftWidth: 2,
-    borderLeftColor: '#fca5a5',
+    borderLeftColor: docBrand.paymentReminder.accent,
     paddingHorizontal: 8,
     paddingVertical: 5,
     marginBottom: 8,
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
 
   // Amount due box (compact)
   amountDueBox: {
-    backgroundColor: '#dc2626',
+    backgroundColor: docBrand.paymentReminder.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginBottom: 8,
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
 
   footer: {
     borderTopWidth: 1,
-    borderTopColor: '#dc2626',
+    borderTopColor: docBrand.paymentReminder.primary,
     paddingTop: 6,
   },
   footerRow: {
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#991b1b',
+    color: docBrand.paymentReminder.dark,
   },
   footerCenter: {
     fontSize: 6.5,

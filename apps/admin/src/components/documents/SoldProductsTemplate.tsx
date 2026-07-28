@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import type { SoldProductItem, SoldProductsResult } from '../../services/soldProducts'
 import { getStockStatus, getSuggestedRefill } from '../../services/soldProducts'
+import { docBrand } from './brandPalette'
 
 // A4: 595.28 x 841.89 points
 const styles = StyleSheet.create({
@@ -38,7 +39,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#16a34a',
+    borderBottomColor: docBrand.soldProducts.primary,
   },
   headerLeft: {
     flex: 1,
@@ -46,7 +47,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    color: '#16a34a',
+    color: docBrand.soldProducts.primary,
     marginBottom: 2,
   },
   subtitle: {
@@ -189,8 +190,8 @@ const styles = StyleSheet.create({
   refillBadge: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    backgroundColor: '#dbeafe',
-    color: '#2563eb',
+    backgroundColor: docBrand.soldProducts.badgeTint,
+    color: docBrand.soldProducts.badgeText,
     paddingVertical: 1,
     paddingHorizontal: 3,
     textAlign: 'right',

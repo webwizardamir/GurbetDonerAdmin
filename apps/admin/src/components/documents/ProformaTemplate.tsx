@@ -10,6 +10,7 @@ import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 import { buildAddressLines } from '../../utils/address'
+import { docBrand } from './brandPalette'
 
 // A4: 595.28 x 841.89 points
 // Proforma = Quote/Offerte - NOT an invoice, has validity period
@@ -59,21 +60,21 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 3,
-    color: '#3b82f6',
+    color: docBrand.proforma.primary,
   },
   docNumber: {
     fontSize: 8.5,
     color: '#475569',
-    backgroundColor: '#dbeafe',
+    backgroundColor: docBrand.proforma.tint,
     padding: 4,
     paddingHorizontal: 10,
   },
 
   // Disclaimer banner (compact)
   disclaimer: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: docBrand.proforma.tint,
     borderLeftWidth: 2,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: docBrand.proforma.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginBottom: 6,
@@ -81,7 +82,7 @@ const styles = StyleSheet.create({
   disclaimerText: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#1e40af',
+    color: docBrand.proforma.dark,
     textAlign: 'center',
   },
 
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   customerBox: {
     width: '55%',
     borderLeftWidth: 2,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: docBrand.proforma.primary,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: '#f8fafc',
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
   metaValueHighlight: {
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    color: '#3b82f6',
+    color: docBrand.proforma.primary,
   },
 
   // BTW verlegd notice (single-line, professional)
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#1e40af',
+    backgroundColor: docBrand.proforma.dark,
     paddingVertical: 4,
     paddingHorizontal: 5,
   },
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
     width: '45%',
     backgroundColor: '#f8fafc',
     borderTopWidth: 2,
-    borderTopColor: '#3b82f6',
+    borderTopColor: docBrand.proforma.primary,
     padding: 7,
   },
   totalRow: {
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     marginTop: 3,
     borderTopWidth: 1.5,
-    borderTopColor: '#1e40af',
+    borderTopColor: docBrand.proforma.dark,
   },
   grandTotalLabel: {
     fontSize: 9,
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
 
   footer: {
     borderTopWidth: 1,
-    borderTopColor: '#3b82f6',
+    borderTopColor: docBrand.proforma.primary,
     paddingTop: 6,
   },
   footerRow: {
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#1e40af',
+    color: docBrand.proforma.dark,
   },
   footerCenter: {
     fontSize: 6.5,

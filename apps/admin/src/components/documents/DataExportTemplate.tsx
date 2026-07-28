@@ -8,6 +8,7 @@ import {
 } from '@react-pdf/renderer'
 import type { DocumentSettings } from '../../types'
 import { computeTotalsRow } from '../../utils/export'
+import { docBrand } from './brandPalette'
 
 // A4: 595.28 x 841.89 points
 // Compact ruleset per CLAUDE.md — designed to fit ~15-16 rows per page.
@@ -176,8 +177,8 @@ export function DataExportTemplate<T>({
   columns,
   company,
   orientation = 'portrait',
-  brandColor = '#16a34a',
-  brandColorDark = '#166534',
+  brandColor = docBrand.dataExport.primary,
+  brandColorDark = docBrand.dataExport.dark,
 }: DataExportTemplateProps<T>) {
   const styles = buildStyles(brandColor, brandColorDark)
 

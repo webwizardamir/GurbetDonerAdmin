@@ -8,11 +8,15 @@ import { fetchDocumentSettings } from '../../services/documents'
 import { formatDistance, formatDuration, etaClock } from '../../utils/route'
 import { formatQuantityWithUnit } from '../../utils/format'
 import { tenant } from '../../config/tenant'
+import { docBrand } from './brandPalette'
 
-// Delivery-route sheet. Dutch only (operational/legal consistency). Brand cyan
-// to match the logistics/dispatch document family. Compact ruleset per CLAUDE.md.
-const CYAN = '#0891b2'
-const CYAN_DARK = '#0e7490'
+// Delivery-route sheet. Dutch only (operational/legal consistency). Brand colour
+// comes from the tenant's document palette so the driver sheet matches the rest
+// of the family. Compact ruleset per CLAUDE.md.
+// (Names kept as CYAN/CYAN_DARK: they are Melek's values and renaming them would
+// churn ~30 usages for no gain.)
+const CYAN = docBrand.deliveryRoute.primary
+const CYAN_DARK = docBrand.deliveryRoute.dark
 const AMBER = '#f59e0b'
 
 // Company identity for the document header/footer — same source as the invoice

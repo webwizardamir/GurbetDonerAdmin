@@ -9,6 +9,7 @@ import {
 import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
+import { docBrand } from './brandPalette'
 
 // A4: 595.28 x 841.89 points
 // Credit Note = Refund/correction document, references original invoice
@@ -58,21 +59,21 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 3,
-    color: '#7c3aed',
+    color: docBrand.creditNote.primary,
   },
   docNumber: {
     fontSize: 8.5,
     color: '#475569',
-    backgroundColor: '#ede9fe',
+    backgroundColor: docBrand.creditNote.tint,
     padding: 4,
     paddingHorizontal: 10,
   },
 
   // Credit banner (compact)
   creditBanner: {
-    backgroundColor: '#ede9fe',
+    backgroundColor: docBrand.creditNote.tint,
     borderLeftWidth: 2,
-    borderLeftColor: '#7c3aed',
+    borderLeftColor: docBrand.creditNote.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginBottom: 6,
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
   creditBannerText: {
     fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#5b21b6',
+    color: docBrand.creditNote.deep,
     textAlign: 'center',
   },
 
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
   customerBox: {
     width: '55%',
     borderLeftWidth: 2,
-    borderLeftColor: '#7c3aed',
+    borderLeftColor: docBrand.creditNote.primary,
     paddingLeft: 8,
     paddingVertical: 4,
     backgroundColor: '#f8fafc',
@@ -134,14 +135,14 @@ const styles = StyleSheet.create({
   metaValueHighlight: {
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    color: '#7c3aed',
+    color: docBrand.creditNote.primary,
   },
 
   // Reference section (compact, single line)
   referenceBox: {
-    backgroundColor: '#faf5ff',
+    backgroundColor: docBrand.creditNote.tintSoft,
     borderLeftWidth: 2,
-    borderLeftColor: '#7c3aed',
+    borderLeftColor: docBrand.creditNote.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginBottom: 6,
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   },
   referenceText: {
     fontSize: 7.5,
-    color: '#6b21a8',
+    color: docBrand.creditNote.accent,
   },
 
   table: {
@@ -161,7 +162,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#6d28d9',
+    backgroundColor: docBrand.creditNote.dark,
     paddingVertical: 4,
     paddingHorizontal: 5,
   },
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
   },
   rowEven: {
-    backgroundColor: '#faf5ff',
+    backgroundColor: docBrand.creditNote.tintSoft,
   },
   rowOdd: {
     backgroundColor: '#ffffff',
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
     width: '40%',
     backgroundColor: '#f8fafc',
     borderTopWidth: 2,
-    borderTopColor: '#7c3aed',
+    borderTopColor: docBrand.creditNote.primary,
     padding: 7,
   },
   totalRow: {
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     marginTop: 3,
     borderTopWidth: 1.5,
-    borderTopColor: '#7c3aed',
+    borderTopColor: docBrand.creditNote.primary,
   },
   grandTotalLabel: {
     fontSize: 9,
@@ -303,7 +304,7 @@ const styles = StyleSheet.create({
 
   footer: {
     borderTopWidth: 1,
-    borderTopColor: '#7c3aed',
+    borderTopColor: docBrand.creditNote.primary,
     paddingTop: 6,
   },
   footerRow: {
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
   footerIban: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#5b21b6',
+    color: docBrand.creditNote.deep,
   },
   footerCenter: {
     fontSize: 6.5,
