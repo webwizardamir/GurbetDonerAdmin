@@ -47,16 +47,19 @@ function arrayMove<T>(arr: T[], from: number, to: number): T[] {
  * Google — only the explicit optimize() / applyManualOrder() actions do, so we
  * never burn billed API calls on a checkbox click.
  */
-export function useDeliveryRoute(day: string, endDay?: string, cities?: string[], customerType?: string) {
+export function useDeliveryRoute(day: string, endDay?: string, cities?: string[], customerType?: string[]) {
   // Stable primitive key so the array reference doesn't churn effect/callback deps.
   // Callbacks reconstruct the array from this key (cityArg) instead of closing
   // over the `cities` prop, so the value provably matches the dep — no stale set.
   const citiesKey = cities && cities.length ? cities.join('|') : ''
   const cityArg = citiesKey ? citiesKey.split('|') : undefined
-  // Admin-only customer-type filter (e.g. Horeca-only route). Filtering the
-  // candidate list is enough: selection/order (already type-scoped) drives the
-  // billed optimize, and mergeRoute maps back onto this filtered display list.
-  const customerTypeArg = customerType || undefined
+  // Admin-only customer-type filter (e.g. Horeca-only route, or Horeca +
+  // Supermarkt together). Filtering the candidate list is enough: selection/
+  // order (already type-scoped) drives the billed optimize, and mergeRoute maps
+  // back onto this filtered display list. Same primitive-key trick as `cities`
+  // above — the array reference must not churn the effect dep.
+  const typesKey = customerType && customerType.length ? customerType.join('|') : ''
+  const customerTypeArg = typesKey ? typesKey.split('|') : undefined
   const [candidates, setCandidates] = useState<RouteStopInput[]>([])
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({})
   // Order-status filter ('' = every routable status). Drafts are never
@@ -114,7 +117,7 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
       .finally(() => { if (!cancelled) setLoadingCandidates(false) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day, endDay, citiesKey, customerTypeArg, statusFilter])
+  }, [day, endDay, citiesKey, typesKey, statusFilter])
 
   const departureTimeIso = useMemo(
     () => (departureHHmm ? `${day}T${departureHHmm}:00` : null),

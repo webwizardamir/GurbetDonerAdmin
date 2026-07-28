@@ -377,6 +377,14 @@ export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWith
       items:order_items(id, product_id, product_name, product_sku, quantity, unit_price, cost_cents, discount_amount, discount_type, discount_value, tax_rate, tax_amount, total, unit_type, notes),
       refunds:order_refunds(id, woo_refund_id, woo_credit_note_number, refund_date, amount, reason)
     `)
+    // A Concept (draft) order is unfinished work that needs a human to come back
+    // to it, so it is PINNED above everything else regardless of its date — it
+    // would otherwise sink down the list (and off page 1) as newer orders come
+    // in. `is_draft` is a generated column on `status` because PostgREST can only
+    // order by a column, not an expression; see migration 00100. Pinning has to
+    // happen here rather than in the browser: the list is paginated 50 at a time,
+    // so a client-side hoist would leave a draft stranded on page 3.
+    .order('is_draft', { ascending: false })
     .order('order_date', { ascending: false })
     // Tiebreaker within a day is `activated_at`, NOT `created_at`: a Concept order
     // carries the created_at of the day the scratchpad was opened, so finalising it

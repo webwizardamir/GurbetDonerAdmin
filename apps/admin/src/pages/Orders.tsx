@@ -185,15 +185,26 @@ export default function Orders() {
   // Default: newest order_date first.
   const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<OrderSortKey>('order_date', 'desc')
 
-  const filteredOrders = useMemo(() => sortBy(filteredOrdersUnsorted, {
-    order_number: o => o.order_number,
-    customer:     o => o.customer?.company_name ?? '',
-    order_date:   o => o.order_date ?? o.created_at ?? '',
-    created_at:   o => o.created_at ?? '',
-    status:       o => o.status,
-    invoice:      o => documentInfo.get(o.id)?.invoiceNumber ?? (o.woo_invoice_number ? String(o.woo_invoice_number) : ''),
-    total:        o => o.total ?? 0,
-  }), [filteredOrdersUnsorted, sortBy, documentInfo])
+  const filteredOrders = useMemo(() => {
+    const sorted = sortBy(filteredOrdersUnsorted, {
+      order_number: o => o.order_number,
+      customer:     o => o.customer?.company_name ?? '',
+      order_date:   o => o.order_date ?? o.created_at ?? '',
+      created_at:   o => o.created_at ?? '',
+      status:       o => o.status,
+      invoice:      o => documentInfo.get(o.id)?.invoiceNumber ?? (o.woo_invoice_number ? String(o.woo_invoice_number) : ''),
+      total:        o => o.total ?? 0,
+    })
+    // Concept orders stay pinned on top — of EVERY sort, not just the default.
+    // fetchOrders already pins them server-side (migration 00100) so they land
+    // on page 1; without this the per-page client sort above would immediately
+    // shuffle them back into their date/total/status position. Stable partition,
+    // so the chosen sort still decides the order *within* each half.
+    const drafts = sorted.filter(o => o.status === 'draft')
+    return drafts.length === 0 || drafts.length === sorted.length
+      ? sorted
+      : [...drafts, ...sorted.filter(o => o.status !== 'draft')]
+  }, [filteredOrdersUnsorted, sortBy, documentInfo])
 
   // Refetch the per-order invoice number + send-status maps for the current
   // page. Extracted so it can also be triggered after a document is generated in

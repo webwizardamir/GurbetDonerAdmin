@@ -50,7 +50,10 @@ export function useSoldProducts() {
   const [customerFilter, setCustomerFilter] = useState<string[]>([])
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [unitFilter, setUnitFilter] = useState<string>('')
-  const [customerTypeFilter, setCustomerTypeFilter] = useState<string>('')
+  // Multi-select, like city/customer: a delivery day is normally a mix (Horeca
+  // + Supermarkt in one run, Overig left out), so picking one type at a time
+  // meant re-running the report per type. Empty array = every type.
+  const [customerTypeFilter, setCustomerTypeFilter] = useState<string[]>([])
   const [groupBy, setGroupBy] = useState<'none' | 'city' | 'customer' | 'customerType'>('none')
 
   const setDateRange = useCallback((
@@ -123,12 +126,15 @@ export function useSoldProducts() {
   const filteredBreakdown = useMemo(() => {
     const citySet = cityFilter.length ? new Set(cityFilter) : null
     const customerSet = customerFilter.length ? new Set(customerFilter) : null
+    // As before, an UNTAGGED customer (customer_type null) matches no selected
+    // type — picking Horeca must not sweep in customers nobody has classified.
+    const typeSet = customerTypeFilter.length ? new Set(customerTypeFilter) : null
     return breakdown.filter(r => {
-      if (citySet            && !(r.city && citySet.has(r.city)))       return false
-      if (customerSet        && !customerSet.has(r.customer_id))        return false
-      if (categoryFilter     && r.category_name !== categoryFilter)     return false
-      if (unitFilter         && r.unit_type     !== unitFilter)         return false
-      if (customerTypeFilter && r.customer_type !== customerTypeFilter) return false
+      if (citySet        && !(r.city && citySet.has(r.city)))                     return false
+      if (customerSet    && !customerSet.has(r.customer_id))                      return false
+      if (categoryFilter && r.category_name !== categoryFilter)                   return false
+      if (unitFilter     && r.unit_type     !== unitFilter)                       return false
+      if (typeSet        && !(r.customer_type && typeSet.has(r.customer_type)))   return false
       return true
     })
   }, [breakdown, cityFilter, customerFilter, categoryFilter, unitFilter, customerTypeFilter])

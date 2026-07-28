@@ -178,14 +178,18 @@ export default function SoldProducts() {
       allLabel: t('soldProducts.filters.allUnits'),
     },
     {
+      // Multi-select (checkbox chips — only three options, so no search field):
+      // a day's run is usually Horeca + Supermarkt together, and one-at-a-time
+      // meant reading the report twice and adding the numbers up by hand.
       id: 'customerType',
-      kind: 'select',
+      kind: 'multiselect',
       label: t('orders.allTypes'),
       icon: Tags,
       value: customerTypeFilter,
       options: CUSTOMER_TYPES.map(ct => ({ value: ct, label: CUSTOMER_TYPE_LABELS[ct] })),
       onChange: setCustomerTypeFilter,
       allLabel: t('orders.allTypes'),
+      selectAllLabel: t('soldProducts.filters.selectAll'),
     },
     {
       id: 'groupBy',
@@ -539,7 +543,7 @@ export default function SoldProducts() {
           endDay={dateRange.end}
           dayLabel={dateRange.label}
           cities={cityFilter.length ? cityFilter : undefined}
-          customerType={customerTypeFilter || undefined}
+          customerType={customerTypeFilter.length ? customerTypeFilter : undefined}
           onRouteOrderChange={setRouteOrderedIds}
           onClose={() => setShowRoute(false)}
         />
@@ -549,7 +553,7 @@ export default function SoldProducts() {
       {showDayClose && (
         <DayCloseModal
           dateRange={dateRange}
-          customerType={customerTypeFilter || undefined}
+          customerType={customerTypeFilter.length ? customerTypeFilter : undefined}
           soldProducts={summary ? {
             items,
             summary,

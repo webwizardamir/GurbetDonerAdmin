@@ -192,9 +192,10 @@ export interface RouteCandidates {
   statusCounts: Record<string, number>
 }
 
-export async function fetchRouteOrders(args: { day: string; endDay?: string; cities?: string[]; customerType?: string; statuses?: string[] }): Promise<RouteCandidates> {
+export async function fetchRouteOrders(args: { day: string; endDay?: string; cities?: string[]; customerType?: string[]; statuses?: string[] }): Promise<RouteCandidates> {
   const citySet = args.cities && args.cities.length ? new Set(args.cities) : null
   const statusSet = args.statuses && args.statuses.length ? new Set(args.statuses) : null
+  const typeSet = args.customerType && args.customerType.length ? new Set(args.customerType) : null
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -222,8 +223,10 @@ export async function fetchRouteOrders(args: { day: string; endDay?: string; cit
   for (const row of rows) {
     const c = row.customer
     if (!c) continue
-    // Optional admin-only customer-type filter (e.g. a Horeca-only route).
-    if (args.customerType && c.customer_type !== args.customerType) continue
+    // Optional admin-only customer-type filter (e.g. a Horeca-only route, or
+    // Horeca + Supermarkt in one run). Untagged customers match no selected
+    // type, same as everywhere else the type filter is applied.
+    if (typeSet && !(c.customer_type && typeSet.has(c.customer_type))) continue
     const address = resolveDeliveryAddress(c)
     if (citySet && !(address.city && citySet.has(address.city))) continue
 

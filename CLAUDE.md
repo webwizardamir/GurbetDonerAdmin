@@ -1286,10 +1286,16 @@ tier) — keep them separate. It is also unrelated to the old, disconnected *pro
     `entityArg` (`p_customer_type`) / `filtersKey`; every tab's `entityArg(filters, [...])` pass-array
     includes `'customerType'`, and it's added to the tab `dims` in `Analytics.tsx`.
   - **Exports** — a "Klanttype" column on the Orders and Customers exports.
-  - **Sold Products** — a filter + a group-by "Type" option (`useSoldProducts`). **Route** — a
-    Horeca-only run (threaded `panel → useDeliveryRoute → fetchRouteOrders`, filtered client-side on the
-    candidate list; the billed optimize runs on the already-type-scoped selection). **Day Close** — a
-    type-scoped batch (`customerType` prop → `fetchOrders`).
+  - **Sold Products** — a filter + a group-by "Type" option (`useSoldProducts`). The filter is
+    **multi-select** (2026-07-28, like Steden/Klanten): a day's run is normally Horeca **and**
+    Supermarkt, and one-at-a-time meant reading the report twice and adding it up by hand. So
+    `customerTypeFilter` is `string[]` and **`customerType` is `string[]` all the way down** —
+    `DeliveryRoutePanel` / `useDeliveryRoute` / `fetchRouteOrders` / `DayCloseModal`. `fetchOrders`
+    needed no change (`OrderFilters.customerType` was already `string | string[]`). Array props feed
+    effect deps, so both hooks key on a **joined primitive** (`typesKey`), mirroring `citiesKey`.
+    An **untagged** customer (`customer_type` null) matches no selected type — unchanged.
+    **Route** — a type-scoped run (filtered client-side on the candidate list; the billed optimize
+    runs on the already-scoped selection). **Day Close** — a type-scoped batch.
 - **Migration 00092** DROPs + recreates 9 RPCs to add a trailing `p_customer_type text DEFAULT NULL`
   param (`get_top_customers` gets only that param; `get_sold_products_breakdown` instead gains a
   RETURNED `customer_type` column). Predicate is `c.customer_type = p_customer_type` when the fn joins
@@ -1611,6 +1617,29 @@ outranks it immediately: it floats to the top and stays only until real newer wo
   junk rows. The status triggers are `AFTER UPDATE **OF status**` and cannot fire on a backfill.
 - Drafts finalised *before* 00099 are not guessed at (`updated_at` is any edit, not the finalisation).
   10767 was corrected by hand to its known finalisation time.
+
+### …and while it is still a Concept it is PINNED to the top (migration 00100)
+
+00098/00099 only govern where an order lands *after* it goes live. An **unfinalised** draft still
+sorted by its own `order_date`, so it drifted down the list — and off page 1 — as newer orders came
+in; one of Melek's seven live drafts dated back two weeks. A draft is the one status that needs a
+human to come back to it (no invoice, no email, out of analytics, but **stock already reserved**),
+so it now sorts above everything else regardless of date.
+
+- **`orders.is_draft`** is `GENERATED ALWAYS AS ((status = 'draft'::order_status) IS TRUE) STORED`,
+  with `idx_orders_list_sort_draft (is_draft DESC, order_date DESC, activated_at DESC)`. A generated
+  column and not a bare `ORDER BY status = 'draft'` because **PostgREST can only order by a column,
+  not an expression**; generated (rather than trigger-maintained) so it can never drift from `status`.
+  `status` is nullable, hence the `IS TRUE` wrapper — a NULL would sort *first* under `DESC`.
+- **Keyed on `status`, never `pre_trash_status`.** A trashed draft is `cancelled + deleted_at`; it
+  belongs in the Prullenbak, not pinned on top of the live list.
+- **The pin must be server-side.** The list pages 50 at a time, so hoisting drafts in the browser
+  would leave one stranded on page 3 — the exact invisibility being fixed.
+- **And it must ALSO be client-side**, in `Orders.tsx`: that page re-sorts its fetched page locally
+  (`useTableSort`, default `order_date desc`), which would immediately shuffle the drafts back down.
+  The stable partition there is applied to **every** sort column, not just the default, so clicking
+  Totaal or Status still leaves the Concepts on top. `OrdersTable` (customer detail) has no client
+  sort, so the server order carries.
 
 ---
 

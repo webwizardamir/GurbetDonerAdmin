@@ -18,8 +18,9 @@ interface DayRange {
 
 interface Props {
   dateRange: DayRange
-  /** Optional admin-only customer-type filter (e.g. a Horeca-only day close). */
-  customerType?: string
+  /** Optional admin-only customer-type filter (e.g. a Horeca-only day close).
+   *  Multi-select — `fetchOrders` takes `string | string[]`. */
+  customerType?: string[]
   /** Sold-products data already loaded on the page, for the optional PDF. */
   soldProducts?: SoldProductsDocArgs
   /** Hand off to the route planner (it needs a billed Google optimize). */
@@ -109,7 +110,10 @@ export default function DayCloseModal({ dateRange, customerType, soldProducts, o
       .catch(e => { if (!cancelled) setOrdersError(e instanceof Error ? e.message : String(e)) })
       .finally(() => { if (!cancelled) setLoadingOrders(false) })
     return () => { cancelled = true }
-  }, [dateRange.start, dateRange.end, customerType])
+    // Primitive key: `customerType` is an array, so depending on the reference
+    // would refetch on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange.start, dateRange.end, (customerType ?? []).join('|')])
 
   const selectedIds = useMemo(() => orders.filter(o => o.selected).map(o => o.orderId), [orders])
   const allSelected = orders.length > 0 && selectedIds.length === orders.length

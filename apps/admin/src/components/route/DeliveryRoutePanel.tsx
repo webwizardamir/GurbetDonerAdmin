@@ -22,7 +22,7 @@ interface Props {
   dayLabel: string
   cities?: string[]
   /** Optional admin-only customer-type filter (e.g. a Horeca-only route). */
-  customerType?: string
+  customerType?: string[]
   /** Fired whenever the (manual or optimized) route order changes, with the
    *  order ids flattened into exact delivery sequence — so the day-close modal
    *  can print invoices in route order. */
