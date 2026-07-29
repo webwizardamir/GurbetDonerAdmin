@@ -3559,7 +3559,8 @@ async function handler(req, res) {
     return res.status(200).json({ pdf_base64, filename });
   } catch (e) {
     const err = e;
-    return res.status(500).json({ error: `render failed: ${err?.message ?? String(e)}`, stack: err?.stack ?? null });
+    console.error("render-invoice failed:", err?.stack ?? err);
+    return res.status(500).json({ error: `render failed: ${err?.message ?? String(e)}` });
   }
 }
 export {

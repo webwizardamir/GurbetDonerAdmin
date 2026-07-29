@@ -76,9 +76,13 @@ export default function EmailViewModal({
           <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
             {t('outbox.view.previewLabel')}
           </p>
+          {/* sandbox="" — srcDoc inherits this origin, and the body is stored
+              HTML that buildBrandedEmailHtml does not escape. Staff-authored, so
+              defence in depth: no scripts, no forms, no same-origin access. */}
           <iframe
             title={t('outbox.view.previewLabel')}
             srcDoc={html}
+            sandbox=""
             className="w-full h-[420px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white"
           />
         </div>

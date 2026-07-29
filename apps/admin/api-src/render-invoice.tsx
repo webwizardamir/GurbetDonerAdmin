@@ -60,7 +60,10 @@ export default async function handler(req: any, res: any) {
     const filename = `Factuur-${doc.document_number ?? orderId}.pdf`
     return res.status(200).json({ pdf_base64, filename })
   } catch (e) {
+    // Never return the stack to the caller — it leaks bundle paths and internals
+    // over a public HTTPS endpoint. Log it instead; Vercel captures the output.
     const err = e as Error
-    return res.status(500).json({ error: `render failed: ${err?.message ?? String(e)}`, stack: err?.stack ?? null })
+    console.error('render-invoice failed:', err?.stack ?? err)
+    return res.status(500).json({ error: `render failed: ${err?.message ?? String(e)}` })
   }
 }
