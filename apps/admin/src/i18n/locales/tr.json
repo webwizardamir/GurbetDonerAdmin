@@ -860,8 +860,6 @@
       "rememberedPrice": "Hatırlanan fiyat",
       "rememberedPriceHint": "Bu müşteri için özel fiyat, otomatik uygulanır. Siz temizleyene kadar korunur.",
       "forgetPrice": "Hatırlanan fiyatı temizle",
-      "selectUnitType": "Eklenecek birim türünü seçin",
-      "inCart": "sepette {{qty}}×",
       "orderDiscount": "İndirim",
       "shipping": "Kargo",
       "discountToggle": "% ve € arasında geçiş yap"

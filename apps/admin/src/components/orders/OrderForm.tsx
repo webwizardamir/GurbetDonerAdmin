@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, ShoppingCart, Pencil, Package, Info, AlertTriangle, ArrowLeft, X, Tags, ChevronLeft, ChevronRight, Building2, EyeOff } from 'lucide-react'
+import { Loader2, ShoppingCart, Pencil, Info, AlertTriangle, ArrowLeft, Tags, ChevronLeft, ChevronRight, Building2, EyeOff } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useProducts } from '../../hooks/useProducts'
@@ -12,7 +12,6 @@ import ProductSearch from './ProductSearch'
 import OrderItemsList from './OrderItemsList'
 import type { Customer, Product, UnitType, ProductUnitPrice, OrderStatus } from '../../types'
 import type { OrderWithItems } from '../../services/orders'
-import { formatPrice } from '../../utils/format'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 import { computeOrderTotals, resolveShippingVat, type DiscountType } from '../../utils/discount'
 import { setCustomerPrice, clearCustomerPrice } from '../../services/pricing'
@@ -95,11 +94,6 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   // the customer. Sold prices are immutable, so loading an existing order (which
   // sets the customer programmatically) must NOT recalculate stored line prices.
   const repriceArmedRef = useRef(false)
-  const [unitTypeSelector, setUnitTypeSelector] = useState<{
-    product: Product
-    availableUnitTypes: { unitType: UnitType; price: number; isDefault: boolean }[]
-    merge: boolean
-  } | null>(null)
 
   // Customer pricing context — pre-fetched once per customer-change so adding
   // products to the order is instant (no per-click round-trips). Keys are
@@ -280,21 +274,17 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     setItems([...items, { lineId: generateLineId(), product, selectedUnitType: unitType, quantity: 1, unit_price: price, tax_rate: product.tax_rate, availableUnitTypes }])
   }
 
+  // Adding is never interrupted by a unit-type prompt: the product's default
+  // unit is applied straight away and the line's unit dropdown is where it gets
+  // changed. Multi-unit products used to open a picker modal first, which cost a
+  // click on every add even though the default is right nearly every time.
   const addProduct = (product: Product, merge = false) => {
     const availableUnitTypes = selectedCustomer
       ? enumerateUnitTypes(product)
       : getProductUnitTypes(product)
-    if (availableUnitTypes.length > 1) { setUnitTypeSelector({ product, availableUnitTypes, merge }); return }
-    const defaultUnit = availableUnitTypes[0]
+    if (availableUnitTypes.length === 0) return
+    const defaultUnit = availableUnitTypes.find(ut => ut.isDefault) || availableUnitTypes[0]
     addProductWithUnitType(product, defaultUnit.unitType, defaultUnit.price, availableUnitTypes, merge)
-  }
-
-  const handleUnitTypeSelect = (unitType: UnitType) => {
-    if (!unitTypeSelector) return
-    const { product, availableUnitTypes, merge } = unitTypeSelector
-    const selectedUnit = availableUnitTypes.find(ut => ut.unitType === unitType)
-    if (selectedUnit) addProductWithUnitType(product, selectedUnit.unitType, selectedUnit.price, availableUnitTypes, merge)
-    setUnitTypeSelector(null)
   }
 
   const changeUnitType = async (lineId: string, newUnitType: UnitType) => {
@@ -496,8 +486,6 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       return { ...i, unit_price: fallback, priceEdited: false }
     }))
   }
-
-  const getUnitTypeLabel = (unitType: UnitType): string => t(`products.form.unitTypes.${unitType}`)
 
   const customerSummaryLines: string[] = []
   if (selectedCustomer) {
@@ -795,38 +783,6 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
 
       <BarcodeScanner isOpen={showScanner} onClose={() => setShowScanner(false)} onProductFound={(p) => addProduct(p, true)} />
 
-      {/* Unit Type Selector Modal */}
-      {unitTypeSelector && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setUnitTypeSelector(null)} />
-          <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl p-4 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-slate-900 dark:text-white">{unitTypeSelector.product.name}</h3>
-              <button onClick={() => setUnitTypeSelector(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">{t('orders.form.selectUnitType')}</p>
-            <div className="space-y-2">
-              {unitTypeSelector.availableUnitTypes.map(ut => {
-                const existingItem = items.find(i => i.product.id === unitTypeSelector.product.id && i.selectedUnitType === ut.unitType)
-                return (
-                  <button key={ut.unitType} onClick={() => handleUnitTypeSelect(ut.unitType)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-slate-400" />
-                      <span className="font-medium text-slate-900 dark:text-white">{getUnitTypeLabel(ut.unitType)}</span>
-                      {ut.isDefault && <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">{t('common.default')}</span>}
-                      {existingItem && <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">{t('orders.form.inCart', { qty: existingItem.quantity })}</span>}
-                    </div>
-                    <span className="text-slate-600 dark:text-slate-300">{formatPrice(ut.price)}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

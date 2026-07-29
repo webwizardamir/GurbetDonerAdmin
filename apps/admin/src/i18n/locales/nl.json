@@ -860,8 +860,6 @@
       "rememberedPrice": "Onthouden prijs",
       "rememberedPriceHint": "Aangepaste prijs voor deze klant, automatisch toegepast. Wordt onthouden tot u deze wist.",
       "forgetPrice": "Onthouden prijs wissen",
-      "selectUnitType": "Selecteer eenheid om toe te voegen",
-      "inCart": "{{qty}}× in wagen",
       "orderDiscount": "Korting",
       "shipping": "Verzendkosten",
       "discountToggle": "Wisselen tussen % en €"

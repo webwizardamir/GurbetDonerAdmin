@@ -860,8 +860,6 @@
       "rememberedPrice": "Remembered price",
       "rememberedPriceHint": "Custom price for this customer, applied automatically. Kept until you clear it.",
       "forgetPrice": "Clear remembered price",
-      "selectUnitType": "Select unit type to add",
-      "inCart": "{{qty}}× in cart",
       "orderDiscount": "Discount",
       "shipping": "Shipping",
       "discountToggle": "Switch between % and €"
