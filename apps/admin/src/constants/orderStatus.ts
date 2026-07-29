@@ -97,3 +97,30 @@ export const statusStyle = (s: OrderStatus | string): StatusStyle =>
  * duplication this redesign is fixing, in a second form.
  */
 export const STATUS_ALIAS: Record<string, OrderStatus> = { pending: 'pending_payment' }
+
+/** Collapse a stored status onto the one the UI actually shows. */
+export const canonicalStatus = (s: string): string => STATUS_ALIAS[s] ?? s
+
+/**
+ * The inverse of STATUS_ALIAS: every stored value that a canonical status
+ * covers. `pending` is a legacy value that is STILL the live DB default for new
+ * orders, so the two will keep coexisting — filtering on `pending_payment` has
+ * to match both or almost every waiting order disappears from the list.
+ */
+export const STATUS_EQUIVALENTS: Record<string, string[]> = Object.entries(STATUS_ALIAS)
+  .reduce<Record<string, string[]>>((acc, [stored, canonical]) => {
+    acc[canonical] = [...(acc[canonical] ?? [canonical]), stored]
+    return acc
+  }, {})
+
+/**
+ * Expand UI-selected statuses to every stored value they cover. Must be applied
+ * to BOTH fetchOrders and fetchOrderCount or the list and its pagination
+ * disagree — the same rule as the customer-type inner embed.
+ */
+export function expandStatusFilter<T extends string>(statuses: T[]): T[] {
+  if (statuses.length === 0) return statuses
+  const out = new Set<string>()
+  for (const s of statuses) for (const v of STATUS_EQUIVALENTS[s] ?? [s]) out.add(v)
+  return Array.from(out) as T[]
+}

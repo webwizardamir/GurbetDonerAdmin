@@ -41,6 +41,7 @@ import OrderRowIndicators from '../components/orders/OrderRowIndicators'
 import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
 import type { FilterDef } from '../components/ui/filterTypes'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
+import { canonicalStatus } from '../constants/orderStatus'
 import { orderExportColumns, withoutOwnerOnlyColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SelectionBar from '../components/ui/SelectionBar'
@@ -54,7 +55,11 @@ import { useAuth } from '../context/AuthContext'
 // values (e.g. pending_payment, on_hold) never clutter the list. Any status with orders that
 // isn't listed here is appended after these, and the currently-selected status stays visible
 // even at count 0 so the select never goes blank.
-const STATUS_FILTER_ORDER = ['draft', 'pending', 'pending_payment', 'on_hold', 'completed', 'cancelled', 'refunded']
+// NOTE: `pending` is deliberately absent. It is a legacy stored value that renders the
+// same label as `pending_payment`, so listing both put two identical "Wacht op betaling"
+// entries in the filter. getOrderStatusCounts folds the two counts together and
+// expandStatusFilter re-expands the selection, so the single entry covers both.
+const STATUS_FILTER_ORDER = ['draft', 'pending_payment', 'on_hold', 'completed', 'cancelled', 'refunded']
 
 export default function Orders() {
   const { t } = useTranslation()
@@ -280,7 +285,11 @@ export default function Orders() {
   // The status/payment/type filters are multi-select. Store as arrays (undefined
   // when empty so the query skips the filter). fetchOrders normalizes single-or-array.
   const toArr = <T,>(v: T | T[] | undefined): T[] => (v == null ? [] : Array.isArray(v) ? v : [v])
-  const statusFilter = toArr(filters.status as OrderStatus | OrderStatus[] | undefined)
+  // Canonicalised so an older bookmark/link carrying `?status=pending` selects the
+  // merged entry instead of re-adding a second one that only holds the legacy rows.
+  const statusFilter = Array.from(
+    new Set(toArr(filters.status as OrderStatus | OrderStatus[] | undefined).map(s => canonicalStatus(s))),
+  ) as OrderStatus[]
   const paymentFilter = toArr(filters.paymentMethod as PaymentMethod | PaymentMethod[] | undefined)
   const typeFilter = toArr(filters.customerType)
   // Each handler mirrors its value into the URL alongside the fetch filter, so a

@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import type { Order, OrderItem, OrderStatus, PaymentMethod, UnitType } from '../types'
 import { computeOrderTotals, resolveDiscountCents, resolveShippingVat, type DiscountType } from '../utils/discount'
 import { refreshOrderDocumentSnapshots } from './documents'
+import { canonicalStatus, expandStatusFilter } from '../constants/orderStatus'
 
 // Database row shapes for type-safe transformations
 interface DbOrderRow {
@@ -240,7 +241,7 @@ function applyInFilter<Q extends { eq: (c: string, v: never) => Q; in: (c: strin
 
 // Fetch total order count for pagination
 export async function fetchOrderCount(filters: OrderFilters = {}): Promise<number> {
-  const statuses = asFilterArray(filters.status)
+  const statuses = expandStatusFilter(asFilterArray(filters.status))
   const paymentMethods = asFilterArray(filters.paymentMethod)
   const customerTypes = asFilterArray(filters.customerType)
 
@@ -353,7 +354,7 @@ async function buildSearchOr(term: string): Promise<string> {
 
 // Fetch orders with filters and pagination
 export async function fetchOrders(filters: OrderFilters = {}): Promise<OrderWithItems[]> {
-  const statuses = asFilterArray(filters.status)
+  const statuses = expandStatusFilter(asFilterArray(filters.status))
   const paymentMethods = asFilterArray(filters.paymentMethod)
   const customerTypes = asFilterArray(filters.customerType)
 
@@ -981,7 +982,9 @@ export async function getOrderStats(): Promise<{
     const count = Number(row.count)
     stats.total += count
     if (row.status === 'draft') stats.draft += count
-    else if (row.status === 'pending_payment') stats.pending += count
+    // canonicalStatus folds the legacy `pending` in — testing `pending_payment`
+    // alone counted 2 of 211 waiting orders.
+    else if (canonicalStatus(row.status as string) === 'pending_payment') stats.pending += count
     else if (row.status === 'completed') stats.completed += count
     else if (row.status === 'cancelled' || row.status === 'refunded') stats.cancelled += count
   }
@@ -1001,7 +1004,11 @@ export async function getOrderStatusCounts(): Promise<Record<string, number> & {
   const counts: Record<string, number> & { total: number } = { total: 0 }
   for (const row of data || []) {
     const count = Number(row.count)
-    counts[row.status as string] = (counts[row.status as string] || 0) + count
+    // Fold the legacy `pending` onto `pending_payment`. Both render the same
+    // label, so two raw keys produced two identical entries in the status
+    // filter — one holding 209 orders, the other 2.
+    const key = canonicalStatus(row.status as string)
+    counts[key] = (counts[key] || 0) + count
     counts.total += count
   }
   return counts
