@@ -9,6 +9,7 @@
  */
 
 import { customerTypeLabel } from '../constants/customerType'
+import { orderStatusLabelNl } from '../constants/orderStatus'
 
 // Format date for export (DD-MM-YYYY)
 export function formatExportDate(dateString: string | null | undefined): string {
@@ -349,16 +350,7 @@ export const orderExportColumns = [
   { key: 'order_date', header: 'Datum', format: (v: unknown) => formatExportDate(v as string) },
   { key: 'customer.company_name', header: 'Klant' },
   { key: 'customer.customer_type', header: 'Klanttype', format: (v: unknown) => customerTypeLabel(v as string) },
-  { key: 'status', header: 'Status', format: (v: unknown) => {
-    const statusMap: Record<string, string> = {
-      draft: 'Concept',
-      pending_payment: 'In afwachting',
-      completed: 'Voltooid',
-      cancelled: 'Geannuleerd',
-      refunded: 'Terugbetaald',
-    }
-    return statusMap[v as string] || (v as string)
-  }},
+  { key: 'status', header: 'Status', format: (v: unknown) => orderStatusLabelNl(v as string) },
   { key: 'payment_method', header: 'Betaalmethode', format: (v: unknown) => {
     if (v === 'cash') return 'Contant'
     if (v === 'bank') return 'Bank'

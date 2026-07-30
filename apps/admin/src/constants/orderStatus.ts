@@ -1,3 +1,4 @@
+import i18n from '../i18n'
 import type { OrderStatus } from '../types'
 
 /**
@@ -88,6 +89,22 @@ export const FALLBACK_STATUS_STYLE: StatusStyle = {
 
 export const statusStyle = (s: OrderStatus | string): StatusStyle =>
   STATUS_STYLES[s] ?? FALLBACK_STATUS_STYLE
+
+/**
+ * The Dutch status label, whatever the app language — for exports (CSV / Excel /
+ * PDF), which are Dutch-only by convention, like the document templates.
+ *
+ * Resolved through STATUS_STYLES rather than a second hand-written map: the
+ * previous copy in `utils/export.ts` listed only five statuses, so `pending` —
+ * which is the LIVE DB default for every new order — fell through to its raw
+ * enum value and printed "pending" in an otherwise Dutch export. `on_hold`,
+ * `processing` and `delivered` (still on older rows) did the same. Deriving the
+ * label here means a status added to STATUS_STYLES can never miss the export.
+ */
+export const orderStatusLabelNl = (s: OrderStatus | string): string => {
+  const { labelKey } = statusStyle(s)
+  return labelKey ? i18n.t(labelKey, { lng: 'nl' }) : String(s ?? '')
+}
 
 /**
  * `pending` and `pending_payment` render the SAME label ("Wacht op betaling"),

@@ -328,7 +328,13 @@ export default function Orders() {
   // computeOrderProfit is the single definition of the ex-VAT profit convention
   // (revenue = subtotal, shipping excluded) — do not inline a second one here.
   const withExportFields = (order: OrderWithItems, info: Map<string, OrderDocumentInfo>) => {
-    const base = withInvoiceNumber(order, info)
+    // A trashed order is stored as `cancelled` with its real status parked in
+    // pre_trash_status, and both table layouts show that parked status — so the
+    // export has to as well, or the Prullenbak exports as 25× "Geannuleerd".
+    const base = {
+      ...withInvoiceNumber(order, info),
+      status: (trashed ? (order.pre_trash_status || order.status) : order.status),
+    }
     if (!isOwner) return base
     const p = computeOrderProfit(order)
     return { ...base, total_cost: p.totalCost, profit: p.profit, margin_pct: p.margin }
