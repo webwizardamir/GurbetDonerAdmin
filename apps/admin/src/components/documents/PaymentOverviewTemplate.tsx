@@ -306,12 +306,8 @@ export function PaymentOverviewPage({ data }: Props) {
             <Text style={styles.metaLabel}>{T.poMetaCount}</Text>
             <Text style={styles.metaValue}>{data.lines.length}</Text>
           </View>
-          {data.customer.customerNumber ? (
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>{isEn ? 'Customer number:' : 'Klantnummer:'}</Text>
-              <Text style={styles.metaValue}>{data.customer.customerNumber}</Text>
-            </View>
-          ) : null}
+          {/* No "Klantnummer" row: the value is a slice of an internal UUID, which
+              means nothing to the customer and nothing to our own admin either. */}
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>{T.poTotalLabel}</Text>
             <Text style={styles.metaValueStrong}>{formatPrice(data.totalCents)}</Text>

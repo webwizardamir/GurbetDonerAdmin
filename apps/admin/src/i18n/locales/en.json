@@ -2213,6 +2213,25 @@
     },
     "errors": {
       "snapshotMissing": "The sent overview could not be found."
+    },
+    "searchPlaceholder": "Search by customer or email...",
+    "noMatch": {
+      "title": "No customers found",
+      "subtitle": "Adjust your search or filters."
+    },
+    "filters": {
+      "send": "Delivery",
+      "sendAll": "All delivery statuses",
+      "notSent": "Not sent yet",
+      "sent": "Sent",
+      "overdue": "Overdue",
+      "overdueAll": "All customers",
+      "hasOverdue": "With overdue invoices",
+      "noOverdue": "All within terms",
+      "email": "Email address",
+      "emailAll": "With and without email",
+      "withEmail": "With email address",
+      "withoutEmail": "Without email address"
     }
   }
 }

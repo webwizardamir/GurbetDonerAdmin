@@ -2213,6 +2213,25 @@
     },
     "errors": {
       "snapshotMissing": "Het verzonden overzicht kon niet worden gevonden."
+    },
+    "searchPlaceholder": "Zoek op klant of e-mailadres...",
+    "noMatch": {
+      "title": "Geen klanten gevonden",
+      "subtitle": "Pas uw zoekopdracht of filters aan."
+    },
+    "filters": {
+      "send": "Verzending",
+      "sendAll": "Alle verzendstatussen",
+      "notSent": "Nog niet verstuurd",
+      "sent": "Verstuurd",
+      "overdue": "Verlopen",
+      "overdueAll": "Alle klanten",
+      "hasOverdue": "Met verlopen facturen",
+      "noOverdue": "Alles binnen termijn",
+      "email": "E-mailadres",
+      "emailAll": "Met en zonder e-mail",
+      "withEmail": "Met e-mailadres",
+      "withoutEmail": "Zonder e-mailadres"
     }
   }
 }

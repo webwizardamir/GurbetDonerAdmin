@@ -9,11 +9,16 @@ import {
   FileText,
   Loader2,
   MailWarning,
+  Search,
   Send,
   Users,
 } from 'lucide-react'
 import Modal from '../ui/Modal'
 import ConfirmDialog from '../ui/ConfirmDialog'
+import ListToolbar from '../ui/ListToolbar'
+import SortableTh from '../ui/SortableTh'
+import type { FilterDef } from '../ui/filterTypes'
+import { useTableSort } from '../../hooks/useTableSort'
 import { StatusIcon } from '../documents/EmailViewModal'
 import { formatDate, formatDateTime, formatPrice } from '../../utils/format'
 import {
@@ -46,6 +51,7 @@ import { isSuccessfulSend } from '../../types'
 // ===========================================================================
 
 type Busy = { id: string; what: 'preview' | 'send' | 'view' } | null
+type SortKey = 'customer' | 'invoices' | 'oldestDue' | 'amount' | 'status'
 
 /** Render a statement to a Blob. Lazy imports keep @react-pdf off this page's chunk. */
 async function renderOverviewBlob(data: PaymentOverviewData): Promise<Blob> {
@@ -82,6 +88,15 @@ export default function PaymentOverviewTab() {
   const [confirmFor, setConfirmFor] = useState<PaymentOverviewCustomer | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
+  // Search + filters are CLIENT-side: the RPC returns every customer with a
+  // balance in one shot (tens of rows, not thousands), so there is nothing to
+  // paginate and a round-trip per keystroke would be pure latency.
+  const [search, setSearch] = useState('')
+  const [sendFilter, setSendFilter] = useState('')      // '' | 'notSent' | 'sent'
+  const [overdueFilter, setOverdueFilter] = useState('') // '' | 'overdue' | 'current'
+  const [emailFilter, setEmailFilter] = useState('')     // '' | 'with' | 'without'
+  const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<SortKey>('amount', 'desc')
+
   // Object URLs are only released on replace/close — revoking eagerly kills the
   // iframe that is still displaying them.
   const urlRef = useRef<string | null>(null)
@@ -112,12 +127,81 @@ export default function PaymentOverviewTab() {
 
   useEffect(() => { void load() }, [load])
 
+  // Stats describe the WHOLE month, not the current filter — they are the
+  // "where do I stand" figures, and having them move as you type a search
+  // would make them useless for the decision they support.
   const stats = useMemo(() => {
     const outstanding = rows.reduce((s, r) => s + Number(r.total_cents || 0), 0)
     const sent = rows.filter(r => r.last_send_status && isSuccessfulSend(r.last_send_status)).length
     const noEmail = rows.filter(r => !r.email?.trim()).length
     return { outstanding, customers: rows.length, sent, noEmail }
   }, [rows])
+
+  const wasSent = (r: PaymentOverviewCustomer) =>
+    !!r.last_send_status && isSuccessfulSend(r.last_send_status)
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const filtered = rows.filter(r => {
+      if (q && !`${r.company_name} ${r.email ?? ''}`.toLowerCase().includes(q)) return false
+      if (sendFilter === 'sent' && !wasSent(r)) return false
+      if (sendFilter === 'notSent' && wasSent(r)) return false
+      if (overdueFilter === 'overdue' && r.overdue_count === 0) return false
+      if (overdueFilter === 'current' && r.overdue_count > 0) return false
+      if (emailFilter === 'with' && !r.email?.trim()) return false
+      if (emailFilter === 'without' && r.email?.trim()) return false
+      return true
+    })
+    return sortBy(filtered, {
+      customer: r => r.company_name,
+      invoices: r => r.open_count,
+      oldestDue: r => r.oldest_due_date,
+      amount: r => Number(r.total_cents || 0),
+      // Sorting by "delivery" means grouping not-yet-sent first, which is the
+      // actionable end — the raw status string would sort alphabetically and
+      // scatter them.
+      status: r => (wasSent(r) ? 1 : 0),
+    })
+  }, [rows, search, sendFilter, overdueFilter, emailFilter, sortBy])
+
+  const filterDefs: FilterDef[] = useMemo(() => [
+    {
+      id: 'send',
+      kind: 'select',
+      label: t('paymentOverview.filters.send'),
+      value: sendFilter,
+      onChange: setSendFilter,
+      allLabel: t('paymentOverview.filters.sendAll'),
+      options: [
+        { value: 'notSent', label: t('paymentOverview.filters.notSent'), count: rows.filter(r => !wasSent(r)).length },
+        { value: 'sent', label: t('paymentOverview.filters.sent'), count: rows.filter(wasSent).length },
+      ],
+    },
+    {
+      id: 'overdue',
+      kind: 'select',
+      label: t('paymentOverview.filters.overdue'),
+      value: overdueFilter,
+      onChange: setOverdueFilter,
+      allLabel: t('paymentOverview.filters.overdueAll'),
+      options: [
+        { value: 'overdue', label: t('paymentOverview.filters.hasOverdue'), count: rows.filter(r => r.overdue_count > 0).length },
+        { value: 'current', label: t('paymentOverview.filters.noOverdue'), count: rows.filter(r => r.overdue_count === 0).length },
+      ],
+    },
+    {
+      id: 'email',
+      kind: 'select',
+      label: t('paymentOverview.filters.email'),
+      value: emailFilter,
+      onChange: setEmailFilter,
+      allLabel: t('paymentOverview.filters.emailAll'),
+      options: [
+        { value: 'with', label: t('paymentOverview.filters.withEmail'), count: rows.filter(r => r.email?.trim()).length },
+        { value: 'without', label: t('paymentOverview.filters.withoutEmail'), count: rows.filter(r => !r.email?.trim()).length },
+      ],
+    },
+  ], [t, rows, sendFilter, overdueFilter, emailFilter])
 
   const handlePreview = async (row: PaymentOverviewCustomer) => {
     setBusy({ id: row.customer_id, what: 'preview' })
@@ -238,6 +322,17 @@ export default function PaymentOverviewTab() {
           label={t('paymentOverview.stats.noEmail')} value={String(stats.noEmail)} />
       </div>
 
+      <ListToolbar
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: t('paymentOverview.searchPlaceholder'),
+        }}
+        filters={filterDefs}
+        resultCount={visible.length}
+        renderResultLabel={n => t('common.filters.showResults', { count: n })}
+      />
+
       {rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <CheckCircle2 className="w-12 h-12 text-green-500 mb-3" />
@@ -248,11 +343,21 @@ export default function PaymentOverviewTab() {
             {t('paymentOverview.empty.subtitle')}
           </p>
         </div>
+      ) : visible.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Search className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
+          <p className="text-base font-medium text-slate-900 dark:text-white">
+            {t('paymentOverview.noMatch.title')}
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t('paymentOverview.noMatch.subtitle')}
+          </p>
+        </div>
       ) : (
         <>
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
-            {rows.map(row => (
+            {visible.map(row => (
               <div
                 key={row.customer_id}
                 className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-3"
@@ -302,16 +407,26 @@ export default function PaymentOverviewTab() {
             <table className="min-w-[860px] w-full divide-y divide-slate-200 dark:divide-slate-700">
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
-                  <Th>{t('paymentOverview.cols.customer')}</Th>
-                  <Th>{t('paymentOverview.cols.invoices')}</Th>
-                  <Th>{t('paymentOverview.cols.oldestDue')}</Th>
-                  <Th align="right">{t('paymentOverview.cols.amount')}</Th>
-                  <Th>{t('paymentOverview.cols.status')}</Th>
+                  <SortableTh sortKey="customer" current={sortKey} dir={sortDir} onToggle={toggleSort}>
+                    {t('paymentOverview.cols.customer')}
+                  </SortableTh>
+                  <SortableTh sortKey="invoices" current={sortKey} dir={sortDir} onToggle={toggleSort}>
+                    {t('paymentOverview.cols.invoices')}
+                  </SortableTh>
+                  <SortableTh sortKey="oldestDue" current={sortKey} dir={sortDir} onToggle={toggleSort}>
+                    {t('paymentOverview.cols.oldestDue')}
+                  </SortableTh>
+                  <SortableTh sortKey="amount" current={sortKey} dir={sortDir} onToggle={toggleSort} align="right">
+                    {t('paymentOverview.cols.amount')}
+                  </SortableTh>
+                  <SortableTh sortKey="status" current={sortKey} dir={sortDir} onToggle={toggleSort}>
+                    {t('paymentOverview.cols.status')}
+                  </SortableTh>
                   <Th align="right">{t('paymentOverview.cols.actions')}</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {rows.map(row => (
+                {visible.map(row => (
                   <tr
                     key={row.customer_id}
                     onClick={() => handlePreview(row)}

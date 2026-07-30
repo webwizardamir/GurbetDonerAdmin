@@ -135,7 +135,6 @@ export async function buildPaymentOverviewData(
       city: customer.billing_city ?? undefined,
       country: customer.billing_country ?? undefined,
       vatNumber: customer.vat_number ?? undefined,
-      customerNumber: customer.id?.substring(0, 8).toUpperCase(),
     },
     lines,
     totalCents,

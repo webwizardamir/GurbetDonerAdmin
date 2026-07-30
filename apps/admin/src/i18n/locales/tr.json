@@ -2213,6 +2213,25 @@
     },
     "errors": {
       "snapshotMissing": "Gönderilen özet bulunamadı."
+    },
+    "searchPlaceholder": "Müşteri veya e-posta ara...",
+    "noMatch": {
+      "title": "Müşteri bulunamadı",
+      "subtitle": "Aramanızı veya filtrelerinizi değiştirin."
+    },
+    "filters": {
+      "send": "Gönderim",
+      "sendAll": "Tüm gönderim durumları",
+      "notSent": "Henüz gönderilmedi",
+      "sent": "Gönderildi",
+      "overdue": "Gecikmiş",
+      "overdueAll": "Tüm müşteriler",
+      "hasOverdue": "Gecikmiş faturası olanlar",
+      "noOverdue": "Vadesi gelmemiş olanlar",
+      "email": "E-posta adresi",
+      "emailAll": "E-postalı ve e-postasız",
+      "withEmail": "E-posta adresi olanlar",
+      "withoutEmail": "E-posta adresi olmayanlar"
     }
   }
 }

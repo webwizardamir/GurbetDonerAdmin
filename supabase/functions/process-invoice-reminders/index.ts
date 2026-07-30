@@ -62,8 +62,8 @@ const DEFAULT_TEMPLATES_NL: Record<string, Template> = {
     body: 'Beste {{customer_name}},\n\nDit is onze laatste aanmaning voor factuur {{document_number}} ten bedrage van {{total}}, die nu {{days_overdue}} dagen achterstallig is. Wij verzoeken u het bedrag binnen 7 dagen te voldoen op IBAN {{iban}} om verdere (incasso)kosten te voorkomen.\n\nHeeft u deze factuur inmiddels betaald? Dan kunt u deze aanmaning als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
   payment_overview: {
-    subject: 'Betaaloverzicht {{period}} — {{company_name}}',
-    body: 'Beste {{customer_name}},\n\nIn de bijlage vindt u uw betaaloverzicht: alle facturen die volgens onze administratie nog openstaan. Het gaat om {{invoice_count}} factuur/facturen met een totaalbedrag van {{total}}.\n\nWij verzoeken u vriendelijk het openstaande bedrag over te maken op IBAN {{iban}}, onder vermelding van het factuurnummer. Uw facturen kunt u ook bekijken via {{portal_link}}.\n\nHeeft u een of meer van deze facturen inmiddels betaald? Dan kunt u die regels als voldaan beschouwen — betalingen van de laatste dagen zijn mogelijk nog niet verwerkt.\n\nMet vriendelijke groet,\n{{company_name}}',
+    subject: 'Betaaloverzicht {{period}} van {{company_name}}',
+    body: 'Beste {{customer_name}},\n\nIn de bijlage vindt u uw betaaloverzicht: alle facturen die volgens onze administratie nog openstaan. Het gaat om {{invoice_count}} factuur/facturen met een totaalbedrag van {{total}}.\n\nWij verzoeken u vriendelijk het openstaande bedrag over te maken op IBAN {{iban}}, onder vermelding van het factuurnummer. Uw facturen kunt u ook bekijken via {{portal_link}}.\n\nHeeft u een of meer van deze facturen inmiddels betaald? Dan kunt u die regels als voldaan beschouwen. Betalingen van de afgelopen dagen zijn mogelijk nog niet verwerkt.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
 }
 
@@ -85,8 +85,8 @@ const DEFAULT_TEMPLATES_EN: Record<string, Template> = {
     body: 'Dear {{customer_name}},\n\nThis is our final notice for invoice {{document_number}} for {{total}}, now {{days_overdue}} days overdue. We request that you pay the amount within 7 days to IBAN {{iban}} to avoid further (collection) costs.\n\nHave you already paid this invoice? If so, please disregard this notice.\n\nKind regards,\n{{company_name}}',
   },
   payment_overview: {
-    subject: 'Statement of account {{period}} — {{company_name}}',
-    body: 'Dear {{customer_name}},\n\nPlease find attached your statement of account: all invoices that, according to our records, are still outstanding. This covers {{invoice_count}} invoice(s) for a total of {{total}}.\n\nWe kindly ask you to transfer the outstanding amount to IBAN {{iban}}, quoting the invoice number. You can also view your invoices at {{portal_link}}.\n\nHave you already paid one or more of these invoices? Please consider those lines settled — payments made in the last few days may not yet be processed.\n\nKind regards,\n{{company_name}}',
+    subject: 'Statement of account {{period}} from {{company_name}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached your statement of account: all invoices that, according to our records, are still outstanding. This covers {{invoice_count}} invoice(s) for a total of {{total}}.\n\nWe kindly ask you to transfer the outstanding amount to IBAN {{iban}}, quoting the invoice number. You can also view your invoices at {{portal_link}}.\n\nHave you already paid one or more of these invoices? Please consider those lines settled. Payments made in the last few days may not yet be processed.\n\nKind regards,\n{{company_name}}',
   },
 }
 
@@ -823,7 +823,6 @@ async function buildOverviewSnapshot(
       city: undef(cust.billing_city),
       country: undef(cust.billing_country),
       vatNumber: undef(cust.vat_number),
-      customerNumber: (cust.id as string)?.substring(0, 8).toUpperCase(),
     },
     lines,
     totalCents,

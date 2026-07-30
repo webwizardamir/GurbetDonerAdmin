@@ -162,7 +162,7 @@ Indien u reeds betaald heeft, verzoeken wij u dit bericht te negeren.`,
   poTotalLabel: "Totaal openstaand",
   poOverdueLabel: "Waarvan verlopen",
   poIntro: (asAt) => `Hieronder vindt u een overzicht van alle facturen die volgens onze administratie op ${asAt} nog openstaan.`,
-  poAlreadyPaid: "Heeft u een of meer van deze facturen inmiddels betaald? Dan kunt u die regels als voldaan beschouwen \u2014 betalingen van de laatste dagen zijn mogelijk nog niet verwerkt.",
+  poAlreadyPaid: "Heeft u een of meer van deze facturen inmiddels betaald? Dan kunt u die regels als voldaan beschouwen. Betalingen van de afgelopen dagen zijn mogelijk nog niet verwerkt.",
   poIbanRef: "Vermeld bij betaling het factuurnummer.",
   poEmpty: "Er staan op dit moment geen facturen open. Hartelijk dank voor uw betaling."
 };
@@ -298,7 +298,7 @@ If you have already paid, please disregard this message.`,
   poTotalLabel: "Total outstanding",
   poOverdueLabel: "Of which overdue",
   poIntro: (asAt) => `Below is an overview of all invoices that, according to our records, were still outstanding on ${asAt}.`,
-  poAlreadyPaid: "Have you already paid one or more of these invoices? Please consider those lines settled \u2014 payments made in the last few days may not yet be processed.",
+  poAlreadyPaid: "Have you already paid one or more of these invoices? Please consider those lines settled. Payments made in the last few days may not yet be processed.",
   poIbanRef: "Please quote the invoice number with your payment.",
   poEmpty: "There are currently no outstanding invoices. Thank you for your payment."
 };
@@ -3850,10 +3850,6 @@ function PaymentOverviewPage({ data }) {
           /* @__PURE__ */ jsx8(Text7, { style: styles7.metaLabel, children: T.poMetaCount }),
           /* @__PURE__ */ jsx8(Text7, { style: styles7.metaValue, children: data.lines.length })
         ] }),
-        data.customer.customerNumber ? /* @__PURE__ */ jsxs7(View7, { style: styles7.metaRow, children: [
-          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaLabel, children: isEn ? "Customer number:" : "Klantnummer:" }),
-          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaValue, children: data.customer.customerNumber })
-        ] }) : null,
         /* @__PURE__ */ jsxs7(View7, { style: styles7.metaRow, children: [
           /* @__PURE__ */ jsx8(Text7, { style: styles7.metaLabel, children: T.poTotalLabel }),
           /* @__PURE__ */ jsx8(Text7, { style: styles7.metaValueStrong, children: formatPrice(data.totalCents) })

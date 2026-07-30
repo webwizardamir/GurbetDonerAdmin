@@ -692,7 +692,6 @@ export interface PaymentOverviewData {
     city?: string
     country?: string
     vatNumber?: string
-    customerNumber?: string
   }
   lines: PaymentOverviewLine[]
   totalCents: number
