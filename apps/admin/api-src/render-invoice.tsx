@@ -20,7 +20,19 @@
 import { createClient } from '@supabase/supabase-js'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { getDocumentTemplate } from '../src/components/documents/getDocumentTemplate'
+import { PaymentOverviewTemplate } from '../src/components/documents/PaymentOverviewTemplate'
 import type { InvoiceData } from '../src/services/documents'
+import type { PaymentOverviewData } from '../src/types'
+
+// Two request shapes, discriminated by `type` (absent = invoice, for backward
+// compatibility with the deployed cron):
+//   { orderId }                                -> the order's invoice
+//   { type: 'payment_overview', overviewId }   -> a monthly Betaaloverzicht
+// Both render from a STORED SNAPSHOT, never from live data, so the PDF the cron
+// attaches is byte-identical to the one the admin previews from the same row.
+//
+// One handler rather than a second entry point: auth, the Supabase client and
+// the error handling are shared, and scripts/build-api.mjs needs no change.
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' })
@@ -32,16 +44,41 @@ export default async function handler(req: any, res: any) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body ?? {})
-    const orderId = String(body.orderId ?? '')
-    if (!orderId) return res.status(400).json({ error: 'missing orderId' })
+    const type = String(body.type ?? 'invoice')
 
     const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
     const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!SUPABASE_URL || !SERVICE_ROLE) {
       return res.status(500).json({ error: 'supabase env not configured (need SUPABASE_SERVICE_ROLE_KEY + SUPABASE_URL/VITE_SUPABASE_URL)' })
     }
-
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
+
+    if (type === 'payment_overview') {
+      const overviewId = String(body.overviewId ?? '')
+      if (!overviewId) return res.status(400).json({ error: 'missing overviewId' })
+
+      const { data: row, error } = await admin
+        .from('payment_overviews')
+        .select('snapshot, period')
+        .eq('id', overviewId)
+        .maybeSingle()
+
+      if (error) return res.status(500).json({ error: `db: ${error.message}` })
+      if (!row?.snapshot) return res.status(404).json({ error: 'no snapshot for overview' })
+
+      const data = row.snapshot as PaymentOverviewData
+      const buffer = await renderToBuffer(
+        (<PaymentOverviewTemplate data={data} />) as never
+      )
+      const pdf_base64 = Buffer.from(buffer).toString('base64')
+      const safeName = (data.customer?.companyName ?? 'klant').replace(/[^\w-]+/g, '-')
+      const filename = `Betaaloverzicht-${safeName}-${row.period}.pdf`
+      return res.status(200).json({ pdf_base64, filename })
+    }
+
+    const orderId = String(body.orderId ?? '')
+    if (!orderId) return res.status(400).json({ error: 'missing orderId' })
+
     const { data: doc, error } = await admin
       .from('documents')
       .select('document_number, snapshot')

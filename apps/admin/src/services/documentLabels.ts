@@ -188,6 +188,28 @@ const NL = {
     (phone ? `Telefoon: ${phone}\n` : '') +
     (email ? `E-mail: ${email}\n` : '') +
     `\nIndien u reeds betaald heeft, verzoeken wij u dit bericht te negeren.`,
+  // payment overview (monthly statement of account)
+  poTitle: 'BETAALOVERZICHT',
+  poAddrLabel: 'Overzicht voor',
+  poMetaDate: 'Overzichtsdatum:',
+  poMetaAsAt: 'Peildatum:',
+  poMetaCount: 'Openstaande facturen:',
+  poThInvoice: 'Factuur',
+  poThInvoiceDate: 'Factuurdatum',
+  poThDueDate: 'Vervaldatum',
+  poThStatus: 'Status',
+  poThDaysLate: 'Dagen te laat',
+  poThAmount: 'Bedrag',
+  poStatusOverdue: 'Verlopen',
+  poStatusOpen: 'Openstaand',
+  poTotalLabel: 'Totaal openstaand',
+  poOverdueLabel: 'Waarvan verlopen',
+  poIntro: (asAt: string) =>
+    `Hieronder vindt u een overzicht van alle facturen die volgens onze administratie op ${asAt} nog openstaan.`,
+  poAlreadyPaid:
+    'Heeft u een of meer van deze facturen inmiddels betaald? Dan kunt u die regels als voldaan beschouwen — betalingen van de laatste dagen zijn mogelijk nog niet verwerkt.',
+  poIbanRef: 'Vermeld bij betaling het factuurnummer.',
+  poEmpty: 'Er staan op dit moment geen facturen open. Hartelijk dank voor uw betaling.',
 }
 
 const EN: typeof NL = {
@@ -308,6 +330,27 @@ const EN: typeof NL = {
     (phone ? `Phone: ${phone}\n` : '') +
     (email ? `Email: ${email}\n` : '') +
     `\nIf you have already paid, please disregard this message.`,
+  poTitle: 'STATEMENT OF ACCOUNT',
+  poAddrLabel: 'Statement for',
+  poMetaDate: 'Statement date:',
+  poMetaAsAt: 'As at:',
+  poMetaCount: 'Open invoices:',
+  poThInvoice: 'Invoice',
+  poThInvoiceDate: 'Invoice date',
+  poThDueDate: 'Due date',
+  poThStatus: 'Status',
+  poThDaysLate: 'Days overdue',
+  poThAmount: 'Amount',
+  poStatusOverdue: 'Overdue',
+  poStatusOpen: 'Open',
+  poTotalLabel: 'Total outstanding',
+  poOverdueLabel: 'Of which overdue',
+  poIntro: (asAt: string) =>
+    `Below is an overview of all invoices that, according to our records, were still outstanding on ${asAt}.`,
+  poAlreadyPaid:
+    'Have you already paid one or more of these invoices? Please consider those lines settled — payments made in the last few days may not yet be processed.',
+  poIbanRef: 'Please quote the invoice number with your payment.',
+  poEmpty: 'There are currently no outstanding invoices. Thank you for your payment.',
 }
 
 export type DocText = typeof NL

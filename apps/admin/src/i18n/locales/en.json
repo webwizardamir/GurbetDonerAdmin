@@ -926,7 +926,8 @@
       "credit_note": "Credit Note",
       "packing_slip": "Packing Slip",
       "order_confirmation": "Order Confirmation",
-      "payment_reminder": "Payment Reminder"
+      "payment_reminder": "Payment Reminder",
+      "payment_overview": "Payment overview"
     },
     "confirmDelete": "Delete {{number}}? This cannot be undone.",
     "searchPlaceholder": "Search by number, customer, order...",
@@ -1728,6 +1729,12 @@
       },
       "copy": {
         "title": "Copy per reminder"
+      },
+      "monthlyOverview": {
+        "title": "Monthly payment overview",
+        "subtitle": "Send every customer with outstanding invoices one overview on the first working day of the month.",
+        "note": "Independent of the reminders below: a payment overview also goes to customers who are still well within their payment term. Send time follows the hour and working-day settings below. Check a preview first via Overdue invoices → Payment overview.",
+        "copyTitle": "Payment overview email copy"
       }
     }
   },
@@ -2161,6 +2168,51 @@
       "minimizedBar": "{{count}} outstanding invoices · {{total}}",
       "viewAll": "View all",
       "minimize": "Minimize"
+    },
+    "tabs": {
+      "invoices": "Invoices",
+      "overview": "Payment overview"
+    }
+  },
+  "paymentOverview": {
+    "title": "Payment overview",
+    "intro": "Overview for {{period}}. Every customer below receives one PDF with all their outstanding invoices. Check a preview before sending.",
+    "notSent": "Not sent yet",
+    "noEmail": "No email address",
+    "openCount_one": "{{count}} outstanding invoice",
+    "openCount_other": "{{count}} outstanding invoices",
+    "overdueCount_one": "{{count}} overdue",
+    "overdueCount_other": "{{count}} overdue",
+    "sentToast": "Payment overview sent to {{email}}",
+    "stats": {
+      "outstanding": "Total outstanding",
+      "customers": "Customers with a balance",
+      "sentThisMonth": "Sent this month",
+      "noEmail": "Without email address"
+    },
+    "empty": {
+      "title": "No outstanding invoices",
+      "subtitle": "There is nothing to send a payment overview for right now."
+    },
+    "cols": {
+      "customer": "Customer",
+      "invoices": "Invoices",
+      "oldestDue": "Oldest due date",
+      "amount": "Outstanding",
+      "status": "Delivery",
+      "actions": "Actions"
+    },
+    "actions": {
+      "preview": "Preview",
+      "send": "Send now",
+      "viewSent": "View sent overview"
+    },
+    "confirm": {
+      "title": "Send payment overview",
+      "message": "Send the payment overview for {{customer}} ({{count}} invoices, {{amount}}) to {{email}}?"
+    },
+    "errors": {
+      "snapshotMissing": "The sent overview could not be found."
     }
   }
 }

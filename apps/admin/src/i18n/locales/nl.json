@@ -926,7 +926,8 @@
       "credit_note": "Creditnota",
       "packing_slip": "Pakbon",
       "order_confirmation": "Orderbevestiging",
-      "payment_reminder": "Betalingsherinnering"
+      "payment_reminder": "Betalingsherinnering",
+      "payment_overview": "Betaaloverzicht"
     },
     "confirmDelete": "{{number}} verwijderen? Dit kan niet ongedaan worden gemaakt.",
     "searchPlaceholder": "Zoek op nummer, klant, bestelling...",
@@ -1728,6 +1729,12 @@
       },
       "copy": {
         "title": "Tekst per herinnering"
+      },
+      "monthlyOverview": {
+        "title": "Maandelijks betaaloverzicht",
+        "subtitle": "Stuur elke klant met openstaande facturen één overzicht op de eerste werkdag van de maand.",
+        "note": "Staat los van de herinneringen hierna: een betaaloverzicht gaat ook naar klanten die nog netjes binnen de betaaltermijn zitten. Verstuurtijd volgt het uur en de werkdag-instelling hieronder. Bekijk eerst een voorbeeld via Openstaande facturen → Betaaloverzicht.",
+        "copyTitle": "E-mailtekst betaaloverzicht"
       }
     }
   },
@@ -2161,6 +2168,51 @@
       "minimizedBar": "{{count}} openstaande facturen · {{total}}",
       "viewAll": "Alles bekijken",
       "minimize": "Minimaliseren"
+    },
+    "tabs": {
+      "invoices": "Facturen",
+      "overview": "Betaaloverzicht"
+    }
+  },
+  "paymentOverview": {
+    "title": "Betaaloverzicht",
+    "intro": "Overzicht voor {{period}}. Elke klant hieronder krijgt één PDF met al zijn openstaande facturen. Bekijk eerst een voorbeeld voordat u verstuurt.",
+    "notSent": "Nog niet verstuurd",
+    "noEmail": "Geen e-mailadres",
+    "openCount_one": "{{count}} openstaande factuur",
+    "openCount_other": "{{count}} openstaande facturen",
+    "overdueCount_one": "{{count}} verlopen",
+    "overdueCount_other": "{{count}} verlopen",
+    "sentToast": "Betaaloverzicht verstuurd naar {{email}}",
+    "stats": {
+      "outstanding": "Totaal openstaand",
+      "customers": "Klanten met saldo",
+      "sentThisMonth": "Deze maand verstuurd",
+      "noEmail": "Zonder e-mailadres"
+    },
+    "empty": {
+      "title": "Geen openstaande facturen",
+      "subtitle": "Er is op dit moment niets om een betaaloverzicht voor te versturen."
+    },
+    "cols": {
+      "customer": "Klant",
+      "invoices": "Facturen",
+      "oldestDue": "Oudste vervaldatum",
+      "amount": "Openstaand",
+      "status": "Verzending",
+      "actions": "Acties"
+    },
+    "actions": {
+      "preview": "Voorbeeld",
+      "send": "Nu versturen",
+      "viewSent": "Bekijk verzonden overzicht"
+    },
+    "confirm": {
+      "title": "Betaaloverzicht versturen",
+      "message": "Verstuur het betaaloverzicht van {{customer}} ({{count}} facturen, {{amount}}) naar {{email}}?"
+    },
+    "errors": {
+      "snapshotMissing": "Het verzonden overzicht kon niet worden gevonden."
     }
   }
 }

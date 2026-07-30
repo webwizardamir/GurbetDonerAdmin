@@ -548,7 +548,19 @@ export type ReminderStepKey =
   | 'payment_reminder_2'
   | 'payment_reminder_final'
 
-export type EmailTemplateKey = EmailDocumentType | ReminderStepKey
+/**
+ * Monthly Betaaloverzicht (statement of account).
+ *
+ * This one IS a real `document_sends.document_type` enum value (migration 00102)
+ * — unlike ReminderStepKey above — because it must be countable separately from
+ * 'payment_reminder', whose rows drive the dunning ladder.
+ *
+ * It is deliberately NOT part of `DocumentType`: a statement is never a numbered
+ * legal document, has no `documents` row, and has no entry in getDocumentTemplate.
+ */
+export type PaymentOverviewKey = 'payment_overview'
+
+export type EmailTemplateKey = EmailDocumentType | ReminderStepKey | PaymentOverviewKey
 
 export type EmailTemplateMap = Partial<Record<EmailTemplateKey, EmailTemplate>>
 
@@ -582,6 +594,11 @@ export interface ClientReminderConfig {
   // Auto-email the invoice (PDF attached) ~24h after the order is created.
   // Separate from the reminder kill-switch; OPT-IN (treated as false when absent).
   initial_invoice_send_enabled?: boolean
+  // Email every customer with outstanding orders a single Betaaloverzicht
+  // (statement of account) on the FIRST WORKING DAY of each month, at send_hour.
+  // Independent of auto_send_enabled — a statement is not a dunning letter.
+  // OPT-IN (treated as false when absent); enabling mid-month does not backfill.
+  monthly_overview_enabled?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -600,6 +617,100 @@ export interface OverdueInvoice {
   reminders_sent: number
   last_reminder_at: string | null
   snoozed_until: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Monthly Betaaloverzicht — statement of account (migrations 00102/00103)
+// ---------------------------------------------------------------------------
+
+/** One row of `get_payment_overview_customers()` — drives the /overdue tab. */
+export interface PaymentOverviewCustomer {
+  customer_id: string
+  company_name: string
+  email: string | null
+  billing_country: string | null
+  reminders_opted_out: boolean
+  open_count: number
+  overdue_count: number
+  total_cents: number
+  oldest_due_date: string | null   // YYYY-MM-DD
+  // The statement for the period being inspected (this month by default).
+  last_overview_id: string | null
+  last_period: string | null
+  last_sent_at: string | null
+  last_send_status: DocumentSendStatus | null
+}
+
+/** One row of `get_payment_overview_orders(customer)` — one line on the PDF. */
+export interface PaymentOverviewLine {
+  order_id: string
+  order_number: string
+  invoice_number: string
+  order_date: string               // YYYY-MM-DD
+  invoice_due_date: string | null  // YYYY-MM-DD
+  days_overdue: number             // 0 when not yet due
+  amount_cents: number             // total minus refunds, incl. VAT
+}
+
+/**
+ * What the PDF renders from — and what is frozen into
+ * `payment_overviews.snapshot`, so a sent statement can be reproduced exactly.
+ *
+ * Mirrors InvoiceData's split: `company`/`customer` are flattened plain strings
+ * (safe to store), prose comes from getDocText(lang) at RENDER time and is never
+ * stored. Keep this JSON-serialisable — no Dates, no functions.
+ */
+export interface PaymentOverviewData {
+  lang: 'nl' | 'en'
+  /** First day of the statement month, YYYY-MM-DD. */
+  period: string
+  /** The date the balance was taken, YYYY-MM-DD — printed as "Peildatum". */
+  asAtDate: string
+  company: {
+    name: string
+    address?: string
+    postalCode?: string
+    city?: string
+    country?: string
+    phone?: string
+    email?: string
+    website?: string
+    logoUrl?: string
+    vatNumber?: string
+    kvkNumber?: string
+    bankName?: string
+    iban?: string
+    bic?: string
+    accountHolder?: string
+  }
+  customer: {
+    id: string
+    companyName: string
+    contactPerson?: string
+    street?: string
+    postalCode?: string
+    city?: string
+    country?: string
+    vatNumber?: string
+    customerNumber?: string
+  }
+  lines: PaymentOverviewLine[]
+  totalCents: number
+  overdueCents: number
+  overdueCount: number
+}
+
+/** `payment_overviews` row (migration 00103). */
+export interface PaymentOverviewRecord {
+  id: string
+  customer_id: string
+  period: string
+  snapshot: PaymentOverviewData
+  total_cents: number
+  order_count: number
+  document_send_id: string | null
+  created_at: string
+  updated_at: string
 }
 
 // invoice_reminders send-log row (migration 00059)
@@ -662,7 +773,9 @@ export interface DocumentSend {
   id: string
   document_id: string | null
   order_id: string | null
-  document_type: EmailDocumentType
+  // 'payment_overview' rows carry NEITHER document_id NOR order_id — a statement
+  // spans many orders. Follow payment_overviews.document_send_id back instead.
+  document_type: EmailDocumentType | PaymentOverviewKey
   recipient_email: string
   bcc_email: string | null
   subject: string

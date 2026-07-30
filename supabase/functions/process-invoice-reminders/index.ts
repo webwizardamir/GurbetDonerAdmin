@@ -33,6 +33,11 @@ interface ReminderConfig {
   // creation time — a future-dated order sends the day after its order_date).
   // OPT-IN (treated as false when absent). Toggled in Settings → Reminders.
   initial_invoice_send_enabled?: boolean
+  // Email every customer with outstanding orders a single Betaaloverzicht
+  // (statement of account) on the FIRST WORKING DAY of the month, at send_hour.
+  // Independent of auto_send_enabled — a statement is not a dunning letter.
+  // OPT-IN (treated as false when absent).
+  monthly_overview_enabled?: boolean
 }
 interface Template { subject: string; body: string }
 type Lang = 'nl' | 'en'
@@ -56,6 +61,10 @@ const DEFAULT_TEMPLATES_NL: Record<string, Template> = {
     subject: 'Laatste aanmaning: factuur {{document_number}}',
     body: 'Beste {{customer_name}},\n\nDit is onze laatste aanmaning voor factuur {{document_number}} ten bedrage van {{total}}, die nu {{days_overdue}} dagen achterstallig is. Wij verzoeken u het bedrag binnen 7 dagen te voldoen op IBAN {{iban}} om verdere (incasso)kosten te voorkomen.\n\nHeeft u deze factuur inmiddels betaald? Dan kunt u deze aanmaning als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
+  payment_overview: {
+    subject: 'Betaaloverzicht {{period}} — {{company_name}}',
+    body: 'Beste {{customer_name}},\n\nIn de bijlage vindt u uw betaaloverzicht: alle facturen die volgens onze administratie nog openstaan. Het gaat om {{invoice_count}} factuur/facturen met een totaalbedrag van {{total}}.\n\nWij verzoeken u vriendelijk het openstaande bedrag over te maken op IBAN {{iban}}, onder vermelding van het factuurnummer. Uw facturen kunt u ook bekijken via {{portal_link}}.\n\nHeeft u een of meer van deze facturen inmiddels betaald? Dan kunt u die regels als voldaan beschouwen — betalingen van de laatste dagen zijn mogelijk nog niet verwerkt.\n\nMet vriendelijke groet,\n{{company_name}}',
+  },
 }
 
 const DEFAULT_TEMPLATES_EN: Record<string, Template> = {
@@ -74,6 +83,10 @@ const DEFAULT_TEMPLATES_EN: Record<string, Template> = {
   payment_reminder_final: {
     subject: 'Final notice: invoice {{document_number}}',
     body: 'Dear {{customer_name}},\n\nThis is our final notice for invoice {{document_number}} for {{total}}, now {{days_overdue}} days overdue. We request that you pay the amount within 7 days to IBAN {{iban}} to avoid further (collection) costs.\n\nHave you already paid this invoice? If so, please disregard this notice.\n\nKind regards,\n{{company_name}}',
+  },
+  payment_overview: {
+    subject: 'Statement of account {{period}} — {{company_name}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached your statement of account: all invoices that, according to our records, are still outstanding. This covers {{invoice_count}} invoice(s) for a total of {{total}}.\n\nWe kindly ask you to transfer the outstanding amount to IBAN {{iban}}, quoting the invoice number. You can also view your invoices at {{portal_link}}.\n\nHave you already paid one or more of these invoices? Please consider those lines settled — payments made in the last few days may not yet be processed.\n\nKind regards,\n{{company_name}}',
   },
 }
 
@@ -147,6 +160,10 @@ const DEFAULT_CONFIG: ReminderConfig = {
   // the Vercel PDF renderer env is wired). Prevents a rollout mass-send and any
   // surprise customer mail.
   initial_invoice_send_enabled: false,
+  // OPT-IN for the same reason: enabling it mails EVERY customer with an open
+  // balance at once. Owner flips it in Settings → Reminders after reviewing a
+  // sample in /overdue?tab=overview.
+  monthly_overview_enabled: false,
   steps: [
     { days_after_due: 1, template_key: 'payment_reminder_1', tone: 'gentle' },
     { days_after_due: 14, template_key: 'payment_reminder_2', tone: 'second' },
@@ -207,6 +224,7 @@ serve(async (req) => {
   const result = {
     clientSent: 0, clientFailed: 0, clientSkipped: 0, adminSent: 0,
     invoiceSent: 0, invoiceFailed: 0, invoiceSkipped: 0,
+    overviewSent: 0, overviewFailed: 0, overviewSkipped: 0,
   }
 
   const hourOk = nowParts.hour === cfg.send_hour
@@ -487,6 +505,146 @@ serve(async (req) => {
     }
   }
 
+  // 7. Monthly Betaaloverzicht — ONE statement of account per customer listing
+  //    every still-unpaid, billed order, on the FIRST WORKING DAY of the month.
+  //
+  //    Why it lives here and not in its own cron: this function already runs
+  //    hourly, holds the settings, the branding, the Resend helper and the
+  //    renderer client — and, decisively, a separate function would need its own
+  //    Vault entries and secrets on BOTH tenants. Nothing new to provision.
+  //
+  //    Gates, all of which must hold:
+  //      - cfg.monthly_overview_enabled === true  (OPT-IN; off by default)
+  //      - renderConfigured   (never a PDF-less "see attached" email)
+  //      - hourOk && dayOk    (the shared business-hours send window)
+  //      - first working day of the month
+  //    Deliberately NOT gated on cfg.auto_send_enabled: that is the dunning
+  //    kill-switch, and a statement is a courtesy summary, not a dunning letter.
+  //
+  //    Enabling mid-month does NOT backfill — the day test simply won't match
+  //    again until next month, so flipping the toggle can never blast every
+  //    customer the same afternoon.
+  if (
+    cfg.monthly_overview_enabled === true &&
+    renderConfigured &&
+    hourOk && dayOk &&
+    isFirstWorkingDayOfMonth(nowParts, cfg.working_days_only)
+  ) {
+    const period = currentPeriod(nowParts)
+
+    // Same RPC the admin tab previews from, so a preview cannot disagree with
+    // what is mailed. Callable here because auth.uid() is NULL under the service
+    // role and the function admits that case explicitly (migration 00103).
+    const { data: candidates, error: candErr } = await admin
+      .rpc('get_payment_overview_customers', { p_period: period })
+
+    if (candErr) {
+      result.overviewFailed++
+    } else {
+      for (const c of (candidates ?? []) as Record<string, unknown>[]) {
+        const customerId = c.customer_id as string
+        const email = ((c.email as string) ?? '').trim()
+        if (!email || c.reminders_opted_out === true) { result.overviewSkipped++; continue }
+        if (Number(c.open_count ?? 0) <= 0) { result.overviewSkipped++; continue }
+
+        // Already handed to Resend for this period? Skip. Expressed as an
+        // EXCLUSION of the retryable statuses — never `= 'sent'`, which the
+        // sync-email-status cron rewrites within ~15 minutes (see
+        // NOT_YET_SENT_STATUSES). A failed/pending send still retries.
+        if (c.last_overview_id && c.last_send_status) {
+          const s = c.last_send_status as string
+          if (s !== 'pending' && s !== 'failed') { result.overviewSkipped++; continue }
+        }
+
+        // Freeze the snapshot for (customer, period). Upsert on the unique index
+        // so a retry re-uses the row instead of issuing a second statement.
+        const { data: lines, error: linesErr } = await admin
+          .rpc('get_payment_overview_orders', { p_customer_id: customerId })
+        if (linesErr || !lines || (lines as unknown[]).length === 0) {
+          result.overviewSkipped++
+          continue
+        }
+
+        const snapshot = await buildOverviewSnapshot(
+          admin, customerId, period, lines as Record<string, unknown>[], settings ?? {},
+        )
+        if (!snapshot) { result.overviewFailed++; continue }
+
+        const { data: ovRow, error: ovErr } = await admin
+          .from('payment_overviews')
+          .upsert({
+            customer_id: customerId,
+            period,
+            snapshot,
+            total_cents: snapshot.totalCents,
+            order_count: snapshot.lines.length,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'customer_id,period' })
+          .select('id')
+          .single()
+        if (ovErr || !ovRow) { result.overviewFailed++; continue }
+
+        // PDF FIRST, from the row we just wrote — identical to Step 6's rule.
+        const pdf = await fetchOverviewPdf(ovRow.id as string)
+        if (!pdf) { result.overviewFailed++; continue }
+
+        const lang = snapshot.lang
+        const bucket = langBucket(rawTemplates, lang)
+        const tmpl = resolveTemplate(bucket, DEFAULTS_BY_LANG[lang], 'payment_overview')
+        const ctx = {
+          company_name: companyName,
+          customer_name: snapshot.customer.companyName,
+          period: formatPeriodLabel(period, lang),
+          invoice_count: String(snapshot.lines.length),
+          total: formatEuro(snapshot.totalCents),
+          iban,
+          portal_link: portalLink,
+        }
+        const subject = render(tmpl.subject, ctx)
+        const body = render(tmpl.body, ctx)
+
+        // order_id / document_id stay NULL: a statement spans many orders and
+        // belongs to none. payment_overviews.document_send_id is the link back.
+        const { data: sendRow, error: sendInsertErr } = await admin
+          .from('document_sends')
+          .insert({
+            document_id: null,
+            order_id: null,
+            document_type: 'payment_overview',
+            recipient_email: email,
+            bcc_email: null,
+            subject, body,
+            status: 'pending',
+          })
+          .select('id')
+          .single()
+        if (sendInsertErr || !sendRow) { result.overviewFailed++; continue }
+
+        const { ok, resendId, error } = await sendResend(
+          RESEND_API_KEY, FROM_ADDRESS, email, subject, body, brand, pdf,
+        )
+
+        await admin.from('document_sends').update(
+          ok
+            ? { status: 'sent', resend_message_id: resendId, sent_at: new Date().toISOString() }
+            : { status: 'failed', error_message: error },
+        ).eq('id', sendRow.id)
+
+        // Link on success only — pointing at a failed row would make the next
+        // run's dedup read it as already sent and drop the retry.
+        if (ok) {
+          await admin
+            .from('payment_overviews')
+            .update({ document_send_id: sendRow.id, updated_at: new Date().toISOString() })
+            .eq('id', ovRow.id as string)
+          result.overviewSent++
+        } else {
+          result.overviewFailed++
+        }
+      }
+    }
+  }
+
   return json({ ok: true, ...result, ranAt: new Date().toISOString() }, 200)
 })
 
@@ -553,7 +711,10 @@ async function sendResend(
  * Best-effort: returns null on any failure so the caller can still send the
  * email without an attachment rather than losing it entirely.
  */
-async function fetchInvoicePdf(orderId: string): Promise<{ base64: string; filename: string } | null> {
+async function fetchRenderedPdf(
+  payload: Record<string, unknown>,
+  fallbackName: string,
+): Promise<{ base64: string; filename: string } | null> {
   const url = Deno.env.get('RENDER_ENDPOINT_URL')
   const secret = Deno.env.get('RENDER_SECRET')
   if (!url || !secret) return null
@@ -565,18 +726,125 @@ async function fetchInvoicePdf(orderId: string): Promise<{ base64: string; filen
     const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Render-Secret': secret },
-      body: JSON.stringify({ orderId }),
+      body: JSON.stringify(payload),
       signal: ctrl.signal,
     })
     if (!r.ok) return null
     const data = await r.json() as { pdf_base64?: string; filename?: string }
     if (!data.pdf_base64) return null
-    return { base64: data.pdf_base64, filename: data.filename ?? `Factuur-${orderId}.pdf` }
+    return { base64: data.pdf_base64, filename: data.filename ?? fallbackName }
   } catch {
     return null
   } finally {
     clearTimeout(timer)
   }
+}
+
+function fetchInvoicePdf(orderId: string) {
+  return fetchRenderedPdf({ orderId }, `Factuur-${orderId}.pdf`)
+}
+
+// ===========================================================================
+// Betaaloverzicht snapshot builder.
+//
+// 🚨 KEPT IN SYNC with buildPaymentOverviewData() in
+// apps/admin/src/services/paymentOverview.ts. Both must produce the SAME
+// PaymentOverviewData shape, because both write it into
+// payment_overviews.snapshot and the one PDF template renders whatever is
+// there. If they drift, a manually sent statement and an automatic one look
+// different for the same customer.
+//
+// The LINE data is not duplicated — both call get_payment_overview_orders, so
+// "which orders qualify" has exactly one definition (migration 00103).
+// ===========================================================================
+interface OverviewSnapshot {
+  lang: Lang
+  period: string
+  asAtDate: string
+  company: Record<string, string | undefined>
+  customer: { id: string; companyName: string; [k: string]: string | undefined }
+  lines: Record<string, unknown>[]
+  totalCents: number
+  overdueCents: number
+  overdueCount: number
+}
+
+async function buildOverviewSnapshot(
+  admin: ReturnType<typeof createClient>,
+  customerId: string,
+  period: string,
+  lines: Record<string, unknown>[],
+  settings: Record<string, unknown>,
+): Promise<OverviewSnapshot | null> {
+  const { data: c } = await admin
+    .from('customers')
+    .select('id, company_name, contact_person, billing_street, billing_postal_code, billing_city, billing_country, vat_number')
+    .eq('id', customerId)
+    .maybeSingle()
+  if (!c) return null
+
+  const cust = c as Record<string, string | null>
+  const lang = resolveLang(cust.billing_country)
+  const undef = (v: string | null | undefined) => (v ?? undefined) || undefined
+
+  const totalCents = lines.reduce((s, l) => s + Number(l.amount_cents ?? 0), 0)
+  const overdue = lines.filter(l => Number(l.days_overdue ?? 0) > 0)
+  const overdueCents = overdue.reduce((s, l) => s + Number(l.amount_cents ?? 0), 0)
+
+  return {
+    lang,
+    period,
+    // The balance is taken NOW, not at the period start — the statement goes out
+    // on the 1st and reports what is open on the 1st.
+    asAtDate: amsterdamYmd(),
+    company: {
+      name: (settings.company_name as string) ?? '',
+      address: undef(settings.company_address as string),
+      postalCode: undef(settings.company_postal_code as string),
+      city: undef(settings.company_city as string),
+      country: undef(settings.company_country as string),
+      phone: undef(settings.company_phone as string),
+      email: undef(settings.company_email as string),
+      website: undef(settings.company_website as string),
+      logoUrl: undef(settings.company_logo_url as string),
+      vatNumber: undef(settings.company_vat_number as string),
+      kvkNumber: undef(settings.company_kvk_number as string),
+      iban: undef(settings.bank_iban as string),
+      accountHolder: undef(settings.bank_account_holder as string),
+    },
+    // Explicit whitelist, never a spread — an internal column must not be able
+    // to reach a customer-facing snapshot.
+    customer: {
+      id: cust.id as string,
+      companyName: (cust.company_name as string) || 'Onbekende klant',
+      contactPerson: undef(cust.contact_person),
+      street: undef(cust.billing_street),
+      postalCode: undef(cust.billing_postal_code),
+      city: undef(cust.billing_city),
+      country: undef(cust.billing_country),
+      vatNumber: undef(cust.vat_number),
+      customerNumber: (cust.id as string)?.substring(0, 8).toUpperCase(),
+    },
+    lines,
+    totalCents,
+    overdueCents,
+    overdueCount: overdue.length,
+  }
+}
+
+/** Today in Amsterdam as YYYY-MM-DD (never toISOString — that is UTC). */
+function amsterdamYmd(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Amsterdam', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date())
+}
+
+/** Monthly Betaaloverzicht, rendered from payment_overviews.snapshot. */
+function fetchOverviewPdf(overviewId: string) {
+  return fetchRenderedPdf(
+    { type: 'payment_overview', overviewId },
+    `Betaaloverzicht-${overviewId}.pdf`,
+  )
 }
 
 // ===========================================================================
@@ -699,15 +967,54 @@ function daysSinceTs(tsISO: string): number {
   return Math.floor((Date.now() - new Date(tsISO).getTime()) / 86400000)
 }
 
-function amsterdamParts(): { hour: number; weekday: number } {
+function amsterdamParts(): { hour: number; weekday: number; day: number; month: number; year: number } {
   const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false, weekday: 'short',
+    timeZone: 'Europe/Amsterdam',
+    hour: 'numeric', hour12: false, weekday: 'short',
+    day: 'numeric', month: 'numeric', year: 'numeric',
   })
   const parts = fmt.formatToParts(new Date())
-  const hour = Number(parts.find(p => p.type === 'hour')?.value ?? '0') % 24
+  const num = (type: string, fallback = 0) =>
+    Number(parts.find(p => p.type === type)?.value ?? String(fallback))
+  const hour = num('hour') % 24
   const wkMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
   const weekday = wkMap[parts.find(p => p.type === 'weekday')?.value ?? 'Sun'] ?? 0
-  return { hour, weekday }
+  return { hour, weekday, day: num('day', 1), month: num('month', 1), year: num('year', 1970) }
+}
+
+/**
+ * Is TODAY the first working day of the month, in Amsterdam?
+ *
+ * The statement is due "on the 1st", but with working_days_only the 1st can be
+ * a Saturday or Sunday — and skipping it would silently drop a whole month.
+ * So the send rolls forward: the 1st when it is a weekday, else the following
+ * Monday (2nd if the 1st was a Sunday, 3rd if it was a Saturday).
+ *
+ * With working_days_only off this is simply "the 1st", which is why the weekend
+ * arithmetic is guarded on the flag rather than assumed.
+ */
+function isFirstWorkingDayOfMonth(
+  p: { day: number; weekday: number },
+  workingDaysOnly: boolean,
+): boolean {
+  if (!workingDaysOnly) return p.day === 1
+  if (p.weekday === 0 || p.weekday === 6) return false // never on a weekend
+  if (p.day === 1) return true
+  // Monday the 2nd  -> the 1st was a Sunday.
+  // Monday the 3rd  -> the 1st was a Saturday.
+  return p.weekday === 1 && (p.day === 2 || p.day === 3)
+}
+
+/** First day of the current Amsterdam month as YYYY-MM-DD (the statement period). */
+function currentPeriod(p: { year: number; month: number }): string {
+  return `${p.year}-${String(p.month).padStart(2, '0')}-01`
+}
+
+/** 'juli 2026' / 'July 2026' for the {{period}} placeholder. */
+function formatPeriodLabel(period: string, lang: Lang): string {
+  return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'nl-NL', {
+    month: 'long', year: 'numeric',
+  }).format(new Date(period + 'T00:00:00Z'))
 }
 
 function formatEuro(cents: number): string {

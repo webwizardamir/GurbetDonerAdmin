@@ -34,7 +34,9 @@ const corsHeaders = {
 }
 
 interface SendRequest {
-  order_id: string
+  // Null ONLY for a 'payment_overview' (a monthly statement spans many orders
+  // and belongs to none). Required for every other document type.
+  order_id: string | null
   document_id: string | null
   document_type: string
   recipient_email: string
@@ -43,6 +45,10 @@ interface SendRequest {
   body: string
   pdf_base64: string
   pdf_filename: string
+  // Statement only: the payment_overviews row this mail belongs to. Written back
+  // as document_send_id after a successful send, so the admin can find the mail
+  // from the statement and re-render exactly what was sent.
+  payment_overview_id?: string | null
 }
 
 interface ResendResponse {
@@ -94,12 +100,20 @@ serve(async (req) => {
 
     // 3. Validate payload
     const payload = await req.json() as SendRequest
+    const isOverview = payload.document_type === 'payment_overview'
     const required: (keyof SendRequest)[] = [
-      'order_id', 'document_type', 'recipient_email', 'subject', 'body',
+      'document_type', 'recipient_email', 'subject', 'body',
       'pdf_base64', 'pdf_filename',
+      // A statement has no single order, so order_id is only required for the
+      // per-document types. Keeping it required there means a missing id still
+      // fails loudly instead of writing an unattributable send row.
+      ...(isOverview ? [] : ['order_id' as const]),
     ]
     for (const f of required) {
       if (!payload[f]) return json({ error: `missing field: ${f}` }, 400)
+    }
+    if (isOverview && !payload.payment_overview_id) {
+      return json({ error: 'missing field: payment_overview_id' }, 400)
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.recipient_email)) {
       return json({ error: 'invalid recipient_email' }, 400)
@@ -119,7 +133,7 @@ serve(async (req) => {
       .from('document_sends')
       .insert({
         document_id: payload.document_id,
-        order_id: payload.order_id,
+        order_id: payload.order_id ?? null,
         document_type: payload.document_type,
         recipient_email: payload.recipient_email,
         bcc_email: payload.bcc_email,
@@ -175,6 +189,17 @@ serve(async (req) => {
       : { status: 'sent', resend_message_id: resendData?.id ?? null, sent_at: new Date().toISOString() }
 
     await admin.from('document_sends').update(updatePayload).eq('id', sendId)
+
+    // Link the statement to its mail, but ONLY on success: the /overdue tab and
+    // the cron both read document_sends.status through this link to decide
+    // "already sent?", and pointing it at a failed row would make a retry look
+    // like a completed send.
+    if (!resendErr && isOverview && payload.payment_overview_id) {
+      await admin
+        .from('payment_overviews')
+        .update({ document_send_id: sendId, updated_at: new Date().toISOString() })
+        .eq('id', payload.payment_overview_id)
+    }
 
     if (resendErr) {
       return json({ error: resendErr, send_id: sendId }, 502)

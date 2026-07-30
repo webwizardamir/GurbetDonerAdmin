@@ -926,7 +926,8 @@
       "credit_note": "İade Faturası",
       "packing_slip": "İrsaliye",
       "order_confirmation": "Sipariş Onayı",
-      "payment_reminder": "Ödeme Hatırlatması"
+      "payment_reminder": "Ödeme Hatırlatması",
+      "payment_overview": "Ödeme özeti"
     },
     "confirmDelete": "{{number}} silinsin mi? Bu işlem geri alınamaz.",
     "searchPlaceholder": "Numaraya, müşteriye, siparişe göre ara...",
@@ -1728,6 +1729,12 @@
       },
       "copy": {
         "title": "Hatırlatma başına metin"
+      },
+      "monthlyOverview": {
+        "title": "Aylık ödeme özeti",
+        "subtitle": "Açık faturası olan her müşteriye ayın ilk iş gününde tek bir özet gönderin.",
+        "note": "Aşağıdaki hatırlatmalardan bağımsızdır: ödeme özeti, vadesi henüz gelmemiş müşterilere de gider. Gönderim saati aşağıdaki saat ve iş günü ayarlarını izler. Önce Vadesi geçmiş faturalar → Ödeme özeti üzerinden bir önizlemeye bakın.",
+        "copyTitle": "Ödeme özeti e-posta metni"
       }
     }
   },
@@ -2161,6 +2168,51 @@
       "minimizedBar": "{{count}} açık fatura · {{total}}",
       "viewAll": "Tümünü gör",
       "minimize": "Küçült"
+    },
+    "tabs": {
+      "invoices": "Faturalar",
+      "overview": "Ödeme özeti"
+    }
+  },
+  "paymentOverview": {
+    "title": "Ödeme özeti",
+    "intro": "{{period}} dönemi özeti. Aşağıdaki her müşteri, tüm açık faturalarını içeren tek bir PDF alır. Göndermeden önce önizlemeye bakın.",
+    "notSent": "Henüz gönderilmedi",
+    "noEmail": "E-posta adresi yok",
+    "openCount_one": "{{count}} açık fatura",
+    "openCount_other": "{{count}} açık fatura",
+    "overdueCount_one": "{{count}} gecikmiş",
+    "overdueCount_other": "{{count}} gecikmiş",
+    "sentToast": "Ödeme özeti {{email}} adresine gönderildi",
+    "stats": {
+      "outstanding": "Toplam açık tutar",
+      "customers": "Bakiyesi olan müşteriler",
+      "sentThisMonth": "Bu ay gönderildi",
+      "noEmail": "E-posta adresi olmayan"
+    },
+    "empty": {
+      "title": "Açık fatura yok",
+      "subtitle": "Şu anda ödeme özeti gönderilecek bir şey yok."
+    },
+    "cols": {
+      "customer": "Müşteri",
+      "invoices": "Faturalar",
+      "oldestDue": "En eski vade tarihi",
+      "amount": "Açık tutar",
+      "status": "Gönderim",
+      "actions": "İşlemler"
+    },
+    "actions": {
+      "preview": "Önizleme",
+      "send": "Şimdi gönder",
+      "viewSent": "Gönderilen özeti görüntüle"
+    },
+    "confirm": {
+      "title": "Ödeme özetini gönder",
+      "message": "{{customer}} müşterisinin ödeme özetini ({{count}} fatura, {{amount}}) {{email}} adresine gönderilsin mi?"
+    },
+    "errors": {
+      "snapshotMissing": "Gönderilen özet bulunamadı."
     }
   }
 }

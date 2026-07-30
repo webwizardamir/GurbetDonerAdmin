@@ -144,7 +144,27 @@ Wij verzoeken u vriendelijk doch dringend het openstaande bedrag binnen 7 dagen 
 ` + (phone ? `Telefoon: ${phone}
 ` : "") + (email ? `E-mail: ${email}
 ` : "") + `
-Indien u reeds betaald heeft, verzoeken wij u dit bericht te negeren.`
+Indien u reeds betaald heeft, verzoeken wij u dit bericht te negeren.`,
+  // payment overview (monthly statement of account)
+  poTitle: "BETAALOVERZICHT",
+  poAddrLabel: "Overzicht voor",
+  poMetaDate: "Overzichtsdatum:",
+  poMetaAsAt: "Peildatum:",
+  poMetaCount: "Openstaande facturen:",
+  poThInvoice: "Factuur",
+  poThInvoiceDate: "Factuurdatum",
+  poThDueDate: "Vervaldatum",
+  poThStatus: "Status",
+  poThDaysLate: "Dagen te laat",
+  poThAmount: "Bedrag",
+  poStatusOverdue: "Verlopen",
+  poStatusOpen: "Openstaand",
+  poTotalLabel: "Totaal openstaand",
+  poOverdueLabel: "Waarvan verlopen",
+  poIntro: (asAt) => `Hieronder vindt u een overzicht van alle facturen die volgens onze administratie op ${asAt} nog openstaan.`,
+  poAlreadyPaid: "Heeft u een of meer van deze facturen inmiddels betaald? Dan kunt u die regels als voldaan beschouwen \u2014 betalingen van de laatste dagen zijn mogelijk nog niet verwerkt.",
+  poIbanRef: "Vermeld bij betaling het factuurnummer.",
+  poEmpty: "Er staan op dit moment geen facturen open. Hartelijk dank voor uw betaling."
 };
 var EN = {
   metaInvoiceNumber: "Invoice number:",
@@ -261,7 +281,26 @@ We kindly but urgently request that you transfer the outstanding amount within 7
 ` + (phone ? `Phone: ${phone}
 ` : "") + (email ? `Email: ${email}
 ` : "") + `
-If you have already paid, please disregard this message.`
+If you have already paid, please disregard this message.`,
+  poTitle: "STATEMENT OF ACCOUNT",
+  poAddrLabel: "Statement for",
+  poMetaDate: "Statement date:",
+  poMetaAsAt: "As at:",
+  poMetaCount: "Open invoices:",
+  poThInvoice: "Invoice",
+  poThInvoiceDate: "Invoice date",
+  poThDueDate: "Due date",
+  poThStatus: "Status",
+  poThDaysLate: "Days overdue",
+  poThAmount: "Amount",
+  poStatusOverdue: "Overdue",
+  poStatusOpen: "Open",
+  poTotalLabel: "Total outstanding",
+  poOverdueLabel: "Of which overdue",
+  poIntro: (asAt) => `Below is an overview of all invoices that, according to our records, were still outstanding on ${asAt}.`,
+  poAlreadyPaid: "Have you already paid one or more of these invoices? Please consider those lines settled \u2014 payments made in the last few days may not yet be processed.",
+  poIbanRef: "Please quote the invoice number with your payment.",
+  poEmpty: "There are currently no outstanding invoices. Thank you for your payment."
 };
 function getDocText(lang) {
   return lang === "en" ? EN : NL;
@@ -362,6 +401,25 @@ var MELEK = {
     tint: "#fecaca",
     tintSoft: "#fef2f2"
   },
+  /**
+   * Monthly Betaaloverzicht (statement of account). Indigo, deliberately unused
+   * elsewhere in either tenant's family.
+   *
+   * It must not read as the INVOICE (that is the payable document, and on Gurbet
+   * the "darkest navy band = money is due" rule is load-bearing), nor as the
+   * PAYMENT REMINDER — a statement is a courtesy summary that also goes to
+   * customers who are perfectly within terms, so the dunning red would be a lie.
+   * Indigo is far from both, and identical on both tenants because the document
+   * is a summary, not a branding surface.
+   */
+  paymentOverview: {
+    primary: "#4338ca",
+    dark: "#312e81",
+    // 12.3:1 on white
+    accent: "#6366f1",
+    tint: "#e0e7ff",
+    tintSoft: "#eef2ff"
+  },
   packingSlip: {
     primary: "#1e293b",
     dark: "#1e293b",
@@ -425,6 +483,15 @@ var FATHER = {
     accent: "#fca5a5",
     tint: "#fecaca",
     tintSoft: "#fef2f2"
+  },
+  paymentOverview: {
+    // Same indigo as Melek — see the note on the MELEK entry. It has to stay clear
+    // of the brand blue here too, which the invoice owns.
+    primary: "#4338ca",
+    dark: "#312e81",
+    accent: "#6366f1",
+    tint: "#e0e7ff",
+    tintSoft: "#eef2ff"
   },
   packingSlip: {
     // Unchanged neutral — a warehouse pick list, not a branding surface. Only the
@@ -3532,7 +3599,352 @@ function getDocumentTemplate(documentType, data) {
   }
 }
 
+// src/components/documents/PaymentOverviewTemplate.tsx
+import {
+  Document as Document7,
+  Page as Page7,
+  View as View7,
+  Text as Text7,
+  Image as Image7,
+  StyleSheet as StyleSheet7
+} from "@react-pdf/renderer";
+import { jsx as jsx8, jsxs as jsxs7 } from "react/jsx-runtime";
+var BRAND = docBrand.paymentOverview;
+var USABLE_WIDTH = 841.89 - 28 * 2;
+var COL = {
+  invoice: 0,
+  // flex — computed below
+  invoiceDate: 90,
+  dueDate: 90,
+  status: 80,
+  daysLate: 80,
+  amount: 100
+};
+COL.invoice = USABLE_WIDTH - (COL.invoiceDate + COL.dueDate + COL.status + COL.daysLate + COL.amount);
+var styles7 = StyleSheet7.create({
+  page: {
+    fontFamily: "Helvetica",
+    fontSize: 8,
+    padding: 28,
+    backgroundColor: "#ffffff",
+    color: "#1e293b"
+  },
+  // --- HEADER --------------------------------------------------------------
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10
+  },
+  headerLeft: { flexDirection: "row", alignItems: "flex-start" },
+  logo: {
+    width: 80,
+    height: "auto",
+    maxHeight: 36,
+    objectFit: "contain",
+    marginRight: 10
+  },
+  companyInfo: {},
+  companyName: { fontSize: 11, fontFamily: "Helvetica-Bold", marginBottom: 2 },
+  companyDetail: { fontSize: 7, color: "#64748b", lineHeight: 1.35 },
+  headerRight: { alignItems: "flex-end" },
+  docTitle: {
+    fontSize: 18,
+    fontFamily: "Helvetica-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    color: BRAND.primary
+  },
+  docNumberBadge: {
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: BRAND.dark,
+    backgroundColor: BRAND.tint,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    marginTop: 4
+  },
+  // --- INFO ROW (customer + meta) -----------------------------------------
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8
+  },
+  customerBox: {
+    width: "55%",
+    borderLeftWidth: 2,
+    borderLeftColor: BRAND.accent,
+    paddingLeft: 8,
+    paddingVertical: 4,
+    backgroundColor: "#f8fafc"
+  },
+  customerLabel: {
+    fontSize: 6.5,
+    fontFamily: "Helvetica-Bold",
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 2
+  },
+  customerName: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 1 },
+  customerDetail: { fontSize: 8, color: "#475569", lineHeight: 1.35 },
+  metaBox: { width: "40%" },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 1,
+    paddingVertical: 1
+  },
+  metaLabel: { fontSize: 7.5, color: "#64748b" },
+  metaValue: { fontSize: 8 },
+  metaValueStrong: { fontSize: 8, fontFamily: "Helvetica-Bold" },
+  // --- INTRO ---------------------------------------------------------------
+  introBox: {
+    borderLeftWidth: 2,
+    borderLeftColor: BRAND.accent,
+    backgroundColor: BRAND.tintSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 6
+  },
+  introText: { fontSize: 7.5, color: BRAND.dark, lineHeight: 1.35 },
+  // --- TABLE ---------------------------------------------------------------
+  table: { marginBottom: 8 },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: BRAND.dark,
+    paddingVertical: 4,
+    paddingHorizontal: 5
+  },
+  th: {
+    fontSize: 6.5,
+    fontFamily: "Helvetica-Bold",
+    color: "#ffffff",
+    textTransform: "uppercase",
+    paddingHorizontal: 2
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 3,
+    paddingHorizontal: 5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#e2e8f0"
+  },
+  rowEven: { backgroundColor: "#f8fafc" },
+  rowOdd: { backgroundColor: "#ffffff" },
+  td: { fontSize: 7.5, paddingHorizontal: 2 },
+  tdBold: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 2 },
+  // SEMANTIC, not brand: an overdue line is red on every tenant, same as the
+  // invoice's overdue due-date. Do not repoint this at BRAND.
+  tdOverdue: { fontSize: 7.5, color: "#dc2626", paddingHorizontal: 2 },
+  tdMuted: { fontSize: 7.5, color: "#94a3b8", paddingHorizontal: 2 },
+  // --- TOTALS --------------------------------------------------------------
+  totalsWrap: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 8 },
+  totalsBox: {
+    width: 280,
+    borderTopWidth: 2,
+    borderTopColor: BRAND.primary,
+    backgroundColor: BRAND.tintSoft,
+    padding: 7
+  },
+  totalsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 2
+  },
+  totalsLabel: { fontSize: 7.5, color: "#475569" },
+  totalsValue: { fontSize: 7.5 },
+  totalsValueOverdue: { fontSize: 7.5, color: "#dc2626" },
+  grandRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: 4,
+    marginTop: 3,
+    borderTopWidth: 1.5,
+    borderTopColor: BRAND.primary
+  },
+  grandLabel: { fontSize: 9, fontFamily: "Helvetica-Bold" },
+  grandValue: { fontSize: 9, fontFamily: "Helvetica-Bold", color: BRAND.dark },
+  // --- IBAN CALLOUT --------------------------------------------------------
+  ibanCallout: {
+    borderWidth: 0.5,
+    borderColor: BRAND.primary,
+    backgroundColor: BRAND.tintSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 6,
+    alignItems: "center"
+  },
+  ibanCalloutLabel: { fontSize: 8, color: BRAND.dark, marginBottom: 2 },
+  ibanCalloutIban: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    color: BRAND.dark,
+    letterSpacing: 0.5
+  },
+  ibanCalloutHolder: { fontSize: 7.5, color: BRAND.dark, marginTop: 1 },
+  ibanCalloutRef: { fontSize: 7, color: "#64748b", marginTop: 2 },
+  noteText: { fontSize: 7, color: "#64748b", lineHeight: 1.35, marginBottom: 6 },
+  emptyText: { fontSize: 9, color: "#475569", marginBottom: 8 },
+  // --- FOOTER --------------------------------------------------------------
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: BRAND.primary,
+    paddingTop: 6,
+    marginTop: "auto",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  footerCompany: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  footerDetail: { fontSize: 6.5, color: "#64748b", lineHeight: 1.4 },
+  pageNumber: { fontSize: 6.5, color: "#64748b" }
+});
+function PaymentOverviewPage({ data }) {
+  const T = getDocText(data.lang);
+  const isEn = data.lang === "en";
+  const companyLines = [
+    data.company.address,
+    data.company.postalCode && data.company.city ? `${data.company.postalCode} ${data.company.city}` : data.company.city,
+    data.company.phone ? `Tel: ${data.company.phone}` : null,
+    data.company.email
+  ].filter(Boolean).join("\n");
+  const customerLines = buildAddressLines({
+    street: data.customer.street,
+    postalCode: data.customer.postalCode,
+    city: data.customer.city,
+    country: data.customer.country
+  });
+  const footerDetail = [
+    data.company.vatNumber ? `BTW: ${data.company.vatNumber}` : null,
+    data.company.kvkNumber ? `KvK: ${data.company.kvkNumber}` : null,
+    data.company.website
+  ].filter(Boolean).join(" \xB7 ");
+  const pageLabel = isEn ? "Page" : "Pagina";
+  const ofLabel = isEn ? "of" : "van";
+  return /* @__PURE__ */ jsxs7(Page7, { size: "A4", orientation: "landscape", style: styles7.page, children: [
+    /* @__PURE__ */ jsxs7(View7, { style: styles7.header, fixed: true, children: [
+      /* @__PURE__ */ jsxs7(View7, { style: styles7.headerLeft, children: [
+        data.company.logoUrl && /* @__PURE__ */ jsx8(Image7, { src: data.company.logoUrl, style: styles7.logo }),
+        /* @__PURE__ */ jsxs7(View7, { style: styles7.companyInfo, children: [
+          /* @__PURE__ */ jsx8(Text7, { style: styles7.companyName, children: data.company.name }),
+          companyLines ? /* @__PURE__ */ jsx8(Text7, { style: styles7.companyDetail, children: companyLines }) : null
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs7(View7, { style: styles7.headerRight, children: [
+        /* @__PURE__ */ jsx8(Text7, { style: styles7.docTitle, children: T.poTitle }),
+        /* @__PURE__ */ jsx8(Text7, { style: styles7.docNumberBadge, children: formatDate(data.asAtDate) })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxs7(View7, { style: styles7.infoRow, children: [
+      /* @__PURE__ */ jsxs7(View7, { style: styles7.customerBox, children: [
+        /* @__PURE__ */ jsx8(Text7, { style: styles7.customerLabel, children: T.poAddrLabel }),
+        /* @__PURE__ */ jsx8(Text7, { style: styles7.customerName, children: data.customer.companyName }),
+        /* @__PURE__ */ jsx8(Text7, { style: styles7.customerDetail, children: [data.customer.contactPerson, ...customerLines].filter(Boolean).join("\n") })
+      ] }),
+      /* @__PURE__ */ jsxs7(View7, { style: styles7.metaBox, children: [
+        /* @__PURE__ */ jsxs7(View7, { style: styles7.metaRow, children: [
+          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaLabel, children: T.poMetaDate }),
+          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaValue, children: formatDate(data.asAtDate) })
+        ] }),
+        /* @__PURE__ */ jsxs7(View7, { style: styles7.metaRow, children: [
+          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaLabel, children: T.poMetaCount }),
+          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaValue, children: data.lines.length })
+        ] }),
+        data.customer.customerNumber ? /* @__PURE__ */ jsxs7(View7, { style: styles7.metaRow, children: [
+          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaLabel, children: isEn ? "Customer number:" : "Klantnummer:" }),
+          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaValue, children: data.customer.customerNumber })
+        ] }) : null,
+        /* @__PURE__ */ jsxs7(View7, { style: styles7.metaRow, children: [
+          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaLabel, children: T.poTotalLabel }),
+          /* @__PURE__ */ jsx8(Text7, { style: styles7.metaValueStrong, children: formatPrice(data.totalCents) })
+        ] })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsx8(View7, { style: styles7.introBox, children: /* @__PURE__ */ jsx8(Text7, { style: styles7.introText, children: T.poIntro(formatDate(data.asAtDate)) }) }),
+    data.lines.length === 0 ? /* @__PURE__ */ jsx8(Text7, { style: styles7.emptyText, children: T.poEmpty }) : /* @__PURE__ */ jsxs7(View7, { style: styles7.table, children: [
+      /* @__PURE__ */ jsxs7(View7, { style: styles7.tableHeader, fixed: true, children: [
+        /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.invoice }], children: T.poThInvoice }),
+        /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.invoiceDate }], children: T.poThInvoiceDate }),
+        /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.dueDate }], children: T.poThDueDate }),
+        /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.status }], children: T.poThStatus }),
+        /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.daysLate, textAlign: "right" }], children: T.poThDaysLate }),
+        /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.amount, textAlign: "right" }], children: T.poThAmount })
+      ] }),
+      data.lines.map((line, i) => {
+        const overdue = line.days_overdue > 0;
+        return /* @__PURE__ */ jsxs7(
+          View7,
+          {
+            style: [styles7.tableRow, i % 2 === 0 ? styles7.rowEven : styles7.rowOdd],
+            wrap: false,
+            children: [
+              /* @__PURE__ */ jsx8(Text7, { style: [styles7.tdBold, { width: COL.invoice }], children: line.invoice_number }),
+              /* @__PURE__ */ jsx8(Text7, { style: [styles7.td, { width: COL.invoiceDate }], children: line.order_date ? formatDate(line.order_date) : "\u2014" }),
+              /* @__PURE__ */ jsx8(Text7, { style: [styles7.td, { width: COL.dueDate }], children: line.invoice_due_date ? formatDate(line.invoice_due_date) : "\u2014" }),
+              /* @__PURE__ */ jsx8(Text7, { style: [overdue ? styles7.tdOverdue : styles7.td, { width: COL.status }], children: overdue ? T.poStatusOverdue : T.poStatusOpen }),
+              /* @__PURE__ */ jsx8(
+                Text7,
+                {
+                  style: [
+                    overdue ? styles7.tdOverdue : styles7.tdMuted,
+                    { width: COL.daysLate, textAlign: "right" }
+                  ],
+                  children: overdue ? String(line.days_overdue) : "\u2014"
+                }
+              ),
+              /* @__PURE__ */ jsx8(Text7, { style: [styles7.tdBold, { width: COL.amount, textAlign: "right" }], children: formatPrice(line.amount_cents) })
+            ]
+          },
+          line.order_id
+        );
+      })
+    ] }),
+    /* @__PURE__ */ jsx8(View7, { style: styles7.totalsWrap, wrap: false, children: /* @__PURE__ */ jsxs7(View7, { style: styles7.totalsBox, children: [
+      data.overdueCount > 0 && /* @__PURE__ */ jsxs7(View7, { style: styles7.totalsRow, children: [
+        /* @__PURE__ */ jsxs7(Text7, { style: styles7.totalsLabel, children: [
+          T.poOverdueLabel,
+          " (",
+          data.overdueCount,
+          ")"
+        ] }),
+        /* @__PURE__ */ jsx8(Text7, { style: styles7.totalsValueOverdue, children: formatPrice(data.overdueCents) })
+      ] }),
+      /* @__PURE__ */ jsxs7(View7, { style: styles7.grandRow, children: [
+        /* @__PURE__ */ jsx8(Text7, { style: styles7.grandLabel, children: T.poTotalLabel }),
+        /* @__PURE__ */ jsx8(Text7, { style: styles7.grandValue, children: formatPrice(data.totalCents) })
+      ] })
+    ] }) }),
+    data.lines.length > 0 && data.company.iban ? /* @__PURE__ */ jsxs7(View7, { style: styles7.ibanCallout, wrap: false, children: [
+      /* @__PURE__ */ jsx8(Text7, { style: styles7.ibanCalloutLabel, children: T.ibanPay }),
+      /* @__PURE__ */ jsx8(Text7, { style: styles7.ibanCalloutIban, children: data.company.iban }),
+      data.company.accountHolder ? /* @__PURE__ */ jsxs7(Text7, { style: styles7.ibanCalloutHolder, children: [
+        T.ibanHolderPrefix,
+        data.company.accountHolder
+      ] }) : null,
+      /* @__PURE__ */ jsx8(Text7, { style: styles7.ibanCalloutRef, children: T.poIbanRef })
+    ] }) : null,
+    data.lines.length > 0 && /* @__PURE__ */ jsx8(Text7, { style: styles7.noteText, wrap: false, children: T.poAlreadyPaid }),
+    /* @__PURE__ */ jsxs7(View7, { style: styles7.footer, fixed: true, children: [
+      /* @__PURE__ */ jsxs7(View7, { children: [
+        /* @__PURE__ */ jsx8(Text7, { style: styles7.footerCompany, children: data.company.name }),
+        footerDetail ? /* @__PURE__ */ jsx8(Text7, { style: styles7.footerDetail, children: footerDetail }) : null
+      ] }),
+      /* @__PURE__ */ jsx8(
+        Text7,
+        {
+          style: styles7.pageNumber,
+          render: ({ pageNumber, totalPages }) => `${pageLabel} ${pageNumber} ${ofLabel} ${totalPages}`
+        }
+      )
+    ] })
+  ] });
+}
+function PaymentOverviewTemplate({ data }) {
+  return /* @__PURE__ */ jsx8(Document7, { children: /* @__PURE__ */ jsx8(PaymentOverviewPage, { data }) });
+}
+
 // api-src/render-invoice.tsx
+import { jsx as jsx9 } from "react/jsx-runtime";
 async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
   const secret = process.env.RENDER_SECRET;
@@ -3541,14 +3953,30 @@ async function handler(req, res) {
   }
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body ?? {};
-    const orderId = String(body.orderId ?? "");
-    if (!orderId) return res.status(400).json({ error: "missing orderId" });
+    const type = String(body.type ?? "invoice");
     const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!SUPABASE_URL || !SERVICE_ROLE) {
       return res.status(500).json({ error: "supabase env not configured (need SUPABASE_SERVICE_ROLE_KEY + SUPABASE_URL/VITE_SUPABASE_URL)" });
     }
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    if (type === "payment_overview") {
+      const overviewId = String(body.overviewId ?? "");
+      if (!overviewId) return res.status(400).json({ error: "missing overviewId" });
+      const { data: row, error: error2 } = await admin.from("payment_overviews").select("snapshot, period").eq("id", overviewId).maybeSingle();
+      if (error2) return res.status(500).json({ error: `db: ${error2.message}` });
+      if (!row?.snapshot) return res.status(404).json({ error: "no snapshot for overview" });
+      const data = row.snapshot;
+      const buffer2 = await renderToBuffer(
+        /* @__PURE__ */ jsx9(PaymentOverviewTemplate, { data })
+      );
+      const pdf_base642 = Buffer.from(buffer2).toString("base64");
+      const safeName = (data.customer?.companyName ?? "klant").replace(/[^\w-]+/g, "-");
+      const filename2 = `Betaaloverzicht-${safeName}-${row.period}.pdf`;
+      return res.status(200).json({ pdf_base64: pdf_base642, filename: filename2 });
+    }
+    const orderId = String(body.orderId ?? "");
+    if (!orderId) return res.status(400).json({ error: "missing orderId" });
     const { data: doc, error } = await admin.from("documents").select("document_number, snapshot").eq("order_id", orderId).eq("document_type", "invoice").order("generated_at", { ascending: false }).limit(1).maybeSingle();
     if (error) return res.status(500).json({ error: `db: ${error.message}` });
     if (!doc?.snapshot) return res.status(404).json({ error: "no invoice snapshot for order" });

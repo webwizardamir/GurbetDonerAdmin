@@ -16,6 +16,7 @@ export const DEFAULT_CLIENT_REMINDER_CONFIG: ClientReminderConfig = {
   repeat_interval_days: 7,
   max_count: 3,
   initial_invoice_send_enabled: false, // opt-in; enabled in Settings after render env is wired
+  monthly_overview_enabled: false,     // opt-in; monthly Betaaloverzicht (00103)
   steps: [
     { days_after_due: 1,  template_key: 'payment_reminder_1',     tone: 'gentle' },
     { days_after_due: 14, template_key: 'payment_reminder_2',     tone: 'second' },

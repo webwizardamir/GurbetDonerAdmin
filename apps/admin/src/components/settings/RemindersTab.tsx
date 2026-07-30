@@ -7,10 +7,16 @@ import type {
   DocumentSettings,
   EmailLang,
   LocalizedEmailTemplates,
+  PaymentOverviewKey,
   ReminderStepKey,
   ReminderTone,
 } from '../../types'
-import { getTemplate, normalizeEmailTemplates, REMINDER_PLACEHOLDER_KEYS } from '../../services/documentEmail'
+import {
+  getTemplate,
+  normalizeEmailTemplates,
+  OVERVIEW_PLACEHOLDER_KEYS,
+  REMINDER_PLACEHOLDER_KEYS,
+} from '../../services/documentEmail'
 import { DEFAULT_CLIENT_REMINDER_CONFIG } from '../../services/invoiceReminders'
 import LangTabs from './LangTabs'
 
@@ -38,6 +44,7 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
   const localized = normalizeEmailTemplates(formData.email_templates)
   const templates = localized[lang]
   const placeholderChips = useMemo(() => REMINDER_PLACEHOLDER_KEYS.map(k => `{{${k}}}`), [])
+  const overviewChips = useMemo(() => OVERVIEW_PLACEHOLDER_KEYS.map(k => `{{${k}}}`), [])
 
   const patch = (p: Partial<ClientReminderConfig>) => onConfigChange({ ...cfg, ...p })
 
@@ -62,7 +69,11 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
   }
   const removeStep = (idx: number) => patch({ steps: cfg.steps.filter((_, i) => i !== idx) })
 
-  const updateTemplate = (key: ReminderStepKey, field: 'subject' | 'body', value: string) => {
+  const updateTemplate = (
+    key: ReminderStepKey | PaymentOverviewKey,
+    field: 'subject' | 'body',
+    value: string,
+  ) => {
     const existing = templates[key] ?? { subject: '', body: '' }
     const nextLang = { ...templates, [key]: { ...existing, [field]: value } }
     onTemplatesChange({ ...localized, [lang]: nextLang })
@@ -97,6 +108,58 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
           >
             <span className={knobClass(cfg.initial_invoice_send_enabled === true)} />
           </button>
+        </div>
+      </div>
+
+      {/* Monthly Betaaloverzicht (statement of account, 1st working day) —
+          deliberately its OWN toggle, not folded under the dunning kill switch
+          below: a statement also goes to customers who are entirely within
+          terms, so it is not part of the escalation ladder. */}
+      <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-slate-900 dark:text-white">{t('settings.reminders.monthlyOverview.title')}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('settings.reminders.monthlyOverview.subtitle')}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={cfg.monthly_overview_enabled === true}
+            onClick={() => patch({ monthly_overview_enabled: !(cfg.monthly_overview_enabled === true) })}
+            className={toggleClass(cfg.monthly_overview_enabled === true)}
+          >
+            <span className={knobClass(cfg.monthly_overview_enabled === true)} />
+          </button>
+        </div>
+
+        <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+          <p className="text-sm text-blue-800 dark:text-blue-300">{t('settings.reminders.monthlyOverview.note')}</p>
+        </div>
+
+        {/* Email copy — same LangTabs pattern as the escalation copy below. */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-sm font-medium text-slate-900 dark:text-white">{t('settings.reminders.monthlyOverview.copyTitle')}</h4>
+            <LangTabs lang={lang} onChange={setLang} />
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {t('settings.documents.email.placeholdersTitle')} {overviewChips.join(' ')}
+          </p>
+          <input
+            type="text"
+            value={templates.payment_overview?.subject ?? ''}
+            placeholder={getTemplate(localized, 'payment_overview', lang).subject}
+            onChange={e => updateTemplate('payment_overview', 'subject', e.target.value)}
+            className={inputClass}
+          />
+          <textarea
+            rows={7}
+            value={templates.payment_overview?.body ?? ''}
+            placeholder={getTemplate(localized, 'payment_overview', lang).body}
+            onChange={e => updateTemplate('payment_overview', 'body', e.target.value)}
+            className={`${inputClass} font-mono text-xs`}
+          />
         </div>
       </div>
 

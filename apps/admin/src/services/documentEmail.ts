@@ -8,6 +8,7 @@ import type {
   EmailTemplateKey,
   EmailTemplateMap,
   LocalizedEmailTemplates,
+  PaymentOverviewKey,
 } from '../types'
 import { FAILED_SEND_STATUSES, isSuccessfulSend } from '../types'
 import { sanitizeOrTerm } from '../utils/pgSearch'
@@ -56,6 +57,13 @@ const DEFAULT_TEMPLATES_NL: Record<EmailTemplateKey, EmailTemplate> = {
     subject: 'Laatste aanmaning: factuur {{document_number}}',
     body: 'Beste {{customer_name}},\n\nDit is onze laatste aanmaning voor factuur {{document_number}} ten bedrage van {{total}}, die nu {{days_overdue}} dagen achterstallig is. Wij verzoeken u het bedrag binnen 7 dagen te voldoen op IBAN {{iban}} om verdere (incasso)kosten te voorkomen.\n\nHeeft u deze factuur inmiddels betaald? Dan kunt u deze aanmaning als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n{{company_name}}',
   },
+  // Monthly statement of account. NOT a dunning letter — it also goes to
+  // customers who are entirely within their payment term, so the tone stays
+  // neutral and it never threatens costs.
+  payment_overview: {
+    subject: 'Betaaloverzicht {{period}} — {{company_name}}',
+    body: 'Beste {{customer_name}},\n\nIn de bijlage vindt u uw betaaloverzicht: alle facturen die volgens onze administratie nog openstaan. Het gaat om {{invoice_count}} factuur/facturen met een totaalbedrag van {{total}}.\n\nWij verzoeken u vriendelijk het openstaande bedrag over te maken op IBAN {{iban}}, onder vermelding van het factuurnummer. Uw facturen kunt u ook bekijken via {{portal_link}}.\n\nHeeft u een of meer van deze facturen inmiddels betaald? Dan kunt u die regels als voldaan beschouwen — betalingen van de laatste dagen zijn mogelijk nog niet verwerkt.\n\nMet vriendelijke groet,\n{{company_name}}',
+  },
 }
 
 const DEFAULT_TEMPLATES_EN: Record<EmailTemplateKey, EmailTemplate> = {
@@ -94,6 +102,10 @@ const DEFAULT_TEMPLATES_EN: Record<EmailTemplateKey, EmailTemplate> = {
   payment_reminder_final: {
     subject: 'Final notice: invoice {{document_number}}',
     body: 'Dear {{customer_name}},\n\nThis is our final notice for invoice {{document_number}} for {{total}}, now {{days_overdue}} days overdue. We request that you pay the amount within 7 days to IBAN {{iban}} to avoid further (collection) costs.\n\nHave you already paid this invoice? If so, please disregard this notice.\n\nKind regards,\n{{company_name}}',
+  },
+  payment_overview: {
+    subject: 'Statement of account {{period}} — {{company_name}}',
+    body: 'Dear {{customer_name}},\n\nPlease find attached your statement of account: all invoices that, according to our records, are still outstanding. This covers {{invoice_count}} invoice(s) for a total of {{total}}.\n\nWe kindly ask you to transfer the outstanding amount to IBAN {{iban}}, quoting the invoice number. You can also view your invoices at {{portal_link}}.\n\nHave you already paid one or more of these invoices? Please consider those lines settled — payments made in the last few days may not yet be processed.\n\nKind regards,\n{{company_name}}',
   },
 }
 
@@ -160,6 +172,8 @@ export interface TemplateContext {
   days_overdue?: string  // overdue-reminder context
   iban?: string
   portal_link?: string
+  period?: string        // statement context: 'juli 2026' / 'July 2026'
+  invoice_count?: string // statement context: number of outstanding invoices
 }
 
 /** Replace every {{key}} occurrence with the matching context value (or '' if missing). */
@@ -187,6 +201,18 @@ export const PLACEHOLDER_KEYS: Array<keyof TemplateContext> = [
 export const REMINDER_PLACEHOLDER_KEYS: Array<keyof TemplateContext> = [
   ...PLACEHOLDER_KEYS,
   'days_overdue',
+  'iban',
+  'portal_link',
+]
+
+// The monthly statement is per-CUSTOMER, not per-document, so document_number /
+// order_number / due_date have no meaning there and are deliberately omitted.
+export const OVERVIEW_PLACEHOLDER_KEYS: Array<keyof TemplateContext> = [
+  'company_name',
+  'customer_name',
+  'period',
+  'invoice_count',
+  'total',
   'iban',
   'portal_link',
 ]
@@ -338,15 +364,26 @@ export async function fetchSendCountsByOrder(orderIds: string[]): Promise<Record
 // ===========================================================================
 
 export interface SendDocumentEmailInput {
-  orderId: string
+  /**
+   * Null ONLY for a 'payment_overview', which spans many orders and therefore
+   * belongs to none. Every other document type must supply it.
+   */
+  orderId: string | null
   documentId: string | null
-  documentType: EmailDocumentType
+  documentType: EmailDocumentType | PaymentOverviewKey
   recipientEmail: string
   bccEmail?: string | null
   subject: string
   body: string
   pdfBase64: string
   pdfFilename: string
+  /**
+   * Statement only: the `payment_overviews` row this mail belongs to. The edge
+   * function writes `document_send_id` back onto it after a successful send, so
+   * the /overdue tab can show when it went out and re-render exactly what was
+   * sent from the frozen snapshot.
+   */
+  paymentOverviewId?: string | null
 }
 
 export interface SendDocumentEmailResult {
@@ -373,6 +410,7 @@ export async function sendDocumentEmail(input: SendDocumentEmailInput): Promise<
       body:            input.body,
       pdf_base64:      input.pdfBase64,
       pdf_filename:    input.pdfFilename,
+      payment_overview_id: input.paymentOverviewId ?? null,
     },
   })
 

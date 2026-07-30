@@ -1699,6 +1699,74 @@ extra `_comment` key fails Vercel's schema validation and breaks the deploy.
 
 ---
 
+## Maandelijks Betaaloverzicht — statement of account (00102–00103, 2026-07-31)
+
+One PDF per customer listing **every still-unpaid, billed order** plus a single "totaal
+openstaand", emailed on the **first working day of the month**. Replaces the experience of getting
+six separate dunning emails and never seeing one number.
+
+- **Qualifying orders** (`get_payment_overview_orders(customer)`, the single definition — the admin
+  tab and the cron both call it, so a preview can never disagree with what is mailed):
+  `deleted_at IS NULL`, `status NOT IN ('completed','cancelled','refunded','draft')`, an invoice
+  number exists (invoice `documents` row **or** `woo_invoice_number`), and
+  `total − refund_amount > 0`. Note `pending` **and** `pending_payment` both qualify — they are the
+  same thing. A Concept is excluded: unfinalised, so nothing is owed yet.
+- **`get_payment_overview_customers(period)`** is the tab's list + the cron's candidate query, and
+  returns this month's send state (`last_overview_id/_sent_at/_send_status`) in the same round-trip.
+- **Storage: `payment_overviews`, NOT `documents`.** A statement has no sequential legal number, so
+  a `documents` row would pollute the Invoices register / `documents_list` (00088), force a CASE
+  branch into `get_next_document_number_atomic`, and burn an invoice number. It links to the mail
+  log the way `invoice_reminders` does — via `document_send_id`. Unique on `(customer_id, period)`,
+  upserted, so a retry re-uses the row instead of issuing a second statement for the month.
+- **PDF: `PaymentOverviewTemplate.tsx`, A4 LANDSCAPE.** Document-family chrome (logo header,
+  address box, meta box, IBAN callout, branded footer) around the export-style zebra table. Portrait
+  crushes six columns of dates and amounts into ≈539pt; landscape gives ≈786pt at the cost of ~11
+  rows on page 1 / ~20 after. Header band and footer are `fixed` so a 40-invoice statement keeps its
+  column headers. Brand slot `docBrand.paymentOverview` — indigo `#4338ca`/`#312e81` on **both**
+  tenants: it must read as neither the invoice (payable) nor the payment reminder (dunning red).
+  Bilingual by `resolveDocumentLang(billing_country)` like every customer document.
+
+### 🚨 `payment_overview` is its own `document_type` — never reuse `payment_reminder`
+`get_overdue_invoices` (00090) and the edge function's `max_count` dedup both COUNT
+`document_sends` rows of type `payment_reminder` to place an invoice on the dunning ladder. Logging
+a statement as one would silently consume escalation steps. The new enum value is used **only** on
+`document_sends`; it is deliberately absent from the TS `DocumentType` union and from
+`getDocumentTemplate`'s switch (same precedent as `ReminderStepKey`).
+
+### The RPC auth gate admits two opposite callers
+Both RPCs are SECURITY DEFINER and guard with `IF auth.uid() IS NOT NULL AND NOT is_owner()`. A
+plain `IF NOT is_owner()` would lock out the **cron**, which runs as service_role with a NULL
+`auth.uid()`. Since only owners and the service role get in, there is deliberately **no**
+`hidden_from_managers` predicate inside — both are entitled to every order, and a statement that
+silently omitted one would understate the balance. That is also why the **whole tab is owner-only**
+(`useAuth().isOwner`): gating the list but not the PDF would print a total that disagrees with the
+screen, and gating both would mail the customer a wrong statement.
+
+### Two send paths, one snapshot shape
+- **Manual** (`/overdue?tab=overview` → Nu versturen): renders client-side, base64s it, and calls
+  `send-document-email`. `order_id`/`document_id` are **NULL** (a statement belongs to no single
+  order); the function requires `payment_overview_id` instead and writes `document_send_id` back
+  **only on success** — pointing it at a failed row would make the next dedup read it as sent.
+  Needs no Vercel renderer env, so previewing and hand-sending work before anything else is wired.
+- **Automatic**: **Step 7** of `process-invoice-reminders` (not its own cron — that would need new
+  Vault entries and secrets on *both* tenants). Gates: `monthly_overview_enabled === true` (opt-in,
+  own toggle — **not** under `auto_send_enabled`, since a statement also goes to customers well
+  within terms) && `renderConfigured` && the shared hour/working-day window &&
+  `isFirstWorkingDayOfMonth`. A 1st on a weekend rolls to the Monday. Enabling mid-month never
+  backfills. Order of operations copies Step 6: **upsert snapshot → render PDF → insert pending
+  `document_sends` → send → link**. Dedup is `status NOT IN ('pending','failed')`, never
+  `= 'sent'` (see the transient-status rule above).
+- `buildOverviewSnapshot` (edge fn) and `buildPaymentOverviewData` (`services/paymentOverview.ts`)
+  must stay in sync — they write the same `PaymentOverviewData` into the same column. Only the
+  *line* data is shared (both call the RPC); the company/customer whitelist is duplicated.
+- Renderer: `api-src/render-invoice.tsx` gained a `type` discriminator
+  (`{type:'payment_overview', overviewId}`), keeping `{orderId}` back-compatible. Rebuilt by
+  `npm run build` → `api/render-invoice.mjs`.
+
+**Applied**: 00102/00103 on **both** databases; `process-invoice-reminders` (v14, `--no-verify-jwt`)
+and `send-document-email` (v8) redeployed on both. No new secret or Vault entry. Gurbet has no
+`RENDER_ENDPOINT_URL`/`RENDER_SECRET`, so Step 7 self-skips there until those are set.
+
 ## Bulk status updates are constrained server-side
 
 Selection now survives paging and refreshes, so a stored selected row is a **snapshot**. Bulk

@@ -52,6 +52,7 @@ export interface DocBrandSet {
   creditNote: DocBrand
   orderConfirmation: DocBrand
   paymentReminder: DocBrand
+  paymentOverview: DocBrand
   packingSlip: DocBrand
   soldProducts: DocBrand
   dataExport: DocBrand
@@ -91,6 +92,24 @@ const MELEK: DocBrandSet = {
     accent: '#fca5a5',
     tint: '#fecaca',
     tintSoft: '#fef2f2',
+  },
+  /**
+   * Monthly Betaaloverzicht (statement of account). Indigo, deliberately unused
+   * elsewhere in either tenant's family.
+   *
+   * It must not read as the INVOICE (that is the payable document, and on Gurbet
+   * the "darkest navy band = money is due" rule is load-bearing), nor as the
+   * PAYMENT REMINDER — a statement is a courtesy summary that also goes to
+   * customers who are perfectly within terms, so the dunning red would be a lie.
+   * Indigo is far from both, and identical on both tenants because the document
+   * is a summary, not a branding surface.
+   */
+  paymentOverview: {
+    primary: '#4338ca',
+    dark: '#312e81', // 12.3:1 on white
+    accent: '#6366f1',
+    tint: '#e0e7ff',
+    tintSoft: '#eef2ff',
   },
   packingSlip: {
     primary: '#1e293b',
@@ -171,6 +190,15 @@ const FATHER: DocBrandSet = {
     accent: '#fca5a5',
     tint: '#fecaca',
     tintSoft: '#fef2f2',
+  },
+  paymentOverview: {
+    // Same indigo as Melek — see the note on the MELEK entry. It has to stay clear
+    // of the brand blue here too, which the invoice owns.
+    primary: '#4338ca',
+    dark: '#312e81',
+    accent: '#6366f1',
+    tint: '#e0e7ff',
+    tintSoft: '#eef2ff',
   },
   packingSlip: {
     // Unchanged neutral — a warehouse pick list, not a branding surface. Only the

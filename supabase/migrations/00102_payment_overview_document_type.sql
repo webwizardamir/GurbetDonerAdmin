@@ -1,0 +1,22 @@
+-- 00102: new document_type enum value 'payment_overview'
+--
+-- Part 1 of 2 for the monthly Betaaloverzicht (statement of account). Kept in
+-- its OWN migration because `ALTER TYPE ... ADD VALUE` cannot be used by any
+-- statement in the same transaction that adds it — splitting the enum from the
+-- table/RPCs (00103) removes the hazard entirely.
+--
+-- 🚨 WHY A NEW VALUE AND NOT `payment_reminder`:
+-- `get_overdue_invoices` (00090) and the `max_count` dedup inside the
+-- process-invoice-reminders edge function both COUNT `document_sends` rows of
+-- type 'payment_reminder' to decide how far up the dunning ladder an invoice
+-- has climbed. Logging a monthly overview as a payment_reminder would silently
+-- consume escalation steps and stop real reminders from going out.
+--
+-- Note this value is used ONLY on `document_sends.document_type` (the mail log).
+-- A payment overview is NOT a numbered legal document: it never gets a
+-- `documents` row, so `get_next_document_number_atomic` needs no CASE branch,
+-- and it is deliberately NOT added to the TypeScript `DocumentType` union or to
+-- `getDocumentTemplate`'s switch. Same precedent as ReminderStepKey
+-- (types/index.ts) — a mail-log/template key that is not a document type.
+
+ALTER TYPE document_type ADD VALUE IF NOT EXISTS 'payment_overview';

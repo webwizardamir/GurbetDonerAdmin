@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   AlertTriangle,
   BellRing,
   Clock,
+  Receipt,
   Send,
   CheckCircle2,
   MoreVertical,
@@ -32,6 +33,8 @@ import DropdownMenu from '../components/ui/DropdownMenu'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import Modal from '../components/ui/Modal'
 import EmailViewModal from '../components/documents/EmailViewModal'
+import PaymentOverviewTab from '../components/overdue/PaymentOverviewTab'
+import { useAuth } from '../context/AuthContext'
 import type { ClientReminderConfig, DocumentSend, DocumentSettings, OverdueInvoice } from '../types'
 
 type Filter = 'active' | 'snoozed' | 'all'
@@ -39,7 +42,12 @@ type Filter = 'active' | 'snoozed' | 'all'
 // Snooze presets, in days.
 const SNOOZE_PRESETS = [3, 7, 14]
 
-export default function OverdueInvoices() {
+/**
+ * The per-invoice dunning queue — the original content of this page. Split out
+ * so the page shell can host the owner-only Betaaloverzicht tab beside it
+ * without threading a tab flag through 350 lines of table.
+ */
+function InvoiceQueueView() {
   const { t } = useTranslation()
   const { invoices, config, active, snoozed, loading, error, refresh, snooze, unsnooze, markPaid, optOut } =
     useOverdueInvoices()
@@ -391,6 +399,64 @@ export default function OverdueInvoices() {
         onConfirm={confirmPaid}
         onCancel={() => setPayFor(null)}
       />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Page shell — two tabs: the per-invoice dunning queue, and (owner only) the
+// monthly Betaaloverzicht per customer.
+//
+// The tab lives in the query string (?tab=overview) so the browser back button
+// and a shared link both land where the user was, per the URL-list-state
+// convention. It is READ from the URL and written only from the click handler —
+// never from a mount effect, which would strip an inbound deep link.
+//
+// Owner-only because the statement aggregates order totals, and
+// orders.hidden_from_managers exists precisely so a Shop Manager cannot see
+// some of those amounts. The RPCs enforce this too (00103); this is the UI half.
+// ---------------------------------------------------------------------------
+export default function OverdueInvoices() {
+  const { t } = useTranslation()
+  const { isOwner } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const tab: 'invoices' | 'overview' =
+    isOwner && params.get('tab') === 'overview' ? 'overview' : 'invoices'
+
+  const selectTab = (next: 'invoices' | 'overview') => {
+    const p = new URLSearchParams(params)
+    if (next === 'invoices') p.delete('tab')
+    else p.set('tab', next)
+    setParams(p, { replace: true })
+  }
+
+  if (!isOwner) return <InvoiceQueueView />
+
+  return (
+    <div className="space-y-4">
+      <div className="border-b border-slate-200 dark:border-slate-700">
+        <nav className="flex gap-1 -mb-px overflow-x-auto">
+          {([
+            { id: 'invoices' as const, icon: <BellRing className="w-4 h-4" />, label: t('overdue.tabs.invoices') },
+            { id: 'overview' as const, icon: <Receipt className="w-4 h-4" />, label: t('overdue.tabs.overview') },
+          ]).map(item => (
+            <button
+              key={item.id}
+              onClick={() => selectTab(item.id)}
+              className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                tab === item.id
+                  ? 'border-green-500 text-green-600 dark:text-green-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {tab === 'overview' ? <PaymentOverviewTab /> : <InvoiceQueueView />}
     </div>
   )
 }
