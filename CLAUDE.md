@@ -1763,9 +1763,19 @@ screen, and gating both would mail the customer a wrong statement.
   (`{type:'payment_overview', overviewId}`), keeping `{orderId}` back-compatible. Rebuilt by
   `npm run build` → `api/render-invoice.mjs`.
 
-**Applied**: 00102/00103 on **both** databases; `process-invoice-reminders` (v14, `--no-verify-jwt`)
-and `send-document-email` (v8) redeployed on both. No new secret or Vault entry. Gurbet has no
-`RENDER_ENDPOINT_URL`/`RENDER_SECRET`, so Step 7 self-skips there until those are set.
+### 🚨 `order_is_hidden(NULL)` is FALSE — the Outbox hole (00104)
+The 00095 gate on `document_sends` is `is_owner() OR NOT order_is_hidden(order_id)`, and
+`order_is_hidden()` COALESCEs a missing row to "not hidden". A statement's `order_id` is **NULL by
+design**, so it sailed through and a Shop Manager could read it in `/outbox` — where the stored
+`body` carries the customer's total outstanding, a total that *includes* hidden orders. Since the
+manager sees every non-hidden amount in the Orders list, the hidden one is a subtraction away.
+00104 replaces the whole policy (never add a second — policies are OR'd) with an explicit
+`document_type <> 'payment_overview'` term. **Any future `document_sends` row with a NULL
+`order_id` inherits this hole; gate it by type the same way.**
+
+**Applied**: 00102/00103/00104 on **both** databases; `process-invoice-reminders` (v14,
+`--no-verify-jwt`) and `send-document-email` (v8) redeployed on both. No new secret or Vault entry.
+Gurbet has no `RENDER_ENDPOINT_URL`/`RENDER_SECRET`, so Step 7 self-skips there until those are set.
 
 ## Bulk status updates are constrained server-side
 
