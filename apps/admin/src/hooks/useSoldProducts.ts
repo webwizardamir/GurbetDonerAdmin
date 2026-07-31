@@ -261,7 +261,10 @@ export function useSoldProducts() {
     const tracked = items.filter(i => i.track_stock)
     const lowStock = tracked.filter(i => (i.current_stock || 0) < i.total_quantity * 2)
     return {
-      totalProducts: items.length,
+      // DISTINCT products, not rows: `items` is keyed per (product, unit_type),
+      // so a product sold as both kg and doos is two rows and counting rows
+      // overstated the "Producten" tile against what the user sees as products.
+      totalProducts: new Set(items.map(i => i.product_id)).size,
       totalQuantity: items.reduce((s, i) => s + i.total_quantity, 0),
       totalRevenue:  items.reduce((s, i) => s + i.total_revenue,  0),
       trackedProducts: tracked.length,

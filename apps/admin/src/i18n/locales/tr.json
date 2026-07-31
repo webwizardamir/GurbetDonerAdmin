@@ -271,6 +271,7 @@
     "scopePage": "Geçerli sayfa ({{n}})",
     "scopeSelected": "Seçili satırlar ({{n}})",
     "orientation": "Yönlendirme",
+    "shape": "Biçim",
     "portrait": "Dikey",
     "landscape": "Yatay",
     "selectAll": "Tümünü seç",
@@ -1222,6 +1223,20 @@
       "importItems": "Kalemleri içe aktar",
       "addProducts": "Ürün ekle",
       "noItems": "Bu listede henüz fiyat yok",
+      "noMatchingItems": "Bu filtrelere uygun ürün yok",
+      "clearFilters": "Filtreleri temizle",
+      "searchPlaceholder": "Ürün veya ID ara...",
+      "filteredCount": "{{totalProducts}} üründen {{products}} tanesi · {{totalPrices}} fiyattan {{prices}} tanesi",
+      "exportFiltered": "Bu dışa aktarma aktif filtreleri izler: {{totalProducts}} üründen {{products}} tanesi, {{totalPrices}} fiyattan {{prices}} tanesi.",
+      "filters": {
+        "allUnits": "Tüm birimler"
+      },
+      "exportShape": {
+        "perUnit": "Birim başına",
+        "perUnitHint": "Fiyat başına bir satır. Hem kg hem koli fiyatı olan bir ürün iki satır alır.",
+        "perProduct": "Ürün başına",
+        "perProductHint": "Ürün başına bir satır, her birim için bir fiyat sütunu — tablodaki gibi."
+      },
       "deletedProduct": "Silinmiş ürün",
       "inheritPrice": "varsayılan",
       "costOverride": "Bu listede özel maliyet fiyatı",

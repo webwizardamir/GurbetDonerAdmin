@@ -95,6 +95,9 @@ export interface DocumentListFilters {
 
 // Loosely typed: PostgREST's builder type changes with each chained call, so a
 // generic doesn't hold across .eq/.or/etc. `q` is a Postgrest filter builder.
+// The PostgREST builder's type changes shape with every chained call, so no
+// generic survives the .eq/.or chain — hence the two `any`s below.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyDocumentFilters(q: any, f: DocumentListFilters, includeType: boolean): any {
   let query = q
   if (includeType && f.type) query = query.eq('document_type', f.type)
@@ -517,6 +520,7 @@ export interface InvoiceData {
 interface RefundCreditLine {
   description: string
   unitType: string
+  productId: string  // '' when the order line was deleted; only used for the doos piece price
   quantity: number
   unitPrice: number  // cents, ex-VAT
   vatRate: number
@@ -533,7 +537,9 @@ interface RefundCreditLine {
 async function fetchRefundCreditLines(orderId: string): Promise<RefundCreditLine[]> {
   const { data, error } = await supabase
     .from('order_refund_items')
-    .select('order_item_id, product_name, quantity, amount, tax_amount, refund:order_refunds!inner(order_id), order_item:order_items(unit_type, unit_price, tax_rate)')
+    // product_id rides along so a refunded `doos` line can resolve the same
+    // per-piece Eenheidprijs the original invoice showed (see buildInvoiceData).
+    .select('order_item_id, product_name, quantity, amount, tax_amount, refund:order_refunds!inner(order_id), order_item:order_items(product_id, unit_type, unit_price, tax_rate)')
     .eq('refund.order_id', orderId)
   if (error) throw error
 
@@ -543,7 +549,7 @@ async function fetchRefundCreditLines(orderId: string): Promise<RefundCreditLine
     quantity: number
     amount: number
     tax_amount: number
-    order_item: { unit_type?: string; unit_price?: number; tax_rate?: number } | null
+    order_item: { product_id?: string; unit_type?: string; unit_price?: number; tax_rate?: number } | null
   }>) ?? []
 
   const map = new Map<string, RefundCreditLine>()
@@ -562,6 +568,7 @@ async function fetchRefundCreditLines(orderId: string): Promise<RefundCreditLine
       map.set(key, {
         description: r.product_name,
         unitType: oi?.unit_type || 'piece',
+        productId: oi?.product_id || '',
         quantity: qty,
         // Prefer the order item's recorded values; derive when the line was deleted.
         unitPrice: oi?.unit_price != null ? Number(oi.unit_price) : (qty > 0 ? Math.round(amount / qty) : 0),
@@ -801,7 +808,11 @@ export async function buildInvoiceData(
         unit: formatUnit(l.unitType, l.quantity),
         unitType: l.unitType,
         unitPrice: l.unitPrice,
-        piecePrice: undefined,
+        // A refunded box line must show the same Eenheidprijs the invoice did.
+        // No extra query: every refund line joins an order_items row of THIS
+        // order, so its product is already in the piece/doos default maps built
+        // above from order.items.
+        piecePrice: l.unitType === 'doos' ? resolveDisplayPiecePrice(l.productId, l.unitPrice) : undefined,
         vatRate: l.vatRate,
         total: l.amount + l.taxAmount,
       }))

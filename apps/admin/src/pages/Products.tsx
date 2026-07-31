@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Plus,
@@ -18,7 +18,7 @@ import { useAuth } from '../context/AuthContext'
 import ProductForm, { type ProductFormData } from '../components/products/ProductForm'
 import ProductImport from '../components/products/ProductImport'
 import type { Product } from '../types'
-import { productExportColumns, withoutOwnerOnlyColumns } from '../utils/export'
+import { productExportColumns, withoutOwnerOnlyColumns, withUnitPriceColumns } from '../utils/export'
 import ExportMenu from '../components/ui/ExportMenu'
 import SortableTh from '../components/ui/SortableTh'
 import SelectionBar from '../components/ui/SelectionBar'
@@ -144,9 +144,17 @@ export default function Products() {
     setEditingProduct(null)
   }
 
-  // Kostprijs / Marge are owner-only, stripped for everyone else.
+  // Kostprijs / Marge / per-unit COGS are owner-only, stripped for everyone else.
   const exportColumns = useMemo(
     () => (isOwner ? productExportColumns : withoutOwnerOnlyColumns(productExportColumns)),
+    [isOwner],
+  )
+
+  // product_unit_prices is already joined onto every product row (fetchProducts /
+  // fetchAllProducts select it) but is a nested array, so flatten it into real
+  // price_<unit> / cost_<unit> fields — the export writers read row[key].
+  const toExportRow = useCallback(
+    (p: Product) => withUnitPriceColumns(p, { includeCost: isOwner }),
     [isOwner],
   )
 
@@ -161,6 +169,19 @@ export default function Products() {
     if (row) toggle(row)
   }
   const toggleSelectAll = () => toggleAllVisible(filteredProducts)
+
+  // Shared by the toolbar button and the mobile ⋮ overlay copy — one object so a
+  // prop added to one can't be forgotten on the other.
+  const exportProps = useMemo(() => ({
+    getAllData: async () => (await fetchAllProducts()).map(toExportRow),
+    pageData: filteredProducts.map(toExportRow),
+    selectedData: selectedProducts.map(toExportRow),
+    totalCount,
+    columns: exportColumns as never,
+    filename: `products-${new Date().toISOString().split('T')[0]}`,
+    pdfTitle: 'Producten',
+    storageKey: 'products',
+  }), [toExportRow, filteredProducts, selectedProducts, totalCount, exportColumns])
 
   // No filters on this page yet, so ListToolbar renders no Filters button; the
   // slot is here for when category/stock filters arrive.
@@ -178,14 +199,7 @@ export default function Products() {
       render: (mode) => (
         <ExportMenu
           variant={mode === 'menuitem' ? 'menuitem' : 'button'}
-          getAllData={fetchAllProducts}
-          pageData={filteredProducts}
-          selectedData={selectedProducts}
-          totalCount={totalCount}
-          columns={exportColumns as never}
-          filename={`products-${new Date().toISOString().split('T')[0]}`}
-          pdfTitle="Producten"
-          storageKey="products"
+          {...exportProps}
         />
       ),
       // Mounted at the toolbar root so the ⋮ menu closing cannot unmount it.
@@ -194,14 +208,7 @@ export default function Products() {
           headless
           open={open}
           onOpenChange={o => { if (!o) onClose() }}
-                    getAllData={fetchAllProducts}
-          pageData={filteredProducts}
-          selectedData={selectedProducts}
-          totalCount={totalCount}
-          columns={exportColumns as never}
-          filename={`products-${new Date().toISOString().split('T')[0]}`}
-          pdfTitle="Producten"
-          storageKey="products"
+          {...exportProps}
         />
       ),
     })

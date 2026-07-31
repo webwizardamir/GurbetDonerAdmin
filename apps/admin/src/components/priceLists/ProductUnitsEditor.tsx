@@ -4,9 +4,8 @@ import { Loader2, Save, AlertCircle } from 'lucide-react'
 import Modal from '../ui/Modal'
 import { upsertPriceListItems, deletePriceListItem, type PriceListItemWithProduct, type ImportPriceListItemInput } from '../../services/priceLists'
 import { useAuth } from '../../context/AuthContext'
+import { UNIT_TYPES as ALL_UNITS } from '../../constants/unitTypes'
 import type { UnitType } from '../../types'
-
-const ALL_UNITS: UnitType[] = ['kg', 'piece', 'zak', 'doos']
 
 const centsToEuroStr = (cents: number) => (cents / 100).toFixed(2).replace('.', ',')
 const euroStrToCents = (s: string): number | null => {

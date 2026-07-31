@@ -24,6 +24,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useSoldProducts, DATE_RANGE_KEYS, type DateRangeKey } from '../hooks/useSoldProducts'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
+import { unitTypeUiLabel } from '../constants/unitTypes'
 import { formatPrice, formatQuantityWithUnit } from '../utils/format'
 import SoldProductsPDF from '../components/documents/SoldProductsTemplate'
 import DayCloseModal from '../components/documents/DayCloseModal'
@@ -173,7 +174,7 @@ export default function SoldProducts() {
       icon: Ruler,
       hidden: unitOptions.length <= 1,
       value: unitFilter,
-      options: unitOptions.map(u => ({ value: u, label: u })),
+      options: unitOptions.map(u => ({ value: u, label: unitTypeUiLabel(u, t) })),
       onChange: setUnitFilter,
       allLabel: t('soldProducts.filters.allUnits'),
     },

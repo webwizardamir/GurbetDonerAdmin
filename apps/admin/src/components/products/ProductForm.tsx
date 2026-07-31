@@ -40,6 +40,11 @@ export interface ProductFormData {
   }[]
 }
 
+// Deliberately NOT constants/unitTypes.ts's UNIT_TYPES, and deliberately in a
+// different order: this array picks the FALLBACK DEFAULT unit (the `find()`s
+// below that resolve is_default when the user enables several units without
+// choosing one), so reordering it changes which unit is written to
+// products.unit_type / base_price. The order is behaviour, not presentation.
 const ALL_UNIT_TYPES: UnitType[] = ['piece', 'zak', 'doos', 'kg']
 
 export default function ProductForm({ product, onClose, onSave }: ProductFormProps) {

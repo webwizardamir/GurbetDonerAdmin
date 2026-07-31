@@ -271,6 +271,7 @@
     "scopePage": "Current page ({{n}})",
     "scopeSelected": "Selected rows ({{n}})",
     "orientation": "Orientation",
+    "shape": "Layout",
     "portrait": "Portrait",
     "landscape": "Landscape",
     "selectAll": "Select all",
@@ -1222,6 +1223,20 @@
       "importItems": "Import items",
       "addProducts": "Add products",
       "noItems": "No prices on this list yet",
+      "noMatchingItems": "No products match these filters",
+      "clearFilters": "Clear filters",
+      "searchPlaceholder": "Search product or ID...",
+      "filteredCount": "{{products}} of {{totalProducts}} products · {{prices}} of {{totalPrices}} prices",
+      "exportFiltered": "This export follows the active filters: {{products}} of {{totalProducts}} products, {{prices}} of {{totalPrices}} prices.",
+      "filters": {
+        "allUnits": "All units"
+      },
+      "exportShape": {
+        "perUnit": "Per unit",
+        "perUnitHint": "One row per price. A product with both a kg and a box price gets two rows.",
+        "perProduct": "Per product",
+        "perProductHint": "One row per product, with a price column per unit — like the table."
+      },
       "deletedProduct": "Deleted product",
       "inheritPrice": "default",
       "costOverride": "Custom cost price on this list",

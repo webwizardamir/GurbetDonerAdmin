@@ -14,6 +14,7 @@ import ExportMenu from '../ui/ExportMenu'
 import SortableTh from '../ui/SortableTh'
 import { useTableSort } from '../../hooks/useTableSort'
 import { customerItemsSummaryExportColumns, withoutOwnerOnlyColumns } from '../../utils/export'
+import { UNIT_TYPES, unitTypeUiLabel } from '../../constants/unitTypes'
 
 interface CustomerProductsTabProps {
   customerId: string
@@ -119,11 +120,13 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
     return () => { cancelled = true }
   }, [customerId, range])
 
-  // Distinct unit types from the loaded rows (no extra query)
+  // Distinct unit types from the loaded rows (no extra query), in the canonical
+  // UNIT_TYPES order rather than alphabetically, so the dropdown reads the same
+  // as every other unit list in the app.
   const unitOptions = useMemo(() => {
     const s = new Set<string>()
     for (const r of rows) if (r.unit_type) s.add(r.unit_type)
-    return Array.from(s).sort()
+    return UNIT_TYPES.filter(u => s.has(u)) as string[]
   }, [rows])
 
   // Phase 6: sortable columns. Owner defaults to revenue desc (matching the
@@ -188,7 +191,7 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
               className="pl-10 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none cursor-pointer"
             >
               <option value="">{t('customerDetail.products.allUnits')}</option>
-              {unitOptions.map(u => <option key={u} value={u}>{u}</option>)}
+              {unitOptions.map(u => <option key={u} value={u}>{unitTypeUiLabel(u, t)}</option>)}
             </select>
           </div>
         )}
@@ -284,7 +287,7 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                           {r.product_name}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{r.unit_type}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{unitTypeUiLabel(r.unit_type, t)}</td>
                         <td className="px-4 py-3 text-right text-sm text-slate-700 dark:text-slate-300 tabular-nums">
                           {Number(r.total_quantity).toLocaleString('nl-NL', { maximumFractionDigits: 3 })}
                         </td>

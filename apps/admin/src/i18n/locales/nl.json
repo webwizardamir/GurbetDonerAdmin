@@ -271,6 +271,7 @@
     "scopePage": "Huidige pagina ({{n}})",
     "scopeSelected": "Geselecteerde rijen ({{n}})",
     "orientation": "Oriëntatie",
+    "shape": "Vorm",
     "portrait": "Staand",
     "landscape": "Liggend",
     "selectAll": "Alles selecteren",
@@ -1222,6 +1223,20 @@
       "importItems": "Items importeren",
       "addProducts": "Producten toevoegen",
       "noItems": "Nog geen prijzen op deze lijst",
+      "noMatchingItems": "Geen producten met deze filters",
+      "clearFilters": "Filters wissen",
+      "searchPlaceholder": "Zoek op product of ID...",
+      "filteredCount": "{{products}} van {{totalProducts}} producten · {{prices}} van {{totalPrices}} prijzen",
+      "exportFiltered": "Deze export volgt de actieve filters: {{products}} van {{totalProducts}} producten, {{prices}} van {{totalPrices}} prijzen.",
+      "filters": {
+        "allUnits": "Alle eenheden"
+      },
+      "exportShape": {
+        "perUnit": "Per eenheid",
+        "perUnitHint": "Eén regel per prijs. Een product met een kg- én een doosprijs krijgt twee regels.",
+        "perProduct": "Per product",
+        "perProductHint": "Eén regel per product, met een prijskolom per eenheid — zoals de tabel."
+      },
       "deletedProduct": "Verwijderd product",
       "inheritPrice": "standaard",
       "costOverride": "Aangepaste inkoopprijs op deze lijst",

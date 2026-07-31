@@ -10,6 +10,7 @@
 
 import { customerTypeLabel } from '../constants/customerType'
 import { orderStatusLabelNl } from '../constants/orderStatus'
+import { UNIT_TYPES, unitTypeExportLabel } from '../constants/unitTypes'
 
 // Format date for export (DD-MM-YYYY)
 export function formatExportDate(dateString: string | null | undefined): string {
@@ -73,6 +74,13 @@ export const OWNER_ONLY_EXPORT_KEYS = new Set([
   'total_profit',
   'margin_pct',
   'total_revenue',
+  // Per-unit COGS (products + wide price-list exports). Listed individually
+  // because withoutOwnerOnlyColumns matches keys EXACTLY — 'cost_cents' does
+  // not cover these. The startsWith guard below is the backstop.
+  'cost_kg',
+  'cost_piece',
+  'cost_zak',
+  'cost_doos',
 ])
 
 /**
@@ -86,17 +94,86 @@ export const OWNER_ONLY_EXPORT_KEYS = new Set([
  * empty-selection fallback also only ever selects from the passed columns.
  */
 export function withoutOwnerOnlyColumns<C extends { key: unknown }>(cols: C[]): C[] {
-  return cols.filter(c => !OWNER_ONLY_EXPORT_KEYS.has(String(c.key)))
+  return cols.filter(c => {
+    const key = String(c.key)
+    // Prefix guard, so a future cost_*/margin_* column is owner-only by DEFAULT
+    // even if someone forgets the set. Failing closed costs an owner one missing
+    // column; failing open puts COGS in a shop manager's spreadsheet.
+    if (key.startsWith('cost_') || key.startsWith('margin_')) return false
+    return !OWNER_ONLY_EXPORT_KEYS.has(key)
+  })
 }
 
-// Unit labels shared by the product-shaped exports. UnitType is
-// kg | piece | zak | doos — the old fallback collapsed zak AND doos to "pak".
-export function formatExportUnit(v: unknown): string {
-  if (v === 'kg') return 'kg'
-  if (v === 'piece') return 'stuk'
-  if (v === 'zak') return 'zak'
-  if (v === 'doos') return 'doos'
-  return typeof v === 'string' ? v : ''
+// Unit labels shared by the product-shaped exports (kg / stuk / zak / doos).
+// Kept as a named export because several column arrays reference it; the
+// implementation now lives in constants/unitTypes.ts so the label, the
+// enumeration order and the type guard are one thing.
+export const formatExportUnit = unitTypeExportLabel
+
+/**
+ * Per-unit price/cost fields flattened out of `product_unit_prices`.
+ *
+ * They are REAL fields on the exported row rather than something a `format()`
+ * digs out of the nested `unit_prices` array, because computeTotalsRow (and the
+ * CSV/Excel writers) read `row[key]` — the same rule Orders' withExportFields
+ * follows for profit. A phantom key that only resolves inside `format` breaks
+ * silently the moment anyone marks the column summable or sortable.
+ */
+export interface UnitPriceExportFields {
+  price_kg: number | null
+  price_piece: number | null
+  price_zak: number | null
+  price_doos: number | null
+  cost_kg?: number | null
+  cost_piece?: number | null
+  cost_zak?: number | null
+  cost_doos?: number | null
+}
+
+type UnitPriceSource = {
+  unit_type?: string | null
+  base_price?: number | null
+  unit_prices?: { unit_type: string; price?: number | null; cost_cents?: number | null }[] | null
+}
+
+/**
+ * Spread `price_<unit>` — and, for the owner, `cost_<unit>` — onto a product row.
+ *
+ * `base_price` falls back into the DEFAULT unit's price column when
+ * product_unit_prices has no row for it. That is exactly what
+ * productTemplate.productToTemplateRow does, so a legacy product that only ever
+ * had base_price reads the same in the export as in the bulk-edit template
+ * instead of showing four blank price columns.
+ *
+ * `cost_cents` deliberately does NOT fall back the same way: the product-level
+ * "Kostprijs" column already carries it, and copying it into a unit column would
+ * read as two independently-negotiated facts.
+ *
+ * When includeCost is false the cost fields are omitted from the object
+ * ENTIRELY — strip the data, not just the column (mirrors PriceListDetail's
+ * export rows). withoutOwnerOnlyColumns is then belt-and-braces.
+ */
+export function withUnitPriceColumns<T extends UnitPriceSource>(
+  row: T,
+  opts: { includeCost: boolean },
+): T & UnitPriceExportFields {
+  const priceByUnit = new Map<string, number>()
+  const costByUnit = new Map<string, number>()
+  for (const u of row.unit_prices ?? []) {
+    if (typeof u.price === 'number') priceByUnit.set(u.unit_type, u.price)
+    if (typeof u.cost_cents === 'number') costByUnit.set(u.unit_type, u.cost_cents)
+  }
+  const defaultUnit = row.unit_type ?? ''
+  if (defaultUnit && !priceByUnit.has(defaultUnit) && typeof row.base_price === 'number' && row.base_price > 0) {
+    priceByUnit.set(defaultUnit, row.base_price)
+  }
+
+  const out = { ...row } as T & UnitPriceExportFields
+  for (const u of UNIT_TYPES) {
+    out[`price_${u}` as 'price_kg'] = priceByUnit.get(u) ?? null
+    if (opts.includeCost) out[`cost_${u}` as 'cost_kg'] = costByUnit.get(u) ?? null
+  }
+  return out
 }
 
 // Margin % from a sell price and a cost, both in cents. Blank when either is
@@ -376,11 +453,26 @@ export const productExportColumns = [
   { key: 'name', header: 'Naam' },
   { key: 'sku', header: 'SKU' },
   { key: 'barcode', header: 'Barcode' },
+  // The product's DEFAULT unit and its price. Kept as-is: persisted
+  // export:products prefs reference these keys.
   { key: 'unit_type', header: 'Eenheid', format: formatExportUnit },
   { key: 'base_price', header: 'Prijs', format: (v: unknown) => formatExportCurrency(v as number) },
+  // Per-unit prices, attached by withUnitPriceColumns. defaultOff: a product
+  // priced in several units is the exception, and eight extra columns would make
+  // a first-time PDF unreadable — tick the one you need in the export dialog.
+  // Headers match the importable template (productTemplate.ts) verbatim.
+  { key: 'price_kg',    header: 'Prijs per kg (€)',   format: (v: unknown) => formatExportCurrency(v as number), defaultOff: true },
+  { key: 'price_piece', header: 'Prijs per stuk (€)', format: (v: unknown) => formatExportCurrency(v as number), defaultOff: true },
+  { key: 'price_zak',   header: 'Prijs per zak (€)',  format: (v: unknown) => formatExportCurrency(v as number), defaultOff: true },
+  { key: 'price_doos',  header: 'Prijs per doos (€)', format: (v: unknown) => formatExportCurrency(v as number), defaultOff: true },
   // OWNER ONLY (OWNER_ONLY_EXPORT_KEYS). cost_cents is already in the fetchProducts
   // payload; it was simply never exposed as a column.
   { key: 'cost_cents', header: 'Kostprijs', format: (v: unknown) => formatExportCurrency(v as number) },
+  // OWNER ONLY. Per-unit COGS — see OWNER_ONLY_EXPORT_KEYS.
+  { key: 'cost_kg',    header: 'Kostprijs per kg (€)',   format: (v: unknown) => formatExportCurrency(v as number), defaultOff: true },
+  { key: 'cost_piece', header: 'Kostprijs per stuk (€)', format: (v: unknown) => formatExportCurrency(v as number), defaultOff: true },
+  { key: 'cost_zak',   header: 'Kostprijs per zak (€)',  format: (v: unknown) => formatExportCurrency(v as number), defaultOff: true },
+  { key: 'cost_doos',  header: 'Kostprijs per doos (€)', format: (v: unknown) => formatExportCurrency(v as number), defaultOff: true },
   { key: 'margin_pct', header: 'Marge %', format: (_v: unknown, row: Record<string, unknown>) =>
     formatExportPercent(marginPct(row?.base_price as number, row?.cost_cents as number)) },
   { key: 'tax_rate', header: 'BTW %', format: (v: unknown) => v ? `${v}%` : '' },
@@ -436,12 +528,40 @@ export const priceListItemExportColumns = [
   { key: 'margin_pct',     header: 'Marge %', format: (v: unknown) => formatExportPercent(v as number) },
 ]
 
+/**
+ * Price-list detail, "Per product" shape: one row per product, one price column
+ * per unit type — the same grain the on-screen table shows.
+ *
+ * This is a REPORT, not an importable file. PriceListImport hard-fails unless
+ * all 14 template headers are present, and a round-trip guarantee that one
+ * unticked checkbox silently breaks is worse than none. The importable file is
+ * "Sjabloon downloaden" (utils/priceListTemplate.ts), right next to this menu.
+ *
+ * No per-unit margin columns on purpose: there is one margin per unit, and four
+ * more columns for a number the per-unit shape already carries is not worth the
+ * width. Cost columns are OWNER ONLY — same four keys as the products export.
+ */
+export const priceListWideExportColumns = [
+  { key: 'product_code', header: 'Product ID' },
+  { key: 'product_name', header: 'Naam' },
+  { key: 'price_kg',    header: 'Prijs per kg (€)',   format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'price_piece', header: 'Prijs per stuk (€)', format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'price_zak',   header: 'Prijs per zak (€)',  format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'price_doos',  header: 'Prijs per doos (€)', format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'tax_rate',    header: 'BTW %', format: (v: unknown) => v != null ? `${v}%` : '' },
+  // OWNER ONLY (OWNER_ONLY_EXPORT_KEYS).
+  { key: 'cost_kg',    header: 'Kostprijs per kg (€)',   format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'cost_piece', header: 'Kostprijs per stuk (€)', format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'cost_zak',   header: 'Kostprijs per zak (€)',  format: (v: unknown) => formatExportCurrency(v as number) },
+  { key: 'cost_doos',  header: 'Kostprijs per doos (€)', format: (v: unknown) => formatExportCurrency(v as number) },
+]
+
 // Customer products summary (one row per (product, unit_type))
 // Profit column is filtered out for non-owners at the call site.
 export const customerItemsSummaryExportColumns = [
   { key: 'product_code',   header: 'Product ID' },
   { key: 'product_name',   header: 'Naam' },
-  { key: 'unit_type',      header: 'Eenheid' },
+  { key: 'unit_type',      header: 'Eenheid', format: formatExportUnit },
   { key: 'total_quantity', header: 'Aantal', summable: true },
   { key: 'order_count',    header: 'Bestellingen', summable: true },
   { key: 'last_ordered',   header: 'Laatst besteld', format: (v: unknown) => formatExportDate(v as string) },

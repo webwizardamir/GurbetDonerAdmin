@@ -5,9 +5,9 @@ import Modal from '../ui/Modal'
 import { fetchProducts } from '../../services/products'
 import { upsertPriceListItems, type ImportPriceListItemInput } from '../../services/priceLists'
 import { useAuth } from '../../context/AuthContext'
+import { UNIT_TYPES as ALL_UNITS } from '../../constants/unitTypes'
 import type { Product, UnitType } from '../../types'
 
-const ALL_UNITS: UnitType[] = ['kg', 'piece', 'zak', 'doos']
 const SEARCH_LIMIT = 50
 
 interface PriceListProductPickerProps {

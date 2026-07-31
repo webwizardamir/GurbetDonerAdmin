@@ -273,7 +273,32 @@ interface SoldProductsGroupedPDFProps {
   groupByLabel: string  // localized 'Stad' / 'Klant' for the cover
 }
 
+/**
+ * `items` is one row per (product, unit_type), but stock is a SINGLE per-product
+ * counter (products.stock_quantity). So a product sold as both kg and doos
+ * printed the same Voorraad figure on both rows, and getSuggestedRefill computed
+ * an independent Bijvullen against that same stock for each — meaning the
+ * Bijvullen column double-counted when you added it up, which is exactly what
+ * the column is for.
+ *
+ * Returns the row keys that OWN those two cells: the first row of each product.
+ * Later rows of the same product print an em-dash. Status is deliberately left
+ * on every row — "this product is critical" is true of all of them and it drives
+ * the row highlight, which is a per-product signal, not an additive number.
+ */
+function stockOwnerKeys(items: SoldProductItem[]): Set<string> {
+  const seenProducts = new Set<string>()
+  const owners = new Set<string>()
+  for (const i of items) {
+    if (seenProducts.has(i.product_id)) continue
+    seenProducts.add(i.product_id)
+    owners.add(`${i.product_id}-${i.unit_type}`)
+  }
+  return owners
+}
+
 function GroupedItemsTable({ items }: { items: SoldProductItem[] }) {
+  const stockOwners = stockOwnerKeys(items)
   return (
     <View style={styles.table}>
       <View style={styles.tableHeader}>
@@ -285,7 +310,8 @@ function GroupedItemsTable({ items }: { items: SoldProductItem[] }) {
       </View>
       {items.map((item, idx) => {
         const status = getStockStatus(item)
-        const refill = getSuggestedRefill(item)
+        const ownsStock = stockOwners.has(`${item.product_id}-${item.unit_type}`)
+        const refill = ownsStock ? getSuggestedRefill(item) : null
         const rowStyle = [
           styles.tableRow,
           status.status === 'critical' ? styles.rowCritical :
@@ -309,7 +335,7 @@ function GroupedItemsTable({ items }: { items: SoldProductItem[] }) {
             </View>
             <Text style={[styles.tdBold, styles.colSold]}>{formatQuantity(item.total_quantity, item.unit_type)}</Text>
             <Text style={[styles.td, styles.colStock]}>
-              {item.track_stock ? formatQuantity(item.current_stock || 0, item.unit_type) : '—'}
+              {ownsStock && item.track_stock ? formatQuantity(item.current_stock || 0, item.unit_type) : '—'}
             </Text>
             <View style={styles.colStatus}>
               <Text style={statusStyle}>
@@ -392,6 +418,7 @@ function SoldProductsGroupedPDFDocument({ groups, dateRange, groupByLabel }: Sol
 function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFDocumentProps) {
   const trackedCount = items.filter(i => i.track_stock).length
   const untrackedCount = items.length - trackedCount
+  const flatStockOwners = stockOwnerKeys(items)
 
   return (
     <Document>
@@ -446,7 +473,8 @@ function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFD
 
           {items.map((item, idx) => {
             const status = getStockStatus(item)
-            const refill = getSuggestedRefill(item)
+            const ownsStock = flatStockOwners.has(`${item.product_id}-${item.unit_type}`)
+            const refill = ownsStock ? getSuggestedRefill(item) : null
 
             const rowStyle = [
               styles.tableRow,
@@ -464,7 +492,10 @@ function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFD
             ]
 
             return (
-              <View key={item.product_id} wrap={false} style={rowStyle}>
+              // Composite key: `items` is keyed per (product, unit_type), so a
+              // product sold as both kg and doos yields two rows and product_id
+              // alone collides. Mirrors the grouped table above.
+              <View key={`${item.product_id}-${item.unit_type}`} wrap={false} style={rowStyle}>
                 <View style={styles.colProduct}>
                   <Text style={styles.tdBold}>{item.product_name}</Text>
                   {item.product_sku && (
@@ -477,7 +508,7 @@ function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFD
                   {formatQuantity(item.total_quantity, item.unit_type)}
                 </Text>
                 <Text style={[styles.td, styles.colStock]}>
-                  {item.track_stock ? formatQuantity(item.current_stock || 0, item.unit_type) : '—'}
+                  {ownsStock && item.track_stock ? formatQuantity(item.current_stock || 0, item.unit_type) : '—'}
                 </Text>
                 <View style={styles.colStatus}>
                   <Text style={statusStyle}>
