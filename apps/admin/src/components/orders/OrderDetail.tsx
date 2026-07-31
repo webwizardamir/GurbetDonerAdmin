@@ -13,10 +13,12 @@ import {
   RotateCcw,
   Printer,
   Banknote,
+  CreditCard,
+  Loader2,
   Info,
   StickyNote,
 } from 'lucide-react'
-import { updateOrderStatus } from '../../services/orders'
+import { updateOrderStatus, updateOrderPaymentMethod } from '../../services/orders'
 import { ensureOrderInvoice } from '../../services/documents'
 import { fetchDocumentSends } from '../../services/documentEmail'
 import type { OrderStatus, DocumentType, PaymentMethod } from '../../types'
@@ -33,6 +35,16 @@ import { computeOrderProfit } from '../../utils/orderProfit'
 import Modal from '../ui/Modal'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 import { useAuth } from '../../context/AuthContext'
+
+// Cash = green, bank = blue (same pairing as ui/PaymentBadge); unset is neutral
+// so an order with no method reads as "nothing chosen yet", not as a third kind.
+const paymentBadgeClass = (m?: PaymentMethod | null) =>
+  'inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ' +
+  (m === 'cash'
+    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+    : m === 'bank'
+      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300')
 
 interface OrderDetailProps {
   order: OrderWithItems
@@ -94,6 +106,8 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
   const [generatingDoc, setGeneratingDoc] = useState<DocumentType | null>(null)
   const [invoiceSentAt, setInvoiceSentAt] = useState<string | null | undefined>(undefined)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showPaymentEdit, setShowPaymentEdit] = useState(false)
+  const [updatingPayment, setUpdatingPayment] = useState(false)
   const [showRefundModal, setShowRefundModal] = useState(false)
   const [showNotesModal, setShowNotesModal] = useState(false)
 
@@ -188,6 +202,26 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
     await handleStatusChange('completed', method)
   }
 
+  // Payment-method correction, independent of status. Deliberately does NOT go
+  // through handleStatusChange: that returns early when the status is unchanged,
+  // which is exactly why an already-completed order was stuck on its first
+  // choice. Writing only payment_method also avoids re-triggering the stock and
+  // invoice-paid-date triggers that a status round-trip would fire.
+  const handlePaymentEdit = async (method: PaymentMethod) => {
+    if (method === order.payment_method) { setShowPaymentEdit(false); return }
+    setUpdatingPayment(true)
+    setError(null)
+    try {
+      await updateOrderPaymentMethod(order.id, method)
+      setShowPaymentEdit(false)
+      onStatusChange()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('orders.detail.updateError'))
+    } finally {
+      setUpdatingPayment(false)
+    }
+  }
+
   // A TRASHED order is stored as status='cancelled' + deleted_at, with its real
   // status parked in pre_trash_status. Editing its status from here was both
   // harmful and pointless: leaving 'cancelled' RE-DEDUCTS stock for an order
@@ -276,18 +310,44 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                 busy={updatingStatus}
               />
             )}
-            {order.payment_method && order.payment_method !== 'none' && (
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${
-                order.payment_method === 'cash'
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-              }`}>
-                {order.payment_method === 'cash' ? (
-                  <><Banknote className="w-3 h-3" /> {t('orders.payment.cash')}</>
+            {/* The payment badge IS the picker, mirroring the status pill.
+                Editable in any live status: cash-then-actually-bank is a normal
+                correction, and until this existed the only writer was the
+                → completed transition, so it could not be undone. Trashed orders
+                stay read-only, like their status. */}
+            {isTrashed ? (
+              order.payment_method && order.payment_method !== 'none' && (
+                <span className={paymentBadgeClass(order.payment_method)}>
+                  {order.payment_method === 'cash' ? (
+                    <><Banknote className="w-3 h-3" /> {t('orders.payment.cash')}</>
+                  ) : (
+                    <><Building2 className="w-3 h-3" /> {t('orders.payment.bank')}</>
+                  )}
+                </span>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowPaymentEdit(true)}
+                disabled={updatingPayment}
+                title={t('orders.paymentModal.editTitle')}
+                className={`${paymentBadgeClass(order.payment_method)} hover:ring-2 hover:ring-offset-1 hover:ring-slate-300 dark:hover:ring-slate-500 dark:hover:ring-offset-slate-800 transition-all disabled:opacity-50`}
+              >
+                {updatingPayment ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : order.payment_method === 'cash' ? (
+                  <Banknote className="w-3 h-3" />
+                ) : order.payment_method === 'bank' ? (
+                  <Building2 className="w-3 h-3" />
                 ) : (
-                  <><Building2 className="w-3 h-3" /> {t('orders.payment.bank')}</>
+                  <CreditCard className="w-3 h-3" />
                 )}
-              </span>
+                {order.payment_method === 'cash'
+                  ? t('orders.payment.cash')
+                  : order.payment_method === 'bank'
+                    ? t('orders.payment.bank')
+                    : t('orders.payment.notSet')}
+              </button>
             )}
             {isRefunded && refundAmount < order.total && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
@@ -631,13 +691,25 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
         />
       )}
 
-      {/* Payment Method Modal */}
+      {/* Payment Method Modal — asked while completing */}
       {showPaymentModal && (
         <PaymentMethodModal
           orderNumber={order.order_number}
           onConfirm={handlePaymentConfirm}
           onCancel={() => setShowPaymentModal(false)}
           loading={updatingStatus}
+        />
+      )}
+
+      {/* Payment Method Modal — correcting it afterwards */}
+      {showPaymentEdit && (
+        <PaymentMethodModal
+          mode="edit"
+          current={order.payment_method ?? null}
+          orderNumber={order.order_number}
+          onConfirm={handlePaymentEdit}
+          onCancel={() => setShowPaymentEdit(false)}
+          loading={updatingPayment}
         />
       )}
 

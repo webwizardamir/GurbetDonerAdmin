@@ -9,6 +9,15 @@ interface PaymentMethodModalProps {
   onConfirm: (method: PaymentMethod) => void
   onCancel: () => void
   loading?: boolean
+  /**
+   * 'complete' — asked while completing an order (the original use): nothing is
+   *   preselected, so the choice is deliberate, and the CTA completes the order.
+   * 'edit' — correcting the method afterwards: preselected with the current
+   *   value and the CTA just saves. Same options either way.
+   */
+  mode?: 'complete' | 'edit'
+  /** Current value, preselected in 'edit' mode. */
+  current?: PaymentMethod | null
 }
 
 export default function PaymentMethodModal({
@@ -16,9 +25,14 @@ export default function PaymentMethodModal({
   onConfirm,
   onCancel,
   loading = false,
+  mode = 'complete',
+  current = null,
 }: PaymentMethodModalProps) {
   const { t } = useTranslation()
-  const [selected, setSelected] = useState<PaymentMethod | null>(null)
+  const isEdit = mode === 'edit'
+  const [selected, setSelected] = useState<PaymentMethod | null>(
+    isEdit && current && current !== 'none' ? current : null,
+  )
 
   const handleConfirm = () => {
     if (selected) {
@@ -30,7 +44,7 @@ export default function PaymentMethodModal({
     <Modal
       isOpen={true}
       onClose={loading ? () => {} : onCancel}
-      title={t('orders.paymentModal.title')}
+      title={isEdit ? t('orders.paymentModal.editTitle') : t('orders.paymentModal.title')}
       maxWidth="max-w-sm"
     >
         {/* Content */}
@@ -39,7 +53,7 @@ export default function PaymentMethodModal({
             {t('orders.paymentModal.orderLabel')} <span className="font-semibold text-slate-900 dark:text-white">{orderNumber}</span>
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-            {t('orders.paymentModal.selectMethod')}
+            {isEdit ? t('orders.paymentModal.editHint') : t('orders.paymentModal.selectMethod')}
           </p>
 
           {/* Payment Options */}
@@ -127,16 +141,16 @@ export default function PaymentMethodModal({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={!selected || loading}
+            disabled={!selected || (isEdit && selected === current) || loading}
             className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl flex items-center justify-center gap-2 transition-colors"
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {t('orders.paymentModal.completing')}
+                {isEdit ? t('common.saving') : t('orders.paymentModal.completing')}
               </>
             ) : (
-              t('orders.paymentModal.completeOrder')
+              isEdit ? t('common.save') : t('orders.paymentModal.completeOrder')
             )}
           </button>
         </div>

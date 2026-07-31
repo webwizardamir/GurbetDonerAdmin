@@ -818,7 +818,8 @@
       "cash": "Nakit",
       "bank": "Banka",
       "selectMethod": "Ödeme Yöntemi Seçin",
-      "completeAs": "Bu siparişi şu şekilde tamamla:"
+      "completeAs": "Bu siparişi şu şekilde tamamla:",
+      "notSet": "Ödeme yöntemi yok"
     },
     "selected": "seçildi",
     "clear": "Temizle",
@@ -890,7 +891,9 @@
       "bankTitle": "Banka Havalesi",
       "bankDesc": "Banka havalesi ile ödendi",
       "completing": "Tamamlanıyor...",
-      "completeOrder": "Siparişi Tamamla"
+      "completeOrder": "Siparişi Tamamla",
+      "editTitle": "Ödeme yöntemini değiştir",
+      "editHint": "Bu siparişin nasıl ödendiğini değiştirin. Durum değişmeden kalır."
     },
     "vat": {
       "reverseChargeSuffix": "KDV tevkifatlı",

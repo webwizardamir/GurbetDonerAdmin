@@ -818,7 +818,8 @@
       "cash": "Contant",
       "bank": "Bank",
       "selectMethod": "Selecteer betaalmethode",
-      "completeAs": "Voltooi deze bestelling als:"
+      "completeAs": "Voltooi deze bestelling als:",
+      "notSet": "Geen betaalmethode"
     },
     "selected": "geselecteerd",
     "clear": "Wissen",
@@ -890,7 +891,9 @@
       "bankTitle": "Bankoverschrijving",
       "bankDesc": "Per bank betaald",
       "completing": "Voltooien...",
-      "completeOrder": "Bestelling voltooien"
+      "completeOrder": "Bestelling voltooien",
+      "editTitle": "Betaalmethode wijzigen",
+      "editHint": "Wijzig hoe deze bestelling betaald is. De status blijft ongewijzigd."
     },
     "vat": {
       "reverseChargeSuffix": "verlegd",

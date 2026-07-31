@@ -538,6 +538,9 @@ export async function createOrder(
       // Only sent when the owner ticked the box; the DB default is false and
       // the RLS WITH CHECK rejects a true from anyone but the owner.
       ...(orderData.hidden_from_managers ? { hidden_from_managers: true } : {}),
+      // Declared on CreateOrderData but previously never inserted. Normally
+      // absent — the method is chosen when the order is completed.
+      ...(orderData.payment_method ? { payment_method: orderData.payment_method } : {}),
       created_by: userId,
     })
     .select()
@@ -576,6 +579,40 @@ export async function updateOrderStatus(
   const { data, error } = await supabase
     .from('orders')
     .update(updateData)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+/**
+ * Change ONLY the payment method, in any status.
+ *
+ * Until this existed, `payment_method` had exactly one writer — the `→ completed`
+ * transition above — so a customer who paid cash and then asked to pay by bank
+ * could not be corrected: re-picking "Voltooid" on an already-completed order is
+ * a no-op, and the full order editor never carried the field. The workaround
+ * (bounce the order back to pending and complete it again) also loses the
+ * original `invoice_paid_at`, because set_invoice_due_and_paid clears it on the
+ * way out and re-stamps NOW() on the way back in.
+ *
+ * Deliberately a separate writer rather than relaxing the guard in
+ * updateOrderStatus: this touches no status, so it fires neither the stock
+ * trigger (handle_order_status_change) nor the paid-date trigger. The
+ * audit_orders trigger still logs it, so the correction is on record.
+ *
+ * Not mirrored into document snapshots on purpose — no template prints the
+ * payment method (documents.ts's `paymentMethod` is a settings LABEL, not this).
+ */
+export async function updateOrderPaymentMethod(
+  id: string,
+  paymentMethod: PaymentMethod
+): Promise<Order> {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ payment_method: paymentMethod })
     .eq('id', id)
     .select()
     .single()
@@ -754,6 +791,11 @@ export async function updateOrderWithItems(
       ...(orderData.hidden_from_managers !== undefined
         ? { hidden_from_managers: orderData.hidden_from_managers }
         : {}),
+      // CreateOrderData has always declared payment_method, but this payload
+      // silently dropped it — so anything set here vanished without an error.
+      // Absent = leave the current value alone (the detail panel's payment badge
+      // is the normal way to change it).
+      ...(orderData.payment_method ? { payment_method: orderData.payment_method } : {}),
     })
     .eq('id', orderId)
 

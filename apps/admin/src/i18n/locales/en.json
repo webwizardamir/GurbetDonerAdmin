@@ -818,7 +818,8 @@
       "cash": "Cash",
       "bank": "Bank",
       "selectMethod": "Select Payment Method",
-      "completeAs": "Complete this order as:"
+      "completeAs": "Complete this order as:",
+      "notSet": "No payment method"
     },
     "selected": "selected",
     "clear": "Clear",
@@ -890,7 +891,9 @@
       "bankTitle": "Bank Transfer",
       "bankDesc": "Paid by bank transfer",
       "completing": "Completing...",
-      "completeOrder": "Complete Order"
+      "completeOrder": "Complete Order",
+      "editTitle": "Change payment method",
+      "editHint": "Change how this order was paid. The status stays unchanged."
     },
     "vat": {
       "reverseChargeSuffix": "reverse-charged",
