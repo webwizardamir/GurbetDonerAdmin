@@ -21,7 +21,7 @@ import CustomerPricing from '../components/pricing/CustomerPricing'
 import CustomerTableRow from '../components/customers/CustomerTableRow'
 import CustomerCard from '../components/customers/CustomerCard'
 import { customerExportColumns, withoutOwnerOnlyColumns } from '../utils/export'
-import { fetchCustomers } from '../services/customers'
+import { fetchCustomers, type CustomerFormData } from '../services/customers'
 import { getCustomerPerformance, type CustomerPerformanceRow } from '../services/analyticsCustomers'
 import { useAuth } from '../context/AuthContext'
 import ExportMenu from '../components/ui/ExportMenu'
@@ -171,7 +171,7 @@ export default function Customers() {
     finally { setDeleting(null) }
   }
 
-  const handleFormSubmit = async (data: any) => {
+  const handleFormSubmit = async (data: CustomerFormData) => {
     try {
       if (editingCustomer) { await update(editingCustomer.id, data) }
       else { await create(data) }
@@ -302,7 +302,6 @@ export default function Customers() {
       list.push({ id: 'add', label: t('customers.addCustomer'), icon: Plus, priority: 'primary', onClick: () => { setEditingCustomer(null); setShowForm(true) } })
     }
     return list
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t, canCreate, showArchived, searchQuery, cityFilter, typeFilter, filteredCustomers, selectedCustomers, totalCount, customerExportColumnsGated, withCostFields])
 
   return (

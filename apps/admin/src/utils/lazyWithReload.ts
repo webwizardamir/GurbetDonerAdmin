@@ -43,6 +43,9 @@ export function reloadOnceForChunkError(): boolean {
  * a redeploy by reloading once. Any non-chunk error (a real bug in the module)
  * is re-thrown so the ErrorBoundary still shows it.
  */
+// ComponentType<any> is the idiomatic constraint for "any component";
+// unknown/never make the generic unusable at every call site.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function lazyWithReload<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
 ) {

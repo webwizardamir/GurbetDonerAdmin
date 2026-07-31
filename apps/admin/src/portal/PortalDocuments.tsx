@@ -12,12 +12,19 @@ import { usePortalAuth } from '../context/PortalAuthContext'
 import { fetchPortalDocuments } from '../services/portalOrders'
 import { formatPrice } from '../utils/format'
 import PortalDocumentActions from './components/PortalDocumentActions'
+import type { Document } from '../types'
+
+// The portal RPC embeds a column-whitelisted order alongside each document, so
+// the row is a Document plus that embed.
+type PortalDocumentRow = Document & {
+  order?: { id?: string; order_number?: string; total?: number } | null
+}
 
 // The document's own amount lives in the immutable snapshot (grandTotal, cents) —
 // use it instead of the order total (a credit note's amount ≠ the order total).
-function documentAmount(doc: any): number {
-  const snap = doc?.snapshot
-  if (snap && typeof snap.grandTotal === 'number') return snap.grandTotal
+function documentAmount(doc: PortalDocumentRow): number {
+  const grandTotal = doc?.snapshot?.grandTotal
+  if (typeof grandTotal === 'number') return grandTotal
   return Number(doc?.order?.total) || 0
 }
 
@@ -33,7 +40,7 @@ const documentTypeColors: Record<string, string> = {
 export default function PortalDocuments() {
   const { t } = useTranslation()
   const { user } = usePortalAuth()
-  const [documents, setDocuments] = useState<any[]>([])
+  const [documents, setDocuments] = useState<PortalDocumentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')

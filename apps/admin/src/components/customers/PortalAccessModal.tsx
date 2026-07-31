@@ -64,8 +64,11 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
     finally { setLoading(false) }
   }
 
-  const mapEnableError = (err: any): string => {
-    const msg = err?.message || 'Failed to enable portal access'
+  const errMessage = (err: unknown): string | undefined =>
+    (err as { message?: string } | null)?.message
+
+  const mapEnableError = (err: unknown): string => {
+    const msg = errMessage(err) || 'Failed to enable portal access'
     if (msg === PORTAL_EMAIL_IS_ADMIN) return t('portal.access.emailIsAdmin')
     if (msg === PORTAL_EMAIL_IN_USE) return t('portal.access.emailInUse')
     if (msg.toLowerCase?.().includes('already') && msg.toLowerCase().includes('registered')) {
@@ -85,7 +88,7 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
       setShowCreateForm(false)
       await loadAccountStatus()
       onUpdate()
-    } catch (err: any) {
+    } catch (err) {
       setError(mapEnableError(err))
     } finally { setActionLoading(false) }
   }
@@ -101,7 +104,7 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
       setShowCreateForm(false)
       await loadAccountStatus()
       onUpdate()
-    } catch (err: any) {
+    } catch (err) {
       setError(mapEnableError(err))
     } finally { setActionLoading(false) }
   }
@@ -113,7 +116,7 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
       await disablePortalAccess(customer.id)
       await loadAccountStatus()
       onUpdate()
-    } catch (err: any) { setError(err.message || 'Failed to disable portal access') }
+    } catch (err) { setError(errMessage(err) || 'Failed to disable portal access') }
     finally { setActionLoading(false) }
   }
 
@@ -124,7 +127,7 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
       await reEnablePortalAccess(customer.id)
       await loadAccountStatus()
       onUpdate()
-    } catch (err: any) { setError(err.message || 'Failed to re-enable portal access') }
+    } catch (err) { setError(errMessage(err) || 'Failed to re-enable portal access') }
     finally { setActionLoading(false) }
   }
 
@@ -136,7 +139,7 @@ export default function PortalAccessModal({ customer, onClose, onUpdate }: Porta
       await sendPortalPasswordReset(account.email)
       setResetSent(true)
       setTimeout(() => setResetSent(false), 5000)
-    } catch (err: any) { setError(err.message || 'Failed to send password reset') }
+    } catch (err) { setError(errMessage(err) || 'Failed to send password reset') }
     finally { setSendingReset(false) }
   }
 

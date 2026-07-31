@@ -363,7 +363,7 @@ export default function Invoices() {
   const getAllExportData = async () => (await fetchAllDocumentsForExport(filters)).map(mapDocForExport)
   const selectedExportData = useMemo(
     () => documents.filter(d => selectedIds.has(d.id)).map(mapDocForExport),
-    [documents, selectedIds], // eslint-disable-line react-hooks/exhaustive-deps
+    [documents, selectedIds],
   )
 
   const handleTypeFilterClick = (type: DocumentType) => {

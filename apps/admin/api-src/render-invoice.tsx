@@ -34,7 +34,18 @@ import type { PaymentOverviewData } from '../src/types'
 // One handler rather than a second entry point: auth, the Supabase client and
 // the error handling are shared, and scripts/build-api.mjs needs no change.
 
-export default async function handler(req: any, res: any) {
+// Minimal structural types for the Vercel Node handler. @vercel/node is not a
+// dependency here (the file is pre-bundled by scripts/build-api.mjs), so its
+// VercelRequest/VercelResponse are unavailable — these cover what we use.
+type ReqLike = { method?: string; headers: Record<string, string | string[] | undefined>; body?: unknown }
+type ResLike = {
+  status: (code: number) => ResLike
+  json: (body: unknown) => void
+  send: (body: unknown) => void
+  setHeader: (name: string, value: string) => void
+}
+
+export default async function handler(req: ReqLike, res: ResLike) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' })
 
   const secret = process.env.RENDER_SECRET

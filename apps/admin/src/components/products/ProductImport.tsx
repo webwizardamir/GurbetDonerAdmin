@@ -42,7 +42,7 @@ const parseNumber = (v: unknown): number | null => {
   if (v === null || v === undefined || v === '') return null
   if (typeof v === 'number') return v
   if (typeof v === 'string') {
-    const cleaned = v.trim().replace(',', '.').replace(/[^0-9.\-]/g, '')
+    const cleaned = v.trim().replace(',', '.').replace(/[^0-9.-]/g, '')
     const n = Number(cleaned)
     return Number.isFinite(n) ? n : null
   }

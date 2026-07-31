@@ -105,7 +105,10 @@ export default function DeliveryStopList({
   const [dragId, setDragId] = useState<string | null>(null)
 
   const toggleManifest = (id: string) => setOpenManifest(prev => {
-    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    return next
   })
 
   const isForeign = (s: DisplayStop) => {
