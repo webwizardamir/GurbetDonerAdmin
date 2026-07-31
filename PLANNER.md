@@ -1305,3 +1305,60 @@ The in-app queue + manual reminders work without this. To turn on automatic clie
 - **Admin favicon.** Added `apps/admin/public/favicon.png` (brand favicon) + `index.html` links; replaced the default `/vite.svg`.
 - **Price reconciliation.** 5 products had a stale `base_price` ≠ legacy `price` (the WC-correct value); reset to WC. Root cause: the product editor writes only `base_price`, so the legacy `price` mirror can silently drift (see `BUGS_AND_FIXES.md`).
 - **Auth fixes.** Logout now takes effect immediately; abandoning a password reset signs the user out (see `BUGS_AND_FIXES.md`).
+
+---
+
+## July 2026 — Maandelijks Betaaloverzicht (statement of account)
+
+### Built & shipped, automation OFF ✅ (2026-07-31)
+
+Client request: customers with several open invoices were getting one dunning email *per invoice*
+and never saw a single number for what they owe. They now get **one PDF per customer** listing every
+still-unpaid, billed order plus a **totaal openstaand**, on the **first working day of the month**.
+
+- **What qualifies** — one definition, `get_payment_overview_orders(customer)`, called by *both* the
+  admin tab and the cron so a preview can never disagree with what is mailed: `deleted_at IS NULL`,
+  `status NOT IN ('completed','cancelled','refunded','draft')`, an invoice number exists (invoice
+  `documents` row **or** `woo_invoice_number`), `total - refund_amount > 0`. `pending` and
+  `pending_payment` both qualify — same meaning. Concept excluded: unfinalised, nothing owed yet.
+- **PDF** `components/documents/PaymentOverviewTemplate.tsx` — **A4 landscape**, document-family
+  chrome (logo header, address box, meta box, IBAN callout, branded footer) around the export-style
+  zebra table. Columns: Factuur · Factuurdatum · Vervaldatum · Status · Dagen te laat · Bedrag, then
+  "Waarvan verlopen" + "Totaal openstaand". Bilingual by customer country like every customer
+  document. Own `docBrand.paymentOverview` slot (indigo, both tenants) — it must read as neither the
+  invoice (payable) nor the payment reminder (dunning red). Header band + footer are `fixed`, so a
+  40-invoice statement keeps its column headers and page numbers.
+- **Admin** — a second tab on `/overdue` (`?tab=overview`), **owner-only**, with the standard
+  `ListToolbar` (search over name+email; filters for verzendstatus / verlopen / met-zonder e-mail;
+  sortable columns). **Voorbeeld** renders live data through the cron's own builder; **Bekijk
+  verzonden** re-renders the *frozen* snapshot, so it reproduces what the customer actually received;
+  **Nu versturen** sends by hand regardless of the automation toggle.
+- **Storage** `payment_overviews` (unique on `customer_id,period`, upserted) — **not** `documents`: a
+  statement has no sequential legal number, so a `documents` row would pollute the Invoices register
+  / `documents_list`, force a CASE branch into `get_next_document_number_atomic`, and burn an invoice
+  number. Links to the mail log via `document_send_id`, like `invoice_reminders`.
+- **Automation** — **Step 7** of `process-invoice-reminders`, not a new cron: a separate function
+  would have needed its own Vault entries and secrets on *both* tenants. Opt-in
+  (`monthly_overview_enabled`, its own toggle — deliberately **not** under `auto_send_enabled`, since
+  a statement also goes to customers well within terms). A 1st on a weekend rolls to the Monday;
+  enabling mid-month never backfills. Manual sends go through `send-document-email`, which now accepts
+  an order-less statement — so preview + hand-send work with no Vercel renderer env at all.
+- **DB (LIVE on BOTH projects)**: `00102` (`payment_overview` document_type — a NEW value on purpose;
+  reusing `payment_reminder` would have consumed dunning escalation steps, since `get_overdue_invoices`
+  counts those rows to place an invoice on the ladder), `00103` (table + RLS + the two RPCs),
+  `00104` (closes an RLS hole — see `BUGS_AND_FIXES.md`). Edge functions
+  `process-invoice-reminders` (`--no-verify-jwt`) and `send-document-email` redeployed on both.
+- **RPC auth gate worth remembering**: `IF auth.uid() IS NOT NULL AND NOT is_owner()`. A plain
+  `IF NOT is_owner()` locks out the **cron**, which runs as service_role with a NULL `auth.uid()`.
+- **Verified** end-to-end against live data (Jacks Corner, 10 invoices, €2.948,46) rendered through
+  the production Vercel handler, plus a synthetic 42-line run for multi-page behaviour.
+
+### TODO — turn the automation on ⏳
+1. Review a real sample: `/overdue` → **Betaaloverzicht** → Voorbeeld, on a few customers (at least
+   one non-NL to see the English variant).
+2. Settings → Herinneringen → **Maandelijks betaaloverzicht** → toggle on. Send time follows the
+   existing `send_hour` + working-days settings.
+3. **Many customers have no email on file** — the tab's "Zonder e-mailadres" filter isolates them;
+   they are skipped by both manual and automatic sending until an address is added.
+4. Gurbet: Step 7 self-skips there until `RENDER_ENDPOINT_URL` / `RENDER_SECRET` are set on the edge
+   function, and its Vercel project needs `RENDER_SECRET` before the tab's preview works.
