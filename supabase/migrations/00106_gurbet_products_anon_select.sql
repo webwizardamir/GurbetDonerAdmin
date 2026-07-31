@@ -1,0 +1,31 @@
+-- 00106 — Drop the `TO public` products SELECT policy that let `anon` read the
+-- catalogue, COGS included.
+--
+-- 🚨 GURBET-ONLY DRIFT (dvpnvulxkccurqkpqqnx). Melek does not have this policy
+-- and needs no change; running this there is a harmless no-op (IF EXISTS).
+-- Yet another instance of the two databases being exposed in OPPOSITE
+-- directions — 00097 fixed holes that existed only on Melek.
+--
+-- The policy:
+--   "Authenticated users can view active products"
+--   SELECT, TO public, USING ((is_active = true) OR is_admin())
+--
+-- Despite the name it is TO **public**, which includes `anon`, and `anon` holds
+-- the table SELECT grant. The `is_active = true` disjunct needs no auth at all,
+-- so every active product row — cost_cents included — is readable
+-- unauthenticated. The only thing standing in the way today is that `anon`
+-- lacks EXECUTE on is_admin(), so evaluating the second disjunct raises
+-- "permission denied for function is_admin". That is an accidental barrier, not
+-- a deny: it depends on the planner reaching a function it may not call, and one
+-- stray GRANT (exactly what Supabase default privileges hand out when a
+-- SECURITY DEFINER function is recreated) removes it silently.
+--
+-- Safe to drop:
+--   * apps/web (the public Astro site) does not use Supabase at all.
+--   * The customer portal reads through the SECURITY DEFINER get_portal_* RPCs,
+--     which bypass RLS.
+--   * products_select_admin (TO authenticated, is_admin_user()) remains and is
+--     what the admin app actually uses.
+-- Resulting policy set matches Melek's.
+
+DROP POLICY IF EXISTS "Authenticated users can view active products" ON public.products;
