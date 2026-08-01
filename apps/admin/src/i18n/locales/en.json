@@ -715,7 +715,8 @@
       "label": "Profit",
       "margin": "Margin",
       "marginShort": "({{pct}}% margin)",
-      "lineLabel": "Line profit"
+      "lineLabel": "Line profit",
+      "cogTotal": "Cost of goods"
     },
     "backToOrders": "Back to Orders",
     "saveOrder": "Save Order",

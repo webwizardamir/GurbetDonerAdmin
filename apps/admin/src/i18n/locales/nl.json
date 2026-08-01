@@ -715,7 +715,8 @@
       "label": "Winst",
       "margin": "Marge",
       "marginShort": "({{pct}}% marge)",
-      "lineLabel": "Regelwinst"
+      "lineLabel": "Regelwinst",
+      "cogTotal": "Inkoopwaarde"
     },
     "backToOrders": "Terug naar bestellingen",
     "saveOrder": "Bestelling opslaan",

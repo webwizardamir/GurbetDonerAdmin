@@ -528,15 +528,27 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
               <span className="text-slate-900 dark:text-white">{t('orders.total')}</span>
               <span className="text-green-600 dark:text-green-400">{formatPrice(order.total)}</span>
             </div>
+            {/* OWNER ONLY — cost of goods + profit. Set apart from the customer
+                -facing totals by its own divider, so an internal figure is
+                never read as part of the order amount. Profit is the sum of the
+                per-line profits above; both use the ex-VAT, post-discount base. */}
             {isOwner && orderProfit.totalCost > 0 && (
-              <div className="flex justify-between items-center text-sm pt-2 mt-1 border-t border-slate-200 dark:border-slate-600">
-                <span className="font-medium text-slate-600 dark:text-slate-400">{t('orders.profit.label')}</span>
-                <span className={`font-semibold tabular-nums ${profitClass(orderProfit.profit)}`}>
-                  {formatPrice(orderProfit.profit)}
-                  <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
-                    {t('orders.profit.marginShort', { pct: formatPercent(orderProfit.margin).replace('%', '') })}
+              <div className="pt-2 mt-1 border-t border-slate-200 dark:border-slate-600 space-y-1.5">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">{t('orders.profit.cogTotal')}</span>
+                  <span className="tabular-nums text-slate-700 dark:text-slate-300">
+                    {formatPrice(orderProfit.totalCost)}
                   </span>
-                </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium text-slate-600 dark:text-slate-400">{t('orders.profit.label')}</span>
+                  <span className={`font-semibold tabular-nums ${profitClass(orderProfit.profit)}`}>
+                    {formatPrice(orderProfit.profit)}
+                    <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
+                      {t('orders.profit.marginShort', { pct: formatPercent(orderProfit.margin).replace('%', '') })}
+                    </span>
+                  </span>
+                </div>
               </div>
             )}
             {(order.refund_amount ?? 0) > 0 && (

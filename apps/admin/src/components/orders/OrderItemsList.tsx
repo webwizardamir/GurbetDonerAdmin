@@ -422,6 +422,15 @@ export default function OrderItemsList({
   const { isOwner } = useAuth()
   const [notesEditorLineId, setNotesEditorLineId] = useState<string | null>(null)
 
+  // Owner-only order cost + profit for the live totals strip.
+  // `subtotal` sums lineGross (PRE-discount), so the ex-VAT post-discount
+  // revenue is subtotal − discountTotal — the same base the per-line badges
+  // use, which keeps the strip equal to the sum of the lines above it.
+  const orderCost = items.reduce((s, i) => s + (i.cost_cents ?? 0) * i.quantity, 0)
+  const orderRevenue = subtotal - discountTotal
+  const orderProfitCents = orderRevenue - orderCost
+  const orderMargin = orderRevenue > 0 ? (orderProfitCents / orderRevenue) * 100 : 0
+
   const getUnitTypeLabel = (unitType: UnitType): string => {
     return t(`products.form.unitTypes.${unitType}`)
   }
@@ -783,6 +792,28 @@ export default function OrderItemsList({
                 <span className="text-slate-700 dark:text-slate-300 font-semibold">{t('orders.total')}</span>
                 <span className="text-green-600 dark:text-green-400 font-bold text-base">{formatPrice(total)}</span>
               </div>
+              {/* OWNER ONLY — cost of goods + profit for the order being built.
+                  Own divider, smaller than the customer-facing Totaal, so it
+                  reads as internal. `subtotal` here is PRE-discount (it sums
+                  lineGross), hence subtotal − discountTotal for the ex-VAT
+                  post-discount base — the same base the per-line badges use. */}
+              {isOwner && orderCost > 0 && (
+                <div className="flex items-center gap-4 pl-4 border-l border-slate-200 dark:border-slate-700">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-slate-500 dark:text-slate-400 text-xs">{t('orders.profit.cogTotal')}</span>
+                    <span className="tabular-nums text-slate-700 dark:text-slate-300 font-medium">{formatPrice(orderCost)}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-slate-500 dark:text-slate-400 text-xs">{t('orders.profit.label')}</span>
+                    <span className={`tabular-nums font-semibold ${profitClass(orderProfitCents)}`}>
+                      {formatPrice(orderProfitCents)}
+                      <span className="ml-1 text-xs font-normal text-slate-400 dark:text-slate-500">
+                        {t('orders.profit.marginShort', { pct: formatPercent(orderMargin).replace('%', '') })}
+                      </span>
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </>

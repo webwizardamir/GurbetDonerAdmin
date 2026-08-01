@@ -715,7 +715,8 @@
       "label": "Kâr",
       "margin": "Marj",
       "marginShort": "(%{{pct}} marj)",
-      "lineLabel": "Satır kârı"
+      "lineLabel": "Satır kârı",
+      "cogTotal": "Mal maliyeti"
     },
     "backToOrders": "Siparişlere dön",
     "saveOrder": "Siparişi Kaydet",
