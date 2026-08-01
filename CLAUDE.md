@@ -1911,8 +1911,17 @@ functions readable by `anon` on either; `is_owner()`, `hidden_from_managers`, th
 exclusion and the filter params all survived.
 
 ### Known, NOT fixed by 00109
-- **`get_monthly_comparison` returns `profit` with no `is_owner()` gate** on either project — a
-  Shop Manager can read monthly profit through it. Real gap in the owner-only invariant.
+- **`get_monthly_comparison` returns `profit` with no `is_owner()` gate** on either project. It
+  powers the *Maandelijks overzicht* chart on **Analytics → Financieel**. The **page is properly
+  gated** (`<OwnerRoute>` in `App.tsx`, `ownerOnly: true` in the sidebar), so no screen a Shop
+  Manager can open shows it — but the RPC is callable directly with their own token. Verified by
+  impersonation: a real `shop_manager` reads July 2026 revenue **€154.051,33** and profit
+  **€31.061,53**. Every sibling RPC on that tab (`get_financial_summary`, `get_kpis`,
+  `get_top_customers`, `get_revenue_by_day`) already wraps profit in
+  `CASE WHEN is_owner() THEN … ELSE NULL END`; this one was missed.
+  **Reviewed 2026-08-02 and consciously accepted by the owner** — a direct-API gap, not an exposed
+  screen. Fix if it ever matters: wrap `profit` only (leave `revenue`/`orders`), per-project via an
+  asserted replace, since this is one of the two functions whose bodies diverge between databases.
 - **Gurbet's `orders.subtotal/discount/tax/total` are `numeric`; Melek's are `integer`.** Gurbet's
   JSON therefore carries decimals (`"2583618.00"`); the app's `Number()` absorbs it.
 
