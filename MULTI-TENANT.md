@@ -178,6 +178,19 @@ All four verified on Melek by impersonating a real `shop_manager` in rolled-back
 transactions; **on Gurbet they are applied but behaviourally unverified — the database is
 empty**, so the first real order there is also the first real test of the hidden-order gate.
 
+### Applied to BOTH on 2026-07-31/08-01 (no outstanding tenant action)
+
+`00105` refunds subtracted per `unit_type` (both CTEs now group by the same key set),
+`00107` Betaaloverzicht lists overdue invoices only (`p_overdue_only` + `overdue_cents`),
+`00108` audit triggers on `price_list_items` / `price_lists` / `product_unit_prices`,
+`00109` analytics revenue net of discount (16 RPCs).
+`00106` is **Gurbet-only** — it drops a `TO public` products SELECT policy Melek never had.
+Edge fn `process-invoice-reminders` redeployed to both (`--no-verify-jwt`) for the overdue gate.
+
+🚨 **`public.rpc_backup_pre_00109` exists on BOTH projects** and holds every analytics RPC body
+as it was before `00109`. Rollback = execute its `def` column verbatim. **Do not drop it** —
+Supabase daily backups age out and this is the only record of those definitions.
+
 ## Schema divergence — the repo does not reproduce Melek
 
 Melek's migration ledger records ~77 migrations against 94 files. Some live objects were
@@ -193,6 +206,18 @@ applied to Melek**. So the two schemas legitimately differ, in both directions.
   in **no migration file**. Copied to Gurbet by hand.
 - `audit_log_changes()` is referenced by 00009/00010 but defined nowhere (the real function
   is `log_audit_event`) — those statements have always failed.
+- 🚨 **Function BODIES diverge too, not just policies** (confirmed 2026-08-01). Preparing `00109`,
+  `md5(pg_get_functiondef(...))` matched across both projects for 14 of 16 analytics RPCs but
+  **differed for `get_monthly_comparison` and `get_revenue_by_payment_method`**. Pasting one
+  hand-written body into both would have silently overwritten one project's version. The safe
+  shape, when an edit is a well-defined substring, is to **replace over each project's own live
+  body** (`00089`/`00109` precedent) and assert the replacement happened — never to author one
+  canonical body and apply it twice. Cheap parity check before any RPC work:
+  `SELECT proname, md5(pg_get_functiondef(oid)) FROM pg_proc … ORDER BY proname` on each.
+- **Column TYPES diverge**: Gurbet's `orders.subtotal/discount/tax/total` are `numeric`, Melek's
+  are `integer`. Gurbet's JSON therefore carries decimals (`"2583618.00"`); the app's `Number()`
+  absorbs it, but a `::bigint` cast in a verification query will fail on one project and not the
+  other.
 - 🚨 **RLS can be wrong in OPPOSITE directions on the two databases** (confirmed 2026-07-26).
   Because 00035 never ran on Melek, Melek *kept* pre-00035 `USING (true)` SELECT policies that
   Gurbet never had: `product_unit_prices` was `TO public`, i.e. **372 rows of COGS readable by

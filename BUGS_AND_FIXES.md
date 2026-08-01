@@ -859,3 +859,71 @@ The recovery being attempted was futile anyway: `_removeSession()` wipes storage
 **Solution (migration `00104`):** the **whole** SELECT policy is replaced (never add a second — RLS policies are OR'd, so a leftover permissive one defeats the new predicate entirely) with an explicit type term: `is_owner() OR (document_type <> 'payment_overview' AND NOT order_is_hidden(order_id))`.
 **Verified** by impersonating a real `shop_manager` and a real `owner` in rolled-back `DO` blocks: manager sees 0 statement rows and still sees all 303 invoice mails; owner sees the statement.
 **Prevention:** a NULL foreign key does not mean "not sensitive" — it means the per-parent gate does not apply, so the row needs a gate of its own. **Any future `document_sends` row with a NULL `order_id` inherits this hole.** When adding a row shape to a table whose RLS derives from a parent, check what the derivation returns when the parent is absent.
+
+---
+
+## Profit was computed from a PRE-DISCOUNT revenue base (2026-08-01)
+
+**Symptom:** none reported — found while adding an owner-only Inkoopwaarde + Winst block to the order totals. Putting cost and profit side by side forced them to reconcile with the per-line badges printed directly above, and they did not.
+**Cause:** `orders.subtotal` is persisted from `computeOrderTotals().subtotal`, which sums `lineGross = unit_price × quantity` **before** line and order discounts. `computeOrderProfit` and **every analytics RPC** used it as the revenue base, so profit was overstated by exactly the discount. The convention was even documented as "ex-VAT, post-discount" — it is ex-VAT, but it is *not* post-discount.
+**Impact:** order 10528 (€75,00 discount, €62,50 cost, €0,00 actually charged) reported **+€12,50 profit instead of a €62,50 loss**. Order 10717 reported €55,65 instead of €36,70. Small in aggregate — €141,90 of discounts on €154.159,78 across 408 orders (0,07%) — but it inverts the sign on a fully-discounted order, and grows with discounting.
+**Found alongside, and more visible:** `get_financial_summary` returned `'netRevenue', COALESCE(cur.net, 0)` — the **same expression** as `grossRevenue`. The Financial tab therefore rendered a waterfall that did not add up: *Bruto omzet 154.159,78 − Kortingen 108,45 = Netto omzet 154.159,78*.
+**Solution:** client side (`5f93719`) — revenue is `Σ(line.total − line.tax_amount)`, ex-VAT and net of both discount levels, the same base `lineProfit()` already used, so the order figure is now the sum of the per-line figures. SQL side (migration `00109`) — 16 RPCs; order level `o.subtotal - COALESCE(o.discount,0)`, line level `oi.total - oi.tax_amount`.
+**Deliberately NOT changed:** `orders.subtotal` itself (correct as a *gross* figure; the invoice and portal breakdowns depend on it), `get_portal_*` (customer-facing, emits subtotal beside discount), and `get_order_performance`'s `subtotal` column (an invoice-style display beside `discount_amount` — only its profit/margin moved).
+**Technique, and why it changed mid-flight:** the plan called for hand-written `CREATE OR REPLACE` throughout. Reading all 16 live bodies showed that was wrong — `get_monthly_comparison` and `get_revenue_by_payment_method` **diverge between the two databases**, so pasting one body into both would silently overwrite one project's version. 14 were edited by a targeted replace over each project's **own live body** (the `00089` precedent); only two were hand-written. **Every replace asserts** — a missing target `RAISE`s, so a silent miss on money is impossible.
+**Verified:** Melek gross unchanged at 15490978, netRevenue and KPI revenue each down by **exactly 10845** (the discount total); Gurbet has no discounts so net equals gross. Zero SECURITY DEFINER functions readable by `anon` on either; `is_owner()`, `hidden_from_managers`, the `'draft'` exclusion and the filter params all survived. The undiscounted case is unchanged, so the other 409 orders did not move.
+**Rollback:** every pre-edit body is in `public.rpc_backup_pre_00109` on both projects — execute its `def` column verbatim. **Do not drop that table.**
+**Prevention:** when a column name and its documented meaning disagree, believe the code that writes it. And **a figure is only trustworthy once it is shown beside the figure it must reconcile with** — this survived months of dashboards and only surfaced when cost and profit were put in the same box.
+
+---
+
+## The Betaaloverzicht chased money that was not owed yet (2026-08-01)
+
+**Symptom (reported by owner):** "Luiten food, invoice FC-08394, already in the list — and the due date in the same table shows 12-08-2026."
+**Cause:** `get_payment_overview_orders` had **no due-date filter**. It was built as a full statement of account — every unpaid billed order, due or not — so a customer entirely within terms still received one, and a mixed customer's statement listed invoices they did not owe yet. `days_overdue` correctly read 0; the row was simply there.
+**Impact if the toggle had been on:** 21 of 97 candidates had **nothing** overdue. Luiten Food's statement would have been a single €56.854,40 line not due for another 12 days.
+**Solution, in two passes because the first was incomplete:** `5ba24d7` gated **sending** on `overdue_count > 0` (no migration needed — the RPC already returned it). The owner then reported still seeing not-yet-due invoices *inside* the statements, so migration `00107` added `p_overdue_only` and gated the **contents** too: document builders pass TRUE, the admin tab passes FALSE so the owner keeps the full picture. Follow-on: *Totaal openstaand* → *Totaal te betalen*, the "Waarvan verlopen" row dropped, the Status column removed.
+**Also fixed, from the same report:** the tab still listed everyone, so it looked unchanged. Filtering on "has overdue" turned out **not** to be the same set as "will be mailed" — **71 of 97 customers have no email address**. One `dispatchOf()` helper now mirrors the cron's gates in the same order and drives the stat tile, a filter and a per-row badge; only **20 of 97** are actually reachable.
+**Caught before any customer saw it** — `payment_overviews` was empty, no `payment_overview` sends existed, and `monthly_overview_enabled` was still unset.
+**Prevention:** a document's *purpose* decides its contents; "statement of account" and "dunning letter" are different documents with different rules, and the label on a toggle is not the specification. When a screen lists candidates for an automated action it must apply **the same gates in the same order** as the automation, or it quietly promises something the cron will not do.
+
+---
+
+## `payment_method` could be set once and never corrected (2026-08-01)
+
+**Symptom (reported by owner):** an order was completed as Contant, the customer then asked to pay by bank, and there was no way to change it. Setting the status back to pending and completing again did not help.
+**Cause:** `orders.payment_method` had exactly **one** writer — the `→ completed` transition — and that transition cannot be re-run on an already-completed order: `OrderStatusPicker` swallows a click on the current status, and `handleStatusChange` returns early when the status is unchanged. The payment modal was reachable only on the way *into* completed. The full order editor never carried the field, and `updateOrderWithItems` silently **dropped** it, so `CreateOrderData.payment_method` was a dead declaration.
+**Why the workaround is not one:** leaving `completed` makes `set_invoice_due_and_paid` clear `invoice_paid_at`, and re-completing stamps `NOW()` — the original payment date is lost.
+**Solution (`f922c10`):** the payment badge in `OrderDetail` is now itself the picker, opening `PaymentMethodModal` in a new `mode="edit"` (preselected, "Opslaan", disabled until the value changes), available in every live status and showing a neutral "Geen betaalmethode" chip when unset. Writes go through a new **`updateOrderPaymentMethod`** rather than relaxing the guard in `updateOrderStatus`: touching only `payment_method` fires neither the stock trigger nor the paid-date trigger, and `audit_orders` still records the correction.
+**Prevention:** a field only ever written as a side effect of a state transition cannot be corrected once that transition is spent. Ask "how is this undone?" when wiring a value into a one-way flow.
+
+---
+
+## Refunds were subtracted once per unit type (2026-07-31)
+
+**Symptom:** none — found while auditing unit-type handling across exports.
+**Cause:** in `get_sold_products_breakdown` and `get_customer_items_summary` the `sold` CTE groups by `unit_type` but the `refunded` CTE did **not**, joining on `product_id` (+ customer, city) only. A product sold in N unit types had its full refund subtracted from **every one of those N rows**, and in the breakdown the over-subtraction also fed `WHERE (qty_gross - qty_refunded) > 0`, so a legitimate unit row could vanish from the report entirely.
+**Impact:** latent at the time — no order had both a refund and a multi-unit product — but 76 (customer, product) pairs were already sold in more than one unit, so the first such refund would have corrupted both reports.
+**Solution (migration `00105`):** `unit_type` added to the `refunded` CTE. It is **not** stored on `order_refund_items`, so it comes from the refunded `order_items` row — and that FK is `ON DELETE SET NULL` while `updateOrderWithItems` deletes-and-reinserts line items on every edit, so the link can break on an order edited after being refunded. A `LATERAL` fallback recovers the unit from another line of the same order for the same product; without it an orphaned refund matches no sold row and is silently dropped, overstating revenue instead of understating it.
+**Prevention:** when one side of a join is grouped more finely than the other, the coarser side fans out. Check that both CTEs in a `sold`/`refunded` pair group by the **same** key set.
+
+---
+
+## Gurbet's product catalogue was readable by `anon` (2026-07-31)
+
+**Symptom:** none — found during a security pass while adding export columns.
+**Cause:** Gurbet carried a policy named `Authenticated users can view active products` which was actually `TO public` with `USING ((is_active = true) OR is_admin())`. `TO public` includes `anon`, `anon` holds the table SELECT grant, and the `is_active = true` disjunct needs no authentication at all — so every active product row, `cost_cents` included, was readable unauthenticated. Melek never had this policy.
+**Why it had not leaked:** the only thing in the way was that `anon` lacks EXECUTE on `is_admin()`, so evaluating the second disjunct raised a permission error. That is an **accidental barrier, not a deny** — it depends on the planner reaching a function it may not call, and one stray GRANT (exactly what Supabase default privileges hand out when a SECURITY DEFINER function is recreated) removes it.
+**Solution (migration `00106`):** policy dropped, Gurbet only. `products_select_admin` (`TO authenticated`, `is_admin_user()`) remains and is what the app uses. Verified: `anon` now reads 0 rows, the owner still reads all 6.
+**Prevention:** read the `roles` column, not the policy name — and treat "it errors today" as unproven rather than safe. This is the third time the two databases have been found exposed in **opposite** directions; always check `pg_policies` on each.
+
+---
+
+## `npm run lint` had silently done nothing for months (2026-07-31)
+
+**Symptom:** `npm run lint` exited 2 with "ESLint couldn't find an eslint.config.js file".
+**Cause:** ESLint 9 and all its plugins were installed, but no config existed in either format — so every run failed at startup. Because the failure looked like a broken toolchain rather than a failing lint, nobody noticed the linter had stopped saying anything.
+**Solution (`c463603`):** added a flat `eslint.config.js` close to the Vite react-ts template, dropped the removed `--ext` flag, and fixed all **21 errors** it then reported: two ternaries evaluated purely for side effects, two needlessly escaped `-` inside character classes, real `any`s typed, and three stale `eslint-disable` directives. Type-aware rules are deliberately off — they roughly triple lint time and `tsc --noEmit` already covers what they would catch.
+**Immediately earned its keep:** it caught a live bug in that same session's code — `ExportMenu`'s `effColumns` built a new array every render, defeating the three `useMemo`s below it.
+**Left as warnings, deliberately:** 19 pre-existing `exhaustive-deps` / `react-refresh` reports on intentional mount-only effects. `--max-warnings 0` was **not** restored: mass-editing effect dependencies in this codebase is exactly how the auth-lock deadlock was introduced.
+**Prevention:** a command that exits non-zero for a *configuration* reason is indistinguishable from one that exits non-zero for a *code* reason. Verify a linter actually reports on a known-bad file before trusting a clean run.

@@ -574,6 +574,35 @@ Pass to `ExportMenu`:
 - `selectedData?` — hand-picked rows (omit when the page has no row selection). Orders, Products, Customers and Documents have selection checkboxes; the count drives the "Geselecteerde rijen" scope.
 - `totalCount?`, `columns`, `filename`, `pdfTitle`, `storageKey` (unique per page, e.g. `"orders"`).
 
+### Unit types in exports (2026-07-31)
+Products and price lists were wrong in **opposite** directions, and neither let the user choose:
+
+- **Products under-reported** — only the product's *default* unit and `base_price`.
+  `product_unit_prices` was already joined onto every row and simply never read. Now there are four
+  `Prijs per <unit>` columns + four **owner-only** `Kostprijs per <unit>` columns, flattened onto the
+  row by **`withUnitPriceColumns`** (never a `format()` callback — `computeTotalsRow` reads
+  `row[key]`). They are **`defaultOff`**, a new `ExportColumn` flag: ticked columns are remembered,
+  but a first-time user must not get 19 columns on portrait A4.
+- **Price lists over-reported** — one row per (product, unit) with no filter. The page now has
+  search + a unit-type multi-select (URL-persisted) and the export dialog a **Vorm** toggle:
+  *Per eenheid* (long) or *Per product* (a price column per unit, matching the table).
+
+🚨 `PriceListDetail`'s `ProductGroup` carries **both** `items` (all units) and `visibleItems`
+(filtered). **Delete and the unit editor must read `items`** — filtering them would delete only the
+visible unit while the dialog names the whole product, or let the editor drop a hidden unit on save.
+
+🚨 `withoutOwnerOnlyColumns` matches keys **exactly**, so `cost_cents` does not cover `cost_kg` etc.
+All four are listed in `OWNER_ONLY_EXPORT_KEYS`, plus a `startsWith('cost_'|'margin_')` guard so a
+future column is owner-only **by default**. `withUnitPriceColumns` also omits the cost fields from
+the row object entirely for non-owners — strip the data, not just the column.
+
+`ExportMenu` gained an optional **`variants`** prop (shape + its columns + its data paired, so a
+mismatch is unrepresentable) with **per-variant preference keying**
+(`export:<storageKey>:<variantKey>`, falling back to the legacy blob for the first variant), and a
+generic **`filterNotice`** — a filtered export is durable and forwardable, so the dialog says what
+is being left out. Constants live in `constants/unitTypes.ts`; **`ProductForm`'s `ALL_UNIT_TYPES`
+keeps its own order deliberately** (it picks the fallback default unit, so its order is behaviour).
+
 ### Notes / gotchas
 - **Column data must live on the row.** Values not stored on the entity (e.g. the Orders "Factuurnummer", which comes from a separate `fetchDocumentInfoByOrder` lookup) must be attached to the row objects for **all** scopes before handing them to `ExportMenu` (see `withInvoiceNumber` in `Orders.tsx`).
 - All export columns are checkboxes; they default to all-checked and the selection is persisted, so adding a column to a `*ExportColumns` array automatically surfaces it as a toggle.
@@ -1701,9 +1730,38 @@ extra `_comment` key fails Vercel's schema validation and breaks the deploy.
 
 ## Maandelijks Betaaloverzicht — statement of account (00102–00103, 2026-07-31)
 
-One PDF per customer listing **every still-unpaid, billed order** plus a single "totaal
-openstaand", emailed on the **first working day of the month**. Replaces the experience of getting
-six separate dunning emails and never seeing one number.
+One PDF per customer listing its **overdue** billed orders plus a single total, emailed on the
+**first working day of the month**. Replaces the experience of getting six separate dunning emails
+and never seeing one number.
+
+> 🚨 **REVISED 2026-08-01 (migration 00107 + commits `5ba24d7` / `2fbb53c`).** It shipped as a full
+> *statement of account* — every open invoice, due or not. Against real data that was wrong twice
+> over, so **both** the send and the contents are now gated on being overdue:
+>
+> 1. **A customer with nothing overdue gets no statement.** 21 of 97 candidates held only
+>    not-yet-due invoices — Luiten Food's would have been a single €56.854,40 line not due for
+>    another 12 days, which reads as chasing money that isn't owed.
+> 2. **The statement lists only overdue invoices.** Sohbet bbq cafe Restaurant showed 3 overdue
+>    plus one due in 2 days; Pizza house the same. Sending a chase that includes invoices the
+>    customer doesn't owe yet undermines the chase. 74 not-yet-due lines dropped across 76 customers.
+>
+> `get_payment_overview_orders(p_customer_id, p_overdue_only boolean DEFAULT false)` — the
+> **document builders pass TRUE**, the **admin tab passes FALSE** so the owner keeps the full
+> picture behind the "4 facturen · 3 verlopen" split. Overdue is `invoice_due_date < CURRENT_DATE`,
+> matching `days_overdue = GREATEST(0, …)`: an invoice due **today** is not late.
+> `get_payment_overview_customers` also returns `overdue_cents`, so the tab and the send
+> confirmation quote what the PDF will actually total rather than the full balance.
+>
+> Follow-on document changes: **"Totaal openstaand" → "Totaal te betalen"** (the figure is no longer
+> the whole balance and must not claim to be), the "Waarvan verlopen" row dropped (it restated the
+> grand total), and the **Status column removed** (every row would read "Verlopen"; its 80pt went to
+> the flex invoice column).
+>
+> **The tab shows who will actually be mailed.** One `dispatchOf()` helper mirrors Step 7's gates in
+> order and drives the stat tile, a "Verzending op de 1e" filter (defaulting to *Wordt verstuurd*)
+> and a per-row badge: **Wordt verstuurd / Binnen termijn / Geen e-mailadres / Afgemeld**. Filtering
+> on "has overdue" alone was *not* the same set — **71 of 97 customers have no email address**, so
+> they were listed and mailed nothing. Live: only **20 of 97** are reachable.
 
 - **Qualifying orders** (`get_payment_overview_orders(customer)`, the single definition — the admin
   tab and the cron both call it, so a preview can never disagree with what is mailed):
@@ -1785,6 +1843,130 @@ eligibility must be re-derived from the live list (`Orders.tsx` maps ids back on
 (`legalFrom`). Without both, ticking a `pending_payment` order, cancelling it from the detail panel
 (stock restored), then bulk-completing wrote `cancelled → completed` and the trigger **re-deducted
 its stock** — silently, skipping the confirmation that only exists in the detail panel.
+
+---
+
+## 🚨 Analytics revenue is NET OF DISCOUNT (migration 00109, 2026-08-01)
+
+**The single most important number convention in the app. Read this before touching any
+revenue or profit figure.**
+
+`orders.subtotal` is persisted from `computeOrderTotals().subtotal` (`utils/discount.ts`), which
+sums `unit_price × quantity` **BEFORE** line and order discounts. Every analytics RPC used it as
+the revenue base, so profit was overstated by exactly the discount. Order 10528 — €75,00 discount,
+€62,50 cost, €0,00 actually charged — reported **+€12,50 profit instead of a €62,50 loss**.
+
+The rule, applied per output:
+
+| Output | Base |
+|---|---|
+| labelled **gross** (`grossRevenue`), or a display column shown **beside its own discount column** | `o.subtotal` — unchanged, it IS the gross figure |
+| labelled **net**, or feeding **profit / margin / average order value** | subtract the discount |
+
+Two equivalent net expressions (verified equal on live data — order 10717: `19895 − 1895 = 18000`
+= Σ line net), because `computeOrderTotals` distributes the order discount proportionally into each
+line's `finalBase`:
+
+- **order level** → `o.subtotal - COALESCE(o.discount, 0)`
+- **line level** → `oi.total - oi.tax_amount`  (**never** `oi.unit_price * oi.quantity`, which is
+  pre-discount, and never bare `oi.total`, which includes BTW)
+
+**Do NOT "fix" `orders.subtotal` itself.** It is correct as a gross figure and the invoice + portal
+breakdowns (Subtotaal / Korting / BTW / Totaal) depend on it. `get_portal_order` /
+`get_portal_orders` emit `subtotal` beside `discount` and are deliberately untouched.
+
+Client side, `computeOrderProfit` (`utils/orderProfit.ts`) uses `Σ(line.total − line.tax_amount)`
+so the order figure equals the sum of the per-line figures shown above it, and falls back to
+`order.subtotal` only when a caller passes lines without the snapshot fields.
+
+**`get_order_performance` is the exception to watch:** its `subtotal` column stays **gross** (it is
+returned beside `discount_amount`, `tax_amount` and `total` — an invoice-style breakdown); only its
+`profit` and `profit_margin` moved. A blanket replace there corrupts the display column.
+
+### Rollback — `public.rpc_backup_pre_00109`
+
+Every one of the 16 live function bodies was captured to a table on **both** projects before the
+edit. To restore any function exactly as it was:
+
+```sql
+SELECT def FROM public.rpc_backup_pre_00109 WHERE proname = 'get_financial_summary';
+-- then execute that text verbatim
+```
+
+The table is `REVOKE`d from PUBLIC/anon/authenticated. **Do not drop it** — it is the only record of
+the pre-00109 definitions, and Supabase daily backups age out.
+
+### How 00109 was applied, and why it matters for the next one
+`get_monthly_comparison` and `get_revenue_by_payment_method` **diverge between the two databases**
+(verified by `md5(pg_get_functiondef(...))`). So 14 of the 16 were edited by a **targeted replace
+over each project's own live body** (the `00089` precedent), which preserves local text and every
+predicate in it; only `get_order_performance` and `get_financial_summary` were hand-written.
+**Every replace asserts** — a missing target `RAISE`s, so a silent miss on money is impossible.
+Copy that shape rather than pasting one body into both projects.
+
+### Verified after
+Melek: `grossRevenue` unchanged at 15490978; `netRevenue` and KPI revenue each down by exactly
+10845 (the discount total). Gurbet: no discounts, so net equals gross. Zero SECURITY DEFINER
+functions readable by `anon` on either; `is_owner()`, `hidden_from_managers`, the `'draft'`
+exclusion and the filter params all survived.
+
+### Known, NOT fixed by 00109
+- **`get_monthly_comparison` returns `profit` with no `is_owner()` gate** on either project — a
+  Shop Manager can read monthly profit through it. Real gap in the owner-only invariant.
+- **Gurbet's `orders.subtotal/discount/tax/total` are `numeric`; Melek's are `integer`.** Gurbet's
+  JSON therefore carries decimals (`"2583618.00"`); the app's `Number()` absorbs it.
+
+---
+
+## Pricing tables are audited (migration 00108, 2026-08-01)
+
+`price_list_items`, `price_lists` and `product_unit_prices` now carry the standard
+`audit_<table>` trigger. Before this, "who changed this price, and from what?" was **unanswerable** —
+a customer's price list appeared to have reverted and the only reason it could be investigated at
+all was that `customer_prices` happens to have its own `price_history` table from 00014.
+
+**All three, not just the price list:** the incident involved a catalog cost change at 07:22 **and**
+price-list writes at 10:10–10:17 the same morning. Auditing only the list leaves half the timeline
+dark.
+
+- Reuses `log_audit_event()` (00084) unchanged — entity_type from `TG_TABLE_NAME`, entity_id from
+  `NEW.id`/`OLD.id`, full-row JSONB snapshots, actor via profiles → auth.users → `'system'`.
+- **A no-op write logs nothing.** The trigger skips updates touching only `noise_keys`, which
+  includes `updated_at` — the one column each table's own BEFORE UPDATE trigger bumps. So an
+  idempotent re-import or re-saving unchanged values produces **zero** rows. Verified.
+- **Volume is accepted, not mitigated.** `upsertPriceListItems` is a PostgREST upsert, so the row
+  trigger fires per row: a 4-unit product save is up to 8 rows and a full Excel re-import is
+  hundreds. A bulk import is exactly the change that needs a record.
+- `search_audit_logs`, `get_audit_actors` and the `audit_logs` RLS needed **no change** —
+  `p_entity_type` is free text compared with `=`.
+- UI: the three types are in `AUDIT_ENTITY_TYPES` (filter dropdown) and `ENTITY_META`;
+  `deriveEntityTitle` resolves `product_id` through the same batch `NameResolver` `customer_prices`
+  uses and appends the unit, so a row reads *"Prijslijst-regel: Kipfilet (doos)"* rather than a UUID.
+
+---
+
+## Order cost of goods + profit in the totals (2026-08-01)
+
+`OrderDetail`'s summary and `OrderItemsList`'s sticky strip both close with an owner-only
+**Inkoopwaarde + Winst** block, behind its own divider and smaller than the customer-facing
+**Totaal** so an internal figure is never read as part of the order amount. Hidden entirely when the
+lines carry no cost. This is what forced the `computeOrderProfit` base fix above — the two figures
+sit side by side and had to reconcile with the per-line badges.
+
+## The payment method is editable in any status (2026-08-01)
+
+`orders.payment_method` used to have exactly **one** writer — the `→ completed` transition — and
+that transition cannot be re-run on an already-completed order (the picker swallows a click on the
+current status; `handleStatusChange` returns early when the status is unchanged). So cash could
+never be corrected to bank.
+
+The payment badge in `OrderDetail` is now itself the picker (same idea as the status pill), opening
+`PaymentMethodModal` in a new `mode="edit"` — preselected, "Opslaan", disabled until the value
+actually changes. Writes go through **`updateOrderPaymentMethod`**, deliberately separate from
+`updateOrderStatus`: touching only `payment_method` fires neither the stock trigger nor
+`set_invoice_due_and_paid`. **Do not "fix" this by relaxing the guard in `updateOrderStatus`** — and
+note the old workaround (bounce to pending, complete again) silently **loses `invoice_paid_at`**,
+which that trigger clears on the way out and re-stamps on the way back in.
 
 ---
 
