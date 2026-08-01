@@ -547,6 +547,23 @@ serve(async (req) => {
         if (!email || c.reminders_opted_out === true) { result.overviewSkipped++; continue }
         if (Number(c.open_count ?? 0) <= 0) { result.overviewSkipped++; continue }
 
+        // NOTHING OVERDUE → no statement this month.
+        //
+        // The statement itself deliberately lists EVERY open invoice, including
+        // ones still within terms — that is what makes the "totaal openstaand"
+        // a figure the customer can reconcile against their own ledger. But a
+        // customer whose invoices are ALL still within terms owes nothing yet,
+        // and mailing them a payment overview reads as chasing. Luiten Food was
+        // the case that surfaced this: one invoice, €56.854,40, not due for
+        // another 12 days, and it would have been their entire statement.
+        //
+        // So the gate is on SENDING, not on the contents. overdue_count comes
+        // from the same RPC the admin tab lists from (COUNT FILTER
+        // days_overdue > 0), so the tab's "Heeft verlopen facturen" filter is
+        // exactly the set that gets mail. An invoice due TODAY counts as not
+        // overdue, which is correct — it is not late yet.
+        if (Number(c.overdue_count ?? 0) <= 0) { result.overviewSkipped++; continue }
+
         // Already handed to Resend for this period? Skip. Expressed as an
         // EXCLUSION of the retryable statuses — never `= 'sent'`, which the
         // sync-email-status cron rewrites within ~15 minutes (see

@@ -446,10 +446,21 @@ export default function PaymentOverviewTab() {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                       {row.open_count}
-                      {row.overdue_count > 0 && (
+                      {row.overdue_count > 0 ? (
                         <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
                           <Clock className="w-3 h-3" />
                           {t('paymentOverview.overdueCount', { count: row.overdue_count })}
+                        </span>
+                      ) : (
+                        // Nothing overdue → the 1st-of-month run skips this
+                        // customer. Say so on the row, or the owner is left
+                        // wondering why a customer with a large open balance
+                        // never receives a statement.
+                        <span
+                          className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-slate-400 dark:text-slate-500"
+                          title={t('paymentOverview.notDueYetHint')}
+                        >
+                          {t('paymentOverview.notDueYet')}
                         </span>
                       )}
                     </td>

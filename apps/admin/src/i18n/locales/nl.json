@@ -2250,6 +2250,8 @@
       "emailAll": "Met en zonder e-mail",
       "withEmail": "Met e-mailadres",
       "withoutEmail": "Zonder e-mailadres"
-    }
+    },
+    "notDueYet": "binnen termijn",
+    "notDueYetHint": "Alle facturen zijn nog niet vervallen — de automatische verzending op de 1e slaat deze klant over. Handmatig versturen kan wel."
   }
 }

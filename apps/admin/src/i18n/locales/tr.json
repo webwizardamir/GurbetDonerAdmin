@@ -2250,6 +2250,8 @@
       "emailAll": "E-postalı ve e-postasız",
       "withEmail": "E-posta adresi olanlar",
       "withoutEmail": "E-posta adresi olmayanlar"
-    }
+    },
+    "notDueYet": "vadesi gelmemiş",
+    "notDueYetHint": "Hiçbir fatura henüz vadesi geçmedi — ayın 1'indeki otomatik gönderim bu müşteriyi atlar. Yine de elle gönderebilirsiniz."
   }
 }

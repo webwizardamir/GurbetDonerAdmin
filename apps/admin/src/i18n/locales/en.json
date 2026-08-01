@@ -2250,6 +2250,8 @@
       "emailAll": "With and without email",
       "withEmail": "With email address",
       "withoutEmail": "Without email address"
-    }
+    },
+    "notDueYet": "within terms",
+    "notDueYetHint": "No invoice is overdue yet — the automatic run on the 1st skips this customer. You can still send manually."
   }
 }
