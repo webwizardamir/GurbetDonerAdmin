@@ -11,7 +11,6 @@ import {
   MailWarning,
   Search,
   Send,
-  Users,
 } from 'lucide-react'
 import Modal from '../ui/Modal'
 import ConfirmDialog from '../ui/ConfirmDialog'
@@ -93,7 +92,12 @@ export default function PaymentOverviewTab() {
   // paginate and a round-trip per keystroke would be pure latency.
   const [search, setSearch] = useState('')
   const [sendFilter, setSendFilter] = useState('')      // '' | 'notSent' | 'sent'
-  const [overdueFilter, setOverdueFilter] = useState('') // '' | 'overdue' | 'current'
+  // Defaults to 'overdue' so the list opens on the customers who will actually
+  // be mailed on the 1st. Showing every open balance made the tab look as
+  // though nothing had changed — Luiten Food still sat there with a €56k
+  // not-yet-due invoice. It is a normal filter, so it shows as an active chip
+  // and one click widens it back to everyone.
+  const [overdueFilter, setOverdueFilter] = useState('overdue') // '' | 'overdue' | 'current'
   const [emailFilter, setEmailFilter] = useState('')     // '' | 'with' | 'without'
   const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<SortKey>('amount', 'desc')
 
@@ -134,7 +138,14 @@ export default function PaymentOverviewTab() {
     const outstanding = rows.reduce((s, r) => s + Number(r.total_cents || 0), 0)
     const sent = rows.filter(r => r.last_send_status && isSuccessfulSend(r.last_send_status)).length
     const noEmail = rows.filter(r => !r.email?.trim()).length
-    return { outstanding, customers: rows.length, sent, noEmail }
+    // The three gates the 1st-of-month run applies, in the same order as
+    // process-invoice-reminders Step 7. This is the number the owner actually
+    // wants — "klanten met saldo" counts people who will never be mailed
+    // because nothing is overdue yet or there is no address on file.
+    const willSend = rows.filter(
+      r => Number(r.overdue_count || 0) > 0 && !!r.email?.trim() && r.reminders_opted_out !== true,
+    ).length
+    return { outstanding, customers: rows.length, sent, noEmail, willSend }
   }, [rows])
 
   const wasSent = (r: PaymentOverviewCustomer) =>
@@ -314,8 +325,8 @@ export default function PaymentOverviewTab() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Stat icon={<AlertTriangle className="w-5 h-5" />} tone="red"
           label={t('paymentOverview.stats.outstanding')} value={formatPrice(stats.outstanding)} />
-        <Stat icon={<Users className="w-5 h-5" />} tone="blue"
-          label={t('paymentOverview.stats.customers')} value={String(stats.customers)} />
+        <Stat icon={<Send className="w-5 h-5" />} tone="blue"
+          label={t('paymentOverview.stats.willSend')} value={`${stats.willSend} / ${stats.customers}`} />
         <Stat icon={<CheckCircle2 className="w-5 h-5" />} tone="green"
           label={t('paymentOverview.stats.sentThisMonth')} value={String(stats.sent)} />
         <Stat icon={<MailWarning className="w-5 h-5" />} tone="amber"

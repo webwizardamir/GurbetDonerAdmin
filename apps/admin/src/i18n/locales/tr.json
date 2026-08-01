@@ -2194,7 +2194,7 @@
   },
   "paymentOverview": {
     "title": "Ödeme özeti",
-    "intro": "{{period}} dönemi özeti. Aşağıdaki her müşteri, tüm açık faturalarını içeren tek bir PDF alır. Göndermeden önce önizlemeye bakın.",
+    "intro": "{{period}} için genel bakış. Bu liste varsayılan olarak ayın 1'inde ekstre alacak müşterileri gösterir: en az bir vadesi geçmiş faturası ve e-posta adresi olanlar. Tamamen vadesi gelmemiş müşteriler atlanır — görmek için filtreyi kaldırın. Göndermeden önce önizleyin.",
     "notSent": "Henüz gönderilmedi",
     "noEmail": "E-posta adresi yok",
     "openCount_one": "{{count}} açık fatura",
@@ -2206,7 +2206,8 @@
       "outstanding": "Toplam açık tutar",
       "customers": "Bakiyesi olan müşteriler",
       "sentThisMonth": "Bu ay gönderildi",
-      "noEmail": "E-posta adresi olmayan"
+      "noEmail": "E-posta adresi olmayan",
+      "willSend": "Ekstre alacak"
     },
     "empty": {
       "title": "Açık fatura yok",

@@ -2194,7 +2194,7 @@
   },
   "paymentOverview": {
     "title": "Betaaloverzicht",
-    "intro": "Overzicht voor {{period}}. Elke klant hieronder krijgt één PDF met al zijn openstaande facturen. Bekijk eerst een voorbeeld voordat u verstuurt.",
+    "intro": "Overzicht voor {{period}}. Standaard toont deze lijst de klanten die op de 1e een overzicht krijgen: klanten met minstens één verlopen factuur en een e-mailadres. Klanten die nog volledig binnen termijn zijn worden overgeslagen — verwijder het filter om ze te zien. Bekijk eerst een voorbeeld voordat u verstuurt.",
     "notSent": "Nog niet verstuurd",
     "noEmail": "Geen e-mailadres",
     "openCount_one": "{{count}} openstaande factuur",
@@ -2206,7 +2206,8 @@
       "outstanding": "Totaal openstaand",
       "customers": "Klanten met saldo",
       "sentThisMonth": "Deze maand verstuurd",
-      "noEmail": "Zonder e-mailadres"
+      "noEmail": "Zonder e-mailadres",
+      "willSend": "Krijgt overzicht"
     },
     "empty": {
       "title": "Geen openstaande facturen",

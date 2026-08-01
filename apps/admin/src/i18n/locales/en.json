@@ -2194,7 +2194,7 @@
   },
   "paymentOverview": {
     "title": "Payment overview",
-    "intro": "Overview for {{period}}. Every customer below receives one PDF with all their outstanding invoices. Check a preview before sending.",
+    "intro": "Overview for {{period}}. By default this list shows the customers who will receive a statement on the 1st: those with at least one overdue invoice and an email address. Customers still fully within terms are skipped — clear the filter to see them. Preview before you send.",
     "notSent": "Not sent yet",
     "noEmail": "No email address",
     "openCount_one": "{{count}} outstanding invoice",
@@ -2206,7 +2206,8 @@
       "outstanding": "Total outstanding",
       "customers": "Customers with a balance",
       "sentThisMonth": "Sent this month",
-      "noEmail": "Without email address"
+      "noEmail": "Without email address",
+      "willSend": "Will receive"
     },
     "empty": {
       "title": "No outstanding invoices",
