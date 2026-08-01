@@ -973,7 +973,47 @@
       "download": "İndir",
       "delete": "Sil",
       "confirmDelete": "{{count}} belge silinsin mi? Bu işlem geri alınamaz.",
-      "downloading": "İndiriliyor..."
+      "downloading": "İndiriliyor...",
+      "sendEmail": "Gönder"
+    },
+    "bulkSend": {
+      "title": "Faturaları gönder",
+      "checking": "Seçim kontrol ediliyor...",
+      "summaryLine": "{{send}} gönderilecek · {{skip}} atlandı",
+      "skippedHeader": "Atlananlar",
+      "alreadySentBadge": "Zaten gönderildi",
+      "alreadySentHint": "Bu faturalar daha önce gönderildi ve seçili değil. Tekrar göndermek için işaretleyin.",
+      "reason": {
+        "notInvoice": "Fatura değil",
+        "noEmail": "E-posta adresi yok",
+        "invalidEmail": "Geçersiz e-posta adresi",
+        "noOrder": "Sipariş mevcut değil",
+        "orderTrashed": "Sipariş çöp kutusunda",
+        "orderNotBillable": "Taslak veya iptal edilmiş",
+        "noCustomer": "Müşteri bağlı değil",
+        "documentMissing": "Belge artık mevcut değil"
+      },
+      "missingIban": "Ayarlar → Şirket bölümünde IBAN tanımlı değil. Fatura e-postasında hesap numarası boş görünecek.",
+      "sendCta": "{{count}} tane gönder",
+      "nothingToSend": "Gönderilecek bir şey yok",
+      "sendingTitle": "Gönderiliyor...",
+      "sendingTo": "{{number}} — {{customer}}",
+      "progress": "{{total}} / {{done}}",
+      "cancel": "İptal",
+      "cancelling": "Mevcut faturadan sonra duruyor...",
+      "doneTitle": "Tamamlandı",
+      "cancelledTitle": "İptal edildi",
+      "stat": {
+        "sent": "Gönderildi",
+        "failed": "Başarısız",
+        "skipped": "Atlandı",
+        "unknown": "Bilinmiyor"
+      },
+      "notAttempted": "{{count}} gönderilmedi",
+      "failSend": "Gönderim hatası — Outbox'a bakın",
+      "failRender": "Gönderilmedi — Outbox'ta kayıt yok",
+      "failUnknown": "Bilinmiyor — Outbox'u kontrol edin",
+      "openOutbox": "Outbox'ta görüntüle"
     },
     "export": {
       "filename": "belgeler"

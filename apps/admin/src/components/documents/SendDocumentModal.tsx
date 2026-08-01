@@ -5,13 +5,13 @@ import { pdf } from '@react-pdf/renderer'
 import { supabase } from '../../services/supabase'
 import { fetchDocumentSettings, type InvoiceData } from '../../services/documents'
 import {
+  buildDocumentTemplateContext,
   getTemplate,
   renderTemplate,
   sendDocumentEmail,
-  type TemplateContext,
 } from '../../services/documentEmail'
 import type { EmailDocumentType } from '../../types'
-import { formatPrice } from '../../utils/format'
+import { blobToBase64 } from '../../utils/blobToBase64'
 
 interface SendDocumentModalProps {
   orderId: string
@@ -48,17 +48,9 @@ export default function SendDocumentModal({
   // Email language follows the document language (NL/BE → nl, else en).
   const lang = invoiceData.lang ?? 'nl'
 
-  // Build the {{placeholder}} substitution context once from invoiceData.
-  const ctx: TemplateContext = useMemo(() => ({
-    company_name:    invoiceData.company.name,
-    customer_name:   invoiceData.customer.companyName,
-    document_number: invoiceData.documentNumber,
-    order_number:    invoiceData.order.orderNumber,
-    total:           formatPrice(invoiceData.grandTotal ?? 0),
-    due_date:        invoiceData.dueDate
-      ? new Date(invoiceData.dueDate).toLocaleDateString(lang === 'en' ? 'en-GB' : 'nl-NL')
-      : '',
-  }), [invoiceData, lang])
+  // Build the {{placeholder}} substitution context once from invoiceData. Shared
+  // with bulk send so the two paths format dates and amounts identically.
+  const ctx = useMemo(() => buildDocumentTemplateContext(invoiceData), [invoiceData])
 
   // Load settings + customer email + render template defaults.
   useEffect(() => {
@@ -75,7 +67,7 @@ export default function SendDocumentModal({
         // merged in here rather than in the invoiceData-only ctx above. Without
         // it renderTemplate() silently substitutes '' and the invoice template
         // would read "op IBAN ." — see PLACEHOLDER_KEYS in documentEmail.ts.
-        const fullCtx: TemplateContext = { ...ctx, iban: settings?.bank_iban ?? '' }
+        const fullCtx = { ...ctx, iban: settings?.bank_iban ?? '' }
         const tmpl = getTemplate(settings?.email_templates, documentType, lang)
         setSubject(renderTemplate(tmpl.subject, fullCtx))
         setBody(renderTemplate(tmpl.body, fullCtx))
@@ -99,15 +91,7 @@ export default function SendDocumentModal({
     setError(null)
     try {
       // Render the PDF, convert to base64
-      const blob = await pdf(pdfElement).toBlob()
-      const buffer = await blob.arrayBuffer()
-      const bytes = new Uint8Array(buffer)
-      let binary = ''
-      const chunk = 0x8000
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)))
-      }
-      const pdfBase64 = btoa(binary)
+      const pdfBase64 = await blobToBase64(await pdf(pdfElement).toBlob())
 
       const result = await sendDocumentEmail({
         orderId,

@@ -92,6 +92,38 @@
 }
 
 /* ========================================
+   Keyframes
+   ========================================
+
+   Tailwind v4 ships `animate-spin`/`animate-pulse` and nothing else; there is no
+   animation library in this app and these three are the only custom motions.
+   Every consumer pairs them with `motion-reduce:animate-none`.
+
+   `modal-in` is referenced by components/ui/Modal.tsx via
+   `animate-[modal-in_150ms_ease-out]` and had never been defined, so every
+   modal in the app was mounting with a dead animation. Defining it here turns
+   that reference back on. */
+
+/* Modal entry — Modal.tsx also sets --tw-enter-opacity/--tw-enter-scale. */
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Sheen sweeping across a progress bar fill, so a slow batch still reads as
+   "working" between ticks. Sits inside an overflow-hidden fill. */
+@keyframes sheen {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* One-shot emerald flash when a list row lands (an email went out). */
+@keyframes row-land {
+  from { background-color: rgb(16 185 129 / 0.18); }
+  to   { background-color: transparent; }
+}
+
+/* ========================================
    Custom Scrollbars - Light & Dark Mode
    ======================================== */
 

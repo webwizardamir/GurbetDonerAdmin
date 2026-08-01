@@ -973,7 +973,47 @@
       "download": "Downloaden",
       "delete": "Verwijderen",
       "confirmDelete": "{{count}} document(en) verwijderen? Dit kan niet ongedaan worden gemaakt.",
-      "downloading": "Downloaden..."
+      "downloading": "Downloaden...",
+      "sendEmail": "Versturen"
+    },
+    "bulkSend": {
+      "title": "Facturen versturen",
+      "checking": "Selectie controleren...",
+      "summaryLine": "{{send}} worden gemaild · {{skip}} overgeslagen",
+      "skippedHeader": "Overgeslagen",
+      "alreadySentBadge": "Al verzonden",
+      "alreadySentHint": "Deze facturen zijn al eerder gemaild en staan uit. Vink aan om opnieuw te versturen.",
+      "reason": {
+        "notInvoice": "Geen factuur",
+        "noEmail": "Geen e-mailadres",
+        "invalidEmail": "Ongeldig e-mailadres",
+        "noOrder": "Bestelling niet beschikbaar",
+        "orderTrashed": "Bestelling in prullenbak",
+        "orderNotBillable": "Concept of geannuleerd",
+        "noCustomer": "Geen klant gekoppeld",
+        "documentMissing": "Document niet meer beschikbaar"
+      },
+      "missingIban": "Er is geen IBAN ingesteld bij Instellingen → Bedrijf. De factuurmail vermeldt dan een leeg rekeningnummer.",
+      "sendCta": "{{count}} versturen",
+      "nothingToSend": "Niets om te versturen",
+      "sendingTitle": "Versturen...",
+      "sendingTo": "{{number}} — {{customer}}",
+      "progress": "{{done}} van {{total}}",
+      "cancel": "Annuleren",
+      "cancelling": "Stoppen na huidige factuur...",
+      "doneTitle": "Klaar",
+      "cancelledTitle": "Geannuleerd",
+      "stat": {
+        "sent": "Verzonden",
+        "failed": "Mislukt",
+        "skipped": "Overgeslagen",
+        "unknown": "Onbekend"
+      },
+      "notAttempted": "{{count}} niet verstuurd",
+      "failSend": "Verzendfout — zie Outbox",
+      "failRender": "Niet verstuurd — staat niet in de Outbox",
+      "failUnknown": "Onbekend — controleer de Outbox",
+      "openOutbox": "Bekijk in Outbox"
     },
     "export": {
       "filename": "documenten"

@@ -20,6 +20,7 @@ import type { FilterDef } from '../ui/filterTypes'
 import { useTableSort } from '../../hooks/useTableSort'
 import { StatusIcon } from '../documents/EmailViewModal'
 import { formatDate, formatDateTime, formatPrice } from '../../utils/format'
+import { blobToBase64 } from '../../utils/blobToBase64'
 import {
   buildPaymentOverviewData,
   currentPeriod,
@@ -81,18 +82,6 @@ async function renderOverviewBlob(data: PaymentOverviewData): Promise<Blob> {
     import('../documents/PaymentOverviewTemplate'),
   ])
   return pdf(<PaymentOverviewTemplate data={data} />).toBlob()
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return blob.arrayBuffer().then(buf => {
-    const bytes = new Uint8Array(buf)
-    let binary = ''
-    const chunk = 0x8000
-    for (let i = 0; i < bytes.length; i += chunk) {
-      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)))
-    }
-    return btoa(binary)
-  })
 }
 
 export default function PaymentOverviewTab() {

@@ -973,7 +973,47 @@
       "download": "Download",
       "delete": "Delete",
       "confirmDelete": "Delete {{count}} document(s)? This cannot be undone.",
-      "downloading": "Downloading..."
+      "downloading": "Downloading...",
+      "sendEmail": "Send"
+    },
+    "bulkSend": {
+      "title": "Send invoices",
+      "checking": "Checking selection...",
+      "summaryLine": "{{send}} will be emailed · {{skip}} skipped",
+      "skippedHeader": "Skipped",
+      "alreadySentBadge": "Already sent",
+      "alreadySentHint": "These invoices were emailed before and are unticked. Tick them to send again.",
+      "reason": {
+        "notInvoice": "Not an invoice",
+        "noEmail": "No email address",
+        "invalidEmail": "Invalid email address",
+        "noOrder": "Order unavailable",
+        "orderTrashed": "Order in trash",
+        "orderNotBillable": "Draft or cancelled",
+        "noCustomer": "No customer linked",
+        "documentMissing": "Document no longer available"
+      },
+      "missingIban": "No IBAN is set under Settings → Company. The invoice email will show a blank account number.",
+      "sendCta": "Send {{count}}",
+      "nothingToSend": "Nothing to send",
+      "sendingTitle": "Sending...",
+      "sendingTo": "{{number}} — {{customer}}",
+      "progress": "{{done}} of {{total}}",
+      "cancel": "Cancel",
+      "cancelling": "Stopping after the current invoice...",
+      "doneTitle": "Done",
+      "cancelledTitle": "Cancelled",
+      "stat": {
+        "sent": "Sent",
+        "failed": "Failed",
+        "skipped": "Skipped",
+        "unknown": "Unknown"
+      },
+      "notAttempted": "{{count}} not sent",
+      "failSend": "Send error — see Outbox",
+      "failRender": "Not sent — no Outbox entry",
+      "failUnknown": "Unknown — check the Outbox",
+      "openOutbox": "View in Outbox"
     },
     "export": {
       "filename": "documents"

@@ -12,6 +12,10 @@ import type {
 } from '../types'
 import { FAILED_SEND_STATUSES, isSuccessfulSend } from '../types'
 import { sanitizeOrTerm } from '../utils/pgSearch'
+import { formatPrice } from '../utils/format'
+// Type-only: `documents.ts` does not import this module, and keeping the import
+// erased means no runtime cycle can develop if it ever does.
+import type { InvoiceData } from './documents'
 
 // ===========================================================================
 // Defaults — used when document_settings.email_templates is empty for a type.
@@ -184,6 +188,38 @@ export function renderTemplate(template: string, ctx: TemplateContext): string {
   })
 }
 
+/**
+ * Build the {{placeholder}} context for a document email from its InvoiceData.
+ *
+ * Shared by the single send (SendDocumentModal) and bulk send so the two can
+ * never drift: the date locale (`en-GB` vs `nl-NL`, chosen by the DOCUMENT
+ * language, not the app language) and the money formatting have to be identical,
+ * or the same customer gets differently-formatted invoices depending on which
+ * button the admin happened to press.
+ *
+ * `iban` is passed in rather than read here because it comes from
+ * `document_settings`, not from the document — and if it is missing,
+ * renderTemplate substitutes '' and the default NL invoice body reads
+ * "op IBAN .".
+ */
+export function buildDocumentTemplateContext(
+  data: InvoiceData,
+  opts: { iban?: string | null } = {},
+): TemplateContext {
+  const lang = data.lang ?? 'nl'
+  return {
+    company_name:    data.company.name,
+    customer_name:   data.customer.companyName,
+    document_number: data.documentNumber,
+    order_number:    data.order.orderNumber,
+    total:           formatPrice(data.grandTotal ?? 0),
+    due_date:        data.dueDate
+      ? new Date(data.dueDate).toLocaleDateString(lang === 'en' ? 'en-GB' : 'nl-NL')
+      : '',
+    iban:            opts.iban ?? '',
+  }
+}
+
 export const PLACEHOLDER_KEYS: Array<keyof TemplateContext> = [
   'company_name',
   'customer_name',
@@ -330,17 +366,35 @@ export interface OrderSendInfo {
   total: number
   sent: number
   failed: number
-  /** True once the INVOICE specifically has been emailed (status 'sent'). */
+  /**
+   * True once the INVOICE specifically has reached the customer, per
+   * isSuccessfulSend (sent OR delivered). Never `status === 'sent'` — that
+   * value is transient and the equality test is what shipped ~55 duplicate
+   * invoice emails in July 2026.
+   */
   invoiceSent: boolean
 }
 
+/**
+ * Chunk size for `.in()` filters. This function was written for a 50-row page,
+ * but bulk send passes the whole accumulated selection — a few hundred UUIDs
+ * builds a query string in the tens of KB and can trip proxy URL limits.
+ * Chunking lives here rather than at the call site so every caller inherits it.
+ */
+const IN_CHUNK = 500
+
 export async function fetchSendCountsByOrder(orderIds: string[]): Promise<Record<string, OrderSendInfo>> {
   if (orderIds.length === 0) return {}
-  const { data, error } = await supabase
-    .from('document_sends')
-    .select('order_id, status, document_type')
-    .in('order_id', orderIds)
-  if (error) throw error
+
+  const rows: { order_id: string | null; status: string; document_type: string }[] = []
+  for (let i = 0; i < orderIds.length; i += IN_CHUNK) {
+    const { data, error } = await supabase
+      .from('document_sends')
+      .select('order_id, status, document_type')
+      .in('order_id', orderIds.slice(i, i + IN_CHUNK))
+    if (error) throw error
+    rows.push(...((data as typeof rows) ?? []))
+  }
 
   const out: Record<string, OrderSendInfo> = {}
   const failed = new Set<string>(FAILED_SEND_STATUSES)
@@ -348,7 +402,7 @@ export async function fetchSendCountsByOrder(orderIds: string[]): Promise<Record
   // successful send; the delivery-failure statuses do not. Shared helper — do
   // not re-inline a `=== 'sent'` test (see isSuccessfulSend).
   const ok = isSuccessfulSend
-  for (const row of (data as { order_id: string | null; status: string; document_type: string }[]) ?? []) {
+  for (const row of rows) {
     if (!row.order_id) continue
     const bucket = out[row.order_id] ??= { total: 0, sent: 0, failed: 0, invoiceSent: false }
     bucket.total += 1
@@ -377,6 +431,8 @@ export interface SendDocumentEmailInput {
   body: string
   pdfBase64: string
   pdfFilename: string
+  /** Per-request timeout in ms. Omitted = supabase-js default (no timeout). */
+  timeoutMs?: number
   /**
    * Statement only: the `payment_overviews` row this mail belongs to. The edge
    * function writes `document_send_id` back onto it after a successful send, so
@@ -391,6 +447,45 @@ export interface SendDocumentEmailResult {
   sendId?: string
   resendMessageId?: string | null
   error?: string
+  /**
+   * HTTP status returned by the edge function, when we could read it. Bulk send
+   * needs it to tell a 429 (rate limited, nothing was mailed, safe to retry)
+   * apart from every other failure (never retry).
+   */
+  status?: number
+  /**
+   * True when the request never got a verdict — timeout, aborted, or the network
+   * dropped after the function was reached. The mail may ALREADY BE OUT.
+   * Never retry an ambiguous result; report it and let a human check /outbox.
+   */
+  ambiguous?: boolean
+}
+
+/**
+ * Read the edge function's own JSON body out of a non-2xx response.
+ *
+ * `functions.invoke` reports a non-2xx as a FunctionsHttpError whose `.message`
+ * is the useless generic "Edge Function returned a non-2xx status code"; the
+ * real `{ error, send_id }` lives on the Response, which supabase-js exposes as
+ * `data.response` (newer) or `error.context` (older). Without this, a rate-limit
+ * or a rejected address is indistinguishable from any other failure — both in
+ * the bulk summary and in the single-send modal's error banner.
+ */
+async function readEdgeError(
+  response: unknown,
+  error: unknown,
+): Promise<{ status?: number; body?: { error?: string; send_id?: string } }> {
+  // functions-js returns the Response as a top-level sibling of data/error, and
+  // also hangs it off FunctionsHttpError.context. A FunctionsFetchError (abort,
+  // timeout, network) carries a DOMException instead — no Response, hence no
+  // status, which is exactly how a genuinely ambiguous outcome is detected.
+  const res = response ?? (error as { context?: unknown } | null)?.context
+  if (!(res instanceof Response)) return {}
+  try {
+    return { status: res.status, body: await res.clone().json() }
+  } catch {
+    return { status: res.status }
+  }
 }
 
 /**
@@ -399,7 +494,7 @@ export interface SendDocumentEmailResult {
  * so the Send modal can show it in its error banner without a try/catch.
  */
 export async function sendDocumentEmail(input: SendDocumentEmailInput): Promise<SendDocumentEmailResult> {
-  const { data, error } = await supabase.functions.invoke('send-document-email', {
+  const { data, error, response } = await supabase.functions.invoke('send-document-email', {
     body: {
       order_id:        input.orderId,
       document_id:     input.documentId,
@@ -412,10 +507,22 @@ export async function sendDocumentEmail(input: SendDocumentEmailInput): Promise<
       pdf_filename:    input.pdfFilename,
       payment_overview_id: input.paymentOverviewId ?? null,
     },
+    // A wedged request must not stall a whole batch. Deliberately `timeout` and
+    // NOT `signal`: aborting mid-flight would not stop the edge function, which
+    // has already logged a pending send and may already have called Resend.
+    ...(input.timeoutMs ? { timeout: input.timeoutMs } : {}),
   })
 
   if (error) {
-    return { ok: false, error: error.message }
+    const { status, body } = await readEdgeError(response, error)
+    // No HTTP status at all ⇒ we never got a verdict (abort/timeout/network).
+    return {
+      ok: false,
+      status,
+      sendId: body?.send_id,
+      error: body?.error ?? error.message,
+      ambiguous: status === undefined,
+    }
   }
   const body = (data ?? {}) as { error?: string; send_id?: string; resend_message_id?: string | null }
   if (body.error) {

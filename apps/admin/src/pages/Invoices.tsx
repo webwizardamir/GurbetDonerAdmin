@@ -9,15 +9,14 @@ import {
   ChevronDown,
   ChevronUp,
   Building2,
+  Send,
 } from 'lucide-react'
-import { pdf } from '@react-pdf/renderer'
 import {
   fetchDocumentsPaged,
   fetchDocumentStats,
   fetchDocumentCustomers,
   fetchAllDocumentsForExport,
-  buildInvoiceData,
-  updateDocumentSnapshot,
+  rebuildDocumentData,
   type InvoiceData,
   type DocumentListRow,
 } from '../services/documents'
@@ -26,12 +25,11 @@ import type { Document, DocumentType } from '../types'
 import Pagination from '../components/ui/Pagination'
 import { useUrlListState } from '../hooks/useUrlListState'
 import { usePermission } from '../hooks/usePermission'
-import { InvoiceTemplate } from '../components/documents/InvoiceTemplate'
-import { ProformaTemplate } from '../components/documents/ProformaTemplate'
-import { OrderConfirmationTemplate } from '../components/documents/OrderConfirmationTemplate'
-import { PaymentReminderTemplate } from '../components/documents/PaymentReminderTemplate'
-import { CreditNoteTemplate } from '../components/documents/CreditNoteTemplate'
-import { PackingSlipTemplate } from '../components/documents/PackingSlipTemplate'
+import { useRowSelection } from '../hooks/useRowSelection'
+import SelectionBar from '../components/ui/SelectionBar'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import BulkSendInvoicesModal from '../components/documents/BulkSendInvoicesModal'
+import { renderDocumentBlob } from '../utils/renderDocumentBlob'
 import InvoiceStats from '../components/documents/InvoiceStats'
 import { InvoiceTableRow, InvoiceMobileCard } from '../components/documents/InvoiceRow'
 import OrderDetail from '../components/orders/OrderDetail'
@@ -156,8 +154,26 @@ export default function Invoices() {
   const [customerFilter, setCustomerFilter] = useState(urlInit.customer)
 
   const goToPage = (next: number) => { setPage(next); setUrlState({ page: next }) }
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  // Selection is deliberately NOT cleared on a search/filter/page change — that
+  // is the whole point of useRowSelection, and it is what makes "search, tick,
+  // search again, tick more, then send them all" possible. It also stores the
+  // ROW, so every consumer below sees off-page picks too.
+  const {
+    selectedIds, selectedItems, selectedCount,
+    toggle, toggleAllVisible, clear: clearSelection, setSelected,
+  } = useRowSelection<DocumentListRow>()
   const [bulkProcessing, setBulkProcessing] = useState(false)
+  const [bulkSendOpen, setBulkSendOpen] = useState(false)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+
+  // A stored row is a snapshot from whenever it was ticked; map ids back onto
+  // the live list so anything still on screen shows current data (mirrors
+  // Orders.tsx).
+  const selectedDocs = useMemo(
+    () => selectedItems.map(sel => documents.find(d => d.id === sel.id) ?? sel),
+    [selectedItems, documents],
+  )
 
   const dateRangeBounds = useMemo(
     () => getDateBounds(dateRangePreset, customStart, customEnd),
@@ -180,14 +196,15 @@ export default function Invoices() {
     return () => clearTimeout(id)
   }, [searchQuery])
 
-  // Any filter/sort change clears the selection and returns to page 1, and
-  // mirrors the filters into the URL. The initial run is skipped: it would
-  // otherwise reset the page we just restored from the URL back to 1, and write
-  // the URL on mount.
+  // Any filter/sort change returns to page 1 and mirrors the filters into the
+  // URL. The initial run is skipped: it would otherwise reset the page we just
+  // restored from the URL back to 1, and write the URL on mount.
+  //
+  // It deliberately does NOT touch the selection any more — clearing it here is
+  // exactly what made ticking rows across two different searches impossible.
   const filtersInitRef = useRef(true)
   useEffect(() => {
     if (filtersInitRef.current) { filtersInitRef.current = false; return }
-    setSelectedIds(new Set())
     setPage(1)
     setUrlState({
       page: 1,
@@ -243,21 +260,12 @@ export default function Invoices() {
     }
   }
 
-  const toggleSelect = (id: string) => {
-    const newSet = new Set(selectedIds)
-    if (newSet.has(id)) newSet.delete(id); else newSet.add(id)
-    setSelectedIds(newSet)
-  }
-
-  // Select-all toggles the current page (selection persists across the page's
-  // own rows; export "all results" covers every page via getAllData).
-  const toggleSelectAll = () => {
-    if (selectedIds.size === documents.length && documents.length > 0) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(documents.map(d => d.id)))
-    }
-  }
+  // Select-all covers the rows on screen; picks made under other searches are
+  // left alone. Must be computed with .every() rather than comparing counts —
+  // with a surviving selection, 50 ticked on page 1 and 50 rows on page 2 would
+  // otherwise render the box checked and select 50 more (see SelectionBar).
+  const allVisibleSelected = documents.length > 0 && documents.every(d => selectedIds.has(d.id))
+  const toggleSelectAll = () => toggleAllVisible(documents)
 
   const handleDelete = async (doc: Document) => {
     if (!confirm(t('documents.confirmDelete', { number: doc.document_number }))) return
@@ -265,6 +273,10 @@ export default function Invoices() {
     try {
       const { error } = await supabase.from('documents').delete().eq('id', doc.id)
       if (error) throw error
+      // Drop it from the selection too — it survives paging, so otherwise the
+      // deleted row stays ticked and a later bulk download/export acts on a
+      // document that no longer exists.
+      setSelected(prev => { const next = new Map(prev); next.delete(doc.id); return next })
       await loadDocuments()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete document')
@@ -283,28 +295,12 @@ export default function Invoices() {
     // re-freeze the snapshot so the customer portal (which renders the snapshot)
     // heals too. Fall back to the frozen snapshot if the order is gone.
     let data: InvoiceData
-    if (doc.order_id) {
-      try {
-        data = await buildInvoiceData(doc.order_id, doc.document_type)
-        data.documentNumber = doc.document_number
-        updateDocumentSnapshot(doc.id, data as unknown as Record<string, unknown>).catch(() => {})
-      } catch {
-        data = doc.snapshot as unknown as InvoiceData
-      }
-    } else {
+    try {
+      data = await rebuildDocumentData(doc)
+    } catch {
       data = doc.snapshot as unknown as InvoiceData
     }
-    let template
-    switch (doc.document_type) {
-      case 'invoice': template = <InvoiceTemplate data={data} />; break
-      case 'proforma': template = <ProformaTemplate data={data} />; break
-      case 'order_confirmation': template = <OrderConfirmationTemplate data={data} />; break
-      case 'payment_reminder': template = <PaymentReminderTemplate data={data} />; break
-      case 'credit_note': template = <CreditNoteTemplate data={data} />; break
-      case 'packing_slip': template = <PackingSlipTemplate data={data} />; break
-      default: template = <InvoiceTemplate data={data} />
-    }
-    return pdf(template).toBlob()
+    return renderDocumentBlob(doc.document_type, data)
   }
 
   const handleDownload = async (doc: Document) => {
@@ -325,8 +321,10 @@ export default function Invoices() {
   const handleBulkDownload = async () => {
     setBulkProcessing(true)
     try {
-      const selected = documents.filter(d => selectedIds.has(d.id))
-      for (const doc of selected) {
+      // selectedDocs, not the visible page — a selection built across several
+      // searches must download in full. Keep the spacing: browsers throttle
+      // rapid downloads (same reason as renderInvoices.tsx).
+      for (const doc of selectedDocs) {
         await handleDownload(doc)
         await new Promise(r => setTimeout(r, 500))
       }
@@ -334,13 +332,13 @@ export default function Invoices() {
   }
 
   const handleBulkDelete = async () => {
-    if (!confirm(t('documents.bulk.confirmDelete', { count: selectedIds.size }))) return
+    setConfirmBulkDelete(false)
     setBulkProcessing(true)
     try {
       const ids = Array.from(selectedIds)
       const { error } = await supabase.from('documents').delete().in('id', ids)
       if (error) throw error
-      setSelectedIds(new Set())
+      clearSelection()
       await loadDocuments()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete documents')
@@ -359,11 +357,12 @@ export default function Invoices() {
   }
 
   // "All results" export fetches every matching row across all pages; selected
-  // export uses the current page's ticked rows.
+  // export uses every ticked row — including ones picked under an earlier
+  // search and no longer on screen (useRowSelection stores the row).
   const getAllExportData = async () => (await fetchAllDocumentsForExport(filters)).map(mapDocForExport)
   const selectedExportData = useMemo(
-    () => documents.filter(d => selectedIds.has(d.id)).map(mapDocForExport),
-    [documents, selectedIds],
+    () => selectedDocs.map(mapDocForExport),
+    [selectedDocs],
   )
 
   const handleTypeFilterClick = (type: DocumentType) => {
@@ -460,8 +459,12 @@ export default function Invoices() {
         storageKey="documents"
       />
     ),
+    // `filters` is load-bearing here: the ExportMenu closes over
+    // getAllExportData, which closes over filters. Without it, switching to a
+    // different filter with the same result count reuses the memo and exports
+    // the PREVIOUS filter's rows — and an export file is durable and forwarded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }], [t, total, selectedExportData])
+  }], [t, total, selectedExportData, filters])
 
   // ─── Render ───────────────────────────────────────────
 
@@ -498,33 +501,42 @@ export default function Invoices() {
         </p>
       )}
 
-      {/* Bulk Actions Bar */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-green-800 dark:text-green-300">
-              {t('documents.bulk.selected', { count: selectedIds.size })}
-            </span>
-            <button onClick={() => setSelectedIds(new Set())} className="text-sm text-green-600 dark:text-green-400 hover:underline">
-              {t('documents.bulk.clear')}
-            </button>
-          </div>
+      {/* Selection + bulk actions. The shared SelectionBar (rather than the old
+          hand-rolled div) also gives the mobile card list a select-all, which it
+          never had — the header checkbox lives inside the desktop-only table. */}
+      <SelectionBar
+        selectedCount={selectedCount}
+        visibleCount={documents.length}
+        allVisibleSelected={allVisibleSelected}
+        // Must be about the VISIBLE rows, not the total count — otherwise a page
+        // with nothing ticked shows the indeterminate dash while the table's own
+        // header checkbox shows empty, and the two disagree.
+        someVisibleSelected={documents.some(d => selectedIds.has(d.id))}
+        onToggleSelectAll={toggleSelectAll}
+        onClear={clearSelection}
+      >
+        {selectedCount > 0 && (
           <div className="flex items-center gap-2">
-            <button onClick={handleBulkDownload} disabled={bulkProcessing}
+            <button onClick={() => setBulkSendOpen(true)} disabled={bulkProcessing}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+              <Send className="w-4 h-4" />
+              {t('documents.bulk.sendEmail')} ({selectedCount})
+            </button>
+            <button onClick={handleBulkDownload} disabled={bulkProcessing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-white dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
               {bulkProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              {bulkProcessing ? t('documents.bulk.downloading') : t('documents.bulk.download')} ({selectedIds.size})
+              {bulkProcessing ? t('documents.bulk.downloading') : t('documents.bulk.download')} ({selectedCount})
             </button>
             {canDelete && (
-              <button onClick={handleBulkDelete} disabled={bulkProcessing}
+              <button onClick={() => setConfirmBulkDelete(true)} disabled={bulkProcessing}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-                {bulkProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                {t('documents.bulk.delete')} ({selectedIds.size})
+                <Trash2 className="w-4 h-4" />
+                {t('documents.bulk.delete')} ({selectedCount})
               </button>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </SelectionBar>
 
       {/* Error */}
       {error && (
@@ -553,7 +565,7 @@ export default function Invoices() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
                   <th className="pl-4 pr-2 py-3 w-10">
-                    <input type="checkbox" checked={selectedIds.size === documents.length && documents.length > 0} onChange={toggleSelectAll}
+                    <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
@@ -584,7 +596,7 @@ export default function Invoices() {
                       deleting={deleting === doc.id}
                       canDelete={canDelete}
                       t={t}
-                      onToggleSelect={() => toggleSelect(doc.id)}
+                      onToggleSelect={() => toggle(doc)}
                       onDownload={() => handleDownload(doc)}
                       onDelete={() => handleDelete(doc)}
                       onTypeFilter={() => handleTypeFilterClick(doc.document_type)}
@@ -623,7 +635,7 @@ export default function Invoices() {
                 deleting={deleting === doc.id}
                 canDelete={canDelete}
                 t={t}
-                onToggleSelect={() => toggleSelect(doc.id)}
+                onToggleSelect={() => toggle(doc)}
                 onDownload={() => handleDownload(doc)}
                 onDelete={() => handleDelete(doc)}
                 onTypeFilter={() => handleTypeFilterClick(doc.document_type)}
@@ -650,6 +662,25 @@ export default function Invoices() {
           onStatusChange={() => { setViewingOrder(null); loadDocuments() }}
         />
       )}
+
+      {bulkSendOpen && (
+        <BulkSendInvoicesModal
+          docs={selectedDocs}
+          onClose={() => setBulkSendOpen(false)}
+          // The selection has been consumed — leaving it armed invites a second
+          // send over the same rows.
+          onFinished={() => { clearSelection(); void loadDocuments() }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        variant="danger"
+        message={t('documents.bulk.confirmDelete', { count: selectedCount })}
+        confirmLabel={t('common.delete')}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setConfirmBulkDelete(false)}
+      />
     </div>
   )
 }

@@ -352,6 +352,40 @@ export async function updateDocumentSnapshot(
 }
 
 /**
+ * Rebuild ONE document's data live from its order, re-stamping its existing
+ * number, and (by default) re-freezing the stored snapshot so the portal heals.
+ *
+ * This is the ONLY place a document number is written back onto rebuilt data.
+ * `buildInvoiceData` deliberately returns `documentNumber: ''` (it never
+ * allocates), and four consumers need the stamp before they run: the snapshot
+ * write (freezing '' there renders a numberless invoice in the customer
+ * portal — the destructive one), the PDF template, the email
+ * `TemplateContext` ({{document_number}} is in the default invoice subject AND
+ * body), and the attachment filename. Keeping it in one function is what stops
+ * a caller from doing three of the four.
+ *
+ * THROWS when the order is gone, hidden under RLS, or `document_settings` is
+ * unconfigured. Callers that can live with the frozen snapshot catch it (the
+ * Invoices download does); bulk send deliberately does not — silently mailing a
+ * stale snapshot for an order we can no longer read is worse than reporting it.
+ *
+ * The snapshot heal is fire-and-forget on purpose: it must never fail a
+ * download or a send, and must never add a round-trip inside a send loop.
+ */
+export async function rebuildDocumentData(
+  doc: Pick<Document, 'id' | 'order_id' | 'document_type' | 'document_number'>,
+  opts: { healSnapshot?: boolean } = {},
+): Promise<InvoiceData> {
+  if (!doc.order_id) throw new Error('Document has no order')
+  const data = await buildInvoiceData(doc.order_id, doc.document_type)
+  data.documentNumber = doc.document_number
+  if (opts.healSnapshot !== false) {
+    void updateDocumentSnapshot(doc.id, data as unknown as Record<string, unknown>).catch(() => {})
+  }
+  return data
+}
+
+/**
  * Rebuild the stored snapshot of every document belonging to an order from the
  * CURRENT order state, preserving each document's existing number/type.
  *
