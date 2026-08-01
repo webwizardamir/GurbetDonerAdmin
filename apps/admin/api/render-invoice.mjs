@@ -150,18 +150,14 @@ Indien u reeds betaald heeft, verzoeken wij u dit bericht te negeren.`,
   poAddrLabel: "Overzicht voor",
   poMetaDate: "Overzichtsdatum:",
   poMetaAsAt: "Peildatum:",
-  poMetaCount: "Openstaande facturen:",
+  poMetaCount: "Verlopen facturen:",
   poThInvoice: "Factuur",
   poThInvoiceDate: "Factuurdatum",
   poThDueDate: "Vervaldatum",
-  poThStatus: "Status",
   poThDaysLate: "Dagen te laat",
   poThAmount: "Bedrag",
-  poStatusOverdue: "Verlopen",
-  poStatusOpen: "Openstaand",
-  poTotalLabel: "Totaal openstaand",
-  poOverdueLabel: "Waarvan verlopen",
-  poIntro: (asAt) => `Hieronder vindt u een overzicht van alle facturen die volgens onze administratie op ${asAt} nog openstaan.`,
+  poTotalLabel: "Totaal te betalen",
+  poIntro: (asAt) => `Hieronder vindt u een overzicht van de facturen die volgens onze administratie op ${asAt} vervallen zijn en nog openstaan.`,
   poAlreadyPaid: "Heeft u een of meer van deze facturen inmiddels betaald? Dan kunt u die regels als voldaan beschouwen. Betalingen van de afgelopen dagen zijn mogelijk nog niet verwerkt.",
   poIbanRef: "Vermeld bij betaling het factuurnummer.",
   poEmpty: "Er staan op dit moment geen facturen open. Hartelijk dank voor uw betaling."
@@ -286,18 +282,14 @@ If you have already paid, please disregard this message.`,
   poAddrLabel: "Statement for",
   poMetaDate: "Statement date:",
   poMetaAsAt: "As at:",
-  poMetaCount: "Open invoices:",
+  poMetaCount: "Overdue invoices:",
   poThInvoice: "Invoice",
   poThInvoiceDate: "Invoice date",
   poThDueDate: "Due date",
-  poThStatus: "Status",
   poThDaysLate: "Days overdue",
   poThAmount: "Amount",
-  poStatusOverdue: "Overdue",
-  poStatusOpen: "Open",
-  poTotalLabel: "Total outstanding",
-  poOverdueLabel: "Of which overdue",
-  poIntro: (asAt) => `Below is an overview of all invoices that, according to our records, were still outstanding on ${asAt}.`,
+  poTotalLabel: "Total due",
+  poIntro: (asAt) => `Below is an overview of the invoices that, according to our records, were past their due date and still unpaid on ${asAt}.`,
   poAlreadyPaid: "Have you already paid one or more of these invoices? Please consider those lines settled. Payments made in the last few days may not yet be processed.",
   poIbanRef: "Please quote the invoice number with your payment.",
   poEmpty: "There are currently no outstanding invoices. Thank you for your payment."
@@ -3616,11 +3608,10 @@ var COL = {
   // flex — computed below
   invoiceDate: 90,
   dueDate: 90,
-  status: 80,
   daysLate: 80,
   amount: 100
 };
-COL.invoice = USABLE_WIDTH - (COL.invoiceDate + COL.dueDate + COL.status + COL.daysLate + COL.amount);
+COL.invoice = USABLE_WIDTH - (COL.invoiceDate + COL.dueDate + COL.daysLate + COL.amount);
 var styles7 = StyleSheet7.create({
   page: {
     fontFamily: "Helvetica",
@@ -3862,7 +3853,6 @@ function PaymentOverviewPage({ data }) {
         /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.invoice }], children: T.poThInvoice }),
         /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.invoiceDate }], children: T.poThInvoiceDate }),
         /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.dueDate }], children: T.poThDueDate }),
-        /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.status }], children: T.poThStatus }),
         /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.daysLate, textAlign: "right" }], children: T.poThDaysLate }),
         /* @__PURE__ */ jsx8(Text7, { style: [styles7.th, { width: COL.amount, textAlign: "right" }], children: T.poThAmount })
       ] }),
@@ -3877,7 +3867,6 @@ function PaymentOverviewPage({ data }) {
               /* @__PURE__ */ jsx8(Text7, { style: [styles7.tdBold, { width: COL.invoice }], children: line.invoice_number }),
               /* @__PURE__ */ jsx8(Text7, { style: [styles7.td, { width: COL.invoiceDate }], children: line.order_date ? formatDate(line.order_date) : "\u2014" }),
               /* @__PURE__ */ jsx8(Text7, { style: [styles7.td, { width: COL.dueDate }], children: line.invoice_due_date ? formatDate(line.invoice_due_date) : "\u2014" }),
-              /* @__PURE__ */ jsx8(Text7, { style: [overdue ? styles7.tdOverdue : styles7.td, { width: COL.status }], children: overdue ? T.poStatusOverdue : T.poStatusOpen }),
               /* @__PURE__ */ jsx8(
                 Text7,
                 {
@@ -3895,21 +3884,10 @@ function PaymentOverviewPage({ data }) {
         );
       })
     ] }),
-    /* @__PURE__ */ jsx8(View7, { style: styles7.totalsWrap, wrap: false, children: /* @__PURE__ */ jsxs7(View7, { style: styles7.totalsBox, children: [
-      data.overdueCount > 0 && /* @__PURE__ */ jsxs7(View7, { style: styles7.totalsRow, children: [
-        /* @__PURE__ */ jsxs7(Text7, { style: styles7.totalsLabel, children: [
-          T.poOverdueLabel,
-          " (",
-          data.overdueCount,
-          ")"
-        ] }),
-        /* @__PURE__ */ jsx8(Text7, { style: styles7.totalsValueOverdue, children: formatPrice(data.overdueCents) })
-      ] }),
-      /* @__PURE__ */ jsxs7(View7, { style: styles7.grandRow, children: [
-        /* @__PURE__ */ jsx8(Text7, { style: styles7.grandLabel, children: T.poTotalLabel }),
-        /* @__PURE__ */ jsx8(Text7, { style: styles7.grandValue, children: formatPrice(data.totalCents) })
-      ] })
-    ] }) }),
+    /* @__PURE__ */ jsx8(View7, { style: styles7.totalsWrap, wrap: false, children: /* @__PURE__ */ jsx8(View7, { style: styles7.totalsBox, children: /* @__PURE__ */ jsxs7(View7, { style: styles7.grandRow, children: [
+      /* @__PURE__ */ jsx8(Text7, { style: styles7.grandLabel, children: T.poTotalLabel }),
+      /* @__PURE__ */ jsx8(Text7, { style: styles7.grandValue, children: formatPrice(data.totalCents) })
+    ] }) }) }),
     data.lines.length > 0 && data.company.iban ? /* @__PURE__ */ jsxs7(View7, { style: styles7.ibanCallout, wrap: false, children: [
       /* @__PURE__ */ jsx8(Text7, { style: styles7.ibanCalloutLabel, children: T.ibanPay }),
       /* @__PURE__ */ jsx8(Text7, { style: styles7.ibanCalloutIban, children: data.company.iban }),
