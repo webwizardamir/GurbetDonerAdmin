@@ -32,6 +32,11 @@ export const ENTITY_META: Record<string, { badge: string }> = {
   profiles: { badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
   customer_accounts: { badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
   categories: { badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
+  // Pricing (00108). Purple family, like customer_prices — they answer the same
+  // question ("what does this cost / what do we charge") from different angles.
+  price_list_items: { badge: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300' },
+  price_lists: { badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
+  product_unit_prices: { badge: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
 }
 
 const DEFAULT_BADGE = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
@@ -47,7 +52,8 @@ export function entityLabel(t: TFn, entity: string): string {
 // The entity types that actually fire audit triggers (for the filter dropdown).
 export const AUDIT_ENTITY_TYPES = [
   'orders', 'order_items', 'customers', 'products', 'documents',
-  'customer_prices', 'profiles', 'customer_accounts', 'categories',
+  'customer_prices', 'price_list_items', 'price_lists', 'product_unit_prices',
+  'profiles', 'customer_accounts', 'categories',
 ] as const
 
 // -----------------------------------------------------------------------------
@@ -194,6 +200,23 @@ export function deriveEntityTitle(log: AuditLog, t: TFn, resolver?: NameResolver
       if (pname) return `${prefix('customer_prices')}: ${pname}`
       return prefix('customer_prices')
     }
+    // Pricing rows (00108) carry product_id + unit_type but no product NAME, so
+    // the name comes from the same batch resolver customer_prices uses. Unit is
+    // appended because a product is priced per unit and the rows are otherwise
+    // indistinguishable — a 4-unit save produces four entries.
+    case 'price_list_items':
+    case 'product_unit_prices': {
+      const pid = str(s.product_id)
+      const pname = pid && resolver?.product?.(pid)
+      const unit = str(s.unit_type)
+      const base = prefix(log.entity_type)
+      if (!pname) return base
+      return `${base}: ${pname}${unit ? ` (${unit})` : ''}`
+    }
+    case 'price_lists': {
+      const name = str(s.name)
+      return name ? `${prefix('price_lists')}: ${name}` : prefix('price_lists')
+    }
     case 'profiles': {
       const name = str(s.full_name) ?? str(s.email)
       return name ? `${prefix('profiles')} '${name}'` : fallbackTitle(log, t)
@@ -321,6 +344,15 @@ function createHighlight(log: AuditLog, s: Snapshot, t: TFn): string {
     }
     case 'customer_prices': {
       const price = typeof s.custom_price === 'number' ? formatPrice(s.custom_price) : undefined
+      const unit = str(s.unit_type)
+      return `${tt(t, 'auditLog.summary.priceSet', 'prijs ingesteld')}${price ? ' · ' + price : ''}${unit ? ` (${unit})` : ''}`
+    }
+    case 'price_list_items':
+    case 'product_unit_prices': {
+      // price_cents on a list item, price on a catalog unit row.
+      const cents = typeof s.price_cents === 'number' ? s.price_cents
+                  : typeof s.price === 'number' ? s.price : undefined
+      const price = cents != null ? formatPrice(cents) : undefined
       const unit = str(s.unit_type)
       return `${tt(t, 'auditLog.summary.priceSet', 'prijs ingesteld')}${price ? ' · ' + price : ''}${unit ? ` (${unit})` : ''}`
     }

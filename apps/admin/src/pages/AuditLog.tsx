@@ -201,7 +201,13 @@ export default function AuditLog() {
   useEffect(() => {
     const productIds = new Set<string>()
     for (const log of logs) {
-      if (log.entity_type === 'customer_prices') {
+      // price_list_items / product_unit_prices carry product_id too (00108), and
+    // without resolving it their titles degrade to a raw UUID stub.
+    if (
+      log.entity_type === 'customer_prices' ||
+      log.entity_type === 'price_list_items' ||
+      log.entity_type === 'product_unit_prices'
+    ) {
         const snap = (log.new_values ?? log.old_values ?? {}) as Record<string, unknown>
         const pid = snap.product_id
         if (typeof pid === 'string') productIds.add(pid)

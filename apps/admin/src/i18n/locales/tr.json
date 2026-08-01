@@ -28,7 +28,10 @@
       "customer_prices": "Müşteri fiyatı",
       "profiles": "Kullanıcı",
       "customer_accounts": "Portal hesabı",
-      "categories": "Kategori"
+      "categories": "Kategori",
+      "price_list_items": "Fiyat listesi satırı",
+      "price_lists": "Fiyat listesi",
+      "product_unit_prices": "Katalog fiyatı"
     },
     "titlePrefix": {
       "orders": "Sipariş",
@@ -37,7 +40,10 @@
       "customer_prices": "Müşteri fiyatı",
       "profiles": "Kullanıcı",
       "customer_accounts": "Portal hesabı",
-      "categories": "Kategori"
+      "categories": "Kategori",
+      "price_list_items": "Fiyat listesi satırı",
+      "price_lists": "Fiyat listesi",
+      "product_unit_prices": "Katalog fiyatı"
     },
     "docType": {
       "invoice": "Fatura",
@@ -173,7 +179,9 @@
       "role": "Rol",
       "full_name": "Ad",
       "document_number": "Belge numarası",
-      "document_type": "Belge türü"
+      "document_type": "Belge türü",
+      "price_cents": "Fiyat",
+      "product_id": "Ürün"
     }
   },
   "common": {

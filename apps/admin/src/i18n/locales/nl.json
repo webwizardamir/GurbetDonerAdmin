@@ -28,7 +28,10 @@
       "customer_prices": "Klantprijs",
       "profiles": "Gebruiker",
       "customer_accounts": "Portaal-account",
-      "categories": "Categorie"
+      "categories": "Categorie",
+      "price_list_items": "Prijslijst-regel",
+      "price_lists": "Prijslijst",
+      "product_unit_prices": "Catalogusprijs"
     },
     "titlePrefix": {
       "orders": "Order",
@@ -37,7 +40,10 @@
       "customer_prices": "Klantprijs",
       "profiles": "Gebruiker",
       "customer_accounts": "Portaal-account",
-      "categories": "Categorie"
+      "categories": "Categorie",
+      "price_list_items": "Prijslijst-regel",
+      "price_lists": "Prijslijst",
+      "product_unit_prices": "Catalogusprijs"
     },
     "docType": {
       "invoice": "Factuur",
@@ -173,7 +179,9 @@
       "role": "Rol",
       "full_name": "Naam",
       "document_number": "Documentnummer",
-      "document_type": "Documenttype"
+      "document_type": "Documenttype",
+      "price_cents": "Prijs",
+      "product_id": "Product"
     }
   },
   "common": {

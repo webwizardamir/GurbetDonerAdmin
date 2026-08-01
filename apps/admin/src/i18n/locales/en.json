@@ -28,7 +28,10 @@
       "customer_prices": "Customer price",
       "profiles": "User",
       "customer_accounts": "Portal account",
-      "categories": "Category"
+      "categories": "Category",
+      "price_list_items": "Price list row",
+      "price_lists": "Price list",
+      "product_unit_prices": "Catalogue price"
     },
     "titlePrefix": {
       "orders": "Order",
@@ -37,7 +40,10 @@
       "customer_prices": "Customer price",
       "profiles": "User",
       "customer_accounts": "Portal account",
-      "categories": "Category"
+      "categories": "Category",
+      "price_list_items": "Price list row",
+      "price_lists": "Price list",
+      "product_unit_prices": "Catalogue price"
     },
     "docType": {
       "invoice": "Invoice",
@@ -173,7 +179,9 @@
       "role": "Role",
       "full_name": "Name",
       "document_number": "Document number",
-      "document_type": "Document type"
+      "document_type": "Document type",
+      "price_cents": "Price",
+      "product_id": "Product"
     }
   },
   "common": {
