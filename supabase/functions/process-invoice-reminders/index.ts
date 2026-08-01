@@ -576,7 +576,10 @@ serve(async (req) => {
         // Freeze the snapshot for (customer, period). Upsert on the unique index
         // so a retry re-uses the row instead of issuing a second statement.
         const { data: lines, error: linesErr } = await admin
-          .rpc('get_payment_overview_orders', { p_customer_id: customerId })
+          // p_overdue_only: the statement lists only what is actually late
+          // (migration 00107). Must match buildPaymentOverviewData in the app,
+          // or the tab's preview stops being the document that gets mailed.
+          .rpc('get_payment_overview_orders', { p_customer_id: customerId, p_overdue_only: true })
         if (linesErr || !lines || (lines as unknown[]).length === 0) {
           result.overviewSkipped++
           continue

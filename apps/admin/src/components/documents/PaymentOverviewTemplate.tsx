@@ -40,15 +40,18 @@ const BRAND = docBrand.paymentOverview
 const USABLE_WIDTH = 841.89 - 28 * 2
 
 // Fixed column widths; the description-ish first column takes the remainder.
+// No Status column: since migration 00107 the statement lists overdue invoices
+// only, so every row would read "Verlopen" — a column of identical values. Its
+// 80pt goes to the flex invoice column instead. "Dagen te laat" still varies
+// and stays.
 const COL = {
   invoice: 0,          // flex — computed below
   invoiceDate: 90,
   dueDate: 90,
-  status: 80,
   daysLate: 80,
   amount: 100,
 }
-COL.invoice = USABLE_WIDTH - (COL.invoiceDate + COL.dueDate + COL.status + COL.daysLate + COL.amount)
+COL.invoice = USABLE_WIDTH - (COL.invoiceDate + COL.dueDate + COL.daysLate + COL.amount)
 
 const styles = StyleSheet.create({
   page: {
@@ -328,7 +331,6 @@ export function PaymentOverviewPage({ data }: Props) {
             <Text style={[styles.th, { width: COL.invoice }]}>{T.poThInvoice}</Text>
             <Text style={[styles.th, { width: COL.invoiceDate }]}>{T.poThInvoiceDate}</Text>
             <Text style={[styles.th, { width: COL.dueDate }]}>{T.poThDueDate}</Text>
-            <Text style={[styles.th, { width: COL.status }]}>{T.poThStatus}</Text>
             <Text style={[styles.th, { width: COL.daysLate, textAlign: 'right' }]}>{T.poThDaysLate}</Text>
             <Text style={[styles.th, { width: COL.amount, textAlign: 'right' }]}>{T.poThAmount}</Text>
           </View>
@@ -347,9 +349,6 @@ export function PaymentOverviewPage({ data }: Props) {
                 </Text>
                 <Text style={[styles.td, { width: COL.dueDate }]}>
                   {line.invoice_due_date ? formatDate(line.invoice_due_date) : '—'}
-                </Text>
-                <Text style={[overdue ? styles.tdOverdue : styles.td, { width: COL.status }]}>
-                  {overdue ? T.poStatusOverdue : T.poStatusOpen}
                 </Text>
                 <Text
                   style={[
@@ -370,15 +369,9 @@ export function PaymentOverviewPage({ data }: Props) {
 
       {/* TOTALS — kept off a page break so the amount is never orphaned */}
       <View style={styles.totalsWrap} wrap={false}>
+        {/* No separate "waarvan verlopen" row: every line IS overdue now, so it
+            would restate the grand total. */}
         <View style={styles.totalsBox}>
-          {data.overdueCount > 0 && (
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>
-                {T.poOverdueLabel} ({data.overdueCount})
-              </Text>
-              <Text style={styles.totalsValueOverdue}>{formatPrice(data.overdueCents)}</Text>
-            </View>
-          )}
           <View style={styles.grandRow}>
             <Text style={styles.grandLabel}>{T.poTotalLabel}</Text>
             <Text style={styles.grandValue}>{formatPrice(data.totalCents)}</Text>

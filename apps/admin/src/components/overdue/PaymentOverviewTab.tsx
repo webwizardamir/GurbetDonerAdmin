@@ -567,11 +567,14 @@ export default function PaymentOverviewTab() {
         title={t('paymentOverview.confirm.title')}
         message={
           confirmFor
+            // The OVERDUE figures, not the full balance — that is what the PDF
+            // will contain, and the dialog is the last thing read before it is
+            // mailed.
             ? t('paymentOverview.confirm.message', {
                 customer: confirmFor.company_name,
                 email: confirmFor.email,
-                amount: formatPrice(confirmFor.total_cents),
-                count: confirmFor.open_count,
+                amount: formatPrice(confirmFor.overdue_cents),
+                count: confirmFor.overdue_count,
               })
             : ''
         }

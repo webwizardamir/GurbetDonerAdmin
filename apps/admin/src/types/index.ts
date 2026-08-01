@@ -632,7 +632,10 @@ export interface PaymentOverviewCustomer {
   reminders_opted_out: boolean
   open_count: number
   overdue_count: number
+  /** Everything still open, due or not — the customer's balance. */
   total_cents: number
+  /** The overdue subset, i.e. what the statement PDF actually totals (00107). */
+  overdue_cents: number
   oldest_due_date: string | null   // YYYY-MM-DD
   // The statement for the period being inspected (this month by default).
   last_overview_id: string | null

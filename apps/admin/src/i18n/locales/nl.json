@@ -2228,7 +2228,7 @@
     },
     "confirm": {
       "title": "Betaaloverzicht versturen",
-      "message": "Verstuur het betaaloverzicht van {{customer}} ({{count}} facturen, {{amount}}) naar {{email}}?"
+      "message": "Verstuur het betaaloverzicht van {{customer}} ({{count}} verlopen facturen, {{amount}}) naar {{email}}?"
     },
     "errors": {
       "snapshotMissing": "Het verzonden overzicht kon niet worden gevonden."

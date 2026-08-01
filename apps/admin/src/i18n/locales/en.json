@@ -2228,7 +2228,7 @@
     },
     "confirm": {
       "title": "Send payment overview",
-      "message": "Send the payment overview for {{customer}} ({{count}} invoices, {{amount}}) to {{email}}?"
+      "message": "Send the payment overview for {{customer}} ({{count}} overdue invoices, {{amount}}) to {{email}}?"
     },
     "errors": {
       "snapshotMissing": "The sent overview could not be found."

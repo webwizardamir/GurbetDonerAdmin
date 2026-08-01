@@ -2228,7 +2228,7 @@
     },
     "confirm": {
       "title": "Ödeme özetini gönder",
-      "message": "{{customer}} müşterisinin ödeme özetini ({{count}} fatura, {{amount}}) {{email}} adresine gönderilsin mi?"
+      "message": "{{customer}} için ödeme ekstresini ({{count}} vadesi geçmiş fatura, {{amount}}) {{email}} adresine gönder?"
     },
     "errors": {
       "snapshotMissing": "Gönderilen özet bulunamadı."

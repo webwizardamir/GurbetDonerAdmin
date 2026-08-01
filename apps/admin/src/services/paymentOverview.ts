@@ -51,10 +51,20 @@ export async function fetchPaymentOverviewCustomers(
   return (data ?? []) as PaymentOverviewCustomer[]
 }
 
-/** The lines that belong on one customer's statement, right now. */
-export async function fetchPaymentOverviewLines(customerId: string): Promise<PaymentOverviewLine[]> {
+/**
+ * One customer's open, billed invoices.
+ *
+ * `overdueOnly` is what the STATEMENT uses (migration 00107): the customer sees
+ * only what is actually late. Passing false gives the full picture, which is
+ * what the admin tab's "4 facturen · 3 verlopen" split reads from.
+ */
+export async function fetchPaymentOverviewLines(
+  customerId: string,
+  overdueOnly = false
+): Promise<PaymentOverviewLine[]> {
   const { data, error } = await supabase.rpc('get_payment_overview_orders', {
     p_customer_id: customerId,
+    p_overdue_only: overdueOnly,
   })
   if (error) throw error
   return (data ?? []) as PaymentOverviewLine[]
@@ -70,7 +80,8 @@ export async function buildPaymentOverviewData(
   period: string = currentPeriod()
 ): Promise<PaymentOverviewData> {
   const [lines, settings, customerRes] = await Promise.all([
-    fetchPaymentOverviewLines(customerId),
+    // OVERDUE ONLY — the statement is a chase, not a full statement of account.
+    fetchPaymentOverviewLines(customerId, true),
     fetchDocumentSettings(),
     supabase
       .from('customers')
