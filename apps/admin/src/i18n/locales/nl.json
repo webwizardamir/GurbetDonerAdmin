@@ -2194,7 +2194,7 @@
   },
   "paymentOverview": {
     "title": "Betaaloverzicht",
-    "intro": "Overzicht voor {{period}}. Standaard toont deze lijst de klanten die op de 1e een overzicht krijgen: klanten met minstens één verlopen factuur en een e-mailadres. Klanten die nog volledig binnen termijn zijn worden overgeslagen — verwijder het filter om ze te zien. Bekijk eerst een voorbeeld voordat u verstuurt.",
+    "intro": "Overzicht voor {{period}}. Deze lijst toont standaard de klanten die op de 1e automatisch een betaaloverzicht krijgen. Klanten zonder verlopen factuur, zonder e-mailadres of die zijn afgemeld worden overgeslagen — kies „Wordt overgeslagen” of wis het filter om ze te zien. Bekijk eerst een voorbeeld voordat u verstuurt.",
     "notSent": "Nog niet verstuurd",
     "noEmail": "Geen e-mailadres",
     "openCount_one": "{{count}} openstaande factuur",
@@ -2250,9 +2250,18 @@
       "email": "E-mailadres",
       "emailAll": "Met en zonder e-mail",
       "withEmail": "Met e-mailadres",
-      "withoutEmail": "Zonder e-mailadres"
+      "withoutEmail": "Zonder e-mailadres",
+      "dispatch": "Verzending op de 1e",
+      "dispatchAll": "Iedereen met saldo",
+      "willSend": "Wordt verstuurd",
+      "skipped": "Wordt overgeslagen"
     },
-    "notDueYet": "binnen termijn",
-    "notDueYetHint": "Alle facturen zijn nog niet vervallen — de automatische verzending op de 1e slaat deze klant over. Handmatig versturen kan wel."
+    "dispatch": {
+      "will": "Wordt verstuurd",
+      "notDue": "Binnen termijn",
+      "noEmail": "Geen e-mailadres",
+      "optedOut": "Afgemeld",
+      "blockedHint": "Deze klant krijgt op de 1e géén betaaloverzicht. Handmatig versturen kan wel."
+    }
   }
 }

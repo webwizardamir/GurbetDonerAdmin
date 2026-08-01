@@ -52,6 +52,28 @@ import { isSuccessfulSend } from '../../types'
 type Busy = { id: string; what: 'preview' | 'send' | 'view' } | null
 type SortKey = 'customer' | 'invoices' | 'oldestDue' | 'amount' | 'status'
 
+/**
+ * Will the 1st-of-month run mail this customer, and if not, why not?
+ *
+ * ONE definition, used by the stat tile, the filter and the row badge — the
+ * screen's whole job is answering "who gets a statement", and three places
+ * computing it separately is how they end up disagreeing.
+ *
+ * Mirrors the gates in process-invoice-reminders Step 7, in the same order.
+ * Keep them in step: this is the promise the screen makes about what the cron
+ * will do. Deliberately NOT including the already-sent dedup — that is a
+ * per-period fact shown in the Verzending column, not a property of the
+ * customer, and folding it in would empty this list the day after a run.
+ */
+type Dispatch = 'will' | 'notDue' | 'noEmail' | 'optedOut'
+
+function dispatchOf(r: PaymentOverviewCustomer): Dispatch {
+  if (r.reminders_opted_out === true) return 'optedOut'
+  if (!r.email?.trim()) return 'noEmail'
+  if (Number(r.overdue_count || 0) <= 0) return 'notDue'
+  return 'will'
+}
+
 /** Render a statement to a Blob. Lazy imports keep @react-pdf off this page's chunk. */
 async function renderOverviewBlob(data: PaymentOverviewData): Promise<Blob> {
   const [{ pdf }, { PaymentOverviewTemplate }] = await Promise.all([
@@ -92,12 +114,13 @@ export default function PaymentOverviewTab() {
   // paginate and a round-trip per keystroke would be pure latency.
   const [search, setSearch] = useState('')
   const [sendFilter, setSendFilter] = useState('')      // '' | 'notSent' | 'sent'
-  // Defaults to 'overdue' so the list opens on the customers who will actually
-  // be mailed on the 1st. Showing every open balance made the tab look as
-  // though nothing had changed — Luiten Food still sat there with a €56k
-  // not-yet-due invoice. It is a normal filter, so it shows as an active chip
-  // and one click widens it back to everyone.
-  const [overdueFilter, setOverdueFilter] = useState('overdue') // '' | 'overdue' | 'current'
+  const [overdueFilter, setOverdueFilter] = useState('') // '' | 'overdue' | 'current'
+  // Defaults to 'will', so the list opens on exactly the customers who get a
+  // statement on the 1st. Filtering on "has overdue" alone was not the same
+  // set: 56 customers have overdue invoices but no email address, so they were
+  // listed and mailed nothing. It is an ordinary filter — it shows as an active
+  // chip and one click widens it back to everyone.
+  const [dispatchFilter, setDispatchFilter] = useState('will') // '' | 'will' | 'blocked'
   const [emailFilter, setEmailFilter] = useState('')     // '' | 'with' | 'without'
   const { sortKey, sortDir, toggleSort, sortBy } = useTableSort<SortKey>('amount', 'desc')
 
@@ -138,13 +161,7 @@ export default function PaymentOverviewTab() {
     const outstanding = rows.reduce((s, r) => s + Number(r.total_cents || 0), 0)
     const sent = rows.filter(r => r.last_send_status && isSuccessfulSend(r.last_send_status)).length
     const noEmail = rows.filter(r => !r.email?.trim()).length
-    // The three gates the 1st-of-month run applies, in the same order as
-    // process-invoice-reminders Step 7. This is the number the owner actually
-    // wants — "klanten met saldo" counts people who will never be mailed
-    // because nothing is overdue yet or there is no address on file.
-    const willSend = rows.filter(
-      r => Number(r.overdue_count || 0) > 0 && !!r.email?.trim() && r.reminders_opted_out !== true,
-    ).length
+    const willSend = rows.filter(r => dispatchOf(r) === 'will').length
     return { outstanding, customers: rows.length, sent, noEmail, willSend }
   }, [rows])
 
@@ -157,6 +174,8 @@ export default function PaymentOverviewTab() {
       if (q && !`${r.company_name} ${r.email ?? ''}`.toLowerCase().includes(q)) return false
       if (sendFilter === 'sent' && !wasSent(r)) return false
       if (sendFilter === 'notSent' && wasSent(r)) return false
+      if (dispatchFilter === 'will' && dispatchOf(r) !== 'will') return false
+      if (dispatchFilter === 'blocked' && dispatchOf(r) === 'will') return false
       if (overdueFilter === 'overdue' && r.overdue_count === 0) return false
       if (overdueFilter === 'current' && r.overdue_count > 0) return false
       if (emailFilter === 'with' && !r.email?.trim()) return false
@@ -173,9 +192,22 @@ export default function PaymentOverviewTab() {
       // scatter them.
       status: r => (wasSent(r) ? 1 : 0),
     })
-  }, [rows, search, sendFilter, overdueFilter, emailFilter, sortBy])
+  }, [rows, search, sendFilter, dispatchFilter, overdueFilter, emailFilter, sortBy])
 
   const filterDefs: FilterDef[] = useMemo(() => [
+    {
+      // First in the row: it is the question the page exists to answer.
+      id: 'dispatch',
+      kind: 'select',
+      label: t('paymentOverview.filters.dispatch'),
+      value: dispatchFilter,
+      onChange: setDispatchFilter,
+      allLabel: t('paymentOverview.filters.dispatchAll'),
+      options: [
+        { value: 'will', label: t('paymentOverview.filters.willSend'), count: rows.filter(r => dispatchOf(r) === 'will').length },
+        { value: 'blocked', label: t('paymentOverview.filters.skipped'), count: rows.filter(r => dispatchOf(r) !== 'will').length },
+      ],
+    },
     {
       id: 'send',
       kind: 'select',
@@ -212,7 +244,7 @@ export default function PaymentOverviewTab() {
         { value: 'without', label: t('paymentOverview.filters.withoutEmail'), count: rows.filter(r => !r.email?.trim()).length },
       ],
     },
-  ], [t, rows, sendFilter, overdueFilter, emailFilter])
+  ], [t, rows, sendFilter, dispatchFilter, overdueFilter, emailFilter])
 
   const handlePreview = async (row: PaymentOverviewCustomer) => {
     setBusy({ id: row.customer_id, what: 'preview' })
@@ -456,22 +488,14 @@ export default function PaymentOverviewTab() {
                       </p>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                      {/* "4 · 2 verlopen" — the split matters: the statement
+                          lists all 4, but only the 2 overdue drive whether it
+                          is sent. The Verzending column says what happens. */}
                       {row.open_count}
-                      {row.overdue_count > 0 ? (
+                      {row.overdue_count > 0 && (
                         <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
                           <Clock className="w-3 h-3" />
                           {t('paymentOverview.overdueCount', { count: row.overdue_count })}
-                        </span>
-                      ) : (
-                        // Nothing overdue → the 1st-of-month run skips this
-                        // customer. Say so on the row, or the owner is left
-                        // wondering why a customer with a large open balance
-                        // never receives a statement.
-                        <span
-                          className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-slate-400 dark:text-slate-500"
-                          title={t('paymentOverview.notDueYetHint')}
-                        >
-                          {t('paymentOverview.notDueYet')}
                         </span>
                       )}
                     </td>
@@ -569,11 +593,27 @@ export default function PaymentOverviewTab() {
 
 function SendState({ row }: { row: PaymentOverviewCustomer }) {
   const { t } = useTranslation()
+  // Not sent yet this month → say what the 1st-of-month run WILL do, and when
+  // it won't, why. "Nog niet verstuurd" alone read as "it is coming", which is
+  // how a customer with no email address on file looked identical to one that
+  // is genuinely queued.
   if (!row.last_send_status) {
+    const d = dispatchOf(row)
+    if (d === 'will') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400">
+          <Send className="w-3.5 h-3.5" />
+          {t('paymentOverview.dispatch.will')}
+        </span>
+      )
+    }
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-        <Clock className="w-3.5 h-3.5" />
-        {t('paymentOverview.notSent')}
+      <span
+        className="inline-flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400"
+        title={t('paymentOverview.dispatch.blockedHint')}
+      >
+        <MailWarning className="w-3.5 h-3.5" />
+        {t(`paymentOverview.dispatch.${d}`)}
       </span>
     )
   }

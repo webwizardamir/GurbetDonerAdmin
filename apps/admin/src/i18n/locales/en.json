@@ -2194,7 +2194,7 @@
   },
   "paymentOverview": {
     "title": "Payment overview",
-    "intro": "Overview for {{period}}. By default this list shows the customers who will receive a statement on the 1st: those with at least one overdue invoice and an email address. Customers still fully within terms are skipped — clear the filter to see them. Preview before you send.",
+    "intro": "Overview for {{period}}. By default this list shows the customers who automatically receive a statement on the 1st. Customers with no overdue invoice, no email address, or who opted out are skipped — pick “Will be skipped” or clear the filter to see them. Preview before you send.",
     "notSent": "Not sent yet",
     "noEmail": "No email address",
     "openCount_one": "{{count}} outstanding invoice",
@@ -2250,9 +2250,18 @@
       "email": "Email address",
       "emailAll": "With and without email",
       "withEmail": "With email address",
-      "withoutEmail": "Without email address"
+      "withoutEmail": "Without email address",
+      "dispatch": "Dispatch on the 1st",
+      "dispatchAll": "Everyone with a balance",
+      "willSend": "Will be sent",
+      "skipped": "Will be skipped"
     },
-    "notDueYet": "within terms",
-    "notDueYetHint": "No invoice is overdue yet — the automatic run on the 1st skips this customer. You can still send manually."
+    "dispatch": {
+      "will": "Will be sent",
+      "notDue": "Within terms",
+      "noEmail": "No email address",
+      "optedOut": "Opted out",
+      "blockedHint": "This customer will NOT get a statement on the 1st. You can still send manually."
+    }
   }
 }

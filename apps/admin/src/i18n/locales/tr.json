@@ -2194,7 +2194,7 @@
   },
   "paymentOverview": {
     "title": "Ödeme özeti",
-    "intro": "{{period}} için genel bakış. Bu liste varsayılan olarak ayın 1'inde ekstre alacak müşterileri gösterir: en az bir vadesi geçmiş faturası ve e-posta adresi olanlar. Tamamen vadesi gelmemiş müşteriler atlanır — görmek için filtreyi kaldırın. Göndermeden önce önizleyin.",
+    "intro": "{{period}} için genel bakış. Bu liste varsayılan olarak ayın 1'inde otomatik ekstre alacak müşterileri gösterir. Vadesi geçmiş faturası olmayan, e-posta adresi bulunmayan veya çıkmış müşteriler atlanır — “Atlanacak” seçin veya filtreyi temizleyin. Göndermeden önce önizleyin.",
     "notSent": "Henüz gönderilmedi",
     "noEmail": "E-posta adresi yok",
     "openCount_one": "{{count}} açık fatura",
@@ -2250,9 +2250,18 @@
       "email": "E-posta adresi",
       "emailAll": "E-postalı ve e-postasız",
       "withEmail": "E-posta adresi olanlar",
-      "withoutEmail": "E-posta adresi olmayanlar"
+      "withoutEmail": "E-posta adresi olmayanlar",
+      "dispatch": "Ayın 1'inde gönderim",
+      "dispatchAll": "Bakiyesi olan herkes",
+      "willSend": "Gönderilecek",
+      "skipped": "Atlanacak"
     },
-    "notDueYet": "vadesi gelmemiş",
-    "notDueYetHint": "Hiçbir fatura henüz vadesi geçmedi — ayın 1'indeki otomatik gönderim bu müşteriyi atlar. Yine de elle gönderebilirsiniz."
+    "dispatch": {
+      "will": "Gönderilecek",
+      "notDue": "Vadesi gelmemiş",
+      "noEmail": "E-posta adresi yok",
+      "optedOut": "Çıkmış",
+      "blockedHint": "Bu müşteriye ayın 1'inde ekstre GÖNDERİLMEZ. Yine de elle gönderebilirsiniz."
+    }
   }
 }
