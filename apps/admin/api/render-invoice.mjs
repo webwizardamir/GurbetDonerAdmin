@@ -513,6 +513,19 @@ var FATHER = {
 };
 var docBrand = tenantId === "father" ? FATHER : MELEK;
 
+// src/components/documents/logoMetrics.ts
+var MELEK2 = {
+  height: 36,
+  maxWidth: 120,
+  objectFit: "contain",
+  marginRight: 10
+};
+var FATHER2 = {
+  ...MELEK2,
+  height: 44
+};
+var docLogo = tenantId === "father" ? FATHER2 : MELEK2;
+
 // src/components/documents/InvoiceTemplate.tsx
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 var LEVERDATUM_FIX_CUTOFF = "2026-07-20";
@@ -541,13 +554,8 @@ var styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start"
   },
-  logo: {
-    width: 80,
-    height: "auto",
-    maxHeight: 36,
-    objectFit: "contain",
-    marginRight: 10
-  },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: {
     fontSize: 11,
@@ -1156,13 +1164,8 @@ var styles2 = StyleSheet2.create({
     flexDirection: "row",
     alignItems: "flex-start"
   },
-  logo: {
-    width: 80,
-    height: "auto",
-    maxHeight: 36,
-    objectFit: "contain",
-    marginRight: 10
-  },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: {
     fontSize: 11,
@@ -1648,13 +1651,8 @@ var styles3 = StyleSheet3.create({
     flexDirection: "row",
     alignItems: "flex-start"
   },
-  logo: {
-    width: 80,
-    height: "auto",
-    maxHeight: 36,
-    objectFit: "contain",
-    marginRight: 10
-  },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: {
     fontSize: 11,
@@ -2185,13 +2183,8 @@ var styles4 = StyleSheet4.create({
     flexDirection: "row",
     alignItems: "flex-start"
   },
-  logo: {
-    width: 80,
-    height: "auto",
-    maxHeight: 36,
-    objectFit: "contain",
-    marginRight: 10
-  },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: {
     fontSize: 11,
@@ -2631,13 +2624,8 @@ var styles5 = StyleSheet5.create({
     flexDirection: "row",
     alignItems: "flex-start"
   },
-  logo: {
-    width: 80,
-    height: "auto",
-    maxHeight: 36,
-    objectFit: "contain",
-    marginRight: 10
-  },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: {
     fontSize: 11,
@@ -3146,13 +3134,8 @@ var styles6 = StyleSheet6.create({
     flexDirection: "row",
     alignItems: "flex-start"
   },
-  logo: {
-    width: 80,
-    height: "auto",
-    maxHeight: 36,
-    objectFit: "contain",
-    marginRight: 10
-  },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: {
     fontSize: 11,
@@ -3628,13 +3611,8 @@ var styles7 = StyleSheet7.create({
     marginBottom: 10
   },
   headerLeft: { flexDirection: "row", alignItems: "flex-start" },
-  logo: {
-    width: 80,
-    height: "auto",
-    maxHeight: 36,
-    objectFit: "contain",
-    marginRight: 10
-  },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: { fontSize: 11, fontFamily: "Helvetica-Bold", marginBottom: 2 },
   companyDetail: { fontSize: 7, color: "#64748b", lineHeight: 1.35 },

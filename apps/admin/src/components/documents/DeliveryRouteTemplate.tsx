@@ -9,6 +9,7 @@ import { formatDistance, formatDuration, etaClock } from '../../utils/route'
 import { formatQuantityWithUnit } from '../../utils/format'
 import { tenant } from '../../config/tenant'
 import { docBrand } from './brandPalette'
+import { docLogo } from './logoMetrics'
 
 // Delivery-route sheet. Dutch only (operational/legal consistency). Brand colour
 // comes from the tenant's document palette so the driver sheet matches the rest
@@ -40,7 +41,8 @@ const styles = StyleSheet.create({
   // Header — logo + company info (left), document title (right), matching InvoiceTemplate
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
   headerLeft: { flexDirection: 'row', alignItems: 'flex-start' },
-  logo: { width: 80, height: 'auto', maxHeight: 36, objectFit: 'contain', marginRight: 10 },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: { fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 2 },
   companyDetail: { fontSize: 7, color: '#64748b', lineHeight: 1.35 },

@@ -10,6 +10,7 @@ import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 import { docBrand } from './brandPalette'
+import { docLogo } from './logoMetrics'
 
 // A4: 595.28 x 841.89 points
 // Payment Reminder = Reminder for overdue invoice payment
@@ -32,13 +33,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
-  logo: {
-    width: 80,
-    height: 'auto',
-    maxHeight: 36,
-    objectFit: 'contain',
-    marginRight: 10,
-  },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: {
     fontSize: 11,

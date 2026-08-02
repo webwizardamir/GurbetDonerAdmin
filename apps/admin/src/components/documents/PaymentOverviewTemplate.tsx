@@ -11,6 +11,7 @@ import { getDocText } from '../../services/documentLabels'
 import { formatPrice, formatDate } from '../../utils/format'
 import { buildAddressLines } from '../../utils/address'
 import { docBrand } from './brandPalette'
+import { docLogo } from './logoMetrics'
 
 // ===========================================================================
 // BETAALOVERZICHT — monthly statement of account (migrations 00102/00103)
@@ -70,13 +71,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'flex-start' },
-  logo: {
-    width: 80,
-    height: 'auto',
-    maxHeight: 36,
-    objectFit: 'contain',
-    marginRight: 10,
-  },
+  // Height-driven so the width follows the logo's own aspect ratio — see logoMetrics.ts.
+  logo: { ...docLogo },
   companyInfo: {},
   companyName: { fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 2 },
   companyDetail: { fontSize: 7, color: '#64748b', lineHeight: 1.35 },
