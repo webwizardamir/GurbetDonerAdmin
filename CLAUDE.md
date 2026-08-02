@@ -447,6 +447,39 @@ chaining would match neither and throw in Node. If you change one, change both.
 one-token change (those `color:` values to `#166534` → 6.81:1); left alone pending sign-off
 because it repaints live Melek invoices. Gurbet is unaffected (its blue is 5.6:1).
 
+### Logo sizing is height-driven, per tenant — `logoMetrics.ts` (2026-08-02)
+
+The header logo used to be a fixed **`width: 80` / `maxHeight: 36`** box with `objectFit: 'contain'`.
+That is a **wide** slot and only ever fitted a wide logo. Melek's (500×232, aspect 2.16) fills it.
+Gurbet's (720×682, effectively **square**) could only scale to 38×36 inside it and was then centred,
+leaving **~21pt of white on each side** — on every document. Read straight off the rendered PDF
+content stream: `38.005865 0 0 -36 20.997067 36 cm`.
+
+The fix is **shape-agnostic, not a per-logo nudge**: give the `<Image>` a **height and no width** and
+`@react-pdf` derives the width from the image's own aspect ratio, so there is no dead space for any
+logo shape and the owner can re-upload a differently proportioned logo with no code change. All nine
+templates that render a logo now use `logo: { ...docLogo }` — **never an inline width/height**.
+
+| | old (`width 80 / maxHeight 36`) | new (height-driven) |
+|---|---|---|
+| Melek 500×232 | 77.6 × 36 @ x1.2 | **77.6 × 36 @ x0** — same size, loses 1.2pt of centring |
+| Gurbet 720×682 | 38.0 × 36 @ x21.0 | **46.5 × 44 @ x0** |
+
+- **`height` is the only tenant-dependent value** (melek 36, father 44). Gurbet's square mark is
+  taller on purpose: at 36pt it is visually tiny beside the company block. **44 is the ceiling** —
+  it is the tallest the logo can be while staying inside the height of the 4-line company address
+  block next to it, so the header does not grow and the 15–16 items/page spec holds. Verified: the
+  page content stream is **byte-identical below the header** (only the logo box, the image matrix
+  and the company block's x-offset change).
+- **Melek's logo renders at exactly the size it always has.** The whole header block shifts 2.4pt
+  left (the centring padding it never needed); nothing moves vertically and no line count changes.
+- **`objectFit: 'contain'` must stay.** `maxWidth` (120) is a safety valve against a future
+  ultra-wide upload pushing the company name off the header, and `contain` is what makes that clamp
+  letterbox instead of **stretch** — verified: without it a clamped logo renders 60×46 instead of
+  60×27.8, i.e. distorted.
+- **The branded EMAIL shell had the same bug and was fixed with it** — see **Branded HTML email
+  shell** under Email delivery. Four copies of `buildBrandedEmailHtml`, all four changed together.
+
 ### Compact ruleset (use these exact values)
 
 **Page** — A4 (595.28 × 841.89pt):
@@ -454,7 +487,8 @@ because it repaints live Melek invoices. Gurbet is unaffected (its blue is 5.6:1
 - `fontSize: 8` (base)
 
 **Header** (`marginBottom: 10`):
-- Logo: `width: 80`, `maxHeight: 36`, `marginRight: 10`
+- Logo: **never styled inline** — `logo: { ...docLogo }` from `components/documents/logoMetrics.ts`
+  (see **Logo sizing is height-driven** below)
 - Company name: `fontSize: 11`, `Helvetica-Bold`, `marginBottom: 2`
 - Company details: `fontSize: 7`, `lineHeight: 1.35`
 - Doc title: `fontSize: 18`, uppercase, `letterSpacing: 1`, brand color
@@ -1198,10 +1232,21 @@ process-invoice-reminders v5 — the latter stays **verify_jwt=false**, cron-sec
   (`#16a34a`→`#166534`) header bar with `company_logo_url`, typeset body (newlines→`<br>`), divider,
   and a footer (company name, address, phone/email/website, BTW/KvK, IBAN + t.n.v.) — all from
   `document_settings`.
-- **`buildBrandedEmailHtml(body, settings)` is DUPLICATED in three files (keep in sync):**
+- **`buildBrandedEmailHtml(body, settings)` is DUPLICATED in FOUR files (keep in sync):**
   `apps/admin/src/utils/emailHtml.ts` (frontend, Outbox preview — uses regex `.replace`, admin tsconfig
-  is pre-ES2021), and inline in each of the two edge functions (Deno can't import app code, uses
-  `.replaceAll`). Change all three together, or the Outbox preview drifts from what customers receive.
+  is pre-ES2021), and inline in each of **three** edge functions (Deno can't import app code, uses
+  `.replaceAll`): `send-document-email`, `process-invoice-reminders` and — easy to miss, it is not a
+  document mail — **`portal-request-code`** (the OTP login code). Change all four together, or the
+  Outbox preview drifts from what customers receive.
+- **The header logo is sized HEIGHT-first**, `height="70"` + `max-height:70px` / `max-width:150px`,
+  never a fixed `width` (2026-08-02). Same reasoning as the PDF header, see
+  **Logo sizing is height-driven** under PDF Document Templates: `width="150"` alone is a WIDE slot,
+  so Gurbet's square logo (720×682) rendered **150×142** and turned the header band into a giant
+  tile. Capping both axes lets the client shrink to fit while preserving aspect — Melek's 500×232 is
+  **unchanged at 150×70**, a square mark lands at ~74×70. The `height` **attribute** is for Outlook
+  desktop, whose Word engine ignores `max-*` and scales the other axis proportionally when given one
+  dimension; **do not put a `width` attribute back beside it** — two fixed attributes is how a
+  non-wide logo gets stretched there.
 - The plain-text `body` is still what's stored in `document_sends.body` and composed in
   `SendDocumentModal`; the shell is applied at **send time** (and re-applied for preview), not stored.
 

@@ -186,8 +186,12 @@ function joinParts(parts: Array<unknown>, sep: string): string {
 function buildBrandedEmailHtml(body: string, s: Record<string, unknown>): string {
   const BRAND = '#16a34a', BRAND_DARK = '#166534', INK = '#1e293b', MUTED = '#64748b', LINE = '#e2e8f0', CANVAS = '#f1f5f9'
   const company = String(s.company_name || '').trim() || 'Melek Halal Food'
+  // Height-first, capped on both axes so a SQUARE logo does not render as a
+  // 150x142 tile in the header band. `height` attribute = Outlook desktop (it
+  // ignores max-*); never add a `width` attribute beside it. Kept identical to
+  // src/utils/emailHtml.ts — that one documents the reasoning in full.
   const header = s.company_logo_url
-    ? `<img src="${escapeHtml(String(s.company_logo_url))}" alt="${escapeHtml(company)}" width="150" style="display:block;max-width:150px;height:auto;border:0;" />`
+    ? `<img src="${escapeHtml(String(s.company_logo_url))}" alt="${escapeHtml(company)}" height="70" style="display:block;height:auto;max-height:70px;width:auto;max-width:150px;border:0;" />`
     : `<span style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#ffffff;">${escapeHtml(company)}</span>`
   const addressLine = joinParts([s.company_address, joinParts([joinParts([s.company_postal_code, s.company_city], ' '), s.company_country], ', ')], ', ')
   const contactLine = joinParts([

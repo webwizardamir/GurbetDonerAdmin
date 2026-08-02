@@ -60,8 +60,21 @@ export function buildBrandedEmailHtml(body: string, s: EmailBrandSettings = {}):
   const company = (s.company_name || '').trim() || 'Melek Halal Food'
 
   // Header: logo if we have one, otherwise the company name in white.
+  //
+  // Sizing is HEIGHT-first, capped on both axes — the same reasoning as the PDF
+  // header (see components/documents/logoMetrics.ts). It used to be `width="150"`
+  // alone, which is a WIDE slot: a square logo (Gurbet's is 720x682) rendered
+  // 150x142 and turned the header band into a giant tile. With `max-height:70px`
+  // + `max-width:150px` the browser shrinks to satisfy BOTH while preserving the
+  // aspect ratio, so a wide logo is unchanged (Melek 500x232 -> 150x70, exactly
+  // what it was) and a square one lands at ~74x70.
+  //
+  // The `height` ATTRIBUTE is there for Outlook desktop, whose Word engine
+  // ignores max-width/max-height; given one dimension it scales the other
+  // proportionally. Do NOT re-add a `width` attribute next to it — two fixed
+  // attributes is how a non-wide logo gets stretched there.
   const header = s.company_logo_url
-    ? `<img src="${escapeHtml(s.company_logo_url)}" alt="${escapeHtml(company)}" width="150" style="display:block;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;" />`
+    ? `<img src="${escapeHtml(s.company_logo_url)}" alt="${escapeHtml(company)}" height="70" style="display:block;height:auto;max-height:70px;width:auto;max-width:150px;border:0;outline:none;text-decoration:none;" />`
     : `<span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#ffffff;">${escapeHtml(company)}</span>`
 
   // Footer lines.
