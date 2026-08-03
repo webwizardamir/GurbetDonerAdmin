@@ -927,3 +927,22 @@ The recovery being attempted was futile anyway: `_removeSession()` wipes storage
 **Immediately earned its keep:** it caught a live bug in that same session's code — `ExportMenu`'s `effColumns` built a new array every render, defeating the three `useMemo`s below it.
 **Left as warnings, deliberately:** 19 pre-existing `exhaustive-deps` / `react-refresh` reports on intentional mount-only effects. `--max-warnings 0` was **not** restored: mass-editing effect dependencies in this codebase is exactly how the auth-lock deadlock was introduced.
 **Prevention:** a command that exits non-zero for a *configuration* reason is indistinguishable from one that exits non-zero for a *code* reason. Verify a linter actually reports on a known-bad file before trusting a clean run.
+
+---
+
+## Gurbet: could not create an order at all — order-number counter drift (2026-08-03)
+
+**Symptom:** `POST /rest/v1/orders` → **409**, `duplicate key value violates unique constraint "orders_order_number_key"`. Every attempt to save a new order failed; 8 such errors in the Postgres log across the morning.
+**Cause:** `generate_order_number()` blindly claimed `document_settings.order_next_number`. On Gurbet that counter had drifted to **13** while orders **1..28** already existed, so the number it handed out was already taken. Each failed attempt still advanced the counter by one, so it would have crawled back into a working range only after ~16 more failures — and burned every number on the way.
+**This is the same drift `get_next_document_number_atomic` (00079) fixed for INVOICE numbers.** Order numbers never got the same treatment. Melek was not broken but was one out-of-band insert from it (counter 10951, max used 10950).
+**Solution (migration `00110`, both databases):** same shape as 00079 — `next = GREATEST(stored_counter, max_used + 1)` computed under a `FOR UPDATE` lock on the `document_settings` singleton, counter set to `next + 1`. A drifted counter now self-heals on the very next call. `MAX(order_number::BIGINT)` is filtered by `order_number ~ '^[0-9]+$'` because the column is TEXT — a future prefixed import must be skipped, not crash the cast. Verified in a rolled-back transaction: Gurbet now yields **29, 30**; Melek yields **10951, 10952**, i.e. unchanged.
+**Prevention:** a stored "next number" counter beside a UNIQUE column is only correct while nothing else writes that column. Derive it from the data (`GREATEST(counter, max+1)`) rather than trusting it.
+
+---
+
+## Gurbet: `/overdue` returned 400 — NUMERIC total in an INTEGER OUT column (2026-08-03)
+
+**Symptom:** `POST /rest/v1/rpc/get_overdue_invoices` → **400**; Postgres log: `structure of query does not match function result type`. The whole Reminders/Overdue page was dead on Gurbet, and it was fine on Melek.
+**Cause:** the function declares `RETURNS TABLE(… total integer …)` and selects `o.total` uncast. **Melek's `orders.total` is `integer`; Gurbet's is `numeric`** — a known schema divergence between the two databases. plpgsql will not coerce a NUMERIC into an INTEGER OUT column, so the function raised on every call. The function body itself was byte-identical on both projects (verified by `md5(pg_get_functiondef(...))`); only the column type differed.
+**Solution (migration `00110`, both databases):** cast in the body — `o.total::INTEGER`. Deliberately **not** widening the signature to `numeric`: PostgREST serialises numeric as a JSON *string* (`"443680.00"`) and integer as a number, and the client type `OverdueInvoice.total` is `number` — so widening would have broken Melek to fix Gurbet. Verified 0 non-integral and 0 NULL totals on Gurbet, max 443680 cents, comfortably inside int4. After the fix Gurbet returns 1 row, Melek 141.
+**Prevention:** the two databases' column *types* diverge, not just their policies. A `RETURNS TABLE` signature is a contract against a type that may only hold on one tenant — cast explicitly in the body so the RPC's wire format is identical on both, and check `information_schema.columns` on **each** project before assuming.
