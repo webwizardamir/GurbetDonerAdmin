@@ -38,6 +38,7 @@ export const CHART_COLORS = {
 export const STATUS_COLORS = {
   light: {
     completed: '#10b981',    // emerald-500
+    delivered: '#22c55e',    // green-500
     pending_payment: '#f59e0b', // amber-500
     processing: '#3b82f6',   // blue-500
     on_hold: '#8b5cf6',      // violet-500
@@ -47,6 +48,7 @@ export const STATUS_COLORS = {
   },
   dark: {
     completed: '#34d399',    // emerald-400
+    delivered: '#4ade80',    // green-400
     pending_payment: '#fbbf24', // amber-400
     processing: '#60a5fa',   // blue-400
     on_hold: '#a78bfa',      // violet-400

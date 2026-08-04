@@ -1,17 +1,29 @@
 // Analytics helper utilities: chunked queries, shared cost calculations, date range helpers
 
 import { supabase } from './supabase'
+import { expandStatusFilter } from '../constants/orderStatus'
 
 /**
  * Build the optional `p_statuses` argument for the analytics RPCs.
  * An empty/absent selection means "use the RPC default" (every order except
- * cancelled/refunded). We OMIT the key entirely in that case (rather than
+ * cancelled/refunded/draft). We OMIT the key entirely in that case (rather than
  * sending null) so the call still resolves against an older DB that predates
  * the p_statuses parameter — keeping default analytics working even if the
  * migration hasn't been applied yet. Only an explicit selection requires it.
+ *
+ * 🚨 The selection is EXPANDED through `expandStatusFilter` first, exactly as
+ * `fetchOrders`/`fetchOrderCount` do it. Every RPC matches with
+ * `status::text = ANY(p_statuses)` against the RAW stored value, and the live DB
+ * default for a new order is the legacy `pending`, not `pending_payment` — the
+ * two render the same label ("Wacht op betaling") and the filter only offers the
+ * canonical one. Without the expansion, picking it asked for `pending_payment`
+ * alone and matched **4 of 248** waiting orders on Melek (2 of 28 on Gurbet), so
+ * their revenue and profit looked like they had vanished. The unfiltered totals
+ * were always right — only the isolate-one-status view was broken.
  */
 export function statusArg(statuses?: string[] | null): { p_statuses?: string[] } {
-  return statuses && statuses.length > 0 ? { p_statuses: statuses } : {}
+  if (!statuses || statuses.length === 0) return {}
+  return { p_statuses: expandStatusFilter(statuses) }
 }
 
 /**

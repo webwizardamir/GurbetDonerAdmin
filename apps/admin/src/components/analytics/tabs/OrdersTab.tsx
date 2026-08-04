@@ -20,6 +20,7 @@ import { fetchOrderById, type OrderWithItems } from '../../../services/orders'
 import OrderDetail from '../../orders/OrderDetail'
 import StatCard from '../../StatCard'
 import { formatChartCurrency } from '../ChartColors'
+import { canonicalStatus, orderStatusLabelNl, statusStyle } from '../../../constants/orderStatus'
 import { formatDate, formatPercent } from '../../../utils/format'
 import { exportToExcel, formatCentsToCsvCurrency, formatCsvPercentage } from '../../../utils/excelExport'
 
@@ -106,7 +107,9 @@ export default function OrdersTab({ dateRange, statuses = [], filters = {} }: Or
       { header: t('analytics.orderReport.orderNr'), accessor: r => r.orderNumber },
       { header: t('analytics.orderReport.date'), accessor: r => r.orderDate },
       { header: t('analytics.orderReport.customer'), accessor: r => r.customerName },
-      { header: t('analytics.orderReport.status'), accessor: r => r.status },
+      // Exports are Dutch-only by convention, like the document templates — and
+      // the raw value would print the legacy "pending" on most rows.
+      { header: t('analytics.orderReport.status'), accessor: r => orderStatusLabelNl(canonicalStatus(r.status)) },
       { header: t('analytics.orderReport.payment'), accessor: r => r.paymentMethod },
       { header: t('analytics.revenue'), accessor: r => formatCentsToCsvCurrency(r.subtotal), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.subtotal)) },
       { header: t('analytics.orderReport.cost'), accessor: r => formatCentsToCsvCurrency(r.totalCost), total: rows => formatCentsToCsvCurrency(sumBy(rows, r => r.totalCost)) },
@@ -283,19 +286,19 @@ export default function OrdersTab({ dateRange, statuses = [], filters = {} }: Or
   )
 }
 
+/**
+ * Colours and label both come from the shared STATUS_STYLES, so this table can't
+ * drift from the Orders list. The local map it replaced had no entry for the
+ * legacy `pending` — which is the live DB default for a new order — so almost
+ * every waiting row rendered grey with the raw English word "pending" in an
+ * otherwise Dutch table.
+ */
 function StatusBadge({ status }: { status: string }) {
-  const classes: Record<string, string> = {
-    completed: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-    delivered: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
-    draft: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400',
-    pending_payment: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',
-    on_hold: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300',
-    cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
-    refunded: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
-  }
+  const { t } = useTranslation()
+  const { badgeClass, labelKey } = statusStyle(status)
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${classes[status] || 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
-      {status}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badgeClass}`}>
+      {labelKey ? t(labelKey) : status}
     </span>
   )
 }

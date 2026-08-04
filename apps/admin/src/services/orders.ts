@@ -125,9 +125,10 @@ export interface CreateOrderData {
   // Flat shipping fee (Verzendkosten), ex-BTW cents. Kept out of subtotal/tax
   // (never profit); folded into orders.total with its dominant-rate BTW.
   delivery_fee?: number | null
-  // Explicit order status. Normally omitted (new orders default to 'pending' in
-  // the DB). Set to 'draft' to park an order (no invoice/email/analytics), or to
-  // 'pending' to finalise a draft. See OrderForm's draft toggle.
+  // Explicit order status. Normally omitted (new orders take the DB default,
+  // 'pending_payment' since migration 00111). Set to 'draft' to park an order (no
+  // invoice/email/analytics), or to 'pending_payment' to finalise a draft. See
+  // OrderForm's draft toggle.
   status?: OrderStatus
   // Owner-only privacy flag (migration 00095). Only sent by OrderForm when the
   // signed-in user is the owner; the RLS WITH CHECK rejects it from anyone else,
@@ -533,7 +534,7 @@ export async function createOrder(
       internal_notes: orderData.internal_notes || '',
       ...header,
       // Explicit status only when the caller sets one (e.g. 'draft'); otherwise
-      // the DB default ('pending') applies.
+      // the DB default ('pending_payment', migration 00111) applies.
       ...(orderData.status ? { status: orderData.status } : {}),
       // Only sent when the owner ticked the box; the DB default is false and
       // the RLS WITH CHECK rejects a true from anyone but the owner.

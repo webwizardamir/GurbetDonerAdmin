@@ -75,7 +75,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const [error, setError] = useState<string | null>(null)
   // "Concept" (draft) toggle. A draft gets no auto-invoice, no automatic email,
   // and is excluded from analytics revenue/profit. Opt-in only; normal orders
-  // keep defaulting to 'pending'. Initialised from the edited order's status.
+  // keep the DB default ('pending_payment'). Initialised from the edited order.
   const [isDraft, setIsDraft] = useState(false)
   // "Verbergen" — owner-only privacy flag. Large orders whose amounts a shop
   // manager has no need to know. Enforced in RLS (migration 00095); this state
@@ -374,12 +374,15 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       // Only send a status when it must change, so we never clobber an existing
       // order's completed/cancelled/etc. status:
       //  - draft ticked & order isn't already draft → 'draft'
-      //  - draft unticked & order IS draft → 'pending' (finalize)
-      //  - new order + draft ticked → 'draft'; new + unticked → omit (defaults 'pending')
+      //  - draft unticked & order IS draft → 'pending_payment' (finalize)
+      //  - new order + draft ticked → 'draft'; new + unticked → omit (DB default)
+      // Finalising writes 'pending_payment', not the legacy 'pending' (migration
+      // 00111 merged the two and moved the column default) — they were the same
+      // state under two names, and the legacy one is now unreachable by design.
       const currentIsDraft = editOrder?.status === 'draft'
       let statusUpdate: OrderStatus | undefined
       if (isDraft && !currentIsDraft) statusUpdate = 'draft'
-      else if (!isDraft && currentIsDraft) statusUpdate = 'pending'
+      else if (!isDraft && currentIsDraft) statusUpdate = 'pending_payment'
       const savingAsDraft = isDraft // effective status after save is draft?
 
       const orderData = {

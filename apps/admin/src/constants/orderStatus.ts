@@ -107,11 +107,19 @@ export const orderStatusLabelNl = (s: OrderStatus | string): string => {
 }
 
 /**
- * `pending` and `pending_payment` render the SAME label ("Wacht op betaling"),
- * and `pending` is the live default for new orders. Without this alias the
- * picker would list the current status separately from the offered
- * `pending_payment` transition and show the same words twice — exactly the
- * duplication this redesign is fixing, in a second form.
+ * `pending` and `pending_payment` render the SAME label ("Wacht op betaling").
+ * `pending` was the live DB default until **migration 00111** merged the two and
+ * moved the default, so no new row can carry it — but the alias STAYS:
+ *
+ *  - the `order_status` enum still holds the label (Postgres cannot drop one
+ *    without recreating the type and re-typing every dependent column), so it
+ *    remains writable by anything that hardcodes it;
+ *  - `audit_logs` rows and frozen `documents.snapshot` blobs still contain the
+ *    old string, and those are immutable history — the Audit Log would render a
+ *    raw uncoloured "pending" without it.
+ *
+ * Without it the picker would also list the current status separately from the
+ * offered `pending_payment` transition and show the same words twice.
  */
 export const STATUS_ALIAS: Record<string, OrderStatus> = { pending: 'pending_payment' }
 
@@ -120,9 +128,10 @@ export const canonicalStatus = (s: string): string => STATUS_ALIAS[s] ?? s
 
 /**
  * The inverse of STATUS_ALIAS: every stored value that a canonical status
- * covers. `pending` is a legacy value that is STILL the live DB default for new
- * orders, so the two will keep coexisting — filtering on `pending_payment` has
- * to match both or almost every waiting order disappears from the list.
+ * covers. Filtering on `pending_payment` has to match `pending` too — before
+ * migration 00111 backfilled them, 245 of Melek's 249 waiting orders were on the
+ * legacy value, so an unexpanded filter dropped almost all of them. The data is
+ * merged now; this is what keeps a stray or re-imported legacy row visible.
  */
 export const STATUS_EQUIVALENTS: Record<string, string[]> = Object.entries(STATUS_ALIAS)
   .reduce<Record<string, string[]>>((acc, [stored, canonical]) => {

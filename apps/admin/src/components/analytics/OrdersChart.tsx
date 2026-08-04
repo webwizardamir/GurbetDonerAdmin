@@ -7,7 +7,9 @@ import {
   Legend,
   Tooltip,
 } from 'recharts'
+import { useTranslation } from 'react-i18next'
 import { STATUS_COLORS } from './ChartColors'
+import { statusStyle } from '../../constants/orderStatus'
 import type { OrderStatusCount } from '../../services/analytics'
 
 interface OrdersChartProps {
@@ -15,20 +17,8 @@ interface OrdersChartProps {
   loading?: boolean
 }
 
-// Status label mapping
-const STATUS_LABELS: Record<string, string> = {
-  completed: 'Completed',
-  delivered: 'Delivered',
-  pending_payment: 'Pending',
-  processing: 'Processing',
-  on_hold: 'On Hold',
-  cancelled: 'Cancelled',
-  refunded: 'Refunded',
-  draft: 'Draft',
-  pending: 'Pending',
-}
-
 export default function OrdersChart({ data, loading }: OrdersChartProps) {
+  const { t } = useTranslation()
   const [isDark, setIsDark] = useState(false)
 
   // Watch for dark mode changes
@@ -46,15 +36,20 @@ export default function OrdersChart({ data, loading }: OrdersChartProps) {
 
   const statusColors = isDark ? STATUS_COLORS.dark : STATUS_COLORS.light
 
-  // Format chart data
+  // Format chart data. Labels come from STATUS_STYLES' i18n keys rather than a
+  // local English map — this is a Dutch-default app, and a second hand-written
+  // list is how a status ends up rendering its raw enum value in the legend.
   const chartData = useMemo(() => {
-    return data.map(d => ({
-      name: STATUS_LABELS[d.status] || d.status,
-      value: d.count,
-      status: d.status,
-      revenue: d.revenue,
-    }))
-  }, [data])
+    return data.map(d => {
+      const { labelKey } = statusStyle(d.status)
+      return {
+        name: labelKey ? t(labelKey) : d.status,
+        value: d.count,
+        status: d.status,
+        revenue: d.revenue,
+      }
+    })
+  }, [data, t])
 
   // Get color for status
   const getColor = (status: string) => {

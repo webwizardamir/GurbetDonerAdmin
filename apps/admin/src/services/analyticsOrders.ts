@@ -2,6 +2,7 @@
 // Uses server-side RPC functions to avoid PostgREST 1000-row limit
 
 import { supabase } from './supabase'
+import { canonicalStatus } from '../constants/orderStatus'
 import { statusArg, entityArg, type AnalyticsFilters } from './analyticsHelpers'
 
 export interface OrderStatusCount {
@@ -40,11 +41,23 @@ export async function getOrdersByStatus(
 
   if (error) throw error
 
-  return (data || []).map((row: { status: string; count: number; revenue: number }) => ({
-    status: row.status,
-    count: Number(row.count),
-    revenue: Number(row.revenue),
-  }))
+  // GROUP BY o.status groups the RAW stored value, so the legacy `pending` and
+  // `pending_payment` come back as two rows — and they render the same label, so
+  // the pie showed two identical "Wacht op betaling" slices (245 + 4 on Melek)
+  // and the legend read as a bug. Merge onto the status the UI actually shows.
+  const merged = new Map<string, OrderStatusCount>()
+  for (const row of (data || []) as { status: string; count: number; revenue: number }[]) {
+    const status = canonicalStatus(row.status)
+    const prev = merged.get(status)
+    if (prev) {
+      prev.count += Number(row.count)
+      prev.revenue += Number(row.revenue)
+    } else {
+      merged.set(status, { status, count: Number(row.count), revenue: Number(row.revenue) })
+    }
+  }
+  // The RPC orders by count DESC; merging can reorder, so re-sort to match.
+  return Array.from(merged.values()).sort((a, b) => b.count - a.count)
 }
 
 // Get detailed order performance table using server-side RPC

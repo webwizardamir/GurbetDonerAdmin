@@ -949,7 +949,8 @@ path** rather than a separate stock model.
    `deleted_at IS NULL` (migration 00066). Genuine cancelled orders (deleted_at null) still show in the
    normal list.
 4. **Do not break:** the deletable-set guard in `trash_order` must match the UI (`draft`/`pending`/
-   `pending_payment`/`on_hold` — note `pending` is a live enum value used for new orders). `purge`
+   `pending_payment`/`on_hold` — `pending` is retained defensively; migration 00111 merged it into
+   `pending_payment`, but the enum label still exists and old snapshots still name it). `purge`
    must keep the re-deduct-then-delete order or stock double-restores. The portal RLS + portal service
    queries must keep the `deleted_at IS NULL` filter (otherwise trashed orders leak to the customer).
 5. **Service:** `deleteOrder`/`bulkDeleteOrders` now call `trash_order`; `restoreOrder`, `purgeOrder`,
@@ -969,7 +970,7 @@ Issued from the order detail panel (Orders page → open an order → **Terugbet
 - **Per-line profit on order line items (owner-only, 2026-07-16):** `OrderDetail` and `OrderItemsList` show, per costed line, BOTH the **per-unit difference** (`unit_price − cost_cents`, e.g. `inkoop €5,75 +€0,75`, green next to inkoop) AND the **total line Winst** (`(line_total − tax_amount) − cost×qty` + margin%). Base is ex-VAT (in the live form `lineTotal = unit_price×qty − discount` is already ex-VAT). Gated by `isOwner && cost_cents > 0`.
 
 ### Draft orders (Concept) — 2026-07-16
-Opt-in **"Concept"** status to park an unfinalised order. **Live `orders.status` default is `pending`** (the migration files' `draft` default is stale); `draft` was unused, so it now carries special meaning with no effect on the normal flow. A draft:
+Opt-in **"Concept"** status to park an unfinalised order. **Live `orders.status` default is `pending_payment`** (migration 00111; it was `pending` before that, and the migration files' `draft` default is stale); `draft` was unused, so it now carries special meaning with no effect on the normal flow. A draft:
 1. **Gets no invoice/number** — `OrderForm`'s `ensureOrderInvoice` block is skipped while saving a draft (`!savingAsDraft`); **finalising** (draft→non-draft, via the form checkbox OR the detail status buttons) issues it then.
 2. **Gets no automatic email** — a draft has no invoice doc so the reminder cron's `if(!invDoc) skip` ignores it; belt-and-suspenders, `process-invoice-reminders` Step 4 dunning also excludes `draft` (source committed; **redeploy skipped** — proxy failure, unneeded).
 3. **Is excluded from analytics revenue/profit** — **migration 00089** (a `DO` block that reads each RPC's `pg_get_functiondef` and string-replaces the sold-set predicate to add `'draft'`) patches 20 revenue/profit RPCs. **Kept** in `get_today_stats` operational buckets (items_to_pick/pending_count), the status-distribution RPCs, and `get_order_stats_by_status` (Orders Draft filter). Do NOT hand-rewrite those functions from old migrations — the DO-block preserves live 00070 owner-gating.
@@ -1681,6 +1682,41 @@ Styles come from `constants/orderStatus.ts` (`statusStyle()`); `STATUS_ALIAS` ma
 - **Cancelled → Concept is allowed** (and is the safest revive: no invoice is issued, stays out of
   analytics). Completed/refunded → Concept is not — un-finalising a paid order should cost the
   deliberate two steps. Reviving any cancelled order re-deducts stock and asks for confirmation.
+
+### `pending` was merged into `pending_payment` (migration 00111, 2026-08-04)
+
+There is now **one** waiting status. `pending` and `pending_payment` were always the same state under
+two names — identical label ("Wacht op betaling"), identical everything — but `pending` was the
+column DEFAULT, so every order created since go-live landed on the legacy value while the UI only
+ever offered the canonical one: **245 vs 4 rows on Melek, 26 vs 2 on Gurbet**.
+
+00111 moves the default to `pending_payment`, backfills `status` **and `pre_trash_status`** (miss the
+second and restoring from the Prullenbak writes the legacy value straight back), and asserts both.
+Applied to **both** databases. `OrderForm`'s draft-finalise now writes `pending_payment`.
+
+**The enum label is deliberately still there** — Postgres cannot DROP one without recreating
+`order_status` and re-typing every dependent column, function signature and policy. It is simply
+unreachable now.
+
+#### The alias machinery STAYS — do not delete it as dead code
+`STATUS_ALIAS` / `expandStatusFilter` / `canonicalStatus` (`constants/orderStatus.ts`) still guard
+every status filter and every status read, because the label remains writable and because
+`audit_logs` rows and frozen `documents.snapshot` blobs are **immutable history** that still contains
+the old string.
+
+- **Filtering** — `fetchOrders` / `fetchOrderCount` expand (both, or list and pagination disagree),
+  and so does **`statusArg()`** (`services/analyticsHelpers.ts`), the single choke point every
+  analytics RPC goes through. This is what was broken: picking "Wacht op betaling" in the Analytics
+  status filter reported 4 of 248 orders and **€1.384 of €111.919**, so the owner concluded that
+  status was excluded from analytics entirely. It never was — the **unfiltered** default
+  (`status NOT IN ('cancelled','refunded','draft')`) always counted both.
+- **Reading a status back** needs the mirror, `canonicalStatus`. `get_orders_by_status` groups the
+  raw column, so the Overview pie drew two identical "Wacht op betaling" slices until
+  `getOrdersByStatus` merged them.
+- **Never hand-write a second status→label or status→colour map.** Derive from `STATUS_STYLES`
+  (`statusStyle()` / `orderStatusLabelNl()`) — local copies keep omitting a value, which then renders
+  grey with its raw English enum name in an otherwise Dutch screen. That is why `OrdersChart` and
+  the Analytics `OrdersTab` badge were rewritten onto it.
 
 ---
 
