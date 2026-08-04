@@ -94,6 +94,22 @@ export default function BulkSendInvoicesModal({ docs, onClose, onFinished }: Bul
   )
   const chosen = useMemo(() => sendable.filter(x => ticked.has(x.id)), [sendable, ticked])
 
+  // When nothing at all can be sent AND every blocked row is blocked for the
+  // same reason, the button says that reason ("Geen e-mailadres") instead of
+  // the generic "Niets om te versturen" — the owner reads the button first and
+  // wants to know WHY, not just that the count is zero.
+  //
+  // The `sendable.length === 0` guard is what keeps this honest: with even one
+  // sendable row present (merely unticked, e.g. an already-sent invoice) the
+  // reason would be a half-truth, and with a mixed selection the button must
+  // never claim "no email address" while it is about to mail somebody. Those
+  // cases keep the generic label; the per-row chips above carry the detail.
+  const soleBlockReason = useMemo(() => {
+    if (sendable.length > 0 || blocked.length === 0) return null
+    const keys = new Set(blocked.map(toReasonKey))
+    return keys.size === 1 ? [...keys][0] : null
+  }, [sendable, blocked])
+
   // Results keyed by document id, for the per-row glyphs during/after the run.
   const resultById = useMemo(() => {
     const m = new Map<string, BulkSendItemResult>()
@@ -427,9 +443,11 @@ export default function BulkSendInvoicesModal({ docs, onClose, onFinished }: Bul
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
             >
               <Send className="w-4 h-4" />
-              {chosen.length === 0
-                ? t('documents.bulkSend.nothingToSend')
-                : t('documents.bulkSend.sendCta', { count: chosen.length })}
+              {chosen.length > 0
+                ? t('documents.bulkSend.sendCta', { count: chosen.length })
+                : soleBlockReason
+                  ? t(`documents.bulkSend.reason.${soleBlockReason}`)
+                  : t('documents.bulkSend.nothingToSend')}
             </button>
           </>
         )}
