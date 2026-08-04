@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   X, Loader2, Truck, Route as RouteIcon, Navigation,
   FileText, Copy, AlertTriangle, RefreshCw, Share2, Receipt, ListFilter,
+  Save, BookmarkCheck, Info,
 } from 'lucide-react'
 import { useDeliveryRoute } from '../../hooks/useDeliveryRoute'
 import { buildGoogleMapsUrl, formatDistance, formatDuration, etaClock } from '../../utils/route'
@@ -91,6 +92,24 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
   // The manual order is authoritative — export stays enabled after a reorder.
   // Only a never-geocoded (just toggled-in) stop blocks it (handled by exportReady).
   const canExport = r.exportReady
+
+  // "Opgeslagen om 07:41" — the saved-at clock, in the app language.
+  const savedAtLabel = useMemo(() => {
+    if (!r.savedPlan) return ''
+    const d = new Date(r.savedPlan.savedAt)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  }, [r.savedPlan])
+
+  const savedFilterSummary = useMemo(() => {
+    const f = r.savedPlan?.filters
+    if (!f) return ''
+    const parts: string[] = []
+    if (f.cities?.length) parts.push(f.cities.join(', '))
+    if (f.customerType?.length) parts.push(f.customerType.join(', '))
+    if (f.statusFilter) parts.push(t(`orders.status.${f.statusFilter}`, { defaultValue: f.statusFilter }))
+    return parts.length ? parts.join(' · ') : t('route.plan.noFilters')
+  }, [r.savedPlan, t])
 
   // Driver-facing text is always Dutch (like the PDFs), regardless of app
   // language — so it formats the raw dates itself rather than reusing the
@@ -193,7 +212,10 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
               {t('route.returnToDepot')}
             </label>
 
-            {r.route && (
+            {/* The loading order is the reverse of the arrangement on screen —
+                it needs no Google run, so it is offered whenever there are
+                stops, not only after an optimize. */}
+            {r.selectedCount > 0 && (
               <div className="ml-auto inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                 {(['delivery', 'loading'] as const).map((v, i) => (
                   <button key={v} onClick={() => setView(v)}
@@ -222,7 +244,68 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
               {r.error && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">{r.error}</div>
               )}
-              {r.route && !r.exportReady && (
+              {r.saveError && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">{r.saveError}</div>
+              )}
+
+              {/* Saved arrangement loaded — the whole point of the feature: the
+                  manager sees whose round this is and does NOT have to optimize. */}
+              {r.savedPlan && (
+                <div className="p-3 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-xl text-sm text-cyan-800 dark:text-cyan-300 flex items-start gap-2">
+                  <BookmarkCheck className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p>
+                      {r.savedPlan.savedByName
+                        ? t('route.plan.loadedBy', { name: r.savedPlan.savedByName, when: savedAtLabel })
+                        : t('route.plan.loaded', { when: savedAtLabel })}
+                    </p>
+                    {r.dirtyVsSaved && <p className="text-xs mt-0.5 opacity-80">{t('route.plan.unsavedChanges')}</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* Filters differ from the ones the plan was arranged under, so the
+                  added/removed diff would be comparing two different sets. */}
+              {r.savedFiltersMismatch && (
+                <div className="p-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{t('route.plan.filterMismatch', { filters: savedFilterSummary })}</span>
+                </div>
+              )}
+
+              {/* Drift: orders came in or fell away since the plan was saved. */}
+              {r.drift?.hasDrift && !r.savedFiltersMismatch && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div className="min-w-0 space-y-0.5">
+                    <p className="font-medium">{t('route.plan.driftTitle')}</p>
+                    {r.drift.addedOrderIds.length > 0 && (
+                      <p>{t('route.plan.driftAdded', { count: r.drift.addedOrderIds.length })}
+                        {r.drift.newCustomerIds.length > 0 && ` — ${t('route.plan.driftNewStops', { count: r.drift.newCustomerIds.length })}`}
+                      </p>
+                    )}
+                    {r.drift.removedOrderIds.length > 0 && (
+                      <p>{t('route.plan.driftRemoved', { count: r.drift.removedOrderIds.length })}</p>
+                    )}
+                    <p className="text-xs opacity-80">{t('route.plan.driftHint')}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* No plan at all: the list is in candidate order, which is not a
+                  round. Say so, so nobody prints an unarranged list by accident. */}
+              {!r.hasPlan && r.selectedCount > 0 && (
+                <div className="p-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{t('route.plan.notPlannedYet')}</span>
+                </div>
+              )}
+
+              {/* A stop with no coordinates would silently vanish from the Maps
+                  URL. Now that export no longer requires a Google run, this is
+                  the only remaining hard blocker — so it is shown whenever it
+                  applies, not just after an optimize. */}
+              {!r.exportReady && !r.depotLoading && r.selectedCount > 0 && (
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" /> {t('route.needsReoptimize')}
                 </div>
@@ -243,13 +326,13 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
                 </div>
               )}
 
-              {view === 'loading' && r.route ? (
+              {view === 'loading' ? (
                 <LoadingOrderList loadingOrder={r.loadingOrder} />
               ) : (
                 <DeliveryStopList
                   included={r.includedStops}
                   excluded={r.excludedStops}
-                  hasRoute={!!r.route}
+                  hasRoute={r.hasPlan}
                   departureTime={r.effectiveRoute?.departureTime ?? null}
                   onToggle={r.toggleStop}
                   onMove={r.moveStop}
@@ -302,6 +385,19 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
               <RefreshCw className="w-4 h-4" /> <span className="hidden sm:inline">{t('route.refreshEtas')}</span>
             </button>
           )}
+          {/* Save the arrangement for whoever opens this day next. No Google
+              call — it stores the sequence, not a new computation. Emphasised
+              while it differs from what is stored, quiet once it matches. */}
+          <button onClick={r.save} disabled={r.saving || r.selectedCount === 0}
+            title={t('route.plan.save')}
+            className={`inline-flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 ${
+              r.dirtyVsSaved || !r.savedPlan
+                ? 'bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900'
+                : 'border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}>
+            {r.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            <span className="hidden sm:inline">{t('route.plan.save')}</span>
+          </button>
           <button onClick={shareWhatsApp} disabled={!canExport}
             className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50" title={t('route.shareWithDriver')}>
             <Share2 className="w-4 h-4" /> <span className="hidden md:inline">{t('route.shareWithDriver')}</span>

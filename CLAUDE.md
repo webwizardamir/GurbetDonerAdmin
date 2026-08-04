@@ -719,6 +719,61 @@ optimized delivery route + a truck loading order, via Google Maps through a Supa
    (`renderInvoicesToFiles`). The panel also emits `onRouteOrderChange(orderedIds)` so the page can
    share the order with **Dagafsluiting** (which gets a "Sorteer op routevolgorde" toggle).
 
+### Saved route plans — "Route opslaan" (migration 00112, 2026-08-04)
+
+The owner optimises and then **reorders the stops by hand** into the sequence he actually drives.
+That arrangement carries his knowledge of the round, and it lived in React state and died with the
+modal — so a shop manager opening the same day got the raw candidate list and had to spend a billed
+optimize that returns *Google's* order, not the owner's. `delivery_route_plans` persists it.
+
+- **A plan is a SEQUENCE, not a snapshot.** `plan` jsonb holds ordering + selection + locks +
+  departure settings, plus an **optional geometry cache** (per-stop coords, leg metrics, totals,
+  depot) from the Google run behind the save. Manifests, addresses and order numbers are **always
+  re-fetched live**, so a saved route can never hand a driver a stale product list. Do not "optimise"
+  this by storing the rendered stops.
+- **Keyed on the DATE alone** (`route_date`,`end_date`; a single day stores `end_date = route_date`
+  so the unique key is two plain columns PostgREST can name in `ON CONFLICT`). NOT on the
+  city/type/status filters: a manager will not reproduce the owner's filters, and a plan keyed on
+  them would never be found — the exact failure the feature exists to prevent. The filters are
+  stored as **metadata**; when they differ, `savedFiltersMismatch` shows a notice **instead of** the
+  drift banner, because the fingerprint was taken from a differently-filtered set and the diff would
+  be meaningless.
+- **Drift.** `order_ids` fingerprints **every candidate order in the window** (not just the included
+  ones — otherwise deliberately excluding a stop returns next time as "new orders"). `diffRoutePlan`
+  reports added/removed orders and new customers. A new customer's stop is appended at the end and
+  **ticked**: a missed delivery is worse than a suboptimal one. Drift sets the existing `orderDirty`
+  flag, which already blanks stale ETAs, offers the optional refresh, and does **not** block export.
+- 🚨 **`get_delivery_route_plan` is an RPC purely because of `hidden_from_managers`.** A hidden order
+  in the owner's fingerprint is missing from a manager's live fetch, so the diff would announce
+  "1 bestelling vervallen" and reveal that a hidden order exists. The RPC filters `order_ids` with
+  the canonical `(NOT hidden_from_managers OR (SELECT is_owner()))` predicate. Verified by
+  impersonation: owner 2 ids, manager 1.
+- **`saved_by`/`saved_at` are stamped by a BEFORE trigger**, never sent by the client — a supplied
+  author is spoofable, and an upsert omitting the column would leave the previous author's name on
+  someone else's re-save. Verified: a spoofed `saved_by` is overwritten, and a re-save upserts onto
+  one row with the new author.
+- **Both roles may save** (RLS is `is_admin_user()`, not `is_owner()`). A manager who finds a real
+  problem must be able to fix and re-save rather than drive a route they know is wrong; the panel
+  naming the last saver is what makes that safe.
+
+### 🚨 Optimize is no longer a gate on export
+
+`exportReady` used to require `!!route` — a **Google result** — so every export button was dead until
+someone paid for an optimize. That was never necessary: per-stop coordinates are cached on the
+candidate rows (`cachedLat/cachedLng` from `customers`) and the depot comes from `document_settings`
+via `getDepot()`. Only the *optimal order* and the *leg metrics* need Google.
+
+- `effectiveRoute` is now **synthesised** when `route` is null (mode `'manual'`, no ETAs), so a
+  loaded saved plan — or even an untouched list of already-geocoded customers — exports immediately.
+- What still blocks: a **never-geocoded** stop has no lat/lng and would silently DROP from the Maps
+  URL. That is the real reason the gate exists and it stays; the amber `needsReoptimize` banner now
+  shows whenever it applies, not only after an optimize.
+- `hasPlan` (`!!route || !!savedPlan`) drives a "nog niet gepland" hint so a raw candidate list is
+  never mistaken for an arranged round.
+- **Dagafsluiting** reads the saved plan directly (`fetchRoutePlan` → customer sequence), so
+  "Sorteer op routevolgorde" no longer requires opening the route panel first in the same session.
+  A session route still wins — it is what is on screen.
+
 ---
 
 ## Dagafsluiting (day-close batch)

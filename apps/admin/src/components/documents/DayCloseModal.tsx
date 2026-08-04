@@ -5,6 +5,7 @@ import { Loader2, FileText, AlertCircle, CheckSquare, Square, Truck, Package, Re
 import Modal from '../ui/Modal'
 import { buildSoldProductsDocument } from './SoldProductsTemplate'
 import { fetchOrders } from '../../services/orders'
+import { fetchRoutePlan } from '../../services/routePlan'
 import { renderInvoicesToFiles } from '../../utils/renderInvoices'
 import { formatPrice } from '../../utils/format'
 
@@ -34,6 +35,9 @@ interface Props {
 interface OrderRow {
   orderId: string
   orderNumber: string
+  /** Needed to rank an order against a SAVED route plan, which stores a
+   *  customer sequence (one stop per customer) rather than order ids. */
+  customerId: string | null
   customerName: string
   total: number
   selected: boolean
@@ -55,18 +59,24 @@ const MAX_COPIES = 5
 
 export default function DayCloseModal({ dateRange, customerType, soldProducts, onOpenRoute, routeOrderedIds, onClose }: Props) {
   const { t } = useTranslation()
-  const hasRouteOrder = !!routeOrderedIds && routeOrderedIds.length > 0
+  const hasSessionRoute = !!routeOrderedIds && routeOrderedIds.length > 0
   const [useRouteOrder, setUseRouteOrder] = useState(true)
 
-  // Reorder the selected invoice ids to follow the planned delivery route:
-  // route-sequenced ids first (in route order), any remaining ids after.
-  const orderInvoiceIds = (ids: string[]): string[] => {
-    if (!hasRouteOrder || !useRouteOrder) return ids
-    const set = new Set(ids)
-    const inRoute = routeOrderedIds!.filter(id => set.has(id))
-    const seen = new Set(inRoute)
-    return [...inRoute, ...ids.filter(id => !seen.has(id))]
-  }
+  // The SAVED arrangement for this period (migration 00112), as a customer
+  // sequence. Before this, the toggle only appeared if a route had been planned
+  // in the same browser session — so a shop manager had to open and close the
+  // route panel before Dagafsluiting would sort by route. The saved plan makes
+  // that unnecessary. A session route still wins: it is what is on screen.
+  const [planCustomerOrder, setPlanCustomerOrder] = useState<string[] | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    fetchRoutePlan(dateRange.start, dateRange.end)
+      .then(p => { if (!cancelled) setPlanCustomerOrder(p?.plan.order.length ? p.plan.order : null) })
+      .catch(() => { if (!cancelled) setPlanCustomerOrder(null) })
+    return () => { cancelled = true }
+  }, [dateRange.start, dateRange.end])
+
+  const hasRouteOrder = hasSessionRoute || !!planCustomerOrder
 
   const [orders, setOrders] = useState<OrderRow[]>([])
   const [loadingOrders, setLoadingOrders] = useState(true)
@@ -101,6 +111,7 @@ export default function DayCloseModal({ dateRange, customerType, soldProducts, o
           .map<OrderRow>(o => ({
             orderId: o.id,
             orderNumber: o.order_number,
+            customerId: o.customer_id ?? null,
             customerName: o.customer?.company_name ?? '—',
             total: o.total,
             selected: true,
@@ -114,6 +125,25 @@ export default function DayCloseModal({ dateRange, customerType, soldProducts, o
     // would refetch on every parent render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange.start, dateRange.end, (customerType ?? []).join('|')])
+
+  // Reorder the selected invoice ids to follow the planned delivery route.
+  // Session route (exact order ids, what is on screen) wins; otherwise fall back
+  // to the saved plan's customer sequence. Ids the route doesn't know about keep
+  // their relative order and land at the end — Array.sort is stable.
+  const orderInvoiceIds = (ids: string[]): string[] => {
+    if (!useRouteOrder) return ids
+    if (hasSessionRoute) {
+      const set = new Set(ids)
+      const inRoute = routeOrderedIds!.filter(id => set.has(id))
+      const seen = new Set(inRoute)
+      return [...inRoute, ...ids.filter(id => !seen.has(id))]
+    }
+    if (!planCustomerOrder) return ids
+    const rank = new Map(planCustomerOrder.map((cid, i) => [cid, i]))
+    const customerOf = new Map(orders.map(o => [o.orderId, o.customerId]))
+    const rankOf = (id: string) => rank.get(customerOf.get(id) ?? '') ?? Number.MAX_SAFE_INTEGER
+    return [...ids].sort((a, b) => rankOf(a) - rankOf(b))
+  }
 
   const selectedIds = useMemo(() => orders.filter(o => o.selected).map(o => o.orderId), [orders])
   const allSelected = orders.length > 0 && selectedIds.length === orders.length

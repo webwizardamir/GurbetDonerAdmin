@@ -1,15 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import i18n from '../i18n'
 import {
   fetchRouteOrders,
   planDeliveryRoute,
   computeLegsForOrder,
+  getDepot,
+  type DepotInfo,
   type RouteStopInput,
   type PlannedRoute,
   type PlannedStop,
   type LockPosition,
   type RouteLock,
 } from '../services/route'
+import {
+  fetchRoutePlan,
+  saveRoutePlan,
+  buildPlanPayload,
+  hydrateRouteFromGeometry,
+  diffRoutePlan,
+  type SavedRoutePlan,
+  type RoutePlanDrift,
+  type RoutePlanFilters,
+} from '../services/routePlan'
 
 const t = (k: string) => i18n.t(k)
 
@@ -39,6 +51,25 @@ function arrayMove<T>(arr: T[], from: number, to: number): T[] {
   const [moved] = next.splice(from, 1)
   next.splice(to, 0, moved)
   return next
+}
+
+const sameSet = (a?: string[], b?: string[]) => {
+  const x = [...(a ?? [])].sort()
+  const y = [...(b ?? [])].sort()
+  return x.length === y.length && x.every((v, i) => v === y[i])
+}
+
+/**
+ * Whether a saved plan was arranged under the same view as the one on screen.
+ * A plan is keyed on the DATE alone (so it is always found), but its order-set
+ * fingerprint was taken from the candidate list AS FILTERED at save time — so
+ * across different filters the added/removed diff is not comparable and would
+ * report phantom drift. The panel shows the filter mismatch instead.
+ */
+function filtersMatch(saved: RoutePlanFilters, current: RoutePlanFilters): boolean {
+  return sameSet(saved.cities, current.cities)
+    && sameSet(saved.customerType, current.customerType)
+    && (saved.statusFilter ?? '') === (current.statusFilter ?? '')
 }
 
 /**
@@ -82,13 +113,52 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
   const [route, setRoute] = useState<PlannedRoute | null>(null)
   const [planning, setPlanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // ---- saved plan (migration 00112) ----------------------------------------
+  // The owner arranges the round by hand and leaves it; a shop manager opening
+  // the same day must get that exact sequence with NO billed Google call.
+  const [savedPlan, setSavedPlan] = useState<SavedRoutePlan | null>(null)
+  const [drift, setDrift] = useState<RoutePlanDrift | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  // Set once a saved plan has been applied, and cleared by any edit — so the
+  // "Opslaan" button can show whether the on-screen arrangement still equals
+  // what is stored.
+  const [dirtyVsSaved, setDirtyVsSaved] = useState(false)
+
+  // The depot is read from document_settings (cached lat/lng), NOT from a route
+  // response — which is what makes a Maps link / PDF possible with no Google
+  // call at all. Loaded once; a route result may carry a fresher one.
+  const [depot, setDepot] = useState<DepotInfo | null>(null)
+  // Tracked separately so the panel does not flash "needs re-optimize" during
+  // the one render where the depot has not arrived yet and exportReady is
+  // therefore still false.
+  const [depotLoading, setDepotLoading] = useState(true)
+  useEffect(() => {
+    let cancelled = false
+    getDepot()
+      .then(d => { if (!cancelled) setDepot(d) })
+      .catch(() => { /* depot is optional chrome; exports fall back to addresses */ })
+      .finally(() => { if (!cancelled) setDepotLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  const currentFilters: RoutePlanFilters = useMemo(
+    () => ({ cities: cityArg, customerType: customerTypeArg, statusFilter }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [citiesKey, typesKey, statusFilter],
+  )
+  // Ref so callbacks can read the live filters without taking them as a dep.
+  const filtersRef = useRef(currentFilters)
+  filtersRef.current = currentFilters
   // orderDirty = the manual order / selection / settings diverge from the last
   // Google computation, so leg distances & ETAs are stale. It does NOT block
   // export anymore (the manual order is authoritative for the driver); it only
   // blanks the stale metrics and offers an optional ETA refresh.
   const [orderDirty, setOrderDirty] = useState(false)
 
-  // Load the day's candidate stops; reset all control state on day/city change.
+  // Load the day's candidate stops + any saved arrangement for the period;
+  // reset all control state on day/city change.
   useEffect(() => {
     let cancelled = false
     setLoadingCandidates(true)
@@ -96,22 +166,77 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     setRoute(null)
     setError(null)
     setOrderDirty(false)
-    fetchRouteOrders({
-      day, endDay, cities: cityArg, customerType: customerTypeArg,
-      statuses: statusFilter ? [statusFilter] : undefined,
-    })
-      .then(({ stops, statusCounts: counts }) => {
+    setSavedPlan(null)
+    setDrift(null)
+    setSaveError(null)
+    setDirtyVsSaved(false)
+    Promise.all([
+      fetchRouteOrders({
+        day, endDay, cities: cityArg, customerType: customerTypeArg,
+        statuses: statusFilter ? [statusFilter] : undefined,
+      }),
+      // A missing or unreadable plan must never stop the panel opening — the
+      // route planner has to keep working exactly as it did before 00112.
+      fetchRoutePlan(day, endDay).catch(() => null),
+    ])
+      .then(([{ stops, statusCounts: counts }, plan]) => {
         if (cancelled) return
         setCandidates(stops)
         // Counts are computed pre-status-filter, so the dropdown stays stable.
         setStatusCounts(counts)
-        // Default-select local (NL) stops only. Foreign customers are export/
-        // freight orders, not van deliveries — they start unticked (visible in
-        // "Niet meegenomen") so a Paris order never bloats a local route, but
-        // can still be added back for a cross-border run.
-        setSelectedIds(new Set(stops.filter(isLocalStop).map(s => s.customerId)))
-        setLocks(new Map())
-        setManualOrder(stops.map(s => s.customerId))
+
+        if (!plan) {
+          // Default-select local (NL) stops only. Foreign customers are export/
+          // freight orders, not van deliveries — they start unticked (visible in
+          // "Niet meegenomen") so a Paris order never bloats a local route, but
+          // can still be added back for a cross-border run.
+          setSelectedIds(new Set(stops.filter(isLocalStop).map(s => s.customerId)))
+          setLocks(new Map())
+          setManualOrder(stops.map(s => s.customerId))
+          return
+        }
+
+        // --- apply the saved arrangement to LIVE data ------------------------
+        // The plan supplies ordering only. Everything shown (manifest, address,
+        // order numbers) comes from `stops`, which was just fetched — a saved
+        // route can never hand the driver a stale product list.
+        const liveIds = new Set(stops.map(s => s.customerId))
+        const known = new Set(plan.plan.order)
+        // Saved sequence, minus customers with no order in this window today.
+        const kept = plan.plan.order.filter(id => liveIds.has(id))
+        // Customers that appeared since the save go to the END of the round.
+        const appended = stops.map(s => s.customerId).filter(id => !known.has(id))
+        const order = [...kept, ...appended]
+        setManualOrder(order)
+
+        // Selection follows the plan. A brand-new local stop is ticked rather
+        // than left out: a missed delivery is worse than a suboptimal one, and
+        // the drift banner says why it is there.
+        const included = new Set(plan.plan.includedIds.filter(id => liveIds.has(id)))
+        for (const id of appended) {
+          const s = stops.find(x => x.customerId === id)
+          if (s && isLocalStop(s)) included.add(id)
+        }
+        setSelectedIds(included)
+        setLocks(new Map(
+          plan.plan.locks
+            .filter(l => liveIds.has(l.customerId))
+            .map(l => [l.customerId, l.position] as const),
+        ))
+        if (plan.plan.departureHHmm) setDepartureHHmm(plan.plan.departureHHmm)
+        setReturnToDepot(plan.plan.returnToDepot)
+
+        const d = diffRoutePlan(plan, stops)
+        setSavedPlan(plan)
+        setDrift(d)
+
+        // Rebuild the leg metrics from the saved geometry — no Google call.
+        const hydrated = hydrateRouteFromGeometry(plan.plan, stops, order)
+        setRoute(hydrated)
+        // Those numbers describe the route as it was saved. The moment the
+        // underlying order set moved, they are no longer what will be driven —
+        // blank them (existing orderDirty path) rather than show stale ETAs.
+        setOrderDirty(!!hydrated && d.hasDrift)
       })
       .catch(e => { if (!cancelled) setCandidatesError(e instanceof Error ? e.message : t('route.error')) })
       .finally(() => { if (!cancelled) setLoadingCandidates(false) })
@@ -124,6 +249,14 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     [day, departureHHmm],
   )
 
+  // Any edit invalidates BOTH the Google metrics (orderDirty) and the stored
+  // arrangement (dirtyVsSaved) — the two are separate: a reorder makes ETAs
+  // stale but is perfectly exportable, while it makes the SAVE out of date.
+  const markEdited = useCallback(() => {
+    setOrderDirty(true)
+    setDirtyVsSaved(true)
+  }, [])
+
   // ---- selection -----------------------------------------------------------
   const toggleStop = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -132,13 +265,13 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
       else next.add(id)
       return next
     })
-    setOrderDirty(true)
-  }, [])
+    markEdited()
+  }, [markEdited])
   const selectAll = useCallback(() => {
     setSelectedIds(new Set(candidates.map(s => s.customerId)))
-    setOrderDirty(true)
-  }, [candidates])
-  const selectNone = useCallback(() => { setSelectedIds(new Set()); setOrderDirty(true) }, [])
+    markEdited()
+  }, [candidates, markEdited])
+  const selectNone = useCallback(() => { setSelectedIds(new Set()); markEdited() }, [markEdited])
 
   // ---- locks ---------------------------------------------------------------
   const setLock = useCallback((id: string, position: LockPosition | null) => {
@@ -148,8 +281,8 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
       else next.set(id, position)
       return next
     })
-    setOrderDirty(true)
-  }, [])
+    markEdited()
+  }, [markEdited])
 
   // ---- manual order --------------------------------------------------------
   const moveStop = useCallback((activeId: string, overId: string) => {
@@ -159,8 +292,8 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
       if (from < 0 || to < 0 || from === to) return prev
       return arrayMove(prev, from, to)
     })
-    setOrderDirty(true)
-  }, [])
+    markEdited()
+  }, [markEdited])
 
   // Jump a stop to an exact 1-based position within the INCLUDED subset (the
   // numbers the user sees). Reorders only the included ids and writes them back
@@ -179,12 +312,12 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
       let k = 0
       return prev.map(id => (selectedIds.has(id) ? reordered[k++] : id))
     })
-    setOrderDirty(true)
-  }, [selectedIds])
+    markEdited()
+  }, [selectedIds, markEdited])
 
   // ---- settings ------------------------------------------------------------
-  const updateDeparture = useCallback((hhmm: string) => { setDepartureHHmm(hhmm); setOrderDirty(true) }, [])
-  const toggleReturnToDepot = useCallback(() => { setReturnToDepot(v => !v); setOrderDirty(true) }, [])
+  const updateDeparture = useCallback((hhmm: string) => { setDepartureHHmm(hhmm); markEdited() }, [markEdited])
+  const toggleReturnToDepot = useCallback(() => { setReturnToDepot(v => !v); markEdited() }, [markEdited])
 
   // ---- plan actions (the only paths that hit Google) -----------------------
   const optimize = useCallback(async () => {
@@ -206,6 +339,8 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
       const rest = manualOrder.filter(id => !plannedIds.includes(id))
       setManualOrder([...plannedIds, ...rest])
       setOrderDirty(false)
+      // Google's order almost certainly differs from what was stored.
+      setDirtyVsSaved(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : t('route.error'))
     } finally {
@@ -233,6 +368,39 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manualOrder, selectedIds, day, endDay, citiesKey, departureTimeIso, returnToDepot, candidates])
+
+  // ---- save (no Google call) -----------------------------------------------
+  // Freezes the arrangement so the next person — typically a shop manager on a
+  // different machine — opens the day and gets exactly this sequence.
+  const save = useCallback(async () => {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const payload = buildPlanPayload({
+        order: manualOrder,
+        includedIds: [...selectedIds],
+        locks,
+        departureHHmm,
+        returnToDepot,
+        route,
+      })
+      // The fingerprint covers EVERY candidate order in the window, not just the
+      // included ones — otherwise deliberately excluding a stop would come back
+      // next time as "new orders since the save".
+      const orderIds = candidates.flatMap(c => c.orderIds)
+      await saveRoutePlan({ day, endDay, plan: payload, orderIds, filters: filtersRef.current })
+      // Re-read rather than construct locally: savedAt / savedByName are stamped
+      // by the DB trigger, so this is the only way to show them truthfully.
+      const fresh = await fetchRoutePlan(day, endDay)
+      setSavedPlan(fresh)
+      setDrift(fresh ? diffRoutePlan(fresh, candidates) : null)
+      setDirtyVsSaved(false)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : t('route.error'))
+    } finally {
+      setSaving(false)
+    }
+  }, [manualOrder, selectedIds, locks, departureHHmm, returnToDepot, route, candidates, day, endDay])
 
   // ---- derived display state ----------------------------------------------
   const { includedStops, excludedStops } = useMemo(() => {
@@ -294,15 +462,39 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     [route, orderDirty, effectiveStops.length],
   )
 
+  // The depot a route/export should use: whatever the last Google run returned
+  // (it may have geocoded it), else the cached one from document_settings.
+  const effectiveDepot = useMemo(() => route?.depot ?? depot, [route, depot])
+
   // A route object reflecting the manual order, for exports/PDF/Maps. When the
   // order is stale we null the departure time so ETAs render as "—" rather than
   // a misleading clock.
-  const effectiveRoute: PlannedRoute | null = useMemo(
-    () => (route
-      ? { ...route, stops: effectiveStops, totals: effectiveTotals, departureTime: orderDirty ? null : route.departureTime }
-      : null),
-    [route, effectiveStops, effectiveTotals, orderDirty],
-  )
+  //
+  // 🚨 It is also synthesised when there is NO computed route at all. Everything
+  // an export needs — per-stop coordinates (customers.lat/lng, cached on the
+  // candidate rows) and the depot (document_settings) — is already in the
+  // browser; only the OPTIMAL order and the leg metrics require Google. Before
+  // this, `effectiveRoute` was null without a Google run, which is what forced
+  // a shop manager to spend a billed optimize purely to print a route the owner
+  // had already arranged.
+  const effectiveRoute: PlannedRoute | null = useMemo(() => {
+    if (route) {
+      return { ...route, stops: effectiveStops, totals: effectiveTotals, departureTime: orderDirty ? null : route.departureTime }
+    }
+    if (!effectiveDepot || effectiveStops.length === 0) return null
+    return {
+      mode: 'manual',
+      stops: effectiveStops,
+      geocodeFailures: [],
+      totals: effectiveTotals,
+      overviewPolyline: '',
+      // No computation behind it, so no ETAs — they render as "—".
+      departureTime: null,
+      returnToDepot,
+      truncatedOptimization: false,
+      depot: effectiveDepot,
+    }
+  }, [route, effectiveStops, effectiveTotals, orderDirty, effectiveDepot, returnToDepot])
 
   // Loading order = reverse of the (effective) delivery order — load the last
   // stop first / deepest. Follows the manual order instantly, no Google call.
@@ -311,12 +503,36 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     [effectiveStops],
   )
 
-  // Export is safe only when every included stop has coordinates from a prior
-  // computation. A freshly toggled-in, never-geocoded stop has no lat/lng and
-  // would silently drop from the Maps URL — require a (re)optimize first.
+  // Export is safe when every included stop has coordinates and we know where
+  // the van starts. The coordinates need NOT come from a Google run — they are
+  // cached on the customer row (`cachedLat/cachedLng`), so a saved plan, or even
+  // an untouched candidate list of already-geocoded customers, exports fine.
+  //
+  // What is still genuinely blocking: a freshly toggled-in customer that has
+  // never been geocoded has no lat/lng and would silently DROP from the Maps
+  // URL. That is the real reason this gate exists, and it stays.
+  //
+  // The depot only needs an address — buildGoogleMapsUrl falls back to
+  // `depot.oneLine` when it has no coordinates.
   const exportReady = useMemo(
-    () => !!route && effectiveStops.length > 0 && effectiveStops.every(s => s.lat != null && s.lng != null),
-    [route, effectiveStops],
+    () => effectiveStops.length > 0
+      && effectiveStops.every(s => s.lat != null && s.lng != null)
+      && !!effectiveDepot
+      && (effectiveDepot.oneLine.trim().length > 0 || (effectiveDepot.lat != null && effectiveDepot.lng != null)),
+    [effectiveStops, effectiveDepot],
+  )
+
+  // True once an arrangement has an actual plan behind it — computed this
+  // session or loaded from the save. Drives the "not optimised yet" hint, so a
+  // raw candidate list is never mistaken for a planned round.
+  const hasPlan = !!route || !!savedPlan
+
+  // A saved plan arranged under different filters cannot be diffed meaningfully
+  // against the current candidate list (the fingerprint was taken from a
+  // different set), so the panel reports the mismatch instead of phantom drift.
+  const savedFiltersMismatch = useMemo(
+    () => !!savedPlan && !filtersMatch(savedPlan.filters, currentFilters),
+    [savedPlan, currentFilters],
   )
 
   const itemCount = useMemo(
@@ -327,6 +543,7 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
   return {
     // candidates / loading
     loadingCandidates,
+    depotLoading,
     candidatesError,
     candidateCount: candidates.length,
     // display
@@ -340,9 +557,18 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     effectiveStops,
     effectiveTotals,
     exportReady,
+    hasPlan,
     planning,
     error,
     orderDirty,
+    // saved plan
+    savedPlan,
+    drift,
+    savedFiltersMismatch,
+    dirtyVsSaved,
+    saving,
+    saveError,
+    save,
     // controls
     selectedCount: selectedIds.size,
     statusCounts,
