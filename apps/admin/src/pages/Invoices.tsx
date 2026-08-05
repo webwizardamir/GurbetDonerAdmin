@@ -437,6 +437,7 @@ export default function Invoices() {
         variant={mode === 'menuitem' ? 'menuitem' : 'button'}
         getAllData={getAllExportData}
         selectedData={selectedExportData}
+        onSelectionExported={clearSelection}
         totalCount={total}
         columns={documentExportColumns as never}
         filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
@@ -452,6 +453,7 @@ export default function Invoices() {
         onOpenChange={o => { if (!o) onClose() }}
                 getAllData={getAllExportData}
         selectedData={selectedExportData}
+        onSelectionExported={clearSelection}
         totalCount={total}
         columns={documentExportColumns as never}
         filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
@@ -464,7 +466,7 @@ export default function Invoices() {
     // different filter with the same result count reuses the memo and exports
     // the PREVIOUS filter's rows — and an export file is durable and forwarded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }], [t, total, selectedExportData, filters])
+  }], [t, total, selectedExportData, filters, clearSelection])
 
   // ─── Render ───────────────────────────────────────────
 

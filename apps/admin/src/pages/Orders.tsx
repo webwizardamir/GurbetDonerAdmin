@@ -497,6 +497,7 @@ export default function Orders() {
             getAllData={exportGetAllData}
             pageData={filteredOrders.map(o => withExportFields(o, documentInfo))}
             selectedData={selectedOrders.map(o => withExportFields(o, documentInfo))}
+            onSelectionExported={clearSelection}
             totalCount={totalCount}
             columns={orderExportColumnsGated as never}
             filename={`orders-${new Date().toISOString().split('T')[0]}`}
@@ -513,6 +514,7 @@ export default function Orders() {
                         getAllData={exportGetAllData}
             pageData={filteredOrders.map(o => withExportFields(o, documentInfo))}
             selectedData={selectedOrders.map(o => withExportFields(o, documentInfo))}
+            onSelectionExported={clearSelection}
             totalCount={totalCount}
             columns={orderExportColumnsGated as never}
             filename={`orders-${new Date().toISOString().split('T')[0]}`}
@@ -533,7 +535,7 @@ export default function Orders() {
     }
     return list
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, trashed, totalCount, canCreate, filteredOrders, selectedOrders, documentInfo, orderExportColumnsGated])
+  }, [t, trashed, totalCount, canCreate, filteredOrders, selectedOrders, documentInfo, orderExportColumnsGated, clearSelection])
 
   return (
     <div className="space-y-4">

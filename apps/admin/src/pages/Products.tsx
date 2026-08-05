@@ -176,12 +176,13 @@ export default function Products() {
     getAllData: async () => (await fetchAllProducts()).map(toExportRow),
     pageData: filteredProducts.map(toExportRow),
     selectedData: selectedProducts.map(toExportRow),
+    onSelectionExported: clearSelection,
     totalCount,
     columns: exportColumns as never,
     filename: `products-${new Date().toISOString().split('T')[0]}`,
     pdfTitle: 'Producten',
     storageKey: 'products',
-  }), [toExportRow, filteredProducts, selectedProducts, totalCount, exportColumns])
+  }), [toExportRow, filteredProducts, selectedProducts, totalCount, exportColumns, clearSelection])
 
   // No filters on this page yet, so ListToolbar renders no Filters button; the
   // slot is here for when category/stock filters arrive.

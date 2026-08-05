@@ -273,6 +273,7 @@ export default function Customers() {
           getAllData={async () => (await fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined, archived: showArchived })).map(withCostFields)}
           pageData={filteredCustomers.map(withCostFields)}
           selectedData={selectedCustomers.map(withCostFields)}
+          onSelectionExported={clearSelection}
           totalCount={totalCount}
           columns={customerExportColumnsGated as never}
           filename={`customers-${new Date().toISOString().split('T')[0]}`}
@@ -289,6 +290,7 @@ export default function Customers() {
                     getAllData={async () => (await fetchCustomers({ search: searchQuery || undefined, city: cityFilter || undefined, customerType: typeFilter || undefined, archived: showArchived })).map(withCostFields)}
           pageData={filteredCustomers.map(withCostFields)}
           selectedData={selectedCustomers.map(withCostFields)}
+          onSelectionExported={clearSelection}
           totalCount={totalCount}
           columns={customerExportColumnsGated as never}
           filename={`customers-${new Date().toISOString().split('T')[0]}`}
@@ -302,7 +304,7 @@ export default function Customers() {
       list.push({ id: 'add', label: t('customers.addCustomer'), icon: Plus, priority: 'primary', onClick: () => { setEditingCustomer(null); setShowForm(true) } })
     }
     return list
-  }, [t, canCreate, showArchived, searchQuery, cityFilter, typeFilter, filteredCustomers, selectedCustomers, totalCount, customerExportColumnsGated, withCostFields])
+  }, [t, canCreate, showArchived, searchQuery, cityFilter, typeFilter, filteredCustomers, selectedCustomers, totalCount, customerExportColumnsGated, withCostFields, clearSelection])
 
   return (
     <div className="space-y-4 min-w-0">

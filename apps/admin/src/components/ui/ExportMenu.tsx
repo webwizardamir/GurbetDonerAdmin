@@ -62,6 +62,17 @@ interface ExportMenuBaseProps<T> {
   pageData?: T[]
   /** Hand-picked rows (omit when the page has no row selection). */
   selectedData?: T[]
+  /**
+   * Called after an export that SUCCEEDED and whose scope was the hand-picked
+   * rows — the page passes its `clearSelection`, so ticking rows and exporting
+   * them ends with a clean list instead of leaving the user to untick by hand.
+   *
+   * Deliberately NOT fired for the "all results" / "this page" scopes: a
+   * selection that had nothing to do with the exported file is still the user's
+   * working set, and wiping it would destroy work they never asked us to spend.
+   * Not fired on failure either, so a retry still has its rows.
+   */
+  onSelectionExported?: () => void
   /** Total count of all matching rows — shown on the "all" scope label. */
   totalCount?: number
   filename: string
@@ -165,6 +176,7 @@ export default function ExportMenu<T>({
   getAllData,
   pageData,
   selectedData,
+  onSelectionExported,
   totalCount,
   columns,
   variants,
@@ -403,6 +415,13 @@ export default function ExportMenu<T>({
         document.body.removeChild(link)
         URL.revokeObjectURL(url)
       }
+
+      // The file is written, so the picked rows have served their purpose. In
+      // the try (not the finally) on purpose: a throw above must leave the
+      // selection intact for the retry. React batches this with the setState
+      // pair below, so the dialog closes in the same commit — the "Geselecteerde
+      // rijen" radio never visibly disappears from under the user.
+      if (scope === 'selected') onSelectionExported?.()
     } finally {
       setBusy(false)
       setOpen(false)
