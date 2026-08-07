@@ -1845,7 +1845,27 @@
         "weeks_one": "1 week",
         "weeks_other": "{{count}} weeks",
         "days_one": "1 day",
-        "days_other": "{{count}} days"
+        "days_other": "{{count}} days",
+        "frequency": "Frequency",
+        "freqDaily": "Every day",
+        "freqWeekly": "Weekly",
+        "freqMonthly": "Monthly",
+        "weekday": "Day",
+        "monthlyWorkingDay": "Move to the first working day",
+        "freqHint": {
+          "daily": "Every morning at {{hour}}:00, only when there is something to report.",
+          "weekly": "Every {{day}} at {{hour}}:00, listing every customer quiet at that moment.",
+          "monthly": "The first working day of the month at {{hour}}:00, listing every customer quiet at that moment."
+        },
+        "weekdays": {
+          "0": "Sunday",
+          "1": "Monday",
+          "2": "Tuesday",
+          "3": "Wednesday",
+          "4": "Thursday",
+          "5": "Friday",
+          "6": "Saturday"
+        }
       }
     }
   },

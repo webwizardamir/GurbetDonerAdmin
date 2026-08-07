@@ -54,6 +54,11 @@ interface InactiveAlertConfig {
   enabled?: boolean
   hour?: number
   working_days_only?: boolean
+  // How often the digest is SENT. 'weekly' fires on `weekday` (0 = Sunday …
+  // 6 = Saturday, the amsterdamParts convention), 'monthly' on the first
+  // working day. Distinct from repeat_days, which thins a DAILY mail.
+  frequency?: 'daily' | 'weekly' | 'monthly'
+  weekday?: number
   recipients?: string[]
   repeat_days?: number
   attach_pdf?: boolean
@@ -190,7 +195,10 @@ const DEFAULT_CONFIG: ReminderConfig = {
   // by get_customer_activity, NOT here: the RPC resolves the rule chain for
   // both the cron and the browser so the screen can never promise a rule the
   // digest does not honour. What this object gates is WHEN and TO WHOM.
-  inactive_alert: { enabled: false, hour: 8, working_days_only: true, repeat_days: 0, attach_pdf: true },
+  inactive_alert: {
+    enabled: false, hour: 8, working_days_only: true,
+    frequency: 'daily', weekday: 1, repeat_days: 0, attach_pdf: true,
+  },
   steps: [
     { days_after_due: 1, template_key: 'payment_reminder_1', tone: 'gentle' },
     { days_after_due: 14, template_key: 'payment_reminder_2', tone: 'second' },
@@ -700,7 +708,16 @@ serve(async (req) => {
   //    deliberately NOT under auto_send_enabled: this mail goes to the owner.
   const ia = cfg.inactive_alert ?? {}
   const iaHourOk = nowParts.hour === (ia.hour ?? 8)
-  const iaDayOk = ia.working_days_only === false || (nowParts.weekday >= 1 && nowParts.weekday <= 5)
+  const iaFreq = ia.frequency ?? 'daily'
+  // A chosen weekday IS the choice, so `working_days_only` deliberately does not
+  // also apply to it: picking Saturday must mean Saturday. It only governs the
+  // daily rhythm, where "not in the weekend" is the useful default.
+  const iaDayOk =
+    iaFreq === 'weekly'
+      ? nowParts.weekday === (ia.weekday ?? 1)
+      : iaFreq === 'monthly'
+        ? isFirstWorkingDayOfMonth(nowParts, ia.working_days_only !== false)
+        : (ia.working_days_only === false || (nowParts.weekday >= 1 && nowParts.weekday <= 5))
 
   if (ia.enabled === true && iaHourOk && iaDayOk) {
     const runDate = amsterdamYmd()
@@ -727,10 +744,11 @@ serve(async (req) => {
         rows = []
       }
 
-      // Optional suppression: with repeat_days > 0 a customer already named in a
-      // recent digest is held back, so the mail stays worth opening. 0 (the
-      // default) reports every morning until they order.
-      const repeatDays = Math.max(0, ia.repeat_days ?? 0)
+      // Optional suppression, DAILY ONLY: with repeat_days > 0 a customer named
+      // in a recent digest is held back so consecutive mornings do not repeat
+      // the same names. A weekly or monthly digest ignores it — a periodic
+      // report that silently omits customers is worse than a repetitive one.
+      const repeatDays = iaFreq === 'daily' ? Math.max(0, ia.repeat_days ?? 0) : 0
       if (rows.length > 0 && repeatDays > 0) {
         const since = dateOffsetISO(-repeatDays)
         const { data: recent } = await admin

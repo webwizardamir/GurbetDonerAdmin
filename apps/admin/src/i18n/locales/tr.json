@@ -1845,7 +1845,27 @@
         "weeks_one": "1 hafta",
         "weeks_other": "{{count}} hafta",
         "days_one": "1 gün",
-        "days_other": "{{count}} gün"
+        "days_other": "{{count}} gün",
+        "frequency": "Sıklık",
+        "freqDaily": "Her gün",
+        "freqWeekly": "Haftalık",
+        "freqMonthly": "Aylık",
+        "weekday": "Gün",
+        "monthlyWorkingDay": "İlk iş gününe kaydır",
+        "freqHint": {
+          "daily": "Her sabah {{hour}}:00, yalnızca bildirilecek bir şey varsa.",
+          "weekly": "Her {{day}} {{hour}}:00, o anda uzun süredir sessiz olan tüm müşterilerle.",
+          "monthly": "Ayın ilk iş günü {{hour}}:00, o anda uzun süredir sessiz olan tüm müşterilerle."
+        },
+        "weekdays": {
+          "0": "pazar",
+          "1": "pazartesi",
+          "2": "salı",
+          "3": "çarşamba",
+          "4": "perşembe",
+          "5": "cuma",
+          "6": "cumartesi"
+        }
       }
     }
   },

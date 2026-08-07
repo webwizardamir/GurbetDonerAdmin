@@ -1845,7 +1845,27 @@
         "weeks_one": "1 week",
         "weeks_other": "{{count}} weken",
         "days_one": "1 dag",
-        "days_other": "{{count}} dagen"
+        "days_other": "{{count}} dagen",
+        "frequency": "Frequentie",
+        "freqDaily": "Elke dag",
+        "freqWeekly": "Wekelijks",
+        "freqMonthly": "Maandelijks",
+        "weekday": "Dag",
+        "monthlyWorkingDay": "Verschuif naar de eerste werkdag",
+        "freqHint": {
+          "daily": "Elke ochtend om {{hour}}:00, alleen als er iets te melden is.",
+          "weekly": "Elke {{day}} om {{hour}}:00, met alle klanten die op dat moment te lang stil zijn.",
+          "monthly": "De eerste werkdag van de maand om {{hour}}:00, met alle klanten die op dat moment te lang stil zijn."
+        },
+        "weekdays": {
+          "0": "zondag",
+          "1": "maandag",
+          "2": "dinsdag",
+          "3": "woensdag",
+          "4": "donderdag",
+          "5": "vrijdag",
+          "6": "zaterdag"
+        }
       }
     }
   },

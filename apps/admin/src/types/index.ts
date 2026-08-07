@@ -610,12 +610,22 @@ export interface ClientReminderConfig {
 // ---------------------------------------------------------------------------
 export type CustomerTypeKey = 'horeca' | 'supermarkt' | 'other'
 
+/** How often the digest is SENT. Distinct from `repeat_days`, which suppresses
+ *  a single customer across consecutive daily mails. */
+export type InactiveAlertFrequency = 'daily' | 'weekly' | 'monthly'
+
 export interface InactiveAlertConfig {
   enabled: boolean
   hour: number                 // 0-23, Europe/Amsterdam; own hour, not send_hour
-  working_days_only: boolean
+  working_days_only: boolean   // daily frequency only
+  frequency: InactiveAlertFrequency
+  /** Send day for `weekly`, in the cron's own convention: 0 = Sunday … 6 = Saturday. */
+  weekday: number
   recipients: string[]         // empty = fall back to the owner's own login email
-  repeat_days: number          // 0 = report every morning; 7 = at most weekly
+  /** Daily frequency only: skip a customer already named within N days.
+   *  0 = name them every morning until they order. A weekly or monthly digest
+   *  ignores this outright, because a periodic report has to be complete. */
+  repeat_days: number
   attach_pdf: boolean
   include_never_ordered: boolean // customers with no order at all (import leftovers)
   default_days: number | null  // untagged customers; null = do not monitor them

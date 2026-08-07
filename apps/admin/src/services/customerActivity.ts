@@ -21,9 +21,13 @@ export const DEFAULT_INACTIVE_ALERT_CONFIG: InactiveAlertConfig = {
   enabled: false,
   hour: 8,
   working_days_only: true,
+  // Daily by default. `weekly` sends one complete list on `weekday` (Monday by
+  // default), which is what "one mail a week" actually means; repeat_days
+  // cannot express that, because it thins each mail instead of setting a rhythm.
+  frequency: 'daily',
+  weekday: 1,
   recipients: [],
-  // 0 = report every morning until they order. The owner asked for this
-  // explicitly; raising it to 7 turns the digest into a weekly nudge instead.
+  // Daily frequency only: 0 = name a customer every morning until they order.
   repeat_days: 0,
   attach_pdf: true,
   // 🚨 Default OFF. On live data 133 of 251 active customers had no order at

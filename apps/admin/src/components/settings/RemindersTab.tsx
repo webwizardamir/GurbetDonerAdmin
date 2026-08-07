@@ -193,7 +193,40 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
 
         {ia.enabled && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Frequency is the SEND rhythm; "herhalen" further down only thins
+                a daily mail. Keeping them apart is what makes "one mail a week"
+                expressible at all. */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Field label={t('settings.reminders.inactive.frequency')}>
+                <select
+                  value={ia.frequency}
+                  onChange={e => patchIa({ frequency: e.target.value as typeof ia.frequency })}
+                  className={inputClass}
+                >
+                  <option value="daily">{t('settings.reminders.inactive.freqDaily')}</option>
+                  <option value="weekly">{t('settings.reminders.inactive.freqWeekly')}</option>
+                  <option value="monthly">{t('settings.reminders.inactive.freqMonthly')}</option>
+                </select>
+              </Field>
+
+              {ia.frequency === 'weekly' ? (
+                <Field label={t('settings.reminders.inactive.weekday')}>
+                  <select
+                    value={ia.weekday}
+                    onChange={e => patchIa({ weekday: +e.target.value })}
+                    className={inputClass}
+                  >
+                    {/* Value order follows the cron's own convention (0 = Sunday),
+                        but the list reads Monday first, like a Dutch calendar. */}
+                    {[1, 2, 3, 4, 5, 6, 0].map(d => (
+                      <option key={d} value={d}>{t(`settings.reminders.inactive.weekdays.${d}`)}</option>
+                    ))}
+                  </select>
+                </Field>
+              ) : (
+                <div />
+              )}
+
               <Field label={t('settings.reminders.inactive.hour')}>
                 <input
                   type="number" min={0} max={23}
@@ -202,7 +235,13 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
                   className={inputClass}
                 />
               </Field>
-              <label className="flex items-center gap-3 pt-7">
+            </div>
+
+            {/* A chosen weekday is the choice, so this only applies to a daily
+                rhythm. Monthly keeps it: it decides whether a 1st that falls in
+                the weekend rolls forward to the Monday. */}
+            {ia.frequency !== 'weekly' && (
+              <label className="flex items-center gap-3">
                 <button
                   type="button" role="switch" aria-checked={ia.working_days_only}
                   onClick={() => patchIa({ working_days_only: !ia.working_days_only })}
@@ -210,9 +249,20 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
                 >
                   <span className={knobClass(ia.working_days_only)} />
                 </button>
-                <span className="text-sm text-slate-700 dark:text-slate-300">{t('settings.reminders.autoSend.workingDaysOnly')}</span>
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  {ia.frequency === 'monthly'
+                    ? t('settings.reminders.inactive.monthlyWorkingDay')
+                    : t('settings.reminders.autoSend.workingDaysOnly')}
+                </span>
               </label>
-            </div>
+            )}
+
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {t(`settings.reminders.inactive.freqHint.${ia.frequency}`, {
+                day: t(`settings.reminders.inactive.weekdays.${ia.weekday}`),
+                hour: String(ia.hour).padStart(2, '0'),
+              })}
+            </p>
 
             {/* Empty means the owner's own login address, so "default to the
                 admin email" needs no stored value and never goes stale. */}
@@ -230,17 +280,23 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
             </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label={t('settings.reminders.inactive.repeat')}>
-                <select
-                  value={ia.repeat_days}
-                  onChange={e => patchIa({ repeat_days: +e.target.value })}
-                  className={inputClass}
-                >
-                  <option value={0}>{t('settings.reminders.inactive.repeatDaily')}</option>
-                  <option value={7}>{t('settings.reminders.inactive.repeatWeekly')}</option>
-                  <option value={14}>{t('settings.reminders.inactive.repeatBiweekly')}</option>
-                </select>
-              </Field>
+              {/* Only meaningful for a daily rhythm: a weekly or monthly digest
+                  always lists everyone who is currently quiet. */}
+              {ia.frequency === 'daily' ? (
+                <Field label={t('settings.reminders.inactive.repeat')}>
+                  <select
+                    value={ia.repeat_days}
+                    onChange={e => patchIa({ repeat_days: +e.target.value })}
+                    className={inputClass}
+                  >
+                    <option value={0}>{t('settings.reminders.inactive.repeatDaily')}</option>
+                    <option value={7}>{t('settings.reminders.inactive.repeatWeekly')}</option>
+                    <option value={14}>{t('settings.reminders.inactive.repeatBiweekly')}</option>
+                  </select>
+                </Field>
+              ) : (
+                <div />
+              )}
               <label className="flex items-center gap-3 pt-7">
                 <button
                   type="button" role="switch" aria-checked={ia.attach_pdf}
