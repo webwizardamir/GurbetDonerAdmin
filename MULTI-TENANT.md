@@ -187,6 +187,17 @@ empty**, so the first real order there is also the first real test of the hidden
 `00106` is **Gurbet-only** — it drops a `TO public` products SELECT policy Melek never had.
 Edge fn `process-invoice-reminders` redeployed to both (`--no-verify-jwt`) for the overdue gate.
 
+### Applied to BOTH on 2026-08-07 (no outstanding tenant action)
+
+`00115` Klantactiviteit: `customers.inactivity_days`/`inactivity_enabled`, the
+`customer_inactivity_digests` log, the widened `reminders.category` CHECK and
+`get_customer_activity(p_only_due)`. Edge fn `process-invoice-reminders` redeployed to both
+(`--no-verify-jwt`) for Step 8, and both `document_settings.client_reminder_config` rows seeded with
+the same `inactive_alert` defaults (monthly per type, **enabled = false**).
+🚨 On Gurbet the digest sends **text-only**: the PDF goes through the Vercel renderer, which has no
+`RENDER_ENDPOINT_URL`/`RENDER_SECRET` there. That is deliberate and self-skipping — unlike the
+statement step, a missing PDF does not cancel the send, because the mail body is itself the report.
+
 🚨 **`public.rpc_backup_pre_00109` exists on BOTH projects** and holds every analytics RPC body
 as it was before `00109`. Rollback = execute its `def` column verbatim. **Do not drop it** —
 Supabase daily backups age out and this is the only record of those definitions.

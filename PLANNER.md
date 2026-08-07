@@ -1362,3 +1362,80 @@ still-unpaid, billed order plus a **totaal openstaand**, on the **first working 
    they are skipped by both manual and automatic sending until an address is added.
 4. Gurbet: Step 7 self-skips there until `RENDER_ENDPOINT_URL` / `RENDER_SECRET` are set on the edge
    function, and its Vercel project needs `RENDER_SECRET` before the tab's preview works.
+
+---
+
+## August 2026 — Klantactiviteit (customers who stopped ordering)
+
+### Built & shipped, automation OFF ✅ (2026-08-07)
+
+Every automated mail in the system chased money that is **owed**. Nothing watched the opposite
+risk: a customer who quietly stops ordering, noticed by accident weeks later. Klantactiviteit is a
+morning digest naming them, with the rule set per **customer type** and overridable **per customer**.
+
+- **Rolling days, not calendar months.** "Has not ordered this month" flags the whole book on the
+  1st and 2nd, exactly when the mail is least worth reading. Stored as days, shown as "1 maand".
+- **Rule chain** (mirrors the pricing chain): `customers.inactivity_enabled = FALSE` → never →
+  `customers.inactivity_days` → `inactive_alert.by_type[type]` → `default_days` (untagged) → not
+  monitored. A NULL per-type value means that whole type is unmonitored.
+- **One definition** — `get_customer_activity(p_only_due)`: the cron passes TRUE (what is mailed),
+  the admin tab passes FALSE (every active customer, which is what makes "who is covered by which
+  rule" answerable). A badge can never promise a rule the digest does not honour.
+- **Two defaults chosen from live data, not taste.** Monthly for every type: a weekly Horeca rule
+  flagged **29** customers on day one. And customers who have **never ordered are excluded** (a
+  switch turns them on): **133 of 251** active customers have no order at all (WC import + the
+  go-live reset) against **31** who genuinely stopped. Including them makes the leftovers ~80% of
+  every mail. With monthly rules the live list is **6 names**.
+- **Send cadence is its own setting** — elke dag / wekelijks op een gekozen dag / maandelijks op de
+  1e werkdag. `repeat_days` could not express "one mail a week": it thins a *daily* mail per
+  customer, producing an irregular rhythm of short, incomplete lists. A weekly or monthly digest
+  ignores `repeat_days` outright, because a periodic report has to be complete.
+- **Surfaces**: the mail (Dutch, grouped by type, PDF attached), a dashboard widget under
+  `OverdueWidget`, a third tab on `/overdue?tab=activity`, and one row in the existing header bell
+  (`reminders.category = 'customer_inactive'`) rather than a second notification system.
+- **Owner-only throughout**, which also keeps `orders.hidden_from_managers` out of the picture: a
+  last-order date computed over hidden orders would let a Shop Manager infer that one exists.
+- **DB (LIVE on BOTH projects)**: `00115` — `customers.inactivity_days/_enabled` (NULL = inherit),
+  `customer_inactivity_digests` (UNIQUE `run_date` is the idempotency anchor; the cron wakes hourly
+  and would otherwise mail again at 09:00), the `reminders.category` CHECK widened, and the RPC.
+- **Cron**: **Step 8** of the existing `process-invoice-reminders`, not a new function — a separate
+  one needs its own Vault entries and secrets on both tenants. Own hour, own working-day switch,
+  deliberately **not** under `auto_send_enabled`: this mail goes to the owner.
+- **PDF**: `CustomerActivityTemplate` + a `customer_activity` branch in the Vercel render function.
+  Unlike the statement step, a missing PDF does **not** cancel the send — here the body is itself
+  the report, and Gurbet has no renderer configured.
+
+### Settings → Herinneringen regrouped
+
+Four unrelated mails were presented as seven equal blocks in build order, with the dunning system
+split across three of them and the internal digest in the middle. Now grouped by **who receives the
+mail** (Naar klanten / Naar jezelf), with a status strip, one card per mail, and the email-text
+editors collapsed behind a disclosure that badges itself "Aangepast".
+🚨 Two rules discovered while regrouping, both now in `CLAUDE.md`: `send_hour`/`working_days_only`
+are **one clock for three customer mails** (cron steps 4, 6 and 7), so they sit above the cards; and
+a toggle governs **automatic** sending only — the ladder and every text are also used by the manual
+send buttons on `/overdue`, so they stay visible when a toggle is off.
+
+### TODO — turn the automation on ⏳
+1. Settings → Herinneringen → **Klantactiviteit** → toggle on; set the hour, the recipients (blank =
+   your own login address) and the per-type day counts.
+2. Frequentie **Wekelijks** + a day if one mail a week is wanted instead of a daily one.
+3. Review `/overdue?tab=activity` first: it shows exactly who tomorrow's mail will name.
+4. The **PDF attachment needs this commit deployed to Vercel** (the renderer is bundled into
+   `api/render-invoice.mjs`). Until then, and always on Gurbet, the mail sends text-only.
+
+---
+
+## August 2026 — smaller changes
+
+- **Route exclusions carry into Dagafsluiting.** A stop taken off the delivery round arrives
+  unticked in Day Close, with a notice naming the count. Only **deliberate** exclusions propagate
+  (`userExcludedIds` ≠ `excludedStops`): a foreign stop is unticked by a default policy nobody chose
+  and still needs its invoice.
+- **"Buitenland meenemen (n)"** hands that default to the admin — appears only on a day that has a
+  foreign stop, defaults off, remembered in `localStorage`.
+- **Sold-products PDF names its filter.** A customer-type-filtered report prints a notice at the
+  top, so a Horeca-only run cannot be read as the whole day's sales.
+- 🚨 **No em dashes in user-visible copy** — swept out of all three locales, PDF and email copy, the
+  edge functions and the public site; now a rule in `CLAUDE.md` → Conventions. The lone `—` standing
+  in for an empty table/PDF cell was deliberately kept.
