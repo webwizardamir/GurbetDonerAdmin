@@ -1,5 +1,6 @@
 ---
 import { site } from "../lib/site";
+import ObfuscatedEmail from "./ObfuscatedEmail.astro";
 const year = new Date().getFullYear();
 ---
 
@@ -54,7 +55,7 @@ const year = new Date().getFullYear();
           {site.address.country}
         </address>
         <div class="footer__lines">
-          <a href={`mailto:${site.email}`}>{site.email}</a>
+          <ObfuscatedEmail address={site.email} />
           <a href={`tel:${site.phone.replace(/\s+/g, "")}`}>{site.phone}</a>
           <span class="footer__hours">{site.hours}</span>
         </div>

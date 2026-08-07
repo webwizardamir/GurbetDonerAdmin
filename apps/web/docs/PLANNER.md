@@ -44,7 +44,7 @@ Removed from the homepage during simplification: `OperationalStrip`, `HalalConfi
 4. **Legal copy** — real privacy/cookies/terms text from counsel.
 5. **Real cert authority + dates** — confirm the halal authority and BRC/IFS/HACCP/ISO certificate details to show as named, dated marks (currently names only).
 6. **Real brand media** — replace dünya placeholders: facility stills (`/public/images/facility/*`), `hero.mp4`. (`about-hero.mp4` came from the reference site.)
-7. **Forms delivery** — currently log + thank-you panel; wire to a real inbox (Resend) when credentials are provided.
+7. **Forms delivery** — currently log + thank-you panel; wire to a real inbox (Resend) when credentials are provided. When that lands, the endpoint must re-run the `formGuard` checks server-side (honeypot, elapsed time, link count): the client layer is a filter, not a gate, and anything posting straight to the endpoint skips it. Also fix the distributor form's "Your data is logged and emailed to our sales team" line, which is not true today.
 8. **NL locale** (`/nl/*` route tree), **sitemap/robots** verify, **OG image** (`/og-default.jpg` referenced, not created).
 
 ---
@@ -64,7 +64,8 @@ Removed from the homepage during simplification: `OperationalStrip`, `HalalConfi
 
 - Brand-owned hero + facility video and photography (to replace dünya/reference placeholders).
 - Real cert PDFs / images per authority → `/public/images/certifications/`.
-- Distributor / retailer partner logos.
+- ~~Distributor / retailer partner logos.~~ Done (v12.2): Aviko + McCain live in the `Partners`
+  section on the homepage + About page. More partners = one line in the component array.
 - Final legal copy (privacy / cookies / terms).
 - Resend (or other) credentials for form delivery.
 

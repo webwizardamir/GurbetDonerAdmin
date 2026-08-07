@@ -2,6 +2,7 @@
 // Scene — Export confidence CTA. A climactic dark push: bold statement on the left, the ask and
 // actions on the right (fills the width), and the working process as a single inline flow below.
 import { site } from "../../lib/site";
+import ObfuscatedEmail from "../ObfuscatedEmail.astro";
 
 const flow = [
   { phase: "Tell us your market" },
@@ -42,7 +43,7 @@ const flow = [
       </div>
 
       <p class="op-label ink-dim xcta__contact">
-        Direct: <a href={`mailto:${site.email}`}>{site.email}</a> · {site.phone}
+        Direct: <ObfuscatedEmail address={site.email} /> · {site.phone}
       </p>
     </div>
   </div>

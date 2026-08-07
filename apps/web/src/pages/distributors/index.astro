@@ -1,5 +1,6 @@
 ---
 import Base from "../../layouts/Base.astro";
+import FormGuardFields from "../../components/FormGuardFields.astro";
 ---
 
 <Base
@@ -36,6 +37,7 @@ import Base from "../../layouts/Base.astro";
         </div>
 
         <form class="dist__form" method="post" action="?_form=distributor" novalidate>
+          <FormGuardFields idPrefix="d" />
           <h2 class="dist__form-title">Open the distributor brief</h2>
           <p class="dist__form-sub">We reply within two business days.</p>
 
@@ -177,21 +179,12 @@ import Base from "../../layouts/Base.astro";
 </style>
 
 <script>
-  const form = document.querySelector<HTMLFormElement>("form[action*='distributor']");
-  form?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    // Resend wiring intentionally deferred — log + thank-you UX per current brief.
-    const data = Object.fromEntries(new FormData(form));
-    console.info("[Melek] Distributor brief submitted:", data);
-    const panel = document.createElement("div");
-    panel.setAttribute("role", "status");
-    panel.style.padding = "1rem 1.25rem";
-    panel.style.border = "1px solid var(--color-emerald)";
-    panel.style.borderRadius = "var(--radius)";
-    panel.style.background = "color-mix(in srgb, var(--color-emerald) 8%, #fff)";
-    panel.style.color = "var(--color-emerald)";
-    panel.style.fontSize = "0.9375rem";
-    panel.innerHTML = "Thanks, we've got your brief. A member of our sales team will be in touch within two business days.";
-    form.replaceWith(panel);
+  import { mountPublicForm } from "../../lib/formGuard";
+
+  mountPublicForm({
+    selector: "form[action*='distributor']",
+    label: "Distributor brief",
+    successMessage:
+      "Thanks, we've got your brief. A member of our sales team will be in touch within two business days.",
   });
 </script>

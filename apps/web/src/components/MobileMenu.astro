@@ -1,5 +1,6 @@
 ---
 import { site } from "../lib/site";
+import ObfuscatedEmail from "./ObfuscatedEmail.astro";
 const links = [...site.nav];
 ---
 
@@ -46,7 +47,7 @@ const links = [...site.nav];
 
     <div class="mobile-menu__contact">
       <p class="op-label mobile-menu__eyebrow">Get in touch</p>
-      <a href={`mailto:${site.email}`}>{site.email}</a>
+      <ObfuscatedEmail address={site.email} />
       <a href={`tel:${site.phone.replace(/\s+/g, "")}`}>{site.phone}</a>
     </div>
 

@@ -4,6 +4,59 @@ One-line entries per ship. Most recent at the top. "v" is an iteration label, no
 
 ---
 
+## v12.3 — Anti-spam on the public forms + unharvestable mail links (2026-08-07)
+
+Owner reported spam arriving at `info@melekhalalfood.nl` "from the website".
+
+- **The forms were not the source.** All three (`/contact/`, `/samples/`, `/distributors/`)
+  `preventDefault()`, `console.info` the payload and swap in a thank-you panel. They have never sent
+  a mail, so no bot could reach the inbox through them. The address was being **scraped**: it sat in
+  plain text in the footer, the mobile menu, the ExportCTA and the contact page, plus a labelled
+  `email` field in the Organization JSON-LD, on all 82 pages.
+- **`components/ObfuscatedEmail.astro`** replaces every `mailto:`. The HTML now carries a base64 blob
+  in `data-e`, a link to `/contact/`, and the address written as `info [at] melekhalalfood.nl`;
+  JS swaps in the real `mailto:` and text on load. No-JS visitors still get a working link and a
+  readable address. Verified: **zero** `x@y.tld` strings and zero `mailto:` in the built HTML.
+- **`email` dropped from the JSON-LD**, replaced by a `contactPoint` (telephone + `/contact/` URL).
+  It is machine-readable, labelled, and on every page, so it was the richest target. No Google rich
+  result uses `Organization.email`.
+- **`lib/formGuard.ts` + `components/FormGuardFields.astro`** harden the forms anyway, so the guard is
+  already in place when Resend is wired: two off-canvas honeypots (`website`, `fax_number`), a
+  time trap (under 3.5s is not a human), a link-flood and BBCode check, and a 3-per-10-min rate limit
+  in `localStorage`. A rejected submit shows the **same** thank-you panel, so a bot gets no signal to
+  retune against.
+- `mountPublicForm` also collapses three copies of the same submit handler into one.
+- Verified in Chrome across the three pages: instant submit, filled honeypot and link flood are all
+  dropped; a real fill is accepted; 3 of 4 rapid submits pass; the trap is off-canvas, unfocusable by
+  Tab, and adds no horizontal overflow at 390px.
+
+---
+
+## v12.2 — More potato SKUs + partner logos + homepage browse trim (2026-07-14)
+
+- **Added 10 McCain potato products** (`src/content/products/mccain-*.md` + `public/images/products/`).
+  Ten fries/potato lines as **packaging (2.5 kg bag)** entries: SureCrisp Skin-On 9/9, SureCrisp 9/9,
+  SureCrisp Crinkle, SureCrisp Fry'n Dip, Original 9/9, Original 6/6, Freez'Chill 14/14, Freez'Chill
+  11/11, Country Style, Dollar Chips. Source images processed with `sharp`: flatten→white, `.trim()`,
+  +5% margin, cap 1500 px, JPEG q82 (5 MB PNGs → sub-300 KB). Gotcha handled: `199900 Country Style
+  zak.jpg` is actually the **box**; `Country Style zak.png` is the bag.
+  - _Note:_ a matching **box (bulk case)** entry was first added for each line (20 total), but the client
+    rejected the brown-carton photos, so all 10 box entries were removed the same day. Potato is
+    single-format again, so its Packaging/Box toggle auto-disables (via `updateFormatToggle`'s
+    `hasSplit` check) with no code change.
+- **New Partners section** (`components/sections/Partners.astro`) on the **homepage** (after the browser,
+  before ExportCTA) and **About page** (before TrustArtifacts). Full-colour brand logos (Aviko SVG,
+  McCain PNG) in white cards on the light scene, **height-tuned per brand** so the compact Aviko ellipse
+  and wide McCain wordmark carry even weight. Prop-driven (`scene`/`heading`/`lede`); self-inits its own
+  reveal under a scoped `[data-preveal]` so it never collides with the About page's global `[data-reveal]`
+  pass. Assets in `public/images/partners/`. Adding a 3rd/4th partner = one line in the component array.
+- **Homepage product browse no longer dumps all 83 products.** `ProductBrowser` gained a `showAllTab`
+  prop (default `true` → `/products` unchanged). The homepage passes `showAllTab={false}`, which drops the
+  "All" tab and opens on the **first category (Meat, ~15 items)** instead of the full grid. Both pages
+  still share the one component; only this tab differs, so future component changes reflect on both.
+
+---
+
 ## v12.1 — Category fixes + potato fries (2026-07-10)
 
 Client follow-up to v12:

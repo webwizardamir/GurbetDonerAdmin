@@ -1,6 +1,8 @@
 ---
 import Base from "../../layouts/Base.astro";
 import { site } from "../../lib/site";
+import FormGuardFields from "../../components/FormGuardFields.astro";
+import ObfuscatedEmail from "../../components/ObfuscatedEmail.astro";
 ---
 
 <Base
@@ -22,12 +24,12 @@ import { site } from "../../lib/site";
           <ul class="cnt__panels">
             <li>
               <p class="op-label cnt__panel-eyebrow">Sales &amp; distribution</p>
-              <a href={`mailto:${site.email}`} class="cnt__email">{site.email}</a>
+              <ObfuscatedEmail address={site.email} class="cnt__email" />
               <p class="cnt__sub">Distributor briefs, quotes, samples.</p>
             </li>
             <li>
               <p class="op-label cnt__panel-eyebrow">General enquiries</p>
-              <a href={`mailto:${site.emailGeneral}`} class="cnt__email">{site.emailGeneral}</a>
+              <ObfuscatedEmail address={site.emailGeneral} class="cnt__email" />
               <p class="cnt__sub">Press, jobs, anything else.</p>
             </li>
             <li>
@@ -45,6 +47,7 @@ import { site } from "../../lib/site";
         </div>
 
         <form class="cnt__form" method="post" action="?_form=contact" novalidate>
+          <FormGuardFields idPrefix="c" />
           <h2 class="cnt__form-title">Send us a note</h2>
           <p class="cnt__form-sub">We reply within two business days.</p>
           <div>
@@ -123,20 +126,11 @@ import { site } from "../../lib/site";
 </style>
 
 <script>
-  const form = document.querySelector<HTMLFormElement>("form[action*='contact']");
-  form?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(form));
-    console.info("[Melek] Contact submitted:", data);
-    const panel = document.createElement("div");
-    panel.setAttribute("role", "status");
-    panel.style.padding = "1rem 1.25rem";
-    panel.style.border = "1px solid var(--color-emerald)";
-    panel.style.borderRadius = "var(--radius)";
-    panel.style.background = "color-mix(in srgb, var(--color-emerald) 8%, #fff)";
-    panel.style.color = "var(--color-emerald)";
-    panel.style.fontSize = "0.9375rem";
-    panel.innerHTML = "Thanks, your message is in. We'll reply within two business days.";
-    form.replaceWith(panel);
+  import { mountPublicForm } from "../../lib/formGuard";
+
+  mountPublicForm({
+    selector: "form[action*='contact']",
+    label: "Contact",
+    successMessage: "Thanks, your message is in. We'll reply within two business days.",
   });
 </script>

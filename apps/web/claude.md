@@ -52,6 +52,19 @@ Read these before touching code. Then read `docs/STYLEGUIDE.md`, `docs/PLANNER.m
 - Canonical file: `/public/logo.png`. Intrinsic dimensions **734 × 340** (aspect 2.16:1).
 - When declaring `<img width=... height=...>`, use values that preserve this ratio. Footer logo uses `object-fit: contain; align-self: flex-start; height: 90px`.
 
+### Contact details in markup
+- **Never render an email address in the HTML.** Use `components/ObfuscatedEmail.astro` (base64 in
+  `data-e`, `/contact/` href, `info [at] domain` text, upgraded to a real `mailto:` by JS). A raw
+  `mailto:${site.email}` anywhere puts the address on all 82 pages for harvesters, which is what
+  filled the inbox with spam in the first place. Same reason `email` is deliberately absent from the
+  Organization JSON-LD in `Base.astro`: leave the `contactPoint` in its place.
+- **Every public form uses `lib/formGuard.ts` + `components/FormGuardFields.astro`.** A new form gets
+  `<FormGuardFields />` inside the `<form>` and `mountPublicForm(...)` in its `<script>`, never a
+  hand-rolled submit handler. A rejected submit must keep showing the normal thank-you panel: telling
+  a bot why it failed just lets it retune.
+- The forms **do not send mail yet** (log + thank-you). When they are wired, the endpoint repeats the
+  `formGuard` checks server-side, because a direct POST skips the client entirely.
+
 ### Deploy
 - **Never deploy automatically. Never push to GitHub automatically.** Always wait for explicit user approval.
 - Vercel adapter is configured but not connected.

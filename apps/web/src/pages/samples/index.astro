@@ -1,5 +1,6 @@
 ---
 import Base from "../../layouts/Base.astro";
+import FormGuardFields from "../../components/FormGuardFields.astro";
 
 const presetProduct = (() => {
   const q = Astro.url.searchParams.get("product");
@@ -22,6 +23,7 @@ const presetProduct = (() => {
       </p>
 
       <form class="samp__form" method="post" action="?_form=samples" novalidate>
+        <FormGuardFields idPrefix="s" />
         <div class="samp__row">
           <div>
             <label class="label" for="s-name">Name</label>
@@ -105,20 +107,12 @@ const presetProduct = (() => {
 </style>
 
 <script>
-  const form = document.querySelector<HTMLFormElement>("form[action*='samples']");
-  form?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(form));
-    console.info("[Melek] Sample request submitted:", data);
-    const panel = document.createElement("div");
-    panel.setAttribute("role", "status");
-    panel.style.padding = "1rem 1.25rem";
-    panel.style.border = "1px solid var(--color-emerald)";
-    panel.style.borderRadius = "var(--radius)";
-    panel.style.background = "color-mix(in srgb, var(--color-emerald) 8%, #fff)";
-    panel.style.color = "var(--color-emerald)";
-    panel.style.fontSize = "0.9375rem";
-    panel.innerHTML = "Thanks, your sample request is in. We'll confirm shipping within two business days.";
-    form.replaceWith(panel);
+  import { mountPublicForm } from "../../lib/formGuard";
+
+  mountPublicForm({
+    selector: "form[action*='samples']",
+    label: "Sample request",
+    successMessage:
+      "Thanks, your sample request is in. We'll confirm shipping within two business days.",
   });
 </script>
