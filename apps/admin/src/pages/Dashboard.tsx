@@ -16,6 +16,7 @@ import ActionRequiredBanner from '../components/dashboard/ActionRequiredBanner'
 import type { ActionRequired } from '../components/dashboard/ActionRequiredBanner'
 import EmailDeliveryAlert from '../components/dashboard/EmailDeliveryAlert'
 import OverdueWidget from '../components/dashboard/OverdueWidget'
+import InactiveCustomersWidget from '../components/dashboard/InactiveCustomersWidget'
 import TodayOrdersList from '../components/dashboard/TodayOrdersList'
 // Lazy — pulls in recharts (~400 KB) only after the dashboard shell paints.
 const WeeklyMiniChart = lazy(() => import('../components/dashboard/WeeklyMiniChart'))
@@ -164,6 +165,10 @@ export default function Dashboard() {
       {isOwner && <EmailDeliveryAlert />}
       <ActionRequiredBanner actionRequired={actionRequired} />
       <OverdueWidget />
+      {/* Chase band, in order of urgency: e-mailfouten, actie vereist, geld dat
+          binnen moet, en dan de klanten die stilvallen. Owner-only, like the
+          rest of Klantactiviteit. */}
+      {isOwner && <InactiveCustomersWidget />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left column - Orders */}

@@ -57,6 +57,7 @@ export interface DocBrandSet {
   soldProducts: DocBrand
   dataExport: DocBrand
   deliveryRoute: DocBrand
+  customerActivity: DocBrand
 }
 
 const MELEK: DocBrandSet = {
@@ -129,6 +130,16 @@ const MELEK: DocBrandSet = {
   deliveryRoute: {
     primary: '#0891b2',
     dark: '#0e7490',
+  },
+  // Klantactiviteit — amber, and identical on both tenants on purpose. This is
+  // an internal attention list, not a document a customer ever sees, and amber
+  // is what "look at this" already means everywhere else in the app. It must not
+  // read as money (green/blue) or as a failure (red).
+  customerActivity: {
+    primary: '#b45309',
+    dark: '#78350f',
+    tint: '#fef3c7',
+    tintSoft: '#fffbeb',
   },
 }
 
@@ -224,6 +235,14 @@ const FATHER: DocBrandSet = {
     // internal driver sheet that never sits in a customer's stack of paperwork.
     primary: '#0891b2',
     dark: '#0e7490',
+  },
+  // Same amber as Melek: an internal attention list, never customer-facing, so
+  // it carries no brand and needs none.
+  customerActivity: {
+    primary: '#b45309',
+    dark: '#78350f',
+    tint: '#fef3c7',
+    tintSoft: '#fffbeb',
   },
 }
 

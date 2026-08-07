@@ -1820,6 +1820,32 @@
         "subtitle": "Stuur elke klant met openstaande facturen één overzicht op de eerste werkdag van de maand.",
         "note": "Staat los van de herinneringen hierna: een betaaloverzicht gaat ook naar klanten die nog netjes binnen de betaaltermijn zitten. Verstuurtijd volgt het uur en de werkdag-instelling hieronder. Bekijk eerst een voorbeeld via Openstaande facturen → Betaaloverzicht.",
         "copyTitle": "E-mailtekst betaaloverzicht"
+      },
+      "inactive": {
+        "title": "Klantactiviteit",
+        "subtitle": "Elke ochtend een e-mail met klanten die te lang niets hebben besteld.",
+        "hour": "Verzendtijd (uur)",
+        "recipients": "Ontvangers",
+        "recipientsPlaceholder": "Standaard: je eigen e-mailadres",
+        "recipientsHint": "Meerdere adressen scheiden met een komma. Leeg laten stuurt naar je eigen inlogadres.",
+        "repeat": "Herhalen",
+        "repeatDaily": "Elke ochtend tot ze bestellen",
+        "repeatWeekly": "Hoogstens één keer per week per klant",
+        "repeatBiweekly": "Hoogstens één keer per twee weken per klant",
+        "attachPdf": "PDF-overzicht meesturen",
+        "rulesTitle": "Regels per klanttype",
+        "rulesHint": "Na hoeveel dagen zonder bestelling een klant gemeld wordt. Uit betekent: dit type wordt niet gevolgd.",
+        "notMonitored": "Niet gevolgd",
+        "daysSuffix": "dagen",
+        "untagged": "Klanten zonder klanttype",
+        "includeNever": "Ook klanten die nog nooit hebben besteld",
+        "includeNeverHint": "Meestal oude imports. Staat uit, zodat de klanten die echt gestopt zijn niet ondersneeuwen.",
+        "months_one": "1 maand",
+        "months_other": "{{count}} maanden",
+        "weeks_one": "1 week",
+        "weeks_other": "{{count}} weken",
+        "days_one": "1 dag",
+        "days_other": "{{count}} dagen"
       }
     }
   },
@@ -1890,7 +1916,8 @@
       "inHour": "Over {{n}} u",
       "dayAgo": "{{n}} d geleden",
       "inDay": "Over {{n}} d"
-    }
+    },
+    "automatic": "Automatisch"
   },
   "categories": {
     "title": "Categorieën",
@@ -2256,7 +2283,8 @@
     },
     "tabs": {
       "invoices": "Facturen",
-      "overview": "Betaaloverzicht"
+      "overview": "Betaaloverzicht",
+      "activity": "Klantactiviteit"
     }
   },
   "paymentOverview": {
@@ -2329,6 +2357,69 @@
       "noEmail": "Geen e-mailadres",
       "optedOut": "Afgemeld",
       "blockedHint": "Deze klant krijgt op de 1e géén betaaloverzicht. Handmatig versturen kan wel."
+    }
+  },
+  "customerActivity": {
+    "searchPlaceholder": "Zoek op klant of plaats",
+    "never": "Nooit",
+    "empty": "Geen klanten in deze selectie.",
+    "daysLabel": "dagen",
+    "daysValue_one": "{{count}} dag",
+    "daysValue_other": "{{count}} dagen",
+    "rowMenu": "Opties voor {{name}}",
+    "editRule": "Regel aanpassen",
+    "history": "Verzonden",
+    "historyTitle": "Verzonden overzichten",
+    "historyEmpty": "Nog niets verstuurd.",
+    "historyCount_one": "{{count}} klant",
+    "historyCount_other": "{{count}} klanten",
+    "neverOrderedNote_one": "{{count}} actieve klant heeft nog nooit besteld. Die staat standaard niet in de e-mail.",
+    "neverOrderedNote_other": "{{count}} actieve klanten hebben nog nooit besteld. Die staan standaard niet in de e-mail.",
+    "stats": {
+      "reported": "Wordt gemeld",
+      "longest": "Langst stil",
+      "customRule": "Eigen regel",
+      "unmonitored": "Niet gevolgd"
+    },
+    "scope": {
+      "due": "Wordt gemeld",
+      "custom": "Eigen regel",
+      "all": "Alle klanten"
+    },
+    "status": {
+      "due": "Gemeld",
+      "ok": "Op tijd",
+      "off": "Uit"
+    },
+    "sendStatus": {
+      "pending": "Bezig",
+      "sent": "Verstuurd",
+      "failed": "Mislukt"
+    },
+    "col": {
+      "customer": "Klant",
+      "type": "Type",
+      "lastOrder": "Laatste bestelling",
+      "days": "Dagen",
+      "rule": "Regel",
+      "status": "Status"
+    },
+    "rule": {
+      "inherit": "Volg de type-regel",
+      "inheritHint": "Deze klant volgt de standaardregel van zijn klanttype.",
+      "custom": "Eigen aantal dagen",
+      "customHint": "Alleen voor deze klant, ongeacht zijn klanttype.",
+      "off": "Niet melden",
+      "offHint": "Deze klant blijft helemaal uit de dagelijkse e-mail."
+    },
+    "widget": {
+      "title": "Klanten zonder bestelling",
+      "summary_one": "{{count}} klant, langst stil {{days}} dagen",
+      "summary_other": "{{count}} klanten, langst stil {{days}} dagen",
+      "minimizedBar_one": "{{count}} klant heeft te lang niets besteld",
+      "minimizedBar_other": "{{count}} klanten hebben te lang niets besteld",
+      "lastOrder": "Laatste bestelling {{date}}",
+      "viewAll": "Bekijk klantactiviteit"
     }
   }
 }

@@ -1,5 +1,5 @@
 // api-src/render-invoice.tsx
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createClient2 } from "@supabase/supabase-js";
 import { renderToBuffer } from "@react-pdf/renderer";
 
 // src/components/documents/InvoiceTemplate.tsx
@@ -430,6 +430,16 @@ var MELEK = {
   deliveryRoute: {
     primary: "#0891b2",
     dark: "#0e7490"
+  },
+  // Klantactiviteit — amber, and identical on both tenants on purpose. This is
+  // an internal attention list, not a document a customer ever sees, and amber
+  // is what "look at this" already means everywhere else in the app. It must not
+  // read as money (green/blue) or as a failure (red).
+  customerActivity: {
+    primary: "#b45309",
+    dark: "#78350f",
+    tint: "#fef3c7",
+    tintSoft: "#fffbeb"
   }
 };
 var FATHER = {
@@ -509,6 +519,14 @@ var FATHER = {
     // internal driver sheet that never sits in a customer's stack of paperwork.
     primary: "#0891b2",
     dark: "#0e7490"
+  },
+  // Same amber as Melek: an internal attention list, never customer-facing, so
+  // it carries no brand and needs none.
+  customerActivity: {
+    primary: "#b45309",
+    dark: "#78350f",
+    tint: "#fef3c7",
+    tintSoft: "#fffbeb"
   }
 };
 var docBrand = tenantId === "father" ? FATHER : MELEK;
@@ -3895,8 +3913,279 @@ function PaymentOverviewTemplate({ data }) {
   return /* @__PURE__ */ jsx8(Document7, { children: /* @__PURE__ */ jsx8(PaymentOverviewPage, { data }) });
 }
 
+// src/components/documents/CustomerActivityTemplate.tsx
+import { Document as Document8, Page as Page8, View as View8, Text as Text8, StyleSheet as StyleSheet8 } from "@react-pdf/renderer";
+
+// src/services/supabase.ts
+import { createClient } from "@supabase/supabase-js";
+var supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+var supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+if (!supabaseUrl || !supabaseAnonKey) {
+  if (import.meta.env.DEV) {
+    console.error("Missing Supabase environment variables. Please check your .env file.");
+  }
+}
+var supabase = createClient(
+  supabaseUrl || "https://placeholder.supabase.co",
+  supabaseAnonKey || "placeholder-key"
+);
+var PORTAL_REMEMBER_KEY = "sb-portal-remember";
+var portalAuthStorage = {
+  getItem: (key) => (
+    // The token may live in either store depending on the last remember choice.
+    window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key)
+  ),
+  setItem: (key, value) => {
+    const remember = window.localStorage.getItem(PORTAL_REMEMBER_KEY) === "true";
+    if (remember) {
+      window.localStorage.setItem(key, value);
+      window.sessionStorage.removeItem(key);
+    } else {
+      window.sessionStorage.setItem(key, value);
+      window.localStorage.removeItem(key);
+    }
+  },
+  removeItem: (key) => {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  }
+};
+try {
+  if (window.localStorage.getItem("sb-portal-auth-token") && window.localStorage.getItem(PORTAL_REMEMBER_KEY) === null) {
+    window.localStorage.setItem(PORTAL_REMEMBER_KEY, "true");
+  }
+} catch {
+}
+var portalSupabase = createClient(
+  supabaseUrl || "https://placeholder.supabase.co",
+  supabaseAnonKey || "placeholder-key",
+  {
+    auth: {
+      storageKey: "sb-portal-auth-token",
+      // Different key than admin
+      autoRefreshToken: true,
+      persistSession: true,
+      storage: portalAuthStorage,
+      // Both clients are created at module import, so both are live on every
+      // page — including the admin `/reset-password#access_token=...` screen.
+      // With this on, the portal client would race the admin client for that
+      // hash and could persist a STAFF token under sb-portal-auth-token. The
+      // portal's own login is OTP (verifyOtp), which never uses a URL hash, so
+      // it has no need for hash detection.
+      detectSessionInUrl: false
+    }
+  }
+);
+if (import.meta.env.PROD) {
+  Object.defineProperty(window, "supabase", {
+    get: () => void 0,
+    set: () => {
+    },
+    configurable: false
+  });
+  Object.defineProperty(window, "portalSupabase", {
+    get: () => void 0,
+    set: () => {
+    },
+    configurable: false
+  });
+}
+
+// src/services/customerActivity.ts
+function groupActivityRows(rows) {
+  const labels = {
+    horeca: "Horeca",
+    supermarkt: "Supermarkt",
+    other: "Overig",
+    untagged: "Zonder klanttype",
+    never: "Nog nooit besteld"
+  };
+  const buckets = /* @__PURE__ */ new Map();
+  for (const r of rows) {
+    const key = r.order_count === 0 ? "never" : r.customer_type ?? "untagged";
+    const list = buckets.get(key) ?? [];
+    list.push(r);
+    buckets.set(key, list);
+  }
+  const order = ["horeca", "supermarkt", "other", "untagged", "never"];
+  return order.filter((k) => buckets.has(k)).map((k) => {
+    const list = buckets.get(k).sort((a, b) => b.days_since - a.days_since);
+    const common = list.find((r) => r.rule_source === "type")?.threshold_days ?? null;
+    return {
+      key: k,
+      label: labels[k] ?? k,
+      thresholdLabel: k === "never" ? "" : common != null ? `regel: ${common} dagen` : "",
+      rows: list
+    };
+  });
+}
+
+// src/components/documents/CustomerActivityTemplate.tsx
+import { jsx as jsx9, jsxs as jsxs8 } from "react/jsx-runtime";
+var brand = docBrand.customerActivity;
+var styles8 = StyleSheet8.create({
+  page: { fontFamily: "Helvetica", fontSize: 8, padding: 28, backgroundColor: "#ffffff", color: "#1e293b" },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: brand.primary
+  },
+  title: { fontSize: 16, fontFamily: "Helvetica-Bold", color: brand.primary, marginBottom: 2 },
+  subtitle: { fontSize: 8, color: "#64748b" },
+  dateBox: { backgroundColor: brand.tint, padding: 5, paddingHorizontal: 10 },
+  dateLabel: { fontSize: 6.5, color: brand.dark, textTransform: "uppercase", marginBottom: 1 },
+  dateValue: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  summaryRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: brand.tintSoft,
+    borderWidth: 0.5,
+    borderColor: "#e2e8f0",
+    paddingHorizontal: 8,
+    paddingVertical: 5
+  },
+  summaryLabel: { fontSize: 6.5, color: "#64748b", textTransform: "uppercase", marginBottom: 2 },
+  summaryValue: { fontSize: 12, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  groupHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginTop: 6,
+    marginBottom: 3
+  },
+  groupName: { fontSize: 9, fontFamily: "Helvetica-Bold", color: brand.dark },
+  groupRule: { fontSize: 7, color: "#64748b" },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: brand.dark,
+    paddingVertical: 4,
+    paddingHorizontal: 5
+  },
+  th: { fontSize: 6.5, fontFamily: "Helvetica-Bold", color: "#ffffff", textTransform: "uppercase" },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#e2e8f0"
+  },
+  rowEven: { backgroundColor: brand.tintSoft },
+  rowOdd: { backgroundColor: "#ffffff" },
+  td: { fontSize: 7.5 },
+  tdBold: { fontSize: 7.5, fontFamily: "Helvetica-Bold" },
+  tdMuted: { fontSize: 7, color: "#64748b" },
+  colName: { flex: 2, paddingRight: 6 },
+  colLast: { width: 62, paddingRight: 6 },
+  colDays: { width: 46, textAlign: "right", paddingRight: 6 },
+  colRule: { width: 78, paddingRight: 6 },
+  colContact: { flex: 1.2 },
+  // The whole point of the sheet is to be actionable at a glance, so the
+  // longest-quiet rows carry a weight the rest do not.
+  daysBadge: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: brand.dark,
+    backgroundColor: brand.tint,
+    paddingVertical: 1,
+    paddingHorizontal: 3,
+    textAlign: "right"
+  },
+  footer: { borderTopWidth: 0.5, borderTopColor: "#e2e8f0", paddingTop: 6, marginTop: "auto" },
+  footerText: { fontSize: 6.5, color: "#94a3b8", textAlign: "center" },
+  empty: { fontSize: 9, color: "#64748b", marginTop: 20, textAlign: "center" }
+});
+function formatDateNl(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return `${d}-${m}-${y}`;
+}
+function CustomerActivityTemplate({ data }) {
+  const { rows, runDate, companyName } = data;
+  const groups = groupActivityRows(rows);
+  const longest = rows.reduce((m, r) => Math.max(m, r.days_since), 0);
+  const avg = rows.length ? Math.round(rows.reduce((s, r) => s + r.days_since, 0) / rows.length) : 0;
+  return /* @__PURE__ */ jsx9(Document8, { children: /* @__PURE__ */ jsxs8(Page8, { size: "A4", style: styles8.page, children: [
+    /* @__PURE__ */ jsxs8(View8, { style: styles8.header, children: [
+      /* @__PURE__ */ jsxs8(View8, { style: { flex: 1 }, children: [
+        /* @__PURE__ */ jsx9(Text8, { style: styles8.title, children: "Klantactiviteit" }),
+        /* @__PURE__ */ jsxs8(Text8, { style: styles8.subtitle, children: [
+          companyName ? `${companyName} \xB7 ` : "",
+          "Klanten die te lang niets hebben besteld"
+        ] })
+      ] }),
+      /* @__PURE__ */ jsx9(View8, { style: { alignItems: "flex-end" }, children: /* @__PURE__ */ jsxs8(View8, { style: styles8.dateBox, children: [
+        /* @__PURE__ */ jsx9(Text8, { style: styles8.dateLabel, children: "Peildatum" }),
+        /* @__PURE__ */ jsx9(Text8, { style: styles8.dateValue, children: formatDateNl(runDate) })
+      ] }) })
+    ] }),
+    /* @__PURE__ */ jsxs8(View8, { style: styles8.summaryRow, children: [
+      /* @__PURE__ */ jsxs8(View8, { style: styles8.summaryCard, children: [
+        /* @__PURE__ */ jsx9(Text8, { style: styles8.summaryLabel, children: "Klanten gemeld" }),
+        /* @__PURE__ */ jsx9(Text8, { style: styles8.summaryValue, children: rows.length })
+      ] }),
+      /* @__PURE__ */ jsxs8(View8, { style: styles8.summaryCard, children: [
+        /* @__PURE__ */ jsx9(Text8, { style: styles8.summaryLabel, children: "Langst stil" }),
+        /* @__PURE__ */ jsxs8(Text8, { style: styles8.summaryValue, children: [
+          longest,
+          " dagen"
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs8(View8, { style: styles8.summaryCard, children: [
+        /* @__PURE__ */ jsx9(Text8, { style: styles8.summaryLabel, children: "Gemiddeld stil" }),
+        /* @__PURE__ */ jsxs8(Text8, { style: styles8.summaryValue, children: [
+          avg,
+          " dagen"
+        ] })
+      ] })
+    ] }),
+    rows.length === 0 ? /* @__PURE__ */ jsx9(Text8, { style: styles8.empty, children: "Geen klanten om te melden." }) : groups.map((g) => /* @__PURE__ */ jsxs8(View8, { children: [
+      /* @__PURE__ */ jsxs8(View8, { style: styles8.groupHead, wrap: false, children: [
+        /* @__PURE__ */ jsxs8(Text8, { style: styles8.groupName, children: [
+          g.label,
+          " (",
+          g.rows.length,
+          ")"
+        ] }),
+        !!g.thresholdLabel && /* @__PURE__ */ jsx9(Text8, { style: styles8.groupRule, children: g.thresholdLabel })
+      ] }),
+      /* @__PURE__ */ jsx9(View8, { wrap: false, children: /* @__PURE__ */ jsxs8(View8, { style: styles8.tableHeader, children: [
+        /* @__PURE__ */ jsx9(Text8, { style: [styles8.th, styles8.colName], children: "Klant" }),
+        /* @__PURE__ */ jsx9(Text8, { style: [styles8.th, styles8.colLast], children: "Laatste bestelling" }),
+        /* @__PURE__ */ jsx9(Text8, { style: [styles8.th, styles8.colDays], children: "Dagen" }),
+        /* @__PURE__ */ jsx9(Text8, { style: [styles8.th, styles8.colRule], children: "Regel" }),
+        /* @__PURE__ */ jsx9(Text8, { style: [styles8.th, styles8.colContact], children: "Contact" })
+      ] }) }),
+      g.rows.map((r, idx) => /* @__PURE__ */ jsxs8(View8, { wrap: false, style: [styles8.row, idx % 2 === 0 ? styles8.rowEven : styles8.rowOdd], children: [
+        /* @__PURE__ */ jsxs8(View8, { style: styles8.colName, children: [
+          /* @__PURE__ */ jsx9(Text8, { style: styles8.tdBold, children: r.company_name }),
+          !!r.city && /* @__PURE__ */ jsx9(Text8, { style: styles8.tdMuted, children: r.city })
+        ] }),
+        /* @__PURE__ */ jsx9(Text8, { style: [styles8.td, styles8.colLast], children: r.last_order_date ? formatDateNl(r.last_order_date) : "nooit" }),
+        /* @__PURE__ */ jsx9(View8, { style: styles8.colDays, children: /* @__PURE__ */ jsx9(Text8, { style: styles8.daysBadge, children: r.days_since }) }),
+        /* @__PURE__ */ jsx9(Text8, { style: [styles8.td, styles8.colRule], children: r.threshold_days != null ? `${r.threshold_days} d${r.rule_source === "customer" ? " (eigen)" : ""}` : "" }),
+        /* @__PURE__ */ jsx9(Text8, { style: [styles8.td, styles8.colContact], children: r.phone || r.email || "" })
+      ] }, r.customer_id))
+    ] }, g.key)),
+    /* @__PURE__ */ jsx9(View8, { style: styles8.footer, wrap: false, children: /* @__PURE__ */ jsxs8(Text8, { style: styles8.footerText, children: [
+      "Gegenereerd op ",
+      (/* @__PURE__ */ new Date()).toLocaleDateString("nl-NL", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    ] }) })
+  ] }) });
+}
+
 // api-src/render-invoice.tsx
-import { jsx as jsx9 } from "react/jsx-runtime";
+import { jsx as jsx10 } from "react/jsx-runtime";
 async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
   const secret = process.env.RENDER_SECRET;
@@ -3911,7 +4200,7 @@ async function handler(req, res) {
     if (!SUPABASE_URL || !SERVICE_ROLE) {
       return res.status(500).json({ error: "supabase env not configured (need SUPABASE_SERVICE_ROLE_KEY + SUPABASE_URL/VITE_SUPABASE_URL)" });
     }
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const admin = createClient2(SUPABASE_URL, SERVICE_ROLE);
     if (type === "payment_overview") {
       const overviewId = String(body.overviewId ?? "");
       if (!overviewId) return res.status(400).json({ error: "missing overviewId" });
@@ -3920,12 +4209,27 @@ async function handler(req, res) {
       if (!row?.snapshot) return res.status(404).json({ error: "no snapshot for overview" });
       const data = row.snapshot;
       const buffer2 = await renderToBuffer(
-        /* @__PURE__ */ jsx9(PaymentOverviewTemplate, { data })
+        /* @__PURE__ */ jsx10(PaymentOverviewTemplate, { data })
       );
       const pdf_base642 = Buffer.from(buffer2).toString("base64");
       const safeName = (data.customer?.companyName ?? "klant").replace(/[^\w-]+/g, "-");
       const filename2 = `Betaaloverzicht-${safeName}-${row.period}.pdf`;
       return res.status(200).json({ pdf_base64: pdf_base642, filename: filename2 });
+    }
+    if (type === "customer_activity") {
+      const digestId = String(body.digestId ?? "");
+      if (!digestId) return res.status(400).json({ error: "missing digestId" });
+      const { data: row, error: error2 } = await admin.from("customer_inactivity_digests").select("snapshot, run_date").eq("id", digestId).maybeSingle();
+      if (error2) return res.status(500).json({ error: `db: ${error2.message}` });
+      if (!row?.snapshot) return res.status(404).json({ error: "no snapshot for digest" });
+      const buffer2 = await renderToBuffer(
+        /* @__PURE__ */ jsx10(CustomerActivityTemplate, { data: {
+          rows: row.snapshot,
+          runDate: String(row.run_date)
+        } })
+      );
+      const pdf_base642 = Buffer.from(buffer2).toString("base64");
+      return res.status(200).json({ pdf_base64: pdf_base642, filename: `Klantactiviteit-${row.run_date}.pdf` });
     }
     const orderId = String(body.orderId ?? "");
     if (!orderId) return res.status(400).json({ error: "missing orderId" });

@@ -1,7 +1,9 @@
 import { supabase } from './supabase'
 
 export type ReminderRecurrence = 'none' | 'daily' | 'weekly' | 'monthly'
-export type ReminderCategory = 'generic' | 'payment_due'
+// 'customer_inactive' rows are written by the daily Klantactiviteit digest in
+// the reminders cron (migration 00115 widened the CHECK constraint).
+export type ReminderCategory = 'generic' | 'payment_due' | 'customer_inactive'
 
 export interface Reminder {
   id: string

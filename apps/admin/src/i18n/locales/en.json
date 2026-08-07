@@ -1820,6 +1820,32 @@
         "subtitle": "Send every customer with outstanding invoices one overview on the first working day of the month.",
         "note": "Independent of the reminders below: a payment overview also goes to customers who are still well within their payment term. Send time follows the hour and working-day settings below. Check a preview first via Overdue invoices → Payment overview.",
         "copyTitle": "Payment overview email copy"
+      },
+      "inactive": {
+        "title": "Customer activity",
+        "subtitle": "A morning email listing customers who have not ordered in too long.",
+        "hour": "Send time (hour)",
+        "recipients": "Recipients",
+        "recipientsPlaceholder": "Default: your own email address",
+        "recipientsHint": "Separate several addresses with a comma. Leave empty to send to your own login address.",
+        "repeat": "Repeat",
+        "repeatDaily": "Every morning until they order",
+        "repeatWeekly": "At most once a week per customer",
+        "repeatBiweekly": "At most once every two weeks per customer",
+        "attachPdf": "Attach the PDF overview",
+        "rulesTitle": "Rules per customer type",
+        "rulesHint": "After how many days without an order a customer is reported. Off means this type is not tracked.",
+        "notMonitored": "Not tracked",
+        "daysSuffix": "days",
+        "untagged": "Customers with no customer type",
+        "includeNever": "Also customers who have never ordered",
+        "includeNeverHint": "Usually old imports. Off, so the customers who genuinely stopped are not buried.",
+        "months_one": "1 month",
+        "months_other": "{{count}} months",
+        "weeks_one": "1 week",
+        "weeks_other": "{{count}} weeks",
+        "days_one": "1 day",
+        "days_other": "{{count}} days"
       }
     }
   },
@@ -1890,7 +1916,8 @@
       "inHour": "In {{n}}h",
       "dayAgo": "{{n}}d ago",
       "inDay": "In {{n}}d"
-    }
+    },
+    "automatic": "Automatic"
   },
   "categories": {
     "title": "Categories",
@@ -2256,7 +2283,8 @@
     },
     "tabs": {
       "invoices": "Invoices",
-      "overview": "Payment overview"
+      "overview": "Payment overview",
+      "activity": "Customer activity"
     }
   },
   "paymentOverview": {
@@ -2329,6 +2357,69 @@
       "noEmail": "No email address",
       "optedOut": "Opted out",
       "blockedHint": "This customer will NOT get a statement on the 1st. You can still send manually."
+    }
+  },
+  "customerActivity": {
+    "searchPlaceholder": "Search by customer or city",
+    "never": "Never",
+    "empty": "No customers in this selection.",
+    "daysLabel": "days",
+    "daysValue_one": "{{count}} day",
+    "daysValue_other": "{{count}} days",
+    "rowMenu": "Options for {{name}}",
+    "editRule": "Change rule",
+    "history": "Sent",
+    "historyTitle": "Sent overviews",
+    "historyEmpty": "Nothing sent yet.",
+    "historyCount_one": "{{count}} customer",
+    "historyCount_other": "{{count}} customers",
+    "neverOrderedNote_one": "{{count}} active customer has never ordered. They are left out of the email by default.",
+    "neverOrderedNote_other": "{{count}} active customers have never ordered. They are left out of the email by default.",
+    "stats": {
+      "reported": "Reported",
+      "longest": "Longest quiet",
+      "customRule": "Own rule",
+      "unmonitored": "Not tracked"
+    },
+    "scope": {
+      "due": "Reported",
+      "custom": "Own rule",
+      "all": "All customers"
+    },
+    "status": {
+      "due": "Reported",
+      "ok": "On time",
+      "off": "Off"
+    },
+    "sendStatus": {
+      "pending": "In progress",
+      "sent": "Sent",
+      "failed": "Failed"
+    },
+    "col": {
+      "customer": "Customer",
+      "type": "Type",
+      "lastOrder": "Last order",
+      "days": "Days",
+      "rule": "Rule",
+      "status": "Status"
+    },
+    "rule": {
+      "inherit": "Follow the type rule",
+      "inheritHint": "This customer follows the default rule for their customer type.",
+      "custom": "Own number of days",
+      "customHint": "For this customer only, whatever their customer type is.",
+      "off": "Do not report",
+      "offHint": "This customer stays out of the daily email entirely."
+    },
+    "widget": {
+      "title": "Customers not ordering",
+      "summary_one": "{{count}} customer, longest quiet {{days}} days",
+      "summary_other": "{{count}} customers, longest quiet {{days}} days",
+      "minimizedBar_one": "{{count}} customer has not ordered in too long",
+      "minimizedBar_other": "{{count}} customers have not ordered in too long",
+      "lastOrder": "Last order {{date}}",
+      "viewAll": "View customer activity"
     }
   }
 }

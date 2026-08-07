@@ -599,6 +599,62 @@ export interface ClientReminderConfig {
   // Independent of auto_send_enabled — a statement is not a dunning letter.
   // OPT-IN (treated as false when absent); enabling mid-month does not backfill.
   monthly_overview_enabled?: boolean
+  // Daily digest naming customers who stopped ordering (migration 00115).
+  // OPT-IN, its own hour, and deliberately NOT under auto_send_enabled: this
+  // mail goes to the owner, not to a customer.
+  inactive_alert?: InactiveAlertConfig
+}
+
+// ---------------------------------------------------------------------------
+// Klantactiviteit — the "these customers have not ordered" digest (00115)
+// ---------------------------------------------------------------------------
+export type CustomerTypeKey = 'horeca' | 'supermarkt' | 'other'
+
+export interface InactiveAlertConfig {
+  enabled: boolean
+  hour: number                 // 0-23, Europe/Amsterdam; own hour, not send_hour
+  working_days_only: boolean
+  recipients: string[]         // empty = fall back to the owner's own login email
+  repeat_days: number          // 0 = report every morning; 7 = at most weekly
+  attach_pdf: boolean
+  include_never_ordered: boolean // customers with no order at all (import leftovers)
+  default_days: number | null  // untagged customers; null = do not monitor them
+  // A null value for a type means that whole type is not monitored.
+  by_type: Record<CustomerTypeKey, number | null>
+}
+
+/** One row of `get_customer_activity`. The RPC serves both the digest and the
+ *  admin screen (p_only_due), so a preview can never disagree with the mail. */
+export interface CustomerActivityRow {
+  customer_id: string
+  company_name: string
+  customer_type: CustomerTypeKey | null
+  email: string | null
+  phone: string | null
+  city: string | null
+  /** NULL when the customer has never ordered; days_since then counts from
+   *  the day the customer was created. */
+  last_order_date: string | null
+  order_count: number
+  days_since: number
+  /** NULL = this customer is not monitored. */
+  threshold_days: number | null
+  rule_source: 'customer' | 'type' | 'default' | 'off'
+  is_due: boolean
+}
+
+export interface CustomerInactivityDigest {
+  id: string
+  run_date: string
+  recipients: string[]
+  customer_ids: string[]
+  snapshot: CustomerActivityRow[]
+  customer_count: number
+  status: 'pending' | 'sent' | 'failed'
+  resend_message_id: string | null
+  error_message: string | null
+  sent_at: string | null
+  created_at: string
 }
 
 // ---------------------------------------------------------------------------

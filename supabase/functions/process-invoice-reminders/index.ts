@@ -19,7 +19,14 @@
 // document_sends, so reminder counts stay unified.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// The service-role client as this file uses it: no generated Database types in
+// the edge runtime, so rows come back loosely typed.
+// deno-lint-ignore no-explicit-any
+type AdminClient = SupabaseClient<any>
+// deno-lint-ignore no-explicit-any
+type Row = Record<string, any>
 
 interface ReminderStep { days_after_due: number; template_key: string; tone: string }
 interface ReminderConfig {
@@ -38,6 +45,21 @@ interface ReminderConfig {
   // Independent of auto_send_enabled — a statement is not a dunning letter.
   // OPT-IN (treated as false when absent).
   monthly_overview_enabled?: boolean
+  // Daily digest naming customers who stopped ordering (migration 00115). Goes
+  // to the OWNER, not to a customer, so it has its own hour and is independent
+  // of auto_send_enabled. OPT-IN (treated as false when absent).
+  inactive_alert?: InactiveAlertConfig
+}
+interface InactiveAlertConfig {
+  enabled?: boolean
+  hour?: number
+  working_days_only?: boolean
+  recipients?: string[]
+  repeat_days?: number
+  attach_pdf?: boolean
+  include_never_ordered?: boolean
+  default_days?: number | null
+  by_type?: Record<string, number | null>
 }
 interface Template { subject: string; body: string }
 type Lang = 'nl' | 'en'
@@ -164,6 +186,11 @@ const DEFAULT_CONFIG: ReminderConfig = {
   // balance at once. Owner flips it in Settings → Reminders after reviewing a
   // sample in /overdue?tab=overview.
   monthly_overview_enabled: false,
+  // OPT-IN. Note the thresholds themselves live in the DB config and are read
+  // by get_customer_activity, NOT here: the RPC resolves the rule chain for
+  // both the cron and the browser so the screen can never promise a rule the
+  // digest does not honour. What this object gates is WHEN and TO WHOM.
+  inactive_alert: { enabled: false, hour: 8, working_days_only: true, repeat_days: 0, attach_pdf: true },
   steps: [
     { days_after_due: 1, template_key: 'payment_reminder_1', tone: 'gentle' },
     { days_after_due: 14, template_key: 'payment_reminder_2', tone: 'second' },
@@ -225,6 +252,7 @@ serve(async (req) => {
     clientSent: 0, clientFailed: 0, clientSkipped: 0, adminSent: 0,
     invoiceSent: 0, invoiceFailed: 0, invoiceSkipped: 0,
     overviewSent: 0, overviewFailed: 0, overviewSkipped: 0,
+    inactiveReported: 0, inactiveSent: 0, inactiveFailed: 0, inactiveSkipped: 0,
   }
 
   const hourOk = nowParts.hour === cfg.send_hour
@@ -665,8 +693,258 @@ serve(async (req) => {
     }
   }
 
+  // 8. Klantactiviteit — the daily "these customers stopped ordering" digest.
+  //    Folded in here rather than given its own cron for the same reason as
+  //    Step 7: a separate function needs its own Vault entries and secrets on
+  //    BOTH tenants. It has its own hour and its own working-day switch, and is
+  //    deliberately NOT under auto_send_enabled: this mail goes to the owner.
+  const ia = cfg.inactive_alert ?? {}
+  const iaHourOk = nowParts.hour === (ia.hour ?? 8)
+  const iaDayOk = ia.working_days_only === false || (nowParts.weekday >= 1 && nowParts.weekday <= 5)
+
+  if (ia.enabled === true && iaHourOk && iaDayOk) {
+    const runDate = amsterdamYmd()
+
+    // The cron wakes hourly; without this the 08:00 digest would mail again at
+    // 09:00. UNIQUE(run_date) makes it impossible even if two runs overlap.
+    const { data: existing } = await admin
+      .from('customer_inactivity_digests')
+      .select('id')
+      .eq('run_date', runDate)
+      .maybeSingle()
+
+    if (existing) {
+      result.inactiveSkipped++
+    } else {
+      // p_only_due = true: exactly the rows the screen calls "wordt gemeld".
+      // The rule chain (customer override → type → default) lives in the RPC.
+      const { data: dueRows, error: dueErr } = await admin
+        .rpc('get_customer_activity', { p_only_due: true })
+
+      let rows = (dueRows ?? []) as ActivityRow[]
+      if (dueErr) {
+        result.inactiveFailed++
+        rows = []
+      }
+
+      // Optional suppression: with repeat_days > 0 a customer already named in a
+      // recent digest is held back, so the mail stays worth opening. 0 (the
+      // default) reports every morning until they order.
+      const repeatDays = Math.max(0, ia.repeat_days ?? 0)
+      if (rows.length > 0 && repeatDays > 0) {
+        const since = dateOffsetISO(-repeatDays)
+        const { data: recent } = await admin
+          .from('customer_inactivity_digests')
+          .select('customer_ids')
+          .gte('run_date', since)
+        const seen = new Set<string>()
+        for (const d of (recent ?? [])) {
+          for (const id of ((d.customer_ids ?? []) as string[])) seen.add(id)
+        }
+        rows = rows.filter(r => !seen.has(r.customer_id))
+      }
+
+      if (rows.length === 0) {
+        // Nothing to report is the good case. Send no mail and write no row, so
+        // "no digest today" never has to be read as "the job did not run".
+        result.inactiveSkipped++
+      } else {
+        result.inactiveReported = rows.length
+
+        // Recipients: the configured list, else the owner's own login address.
+        let recipients = (ia.recipients ?? []).map(e => e.trim()).filter(Boolean)
+        if (recipients.length === 0) recipients = await ownerEmails(admin)
+
+        if (recipients.length === 0) {
+          result.inactiveFailed++
+        } else {
+          const subject = rows.length === 1
+            ? '1 klant heeft te lang niets besteld'
+            : `${rows.length} klanten hebben te lang niets besteld`
+          const body = buildInactivityBody(rows, runDate)
+
+          // Insert BEFORE sending: never mail something we cannot account for.
+          const { data: digest, error: digestErr } = await admin
+            .from('customer_inactivity_digests')
+            .insert({
+              run_date: runDate,
+              recipients,
+              customer_ids: rows.map(r => r.customer_id),
+              snapshot: rows,
+              customer_count: rows.length,
+              status: 'pending',
+            })
+            .select('id')
+            .single()
+
+          if (digestErr || !digest) {
+            result.inactiveFailed++
+          } else {
+            // Best-effort attachment. Unlike the statement, a missing PDF must
+            // NOT cancel the send: here the body is itself the report, and
+            // Gurbet has no renderer configured at all.
+            const pdf = ia.attach_pdf === false
+              ? null
+              : await fetchActivityPdf(digest.id as string)
+
+            let anyOk = false
+            let lastError: string | null = null
+            let lastId: string | null = null
+            for (const to of recipients) {
+              const { ok, resendId, error } = await sendResend(
+                RESEND_API_KEY, FROM_ADDRESS, to, subject, body, brand, pdf,
+              )
+              if (ok) { anyOk = true; lastId = resendId ?? null }
+              else lastError = error ?? 'unknown'
+            }
+
+            await admin.from('customer_inactivity_digests').update(
+              anyOk
+                ? { status: 'sent', resend_message_id: lastId, sent_at: new Date().toISOString() }
+                : { status: 'failed', error_message: lastError },
+            ).eq('id', digest.id)
+
+            if (anyOk) {
+              result.inactiveSent++
+              // One row in the existing per-user reminders table per owner, so
+              // this lands in the header bell beside their own reminders rather
+              // than becoming a second notification surface to check.
+              await notifyOwnersInBell(admin, subject, rows)
+            } else {
+              result.inactiveFailed++
+            }
+          }
+        }
+      }
+    }
+  }
+
   return json({ ok: true, ...result, ranAt: new Date().toISOString() }, 200)
 })
+
+// --- Klantactiviteit helpers (Step 8) --------------------------------------
+
+interface ActivityRow {
+  customer_id: string
+  company_name: string
+  customer_type: string | null
+  email: string | null
+  phone: string | null
+  city: string | null
+  last_order_date: string | null
+  order_count: number
+  days_since: number
+  threshold_days: number | null
+  rule_source: string
+  is_due: boolean
+}
+
+/** Owner login addresses, the fallback when no recipient is configured. */
+async function ownerEmails(admin: AdminClient): Promise<string[]> {
+  const { data: owners } = await admin.from('profiles').select('id').eq('role', 'owner')
+  const out: string[] = []
+  for (const o of ((owners ?? []) as Row[])) {
+    const { data: u } = await admin.auth.admin.getUserById(o.id as string)
+    const email = u?.user?.email
+    if (email) out.push(email)
+  }
+  return out
+}
+
+/** DD-MM-YYYY, the format every screen and document in this app uses. */
+function formatDateNl(iso: string | null): string {
+  if (!iso) return ''
+  const [y, m, d] = iso.slice(0, 10).split('-')
+  return `${d}-${m}-${y}`
+}
+
+/**
+ * 🚨 Grouping kept in sync with groupActivityRows() in
+ * apps/admin/src/services/customerActivity.ts, which shapes the same rows for
+ * the PDF and the screen. Never-ordered customers stand apart: a name with no
+ * history is a different job than a regular who went quiet.
+ */
+function groupForDigest(rows: ActivityRow[]): { label: string; threshold: number | null; rows: ActivityRow[] }[] {
+  const labels: Record<string, string> = {
+    horeca: 'Horeca', supermarkt: 'Supermarkt', other: 'Overig',
+    untagged: 'Zonder klanttype', never: 'Nog nooit besteld',
+  }
+  const buckets = new Map<string, ActivityRow[]>()
+  for (const r of rows) {
+    const key = r.order_count === 0 ? 'never' : (r.customer_type ?? 'untagged')
+    const list = buckets.get(key) ?? []
+    list.push(r)
+    buckets.set(key, list)
+  }
+  return ['horeca', 'supermarkt', 'other', 'untagged', 'never']
+    .filter(k => buckets.has(k))
+    .map(k => {
+      const list = buckets.get(k)!.sort((a, b) => b.days_since - a.days_since)
+      return {
+        label: labels[k],
+        threshold: k === 'never' ? null : (list.find(r => r.rule_source === 'type')?.threshold_days ?? null),
+        rows: list,
+      }
+    })
+}
+
+/**
+ * The mail body. Plain text (the branded shell wraps it at send time), Dutch
+ * only — this is an internal document, like the route list. Every line carries
+ * the three facts that make it actionable: when they last ordered, how long ago
+ * that was, and how to reach them.
+ */
+function buildInactivityBody(rows: ActivityRow[], runDate: string): string {
+  const groups = groupForDigest(rows)
+  const out: string[] = [
+    rows.length === 1
+      ? `Deze klant heeft te lang niets besteld (peildatum ${formatDateNl(runDate)}):`
+      : `Deze ${rows.length} klanten hebben te lang niets besteld (peildatum ${formatDateNl(runDate)}):`,
+    '',
+  ]
+  for (const g of groups) {
+    out.push(g.threshold != null ? `${g.label} (regel: ${g.threshold} dagen)` : g.label)
+    for (const r of g.rows) {
+      const when = r.last_order_date
+        ? `laatste bestelling ${formatDateNl(r.last_order_date)}`
+        : 'nog nooit besteld'
+      const extras: string[] = [`${r.days_since} dagen`]
+      // Name the exception, not the rule: an own rule is why this row is here
+      // on a day its type-mates are not.
+      if (r.rule_source === 'customer' && r.threshold_days != null) extras.push(`eigen regel: ${r.threshold_days} dagen`)
+      if (r.phone) extras.push(`tel. ${r.phone}`)
+      else if (r.email) extras.push(r.email)
+      out.push(`  ${r.company_name}: ${when}, ${extras.join(', ')}`)
+    }
+    out.push('')
+  }
+  out.push('Open Klantactiviteit in de app om een klant een eigen regel te geven of uit te zetten.')
+  return out.join('\n')
+}
+
+/** One bell notification per owner, in the reminders table they already use. */
+async function notifyOwnersInBell(
+  admin: AdminClient,
+  title: string,
+  rows: ActivityRow[],
+): Promise<void> {
+  const { data: owners } = await admin.from('profiles').select('id').eq('role', 'owner')
+  if (!owners || owners.length === 0) return
+  const names = rows.slice(0, 5).map(r => `${r.company_name} (${r.days_since} d)`).join(', ')
+  const notes = rows.length > 5 ? `${names} en ${rows.length - 5} meer` : names
+  const now = new Date().toISOString()
+  await admin.from('reminders').insert(
+    (owners as Row[]).map(o => ({
+      user_id: o.id as string,
+      title,
+      notes,
+      remind_at: now,
+      category: 'customer_inactive',
+      // The mail already went out; this is the in-app copy of it.
+      email_enabled: false,
+    })),
+  )
+}
 
 // --- helpers ---------------------------------------------------------------
 
@@ -790,7 +1068,7 @@ interface OverviewSnapshot {
 }
 
 async function buildOverviewSnapshot(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   customerId: string,
   period: string,
   lines: Record<string, unknown>[],
@@ -863,6 +1141,16 @@ function fetchOverviewPdf(overviewId: string) {
   return fetchRenderedPdf(
     { type: 'payment_overview', overviewId },
     `Betaaloverzicht-${overviewId}.pdf`,
+  )
+}
+
+/** Klantactiviteit digest, rendered from customer_inactivity_digests.snapshot.
+ *  Returns null when no renderer is configured (Gurbet), and Step 8 sends the
+ *  mail anyway — the body is the report, the PDF is the readable copy. */
+function fetchActivityPdf(digestId: string) {
+  return fetchRenderedPdf(
+    { type: 'customer_activity', digestId },
+    `Klantactiviteit-${digestId}.pdf`,
   )
 }
 

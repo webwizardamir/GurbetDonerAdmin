@@ -18,6 +18,8 @@ import {
   REMINDER_PLACEHOLDER_KEYS,
 } from '../../services/documentEmail'
 import { DEFAULT_CLIENT_REMINDER_CONFIG } from '../../services/invoiceReminders'
+import { normalizeInactiveAlert } from '../../services/customerActivity'
+import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../../constants/customerType'
 import LangTabs from './LangTabs'
 
 // One template per tone; the schedule references templates via tone.
@@ -47,6 +49,11 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
   const overviewChips = useMemo(() => OVERVIEW_PLACEHOLDER_KEYS.map(k => `{{${k}}}`), [])
 
   const patch = (p: Partial<ClientReminderConfig>) => onConfigChange({ ...cfg, ...p })
+
+  // Klantactiviteit lives one level down in the same JSONB blob, so it gets its
+  // own patcher rather than spreading a nested object at every call site.
+  const ia = normalizeInactiveAlert(cfg.inactive_alert)
+  const patchIa = (p: Partial<typeof ia>) => patch({ inactive_alert: { ...ia, ...p } })
 
   const updateStep = (idx: number, p: Partial<ClientReminderStep>) => {
     const steps = cfg.steps.map((s, i) => {
@@ -161,6 +168,176 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
             className={`${inputClass} font-mono text-xs`}
           />
         </div>
+      </div>
+
+      {/* Klantactiviteit — the daily "these customers stopped ordering" digest.
+          The one card on this tab whose mail goes to the OWNER rather than to a
+          customer, which is why it carries its own hour and its own recipients
+          and sits outside the dunning kill switch below. */}
+      <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-slate-900 dark:text-white">{t('settings.reminders.inactive.title')}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('settings.reminders.inactive.subtitle')}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={ia.enabled}
+            onClick={() => patchIa({ enabled: !ia.enabled })}
+            className={toggleClass(ia.enabled)}
+          >
+            <span className={knobClass(ia.enabled)} />
+          </button>
+        </div>
+
+        {ia.enabled && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label={t('settings.reminders.inactive.hour')}>
+                <input
+                  type="number" min={0} max={23}
+                  value={ia.hour}
+                  onChange={e => patchIa({ hour: clamp(+e.target.value, 0, 23) })}
+                  className={inputClass}
+                />
+              </Field>
+              <label className="flex items-center gap-3 pt-7">
+                <button
+                  type="button" role="switch" aria-checked={ia.working_days_only}
+                  onClick={() => patchIa({ working_days_only: !ia.working_days_only })}
+                  className={toggleClass(ia.working_days_only)}
+                >
+                  <span className={knobClass(ia.working_days_only)} />
+                </button>
+                <span className="text-sm text-slate-700 dark:text-slate-300">{t('settings.reminders.autoSend.workingDaysOnly')}</span>
+              </label>
+            </div>
+
+            {/* Empty means the owner's own login address, so "default to the
+                admin email" needs no stored value and never goes stale. */}
+            <Field label={t('settings.reminders.inactive.recipients')}>
+              <input
+                type="text"
+                value={ia.recipients.join(', ')}
+                placeholder={t('settings.reminders.inactive.recipientsPlaceholder')}
+                onChange={e => patchIa({
+                  recipients: e.target.value.split(',').map(s => s.trim()).filter(Boolean),
+                })}
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('settings.reminders.inactive.recipientsHint')}</p>
+            </Field>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label={t('settings.reminders.inactive.repeat')}>
+                <select
+                  value={ia.repeat_days}
+                  onChange={e => patchIa({ repeat_days: +e.target.value })}
+                  className={inputClass}
+                >
+                  <option value={0}>{t('settings.reminders.inactive.repeatDaily')}</option>
+                  <option value={7}>{t('settings.reminders.inactive.repeatWeekly')}</option>
+                  <option value={14}>{t('settings.reminders.inactive.repeatBiweekly')}</option>
+                </select>
+              </Field>
+              <label className="flex items-center gap-3 pt-7">
+                <button
+                  type="button" role="switch" aria-checked={ia.attach_pdf}
+                  onClick={() => patchIa({ attach_pdf: !ia.attach_pdf })}
+                  className={toggleClass(ia.attach_pdf)}
+                >
+                  <span className={knobClass(ia.attach_pdf)} />
+                </button>
+                <span className="text-sm text-slate-700 dark:text-slate-300">{t('settings.reminders.inactive.attachPdf')}</span>
+              </label>
+            </div>
+
+            {/* Per-type rules. The switch is what makes "not monitored"
+                unambiguous: an empty number field reads as a mistake. */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('settings.reminders.inactive.rulesTitle')}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t('settings.reminders.inactive.rulesHint')}</p>
+              {CUSTOMER_TYPES.map(ct => {
+                const days = ia.by_type[ct]
+                const on = days != null
+                return (
+                  <div key={ct} className="flex items-center gap-3 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <button
+                      type="button" role="switch" aria-checked={on}
+                      aria-label={CUSTOMER_TYPE_LABELS[ct]}
+                      onClick={() => patchIa({ by_type: { ...ia.by_type, [ct]: on ? null : 30 } })}
+                      className={toggleClass(on)}
+                    >
+                      <span className={knobClass(on)} />
+                    </button>
+                    <span className="flex-1 text-sm text-slate-700 dark:text-slate-300">{CUSTOMER_TYPE_LABELS[ct]}</span>
+                    {on ? (
+                      <>
+                        <input
+                          type="number" min={1} max={3650}
+                          value={days ?? 30}
+                          onChange={e => patchIa({ by_type: { ...ia.by_type, [ct]: clamp(+e.target.value, 1, 3650) } })}
+                          className="w-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                        />
+                        <span className="text-xs text-slate-500 dark:text-slate-400 w-28">
+                          {t('settings.reminders.inactive.daysSuffix')} · {friendlyDays(days ?? 30, t)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{t('settings.reminders.inactive.notMonitored')}</span>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Untagged customers get their own line rather than silently
+                  falling into "Overig", which is a real customer type here. */}
+              <div className="flex items-center gap-3 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button" role="switch" aria-checked={ia.default_days != null}
+                  aria-label={t('settings.reminders.inactive.untagged')}
+                  onClick={() => patchIa({ default_days: ia.default_days != null ? null : 30 })}
+                  className={toggleClass(ia.default_days != null)}
+                >
+                  <span className={knobClass(ia.default_days != null)} />
+                </button>
+                <span className="flex-1 text-sm text-slate-700 dark:text-slate-300">{t('settings.reminders.inactive.untagged')}</span>
+                {ia.default_days != null ? (
+                  <>
+                    <input
+                      type="number" min={1} max={3650}
+                      value={ia.default_days}
+                      onChange={e => patchIa({ default_days: clamp(+e.target.value, 1, 3650) })}
+                      className="w-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                    />
+                    <span className="text-xs text-slate-500 dark:text-slate-400 w-28">
+                      {t('settings.reminders.inactive.daysSuffix')} · {friendlyDays(ia.default_days, t)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('settings.reminders.inactive.notMonitored')}</span>
+                )}
+              </div>
+            </div>
+
+            {/* 133 of 251 live customers have no order at all (import leftovers).
+                Including them buries the customers who actually stopped. */}
+            <label className="flex items-start gap-3">
+              <button
+                type="button" role="switch" aria-checked={ia.include_never_ordered}
+                onClick={() => patchIa({ include_never_ordered: !ia.include_never_ordered })}
+                className={`${toggleClass(ia.include_never_ordered)} mt-0.5 shrink-0`}
+              >
+                <span className={knobClass(ia.include_never_ordered)} />
+              </button>
+              <span>
+                <span className="block text-sm text-slate-700 dark:text-slate-300">{t('settings.reminders.inactive.includeNever')}</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">{t('settings.reminders.inactive.includeNeverHint')}</span>
+              </span>
+            </label>
+          </>
+        )}
       </div>
 
       {/* Auto-send kill switch */}
@@ -337,6 +514,14 @@ export default function RemindersTab({ formData, onConfigChange, onTemplatesChan
 
 const inputClass =
   'w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500'
+
+/** "30 dagen" is the stored truth; "1 maand" is how the owner thinks about it,
+ *  so the input shows both rather than making him translate. */
+function friendlyDays(days: number, t: (k: string, o?: Record<string, unknown>) => string): string {
+  if (days % 30 === 0 && days >= 30) return t('settings.reminders.inactive.months', { count: days / 30 })
+  if (days % 7 === 0) return t('settings.reminders.inactive.weeks', { count: days / 7 })
+  return t('settings.reminders.inactive.days', { count: days })
+}
 
 function clamp(n: number, min: number, max: number) {
   if (Number.isNaN(n)) return min

@@ -17,6 +17,7 @@ import {
   CalendarClock,
   Check,
   Settings,
+  UserX,
 } from 'lucide-react'
 import { useOverdueInvoices } from '../hooks/useOverdueInvoices'
 import { formatPrice, formatDate, formatDateTime } from '../utils/format'
@@ -34,6 +35,7 @@ import SegmentedControl from '../components/ui/SegmentedControl'
 import Modal from '../components/ui/Modal'
 import EmailViewModal from '../components/documents/EmailViewModal'
 import PaymentOverviewTab from '../components/overdue/PaymentOverviewTab'
+import CustomerActivityTab from '../components/overdue/CustomerActivityTab'
 import { useAuth } from '../context/AuthContext'
 import type { ClientReminderConfig, DocumentSend, DocumentSettings, OverdueInvoice } from '../types'
 
@@ -420,10 +422,11 @@ export default function OverdueInvoices() {
   const { t } = useTranslation()
   const { isOwner } = useAuth()
   const [params, setParams] = useSearchParams()
-  const tab: 'invoices' | 'overview' =
-    isOwner && params.get('tab') === 'overview' ? 'overview' : 'invoices'
+  const requested = params.get('tab')
+  const tab: 'invoices' | 'overview' | 'activity' =
+    isOwner && (requested === 'overview' || requested === 'activity') ? requested : 'invoices'
 
-  const selectTab = (next: 'invoices' | 'overview') => {
+  const selectTab = (next: 'invoices' | 'overview' | 'activity') => {
     const p = new URLSearchParams(params)
     if (next === 'invoices') p.delete('tab')
     else p.set('tab', next)
@@ -439,6 +442,7 @@ export default function OverdueInvoices() {
           {([
             { id: 'invoices' as const, icon: <BellRing className="w-4 h-4" />, label: t('overdue.tabs.invoices') },
             { id: 'overview' as const, icon: <Receipt className="w-4 h-4" />, label: t('overdue.tabs.overview') },
+            { id: 'activity' as const, icon: <UserX className="w-4 h-4" />, label: t('overdue.tabs.activity') },
           ]).map(item => (
             <button
               key={item.id}
@@ -456,7 +460,9 @@ export default function OverdueInvoices() {
         </nav>
       </div>
 
-      {tab === 'overview' ? <PaymentOverviewTab /> : <InvoiceQueueView />}
+      {tab === 'overview' ? <PaymentOverviewTab />
+        : tab === 'activity' ? <CustomerActivityTab />
+        : <InvoiceQueueView />}
     </div>
   )
 }

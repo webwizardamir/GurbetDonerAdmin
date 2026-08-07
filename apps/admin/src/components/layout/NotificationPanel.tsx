@@ -15,6 +15,7 @@ import {
   X,
   Repeat,
   Mail,
+  Zap,
 } from 'lucide-react'
 import type {
   Reminder,
@@ -149,6 +150,18 @@ export default function NotificationPanel({
 
   const badges = (r: Reminder) => (
     <>
+      {/* An automatic row (the daily Klantactiviteit digest) is not something
+          the user typed, so it says so: otherwise a reminder nobody set looks
+          like a bug. It is still dismissable exactly like a manual one, and
+          tomorrow's digest simply inserts a fresh row. */}
+      {r.category === 'customer_inactive' && (
+        <span
+          className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+          title={t('reminders.automatic')}
+        >
+          <Zap className="w-2.5 h-2.5" /> {t('reminders.automatic')}
+        </span>
+      )}
       {r.recurrence && r.recurrence !== 'none' && (
         <span className="inline-flex items-center gap-0.5 text-[10px] text-slate-400 dark:text-slate-500" title={t(`reminders.recurrence.${r.recurrence}`)}>
           <Repeat className="w-3 h-3" />

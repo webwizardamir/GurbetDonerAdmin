@@ -1820,6 +1820,32 @@
         "subtitle": "Açık faturası olan her müşteriye ayın ilk iş gününde tek bir özet gönderin.",
         "note": "Aşağıdaki hatırlatmalardan bağımsızdır: ödeme özeti, vadesi henüz gelmemiş müşterilere de gider. Gönderim saati aşağıdaki saat ve iş günü ayarlarını izler. Önce Vadesi geçmiş faturalar → Ödeme özeti üzerinden bir önizlemeye bakın.",
         "copyTitle": "Ödeme özeti e-posta metni"
+      },
+      "inactive": {
+        "title": "Müşteri etkinliği",
+        "subtitle": "Uzun süredir sipariş vermeyen müşterileri listeleyen sabah e-postası.",
+        "hour": "Gönderim saati",
+        "recipients": "Alıcılar",
+        "recipientsPlaceholder": "Varsayılan: kendi e-posta adresiniz",
+        "recipientsHint": "Birden fazla adresi virgülle ayırın. Boş bırakırsanız kendi giriş adresinize gönderilir.",
+        "repeat": "Tekrar",
+        "repeatDaily": "Sipariş verene kadar her sabah",
+        "repeatWeekly": "Müşteri başına en fazla haftada bir",
+        "repeatBiweekly": "Müşteri başına en fazla iki haftada bir",
+        "attachPdf": "PDF genel bakışı ekle",
+        "rulesTitle": "Müşteri tipine göre kurallar",
+        "rulesHint": "Kaç gün sipariş verilmezse müşteri bildirilir. Kapalı, bu tipin izlenmediği anlamına gelir.",
+        "notMonitored": "İzlenmiyor",
+        "daysSuffix": "gün",
+        "untagged": "Müşteri tipi olmayanlar",
+        "includeNever": "Hiç sipariş vermemiş müşteriler de dahil",
+        "includeNeverHint": "Genelde eski içe aktarmalar. Gerçekten duran müşteriler kaybolmasın diye kapalı.",
+        "months_one": "1 ay",
+        "months_other": "{{count}} ay",
+        "weeks_one": "1 hafta",
+        "weeks_other": "{{count}} hafta",
+        "days_one": "1 gün",
+        "days_other": "{{count}} gün"
       }
     }
   },
@@ -1890,7 +1916,8 @@
       "inHour": "{{n}} sa içinde",
       "dayAgo": "{{n}} gün önce",
       "inDay": "{{n}} gün içinde"
-    }
+    },
+    "automatic": "Otomatik"
   },
   "categories": {
     "title": "Kategoriler",
@@ -2256,7 +2283,8 @@
     },
     "tabs": {
       "invoices": "Faturalar",
-      "overview": "Ödeme özeti"
+      "overview": "Ödeme özeti",
+      "activity": "Müşteri etkinliği"
     }
   },
   "paymentOverview": {
@@ -2329,6 +2357,69 @@
       "noEmail": "E-posta adresi yok",
       "optedOut": "Çıkmış",
       "blockedHint": "Bu müşteriye ayın 1'inde ekstre GÖNDERİLMEZ. Yine de elle gönderebilirsiniz."
+    }
+  },
+  "customerActivity": {
+    "searchPlaceholder": "Müşteri veya şehir ara",
+    "never": "Hiç",
+    "empty": "Bu seçimde müşteri yok.",
+    "daysLabel": "gün",
+    "daysValue_one": "{{count}} gün",
+    "daysValue_other": "{{count}} gün",
+    "rowMenu": "{{name}} için seçenekler",
+    "editRule": "Kuralı değiştir",
+    "history": "Gönderilenler",
+    "historyTitle": "Gönderilen genel bakışlar",
+    "historyEmpty": "Henüz gönderim yok.",
+    "historyCount_one": "{{count}} müşteri",
+    "historyCount_other": "{{count}} müşteri",
+    "neverOrderedNote_one": "{{count}} aktif müşteri hiç sipariş vermedi. Varsayılan olarak e-postaya alınmaz.",
+    "neverOrderedNote_other": "{{count}} aktif müşteri hiç sipariş vermedi. Varsayılan olarak e-postaya alınmaz.",
+    "stats": {
+      "reported": "Bildirilen",
+      "longest": "En uzun sessiz",
+      "customRule": "Kendi kuralı",
+      "unmonitored": "İzlenmiyor"
+    },
+    "scope": {
+      "due": "Bildirilen",
+      "custom": "Kendi kuralı",
+      "all": "Tüm müşteriler"
+    },
+    "status": {
+      "due": "Bildirildi",
+      "ok": "Zamanında",
+      "off": "Kapalı"
+    },
+    "sendStatus": {
+      "pending": "Devam ediyor",
+      "sent": "Gönderildi",
+      "failed": "Başarısız"
+    },
+    "col": {
+      "customer": "Müşteri",
+      "type": "Tip",
+      "lastOrder": "Son sipariş",
+      "days": "Gün",
+      "rule": "Kural",
+      "status": "Durum"
+    },
+    "rule": {
+      "inherit": "Tip kuralını izle",
+      "inheritHint": "Bu müşteri, müşteri tipinin varsayılan kuralını izler.",
+      "custom": "Kendi gün sayısı",
+      "customHint": "Müşteri tipinden bağımsız olarak yalnızca bu müşteri için.",
+      "off": "Bildirme",
+      "offHint": "Bu müşteri günlük e-postanın tamamen dışında kalır."
+    },
+    "widget": {
+      "title": "Sipariş vermeyen müşteriler",
+      "summary_one": "{{count}} müşteri, en uzun sessiz {{days}} gün",
+      "summary_other": "{{count}} müşteri, en uzun sessiz {{days}} gün",
+      "minimizedBar_one": "{{count}} müşteri uzun süredir sipariş vermedi",
+      "minimizedBar_other": "{{count}} müşteri uzun süredir sipariş vermedi",
+      "lastOrder": "Son sipariş {{date}}",
+      "viewAll": "Müşteri etkinliğini gör"
     }
   }
 }
