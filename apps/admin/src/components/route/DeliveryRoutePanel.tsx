@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   X, Loader2, Truck, Route as RouteIcon, Navigation,
   FileText, Copy, AlertTriangle, RefreshCw, Share2, Receipt, ListFilter,
-  Save, BookmarkCheck, Info,
+  Save, BookmarkCheck, Info, Globe,
 } from 'lucide-react'
 import { useDeliveryRoute } from '../../hooks/useDeliveryRoute'
 import { buildGoogleMapsUrl, formatDistance, formatDuration, etaClock } from '../../utils/route'
@@ -28,10 +28,13 @@ interface Props {
    *  order ids flattened into exact delivery sequence — so the day-close modal
    *  can print invoices in route order. */
   onRouteOrderChange?: (orderedOrderIds: string[]) => void
+  /** Fired with the order ids of the stops that were deliberately taken off the
+   *  round, so Dagafsluiting can start with those orders unticked. */
+  onExcludedOrdersChange?: (excludedOrderIds: string[]) => void
   onClose: () => void
 }
 
-export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, customerType, onRouteOrderChange, onClose }: Props) {
+export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, customerType, onRouteOrderChange, onExcludedOrdersChange, onClose }: Props) {
   const { t } = useTranslation()
   const r = useDeliveryRoute(day, endDay, cities, customerType)
   const cityLabel = cities && cities.length ? cities.join(', ') : ''
@@ -54,6 +57,12 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
   useEffect(() => {
     onRouteOrderChange?.(orderedInvoiceIds)
   }, [orderedInvoiceIds, onRouteOrderChange])
+
+  // Same channel for the stops taken off the round: Dagafsluiting starts with
+  // those orders unticked instead of quietly invoicing what was just excluded.
+  useEffect(() => {
+    onExcludedOrdersChange?.(r.excludedOrderIds)
+  }, [r.excludedOrderIds, onExcludedOrdersChange])
 
   const printInvoices = async (mode: InvoiceOutputMode) => {
     if (orderedInvoiceIds.length === 0) return
@@ -124,7 +133,7 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
     if (!er) return ''
     const lines = er.stops.map(s => {
       const eta = etaClock(er.departureTime, s.etaSeconds)
-      return `${s.sequence}. ${s.customerName} — ${s.address.oneLine}${eta ? `  (${eta})` : ''}`
+      return `${s.sequence}. ${s.customerName}, ${s.address.oneLine}${eta ? `  (${eta})` : ''}`
     })
     return `Bezorgroute ${dutchDate()}\n${lines.join('\n')}`
   }
@@ -212,6 +221,18 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
               {t('route.returnToDepot')}
             </label>
 
+            {/* Foreign stops are the exception, so this only appears on a day
+                that actually has one. The preference is remembered, so a regular
+                cross-border run is set once, not re-ticked every morning. */}
+            {r.foreignCount > 0 && (
+              <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400 cursor-pointer" title={t('route.includeForeignHint')}>
+                <input type="checkbox" checked={r.includeForeign} onChange={r.toggleIncludeForeign}
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-amber-600 focus:ring-amber-500" />
+                <Globe className="w-3.5 h-3.5 shrink-0" />
+                {t('route.includeForeign', { count: r.foreignCount })}
+              </label>
+            )}
+
             {/* The loading order is the reverse of the arrangement on screen —
                 it needs no Google run, so it is offered whenever there are
                 stops, not only after an optimize. */}
@@ -281,7 +302,7 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
                     <p className="font-medium">{t('route.plan.driftTitle')}</p>
                     {r.drift.addedOrderIds.length > 0 && (
                       <p>{t('route.plan.driftAdded', { count: r.drift.addedOrderIds.length })}
-                        {r.drift.newCustomerIds.length > 0 && ` — ${t('route.plan.driftNewStops', { count: r.drift.newCustomerIds.length })}`}
+                        {r.drift.newCustomerIds.length > 0 && ` · ${t('route.plan.driftNewStops', { count: r.drift.newCustomerIds.length })}`}
                       </p>
                     )}
                     {r.drift.removedOrderIds.length > 0 && (
@@ -320,7 +341,7 @@ export default function DeliveryRoutePanel({ day, endDay, dayLabel, cities, cust
                   <p className="text-sm text-amber-700 dark:text-amber-300 mb-1.5">{t('route.geocodeFailed', { count: r.route.geocodeFailures.length })}</p>
                   <ul className="space-y-0.5">
                     {r.route.geocodeFailures.map(f => (
-                      <li key={f.customerId} className="text-xs text-amber-600 dark:text-amber-400">{f.customerName} — {f.address.oneLine || t('route.noAddress')}</li>
+                      <li key={f.customerId} className="text-xs text-amber-600 dark:text-amber-400">{f.customerName} · {f.address.oneLine || t('route.noAddress')}</li>
                     ))}
                   </ul>
                 </div>

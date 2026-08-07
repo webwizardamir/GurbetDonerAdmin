@@ -40,10 +40,23 @@ export interface DisplayStop extends RouteStopInput {
 }
 
 // A stop counts as "local" (van-deliverable) when its country is NL or unset.
-// Foreign customers are export/freight orders and start deselected.
+// Foreign customers are usually export/freight orders, so they start deselected
+// — but that is a DEFAULT, not a rule: `includeForeign` below hands the choice
+// back to the admin, and the preference is remembered.
 function isLocalStop(s: RouteStopInput): boolean {
   const c = (s.address.country || '').trim().toUpperCase()
   return c === '' || c === 'NL' || c === 'NEDERLAND' || c === 'NETHERLANDS'
+}
+
+// Cross-border runs are the exception (a handful of orders against a full van
+// of local ones), so the toggle defaults to OFF and is remembered per browser:
+// an admin who does drive abroad sets it once instead of every single day.
+const INCLUDE_FOREIGN_KEY = 'route.includeForeign'
+function readIncludeForeign(): boolean {
+  try { return localStorage.getItem(INCLUDE_FOREIGN_KEY) === '1' } catch { return false }
+}
+function persistIncludeForeign(v: boolean) {
+  try { localStorage.setItem(INCLUDE_FOREIGN_KEY, v ? '1' : '0') } catch { /* private mode */ }
 }
 
 function arrayMove<T>(arr: T[], from: number, to: number): T[] {
@@ -100,8 +113,19 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
   const [candidatesError, setCandidatesError] = useState<string | null>(null)
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  // Stops the user DELIBERATELY took off the round (or that a saved plan left
+  // out while they were deliverable). Deliberately NOT the same thing as
+  // `excludedStops`: a foreign customer starts unticked automatically because it
+  // ships by freight, and it still needs its invoice — so it must never be
+  // unticked in Dagafsluiting on the strength of an auto-exclusion nobody chose.
+  const [userExcludedIds, setUserExcludedIds] = useState<Set<string>>(new Set())
   const [locks, setLocks] = useState<Map<string, LockPosition>>(new Map())
   const [manualOrder, setManualOrder] = useState<string[]>([])
+  // Admin's standing answer to "does the van go abroad?". Read through a ref by
+  // the loader so flipping it re-seeds the selection without refetching the day.
+  const [includeForeign, setIncludeForeign] = useState(readIncludeForeign)
+  const includeForeignRef = useRef(includeForeign)
+  includeForeignRef.current = includeForeign
   // Default to the current local time (rounded to the minute); the user can
   // still override via the time input in the panel.
   const [departureHHmm, setDepartureHHmm] = useState(() => {
@@ -186,11 +210,14 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
         setStatusCounts(counts)
 
         if (!plan) {
-          // Default-select local (NL) stops only. Foreign customers are export/
-          // freight orders, not van deliveries — they start unticked (visible in
-          // "Niet meegenomen") so a Paris order never bloats a local route, but
-          // can still be added back for a cross-border run.
-          setSelectedIds(new Set(stops.filter(isLocalStop).map(s => s.customerId)))
+          // Default-select local (NL) stops only. Foreign customers are usually
+          // export/freight orders, not van deliveries, so they start unticked
+          // (visible in "Niet meegenomen") and a Paris order never bloats a
+          // local route. The admin's "Buitenland meenemen" preference overrides
+          // that, and any stop can still be ticked back one at a time.
+          const wanted = (s: RouteStopInput) => includeForeignRef.current || isLocalStop(s)
+          setSelectedIds(new Set(stops.filter(wanted).map(s => s.customerId)))
+          setUserExcludedIds(new Set())
           setLocks(new Map())
           setManualOrder(stops.map(s => s.customerId))
           return
@@ -215,9 +242,17 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
         const included = new Set(plan.plan.includedIds.filter(id => liveIds.has(id)))
         for (const id of appended) {
           const s = stops.find(x => x.customerId === id)
-          if (s && isLocalStop(s)) included.add(id)
+          if (s && (includeForeignRef.current || isLocalStop(s))) included.add(id)
         }
         setSelectedIds(included)
+        // A stop the saved plan leaves out while it WOULD have been picked up by
+        // default was taken off the round on purpose; a foreign one left out
+        // while "Buitenland meenemen" is off is only the default, not a decision.
+        setUserExcludedIds(new Set(
+          stops
+            .filter(s => (includeForeignRef.current || isLocalStop(s)) && !included.has(s.customerId))
+            .map(s => s.customerId),
+        ))
         setLocks(new Map(
           plan.plan.locks
             .filter(l => liveIds.has(l.customerId))
@@ -265,13 +300,58 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
       else next.add(id)
       return next
     })
+    // Mirror the click into the deliberate-exclusion set, so Dagafsluiting can
+    // untick exactly the orders that were taken off the round by hand.
+    setUserExcludedIds(prev => {
+      const next = new Set(prev)
+      if (selectedIds.has(id)) next.add(id)
+      else next.delete(id)
+      return next
+    })
     markEdited()
-  }, [markEdited])
+  }, [selectedIds, markEdited])
   const selectAll = useCallback(() => {
     setSelectedIds(new Set(candidates.map(s => s.customerId)))
+    setUserExcludedIds(new Set())
     markEdited()
   }, [candidates, markEdited])
-  const selectNone = useCallback(() => { setSelectedIds(new Set()); markEdited() }, [markEdited])
+  const selectNone = useCallback(() => {
+    setSelectedIds(new Set())
+    setUserExcludedIds(new Set(candidates.map(s => s.customerId)))
+    markEdited()
+  }, [candidates, markEdited])
+
+  // Standing policy for foreign stops, applied to the whole day at once. It is
+  // NOT a per-order decision: switching it off leaves the userExcluded set
+  // alone, so it never unticks anyone's invoice in Dagafsluiting. Excluding a
+  // single foreign stop by hand still does.
+  const toggleIncludeForeign = useCallback(() => {
+    const next = !includeForeignRef.current
+    setIncludeForeign(next)
+    persistIncludeForeign(next)
+    const foreignIds = candidates.filter(s => !isLocalStop(s)).map(s => s.customerId)
+    setSelectedIds(prev => {
+      const set = new Set(prev)
+      for (const id of foreignIds) {
+        if (next) set.add(id)
+        else set.delete(id)
+      }
+      return set
+    })
+    if (next) {
+      setUserExcludedIds(prev => {
+        const set = new Set(prev)
+        for (const id of foreignIds) set.delete(id)
+        return set
+      })
+    }
+    markEdited()
+  }, [candidates, markEdited])
+
+  const foreignCount = useMemo(
+    () => candidates.filter(s => !isLocalStop(s)).length,
+    [candidates],
+  )
 
   // ---- locks ---------------------------------------------------------------
   const setLock = useCallback((id: string, position: LockPosition | null) => {
@@ -540,6 +620,14 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     [includedStops],
   )
 
+  // Order ids behind the deliberately-excluded stops. Dagafsluiting unticks
+  // these, so a stop taken off the round doesn't quietly get its invoice
+  // printed a minute later — the two steps are one flow.
+  const excludedOrderIds = useMemo(
+    () => candidates.filter(c => userExcludedIds.has(c.customerId)).flatMap(c => c.orderIds),
+    [candidates, userExcludedIds],
+  )
+
   return {
     // candidates / loading
     loadingCandidates,
@@ -549,6 +637,7 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     // display
     includedStops,
     excludedStops,
+    excludedOrderIds,
     loadingOrder,
     itemCount,
     // route result
@@ -576,6 +665,9 @@ export function useDeliveryRoute(day: string, endDay?: string, cities?: string[]
     setStatusFilter,
     departureHHmm,
     returnToDepot,
+    includeForeign,
+    toggleIncludeForeign,
+    foreignCount,
     toggleStop,
     selectAll,
     selectNone,

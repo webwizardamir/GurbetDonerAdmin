@@ -31,7 +31,7 @@ export interface CreatePriceListInput {
 
 export async function createPriceList(input: CreatePriceListInput): Promise<PriceList> {
   const { data: userData } = await supabase.auth.getUser()
-  if (!userData?.user?.id) throw new Error('Sessie verlopen — log opnieuw in.')
+  if (!userData?.user?.id) throw new Error('Sessie verlopen. Log opnieuw in.')
   const { data, error } = await supabase
     .from('price_lists')
     .insert({

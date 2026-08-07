@@ -287,7 +287,7 @@ export default function BulkSendInvoicesModal({ docs, onClose, onFinished }: Bul
                         : f.sendId
                           ? t('documents.bulkSend.failSend')
                           : t('documents.bulkSend.failRender')}
-                      {f.error ? ` — ${f.error}` : ''}
+                      {f.error ? `: ${f.error}` : ''}
                     </p>
                   </li>
                 ))}

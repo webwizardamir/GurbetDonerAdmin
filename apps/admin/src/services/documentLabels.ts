@@ -105,7 +105,7 @@ const NL = {
   payOldInvoices: 'Oude Facturen',
   receipt: 'Ontvangst',
   // reverse charge
-  verlegdLabel: 'BTW verlegd — intracommunautaire levering',
+  verlegdLabel: 'BTW verlegd: intracommunautaire levering',
   verlegdBody: ' (Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW. BTW-nummer afnemer: ',
   // IBAN callout (invoice) — centered block under the payment terms
   ibanPay: 'Gelieve het bedrag over te maken op IBAN:',
@@ -250,7 +250,7 @@ const EN: typeof NL = {
   payOpenBank: 'Open/Bank',
   payOldInvoices: 'Previous invoices',
   receipt: 'Receipt',
-  verlegdLabel: 'VAT reverse charge — intra-Community supply',
+  verlegdLabel: 'VAT reverse charge: intra-Community supply',
   verlegdBody: ' (Art. 138 EU VAT Directive 2006/112/EC). 0% VAT. Customer VAT number: ',
   ibanPay: 'Please transfer the amount to IBAN:',
   ibanHolderPrefix: 'in the name of ',

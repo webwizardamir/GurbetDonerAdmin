@@ -20,7 +20,7 @@ export default function LoadingOrderList({ loadingOrder }: Props) {
     <div className="space-y-2">
       <div className="border-l-2 border-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-r-lg">
         <p className="text-xs text-amber-700 dark:text-amber-300">
-          <span className="font-semibold">{t('route.loadingOrder')} — {t('route.reverseOfDelivery')}.</span>{' '}
+          <span className="font-semibold">{t('route.loadingOrder')} ({t('route.reverseOfDelivery')}).</span>{' '}
           {t('route.loadingBanner')}
         </p>
       </div>

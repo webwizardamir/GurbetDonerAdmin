@@ -114,7 +114,7 @@
     },
     "actor": {
       "system": "Sistem / Otomatik",
-      "systemTooltip": "Otomatik işlem (cron, e-posta, içe aktarma veya portal) — oturum açmış kullanıcı yok."
+      "systemTooltip": "Otomatik işlem (cron, e-posta, içe aktarma veya portal), oturum açmış kullanıcı yok."
     },
     "enum": {
       "pending": "beklemede",
@@ -496,7 +496,7 @@
       "internalNotes": "Dahili Notlar",
       "pricing": "Fiyatlandırma",
       "priceList": "Fiyat Listesi",
-      "priceListNone": "Yok — ürün varsayılanlarını kullan",
+      "priceListNone": "Yok (ürün varsayılanlarını kullan)",
       "priceListHint": "İsteğe bağlı. Müşteriye özel fiyatlar yine de listenin önüne geçer.",
       "paymentDueDaysHint": "Bu müşterinin ödeme için sahip olduğu gün sayısı. Varsayılan vadeyi kullanmak için boş bırakın.",
       "enterCompanyName": "Firma adını girin",
@@ -511,7 +511,7 @@
       "emailExists": "Bu e-posta adresine sahip bir müşteri zaten var",
       "saveError": "Müşteri kaydedilemedi",
       "saveChanges": "Değişiklikleri Kaydet",
-      "foreignHint": "Yurt dışı müşteri — faturalar %0 KDV ile düzenlenecek (KDV tevkifatı).",
+      "foreignHint": "Yurt dışı müşteri: faturalar %0 KDV ile düzenlenecek (KDV tevkifatı).",
       "vatRequired": "yurt dışı müşteriler için zorunlu"
     },
     "countries": {
@@ -597,7 +597,7 @@
     "title": "Ürünler",
     "id": "ID",
     "downloadTemplate": "Şablonu indir",
-    "downloadTemplateWithData": "Tüm ürünleri indir (.xlsx) — düzenleyip yeniden yükleyin",
+    "downloadTemplateWithData": "Tüm ürünleri indir (.xlsx), düzenleyip yeniden yükleyin",
     "import": {
       "title": "Ürünleri içe aktar",
       "selectFile": "Dosya seç",
@@ -801,7 +801,7 @@
       "max": "Maks.",
       "date": "İade tarihi",
       "reason": "Neden",
-      "reasonPlaceholder": "İsteğe bağlı — örn. iade, hasarlı",
+      "reasonPlaceholder": "İsteğe bağlı, örn. iade, hasarlı",
       "restoreStock": "Stoğu geri yükle",
       "restoreStockHint": "İade edilen miktarları stoğa geri ekle (yalnızca takip edilen ürünler).",
       "total": "İade edilecek toplam",
@@ -848,7 +848,7 @@
       "noProductsFound": "Ürün bulunamadı",
       "addProducts": "Ürün Ekle",
       "searchAndAdd": "Ürün ara ve ekle",
-      "scopedToPriceList": "Yalnızca '{{name}}' listesindeki ürünler — daha fazlası için fiyat listesini düzenleyin",
+      "scopedToPriceList": "Yalnızca '{{name}}' listesindeki ürünler. Daha fazlası için fiyat listesini düzenleyin",
       "selectCustomerError": "Lütfen bir müşteri seçin",
       "addProductError": "Lütfen en az bir ürün ekleyin",
       "createError": "Sipariş oluşturulamadı",
@@ -906,7 +906,7 @@
     },
     "vat": {
       "reverseChargeSuffix": "KDV tevkifatlı",
-      "reverseChargeBanner": "Müşteri {{country}} ülkesinde — %0 KDV (tevkifat) uygulandı. Müşteri KDV no: {{vatNumber}}",
+      "reverseChargeBanner": "Müşteri {{country}} ülkesinde: %0 KDV (tevkifat) uygulandı. Müşteri KDV no: {{vatNumber}}",
       "reverseChargeWarning": "{{country}} ülkesindeki müşterinin KDV numarası yok. %0 KDV (tevkifat) için geçerli bir KDV numarası yasal olarak zorunludur.",
       "editCustomer": "Müşteriyi düzenle"
     }
@@ -997,7 +997,7 @@
       "sendCta": "{{count}} tane gönder",
       "nothingToSend": "Gönderilecek bir şey yok",
       "sendingTitle": "Gönderiliyor...",
-      "sendingTo": "{{number}} — {{customer}}",
+      "sendingTo": "{{number}} · {{customer}}",
       "progress": "{{total}} / {{done}}",
       "cancel": "İptal",
       "cancelling": "Mevcut faturadan sonra duruyor...",
@@ -1010,9 +1010,9 @@
         "unknown": "Bilinmiyor"
       },
       "notAttempted": "{{count}} gönderilmedi",
-      "failSend": "Gönderim hatası — Outbox'a bakın",
-      "failRender": "Gönderilmedi — Outbox'ta kayıt yok",
-      "failUnknown": "Bilinmiyor — Outbox'u kontrol edin",
+      "failSend": "Gönderim hatası, Outbox'a bakın",
+      "failRender": "Gönderilmedi, Outbox'ta kayıt yok",
+      "failUnknown": "Bilinmiyor, Outbox'u kontrol edin",
       "openOutbox": "Outbox'ta görüntüle"
     },
     "export": {
@@ -1287,7 +1287,7 @@
         "perUnit": "Birim başına",
         "perUnitHint": "Fiyat başına bir satır. Hem kg hem koli fiyatı olan bir ürün iki satır alır.",
         "perProduct": "Ürün başına",
-        "perProductHint": "Ürün başına bir satır, her birim için bir fiyat sütunu — tablodaki gibi."
+        "perProductHint": "Ürün başına bir satır, her birim için bir fiyat sütunu, tablodaki gibi."
       },
       "deletedProduct": "Silinmiş ürün",
       "inheritPrice": "varsayılan",
@@ -1326,7 +1326,7 @@
     "picker": {
       "title": "Fiyat listesine ürün ekle",
       "searchPlaceholder": "Ada veya ürün ID'sine göre ara...",
-      "searchHint": "İlk {{count}} sonuç gösteriliyor — aramanızı daraltın.",
+      "searchHint": "İlk {{count}} sonuç gösteriliyor. Aramanızı daraltın.",
       "noResults": "Ürün bulunamadı",
       "alreadyInList": "Listede",
       "vat": "KDV",
@@ -1347,7 +1347,7 @@
       "confirmRemove": "{{name}} bu fiyat listesinden çıkarılsın mı?",
       "searchPlaceholder": "Müşterileri ada göre ara...",
       "noResults": "Müşteri bulunamadı",
-      "willBeMoved": "Şu listede: {{name}} — taşınacak",
+      "willBeMoved": "Şu listede: {{name}} (taşınacak)",
       "confirmAdd": "Ekle ({{count}})"
     },
     "import": {
@@ -1391,6 +1391,8 @@
     "combined": "Tek birleşik PDF",
     "separate": "Ayrı dosyalar",
     "useRouteOrder": "Faturaları teslimat rotasına göre sırala",
+    "routeExcludedNotice_one": "{{count}} sipariş teslimat rotasında değil ve seçimi kaldırıldı. Faturasını yine de istiyorsanız işaretleyin.",
+    "routeExcludedNotice_other": "{{count}} sipariş teslimat rotasında değil ve seçimleri kaldırıldı. Faturalarını yine de istiyorsanız işaretleyin.",
     "copies": "Kopya sayısı",
     "copiesHint": "Her fatura arka arkaya N kez tekrarlanır (1-1-2-2-3-3).",
     "copiesIncrease": "Daha fazla kopya",
@@ -1398,9 +1400,9 @@
     "selectAll": "Tümünü seç",
     "selectedCount": "{{n}}/{{total}} seçildi",
     "noOrders": "Bu aralıkta sipariş yok",
-    "bigBatchWarning": "{{n}} sipariş — oluşturma biraz zaman alabilir.",
-    "cappedWarning": "İlk 1000 sipariş gösteriliyor — kalanı için daha kısa bir tarih aralığı seçin.",
-    "errorIssued": "{{n}} fatura zaten oluşturulmuştu — devam etmek için yeniden çalıştırın.",
+    "bigBatchWarning": "{{n}} sipariş. Oluşturma biraz zaman alabilir.",
+    "cappedWarning": "İlk 1000 sipariş gösteriliyor. Kalanı için daha kısa bir tarih aralığı seçin.",
+    "errorIssued": "{{n}} fatura zaten oluşturulmuştu. Devam etmek için yeniden çalıştırın.",
     "generating": "Faturalar oluşturuluyor…",
     "generate": "Oluştur"
   },
@@ -1478,16 +1480,16 @@
     "optimize": "Rotayı optimize et",
     "reoptimize": "Yeniden optimize et",
     "applyOrder": "Sıralamayı uygula",
-    "staleHint": "Değişiklik var — yeniden optimize edin",
+    "staleHint": "Değişiklik var, yeniden optimize edin",
     "refreshEtas": "Varış sürelerini yenile",
-    "etaStaleHint": "Varış süreleri güncel değil — yenilemek isteğe bağlı",
-    "needsReoptimize": "Yeni durak eklendi — dışa aktarmak için yeniden optimize edin",
+    "etaStaleHint": "Varış süreleri güncel değil, yenilemek isteğe bağlı",
+    "needsReoptimize": "Yeni durak eklendi. Dışa aktarmak için yeniden optimize edin.",
     "plan": {
       "save": "Rotayı kaydet",
       "loaded": "Kayıtlı rota yüklendi ({{when}})",
-      "loadedBy": "Kayıtlı rota yüklendi — {{name}} tarafından ({{when}})",
+      "loadedBy": "Kayıtlı rota yüklendi, {{name}} tarafından ({{when}})",
       "unsavedChanges": "Sırayı değiştirdiniz. Meslektaşlarınızın aynı rotayı görmesi için kaydedin.",
-      "notPlannedYet": "Henüz planlanmadı — bu, planlanmış bir tur değil, varsayılan sıralamadır. Optimize edin veya durakları kendiniz sıralayıp kaydedin.",
+      "notPlannedYet": "Henüz planlanmadı. Bu, planlanmış bir tur değil, varsayılan sıralamadır. Optimize edin veya durakları kendiniz sıralayıp kaydedin.",
       "driftTitle": "Bu rota kaydedildikten sonra bir şeyler değişti",
       "driftAdded": "{{count}} yeni sipariş",
       "driftNewStops": "{{count}} yeni durak, sona eklendi",
@@ -1530,7 +1532,9 @@
     "shareWithDriver": "Şoförle paylaş",
     "selectAtLeastOne": "En az bir durak seçin",
     "foreignOrder": "Yurt dışı",
-    "foreignOrderHint": "Yurt dışı sipariş — teslimat rotasından varsayılan olarak hariç tutuldu",
+    "includeForeign": "Yurt dışını dahil et ({{count}})",
+    "includeForeignHint": "Yurt dışı siparişler varsayılan olarak teslimat rotasına alınmaz. Sınır ötesi bir tur için bunu açın; tercihiniz hatırlanır.",
+    "foreignOrderHint": "Yurt dışı sipariş, teslimat rotasından varsayılan olarak hariç tutuldu",
     "printPdf": "PDF yazdır",
     "printInvoices": "Faturalar (rota sırasına göre)",
     "printInvoicesAs": "Faturaları şu şekilde yazdır:",
@@ -1648,7 +1652,7 @@
         "languageHint": "NL/BE müşterileri Hollandaca şablonları, diğer tüm müşteriler İngilizce şablonları alır.",
         "subjectLabel": "Konu",
         "bodyLabel": "İçerik",
-        "usingDefault": "Varsayılan kullanılıyor — varsayılanı korumak için boş bırakın",
+        "usingDefault": "Varsayılan kullanılıyor, varsayılanı korumak için boş bırakın",
         "types": {
           "invoice": "Fatura",
           "proforma": "Proforma",
@@ -1707,7 +1711,7 @@
         "dueDateNote": "Vade tarihi fatura tarihinden itibaren hesaplanacaktır",
         "paymentTermsText": "Ödeme Koşulları Metni",
         "paymentTermsPlaceholder": "Ödeme, fatura tarihinden itibaren 14 gün içinde yapılmalıdır.",
-        "paymentTermsTextHint": "İpucu: gün sayısı için {days} yer tutucusunu kullanın — her müşterinin ödeme vadesine göre otomatik uyarlanır.",
+        "paymentTermsTextHint": "İpucu: gün sayısı için {days} yer tutucusunu kullanın. Her müşterinin ödeme vadesine göre otomatik uyarlanır.",
         "documentFooter": "Belge Alt Bilgisi",
         "footerLabel": "Alt Bilgi Metni (tüm belgelerin altında görünür)",
         "footerPlaceholder": "İşbirliğiniz için teşekkür ederiz! Sorularınız için bize ulaşın."
@@ -2208,7 +2212,7 @@
       "progress": "{{total}} hatırlatmadan {{sent}} tanesi gönderildi",
       "last": "Son: {{rel}}",
       "neverSent": "Henüz hatırlatma yok",
-      "aria": "{{total}} hatırlatmadan {{sent}} tanesi gönderildi — geçmişi görüntüle"
+      "aria": "{{total}} hatırlatmadan {{sent}} tanesi gönderildi, geçmişi görüntüle"
     },
     "rel": {
       "today": "bugün",
@@ -2228,7 +2232,7 @@
       "done": "Tamamlandı",
       "mayShift": "Manuel bir hatırlatma gönderilirse veya plan değişirse bu tarih kayabilir."
     },
-    "autoOffBanner": "Otomatik hatırlatmalar kapalı — gönderim manuel yapılır.",
+    "autoOffBanner": "Otomatik hatırlatmalar kapalı. Gönderim manuel yapılır.",
     "autoOffCta": "Ayarlar",
     "history": {
       "title": "Gönderilen hatırlatmalar",
@@ -2257,7 +2261,7 @@
   },
   "paymentOverview": {
     "title": "Ödeme özeti",
-    "intro": "{{period}} için genel bakış. Bu liste varsayılan olarak ayın 1'inde otomatik ekstre alacak müşterileri gösterir. Vadesi geçmiş faturası olmayan, e-posta adresi bulunmayan veya çıkmış müşteriler atlanır — “Atlanacak” seçin veya filtreyi temizleyin. Göndermeden önce önizleyin.",
+    "intro": "{{period}} için genel bakış. Bu liste varsayılan olarak ayın 1'inde otomatik ekstre alacak müşterileri gösterir. Vadesi geçmiş faturası olmayan, e-posta adresi bulunmayan veya çıkmış müşteriler atlanır. “Atlanacak” seçin veya filtreyi temizleyin. Göndermeden önce önizleyin.",
     "notSent": "Henüz gönderilmedi",
     "noEmail": "E-posta adresi yok",
     "openCount_one": "{{count}} açık fatura",

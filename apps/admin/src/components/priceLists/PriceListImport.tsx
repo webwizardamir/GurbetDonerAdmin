@@ -233,7 +233,7 @@ export default function PriceListImport({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {t('priceLists.import.title')} — {priceListName}
+            {t('priceLists.import.title')} · {priceListName}
           </h2>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700">
             <X className="w-5 h-5" />

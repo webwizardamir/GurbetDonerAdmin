@@ -221,7 +221,7 @@ function RouteDoc({ route, day, company }: { route: PlannedRoute; day: string; c
           <StopRow key={s.customerId} stop={s} index={i} total={route.stops.length} departureTime={route.departureTime} />
         ))}
 
-        <DocFooter company={company} centerText={`Bezorglijst — ${dateLabel}`} />
+        <DocFooter company={company} centerText={`Bezorglijst · ${dateLabel}`} />
       </Page>
 
       {/* Page 2 — loading order (reverse) */}
@@ -244,7 +244,7 @@ function RouteDoc({ route, day, company }: { route: PlannedRoute; day: string; c
           <StopRow key={s.customerId} stop={s} index={i} amber total={loading.length} departureTime={route.departureTime} />
         ))}
 
-        <DocFooter company={company} centerText={`Inlaadlijst — ${dateLabel}`} />
+        <DocFooter company={company} centerText={`Inlaadlijst · ${dateLabel}`} />
       </Page>
     </Document>
   )

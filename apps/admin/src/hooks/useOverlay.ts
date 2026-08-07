@@ -23,7 +23,7 @@ export function useBodyScrollLock(active: boolean): void {
     }
     lockCount++
     if (import.meta.env.DEV && lockCount > 3) {
-      console.warn(`useBodyScrollLock: ${lockCount} overlays deep — a leaked lock freezes page scroll permanently`)
+      console.warn(`useBodyScrollLock: ${lockCount} overlays deep. A leaked lock freezes page scroll permanently`)
     }
     return () => {
       lockCount = Math.max(0, lockCount - 1)

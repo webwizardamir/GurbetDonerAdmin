@@ -29,6 +29,11 @@ interface Props {
   /** Order ids in the currently planned delivery-route sequence (if any), so
    *  invoices can be printed in route order. */
   routeOrderedIds?: string[]
+  /** Orders whose stop was deliberately taken off the delivery route in this
+   *  session. They start UNTICKED here: planning the round and closing the day
+   *  are one flow, and re-ticking an order is cheaper than noticing an invoice
+   *  that should not have been printed. */
+  excludedOrderIds?: string[]
   onClose: () => void
 }
 
@@ -57,8 +62,11 @@ function downloadBlob(blob: Blob, filename: string) {
 const BIG_BATCH = 100
 const MAX_COPIES = 5
 
-export default function DayCloseModal({ dateRange, customerType, soldProducts, onOpenRoute, routeOrderedIds, onClose }: Props) {
+export default function DayCloseModal({ dateRange, customerType, soldProducts, onOpenRoute, routeOrderedIds, excludedOrderIds, onClose }: Props) {
   const { t } = useTranslation()
+  // How many rows the route exclusions actually unticked, so the modal can say
+  // it out loud instead of silently producing a shorter batch.
+  const [routeExcludedCount, setRouteExcludedCount] = useState(0)
   const hasSessionRoute = !!routeOrderedIds && routeOrderedIds.length > 0
   const [useRouteOrder, setUseRouteOrder] = useState(true)
 
@@ -106,6 +114,8 @@ export default function DayCloseModal({ dateRange, customerType, soldProducts, o
         // Drafts (Concept) are unfinalised: they must not get an invoice number
         // issued by a day-close batch, so they are excluded like cancelled and
         // refunded orders (CLAUDE.md → Draft orders).
+        // Orders taken off the delivery route start unticked (see the prop).
+        const offRoute = new Set(excludedOrderIds ?? [])
         const usable = rows
           .filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.status !== 'draft')
           .map<OrderRow>(o => ({
@@ -114,17 +124,18 @@ export default function DayCloseModal({ dateRange, customerType, soldProducts, o
             customerId: o.customer_id ?? null,
             customerName: o.customer?.company_name ?? '—',
             total: o.total,
-            selected: true,
+            selected: !offRoute.has(o.id),
           }))
         setOrders(usable)
+        setRouteExcludedCount(usable.filter(o => !o.selected).length)
       })
       .catch(e => { if (!cancelled) setOrdersError(e instanceof Error ? e.message : String(e)) })
       .finally(() => { if (!cancelled) setLoadingOrders(false) })
     return () => { cancelled = true }
-    // Primitive key: `customerType` is an array, so depending on the reference
-    // would refetch on every parent render.
+    // Primitive keys: `customerType` / `excludedOrderIds` are arrays, so
+    // depending on the reference would refetch on every parent render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange.start, dateRange.end, (customerType ?? []).join('|')])
+  }, [dateRange.start, dateRange.end, (customerType ?? []).join('|'), (excludedOrderIds ?? []).join('|')])
 
   // Reorder the selected invoice ids to follow the planned delivery route.
   // Session route (exact order ids, what is on screen) wins; otherwise fall back
@@ -291,6 +302,17 @@ export default function DayCloseModal({ dateRange, customerType, soldProducts, o
                   className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-green-500" />
                 <span className="text-sm text-slate-700 dark:text-slate-300">{t('dayClose.useRouteOrder')}</span>
               </label>
+            )}
+
+            {/* The exclusions came from the route panel, not from this screen —
+                say so, or a shorter batch looks like a bug. */}
+            {routeExcludedCount > 0 && (
+              <div className="flex items-start gap-2 p-2.5 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
+                <Truck className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-cyan-700 dark:text-cyan-300">
+                  {t('dayClose.routeExcludedNotice', { count: routeExcludedCount })}
+                </p>
+              </div>
             )}
 
             {/* Order list */}

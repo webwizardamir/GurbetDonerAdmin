@@ -150,7 +150,7 @@ export default function DeliveryStopList({
 
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{stop.customerName}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{stop.address.oneLine || '—'}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{stop.address.oneLine || t('route.noAddress')}</p>
                 <div className="flex items-center gap-3 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
                   {hasRoute && eta && <span>{t('route.eta')} {eta}</span>}
                   {hasRoute && (stop.legDistanceMeters ?? 0) > 0 && <span>{formatDistance(stop.legDistanceMeters ?? 0)}</span>}

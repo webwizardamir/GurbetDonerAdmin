@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import type { SoldProductItem, SoldProductsResult } from '../../services/soldProducts'
 import { getStockStatus, getSuggestedRefill } from '../../services/soldProducts'
+import { customerTypeLabel } from '../../constants/customerType'
 import { docBrand } from './brandPalette'
 
 // A4: 595.28 x 841.89 points
@@ -72,6 +73,26 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
     color: '#1e293b',
+  },
+
+  // FILTER NOTICE — left-accent box (never a full border), per the document
+  // ruleset. Says which slice of the day this list is, so a Horeca-only run is
+  // never read as "everything sold today".
+  filterBox: {
+    borderLeftWidth: 2,
+    borderLeftColor: docBrand.soldProducts.primary,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  filterText: {
+    fontSize: 7.5,
+    color: '#475569',
+    lineHeight: 1.35,
+  },
+  filterLabel: {
+    fontFamily: 'Helvetica-Bold',
   },
 
   // SUMMARY CARDS (compact)
@@ -254,6 +275,25 @@ interface SoldProductsPDFDocumentProps {
   items: SoldProductItem[]
   summary: SoldProductsResult['summary']
   dateRange: DateRange
+  /** e.g. "Horeca, Supermarkt" — the customer types this report was filtered
+   *  on. Printed as a notice at the top so the list can't be mistaken for the
+   *  whole day's sales. */
+  customerTypeFilter?: string[]
+}
+
+/** The filter notice, or null when the report covers every customer type. */
+function FilterNotice({ customerTypeFilter }: { customerTypeFilter?: string[] }) {
+  if (!customerTypeFilter || customerTypeFilter.length === 0) return null
+  const labels = customerTypeFilter.map(ct => customerTypeLabel(ct) || ct).join(', ')
+  return (
+    <View style={styles.filterBox}>
+      <Text style={styles.filterText}>
+        <Text style={styles.filterLabel}>Gefilterd op klanttype: {labels}. </Text>
+        Alleen orders van {customerTypeFilter.length > 1 ? 'deze klanttypes' : 'dit klanttype'} staan
+        in dit overzicht; dit is niet de volledige verkoop van de periode.
+      </Text>
+    </View>
+  )
 }
 
 // Driver-routing mode: one Page per group, page break in between automatically
@@ -271,6 +311,7 @@ interface SoldProductsGroupedPDFProps {
   groups: SoldProductsGroup[]
   dateRange: DateRange
   groupByLabel: string  // localized 'Stad' / 'Klant' for the cover
+  customerTypeFilter?: string[]
 }
 
 /**
@@ -358,7 +399,7 @@ function GroupedItemsTable({ items }: { items: SoldProductItem[] }) {
   )
 }
 
-function SoldProductsGroupedPDFDocument({ groups, dateRange, groupByLabel }: SoldProductsGroupedPDFProps) {
+function SoldProductsGroupedPDFDocument({ groups, dateRange, groupByLabel, customerTypeFilter }: SoldProductsGroupedPDFProps) {
   return (
     <Document>
       {groups.map(g => {
@@ -384,6 +425,9 @@ function SoldProductsGroupedPDFDocument({ groups, dateRange, groupByLabel }: Sol
                 </View>
               </View>
             </View>
+
+            {/* Each group is its own printout, so the notice repeats per page. */}
+            <FilterNotice customerTypeFilter={customerTypeFilter} />
 
             {/* Compact summary for this group */}
             <View style={styles.summaryRow}>
@@ -415,7 +459,7 @@ function SoldProductsGroupedPDFDocument({ groups, dateRange, groupByLabel }: Sol
 }
 
 // The actual PDF document
-function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFDocumentProps) {
+function SoldProductsPDFDocument({ items, summary, dateRange, customerTypeFilter }: SoldProductsPDFDocumentProps) {
   const trackedCount = items.filter(i => i.track_stock).length
   const untrackedCount = items.length - trackedCount
   const flatStockOwners = stockOwnerKeys(items)
@@ -442,6 +486,8 @@ function SoldProductsPDFDocument({ items, summary, dateRange }: SoldProductsPDFD
             </View>
           </View>
         </View>
+
+        <FilterNotice customerTypeFilter={customerTypeFilter} />
 
         {/* Summary Cards - No revenue (PDF is for refill workflow only) */}
         <View style={styles.summaryRow}>
@@ -562,11 +608,12 @@ export function buildSoldProductsDocument(args: {
   dateRange: DateRange
   groups?: SoldProductsGroup[]
   groupByLabel?: string
+  customerTypeFilter?: string[]
 }) {
   const grouped = args.groups && args.groups.length > 0
   return grouped
-    ? <SoldProductsGroupedPDFDocument groups={args.groups!} dateRange={args.dateRange} groupByLabel={args.groupByLabel ?? ''} />
-    : <SoldProductsPDFDocument items={args.items} summary={args.summary} dateRange={args.dateRange} />
+    ? <SoldProductsGroupedPDFDocument groups={args.groups!} dateRange={args.dateRange} groupByLabel={args.groupByLabel ?? ''} customerTypeFilter={args.customerTypeFilter} />
+    : <SoldProductsPDFDocument items={args.items} summary={args.summary} dateRange={args.dateRange} customerTypeFilter={args.customerTypeFilter} />
 }
 
 interface SoldProductsPDFProps {
@@ -578,6 +625,8 @@ interface SoldProductsPDFProps {
   // one page per group instead of the flat document.
   groups?: SoldProductsGroup[]
   groupByLabel?: string
+  /** Customer types the page is filtered on, printed as a notice on the PDF. */
+  customerTypeFilter?: string[]
 }
 
 export default function SoldProductsPDF({
@@ -587,6 +636,7 @@ export default function SoldProductsPDF({
   onClose,
   groups,
   groupByLabel,
+  customerTypeFilter,
 }: SoldProductsPDFProps) {
   const [showPreview, setShowPreview] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -595,8 +645,8 @@ export default function SoldProductsPDF({
 
   const grouped = groups && groups.length > 0
   const renderDoc = () => grouped
-    ? <SoldProductsGroupedPDFDocument groups={groups!} dateRange={dateRange} groupByLabel={groupByLabel ?? ''} />
-    : <SoldProductsPDFDocument items={items} summary={summary} dateRange={dateRange} />
+    ? <SoldProductsGroupedPDFDocument groups={groups!} dateRange={dateRange} groupByLabel={groupByLabel ?? ''} customerTypeFilter={customerTypeFilter} />
+    : <SoldProductsPDFDocument items={items} summary={summary} dateRange={dateRange} customerTypeFilter={customerTypeFilter} />
 
   const handleDownload = async () => {
     setGenerating(true)

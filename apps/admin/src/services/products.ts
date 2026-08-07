@@ -347,7 +347,7 @@ export async function upsertProductsFromImport(
   const { data: userData } = await supabase.auth.getUser()
   const userId = userData?.user?.id
   if (!userId) {
-    result.errors.push('Sessie verlopen — log opnieuw in voordat u importeert.')
+    result.errors.push('Sessie verlopen. Log opnieuw in voordat u importeert.')
     return result
   }
 

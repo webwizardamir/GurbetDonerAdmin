@@ -98,6 +98,10 @@ NOT installed** — there is no caching, deduping or refetch-on-focus unless a h
 `any`.
 **Money** — stored as integer cents; displayed `€1.234,56` (`nl-NL`, hardcoded everywhere).
 **Dates** — `timestamptz` (or DATE for `order_date`); displayed `DD-MM-YYYY`.
+🚨 **Copy: never an em dash (`—`) in user-visible text** — locale strings, hardcoded UI strings, PDF
+and email copy, in every language. Use a comma, a colon, a full stop or ` · `. (Code comments are not
+copy. The lone `—` standing in for an empty value in a table/PDF cell is a symbol, not punctuation,
+and stays: a hyphen there reads as a minus sign in a price column.)
 
 ### Internationalization
 
@@ -314,7 +318,7 @@ verlegdBox: { borderLeftWidth: 2, borderLeftColor: '#f59e0b', backgroundColor: '
 verlegdText: { fontSize: 7.5, color: '#78350f', lineHeight: 1.35 },
 verlegdLabel: { fontFamily: 'Helvetica-Bold' },
 ```
-Text: **BTW verlegd — intracommunautaire levering** *(Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW.
+Text: **BTW verlegd: intracommunautaire levering** *(Art. 138 EU BTW-richtlijn 2006/112/EG). 0% BTW.
 BTW-nummer afnemer: …*
 
 ### Language — by customer COUNTRY, not app language
@@ -1111,8 +1115,13 @@ truck loading order via Google Maps through a Supabase Edge Function.
    What genuinely blocks: a **never-geocoded** stop, which would silently DROP from the Maps URL (the
    amber `needsReoptimize` banner shows whenever that applies). `hasPlan` drives a "nog niet gepland"
    hint so a raw candidate list is never mistaken for an arranged round.
-4. **Foreign customers auto-excluded** — resolved delivery country ≠ NL starts unticked with an amber
-   "Buitenland" badge (export/freight, not a van delivery). Re-tickable.
+4. **Foreign customers auto-excluded, but the admin owns the switch** — resolved delivery country ≠ NL
+   starts unticked with an amber "Buitenland" badge (export/freight, not a van delivery). Re-tickable
+   per stop, and the **"Buitenland meenemen (n)"** toggle flips the whole day at once. It appears only
+   when the window actually holds a foreign stop (they are the exception), defaults OFF and is
+   remembered in `localStorage` (`route.includeForeign`) — a regular cross-border run is set once, not
+   re-ticked every morning. The loader reads it through a **ref**, so flipping it re-seeds the
+   selection without refetching the day.
 5. 🚨 **Drafts are never routable.** `NON_ROUTABLE_STATUSES` (`services/route.ts`) =
    `draft`/`cancelled`/`refunded`, plus `deleted_at IS NULL`. This is **mirrored in the edge fn's
    `deriveCandidates`** — otherwise `MAX_STOPS` counts stops the client never shows. **Keep the two
@@ -1177,6 +1186,14 @@ day/range.
   **both** DayCloseModal and the route panel, so ordering is identical from either entry point.
   `InvoiceTemplate.tsx` exposes `InvoicePage` (no `<Document>` wrapper) for `CombinedInvoicesTemplate`;
   `SoldProductsTemplate.tsx` exposes `buildSoldProductsDocument` for the same reason.
+- 🚨 **Route exclusions carry into the batch.** A stop taken off the round in the route panel arrives
+  here **unticked** (`DeliveryRoutePanel.onExcludedOrdersChange` → `SoldProducts` → `excludedOrderIds`),
+  with a cyan notice naming the count — planning and closing are one flow, and silently invoicing what
+  was just excluded is the error this prevents. **Only DELIBERATE exclusions propagate:**
+  `useDeliveryRoute` keeps `userExcludedIds` separate from `excludedStops`, because a foreign stop is
+  unticked by a **default policy** nobody chose and still needs its invoice. Flipping "Buitenland
+  meenemen" is a policy change, not a per-order decision, so switching it OFF must never write into
+  `userExcludedIds`. **Do not simplify this to "everything in excludedStops".**
 - **Route hand-off:** the route costs a billed Google optimize, so ticking "Bezorgroute" only opens
   `DeliveryRoutePanel` — it never runs silently.
 - **Separate-files caveat:** browsers throttle rapid downloads (spaced ~400ms); the combined PDF is the

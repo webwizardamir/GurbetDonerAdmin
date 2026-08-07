@@ -114,7 +114,7 @@
     },
     "actor": {
       "system": "System / Automatic",
-      "systemTooltip": "Automatic action (cron, email, import or portal) — no signed-in user."
+      "systemTooltip": "Automatic action (cron, email, import or portal), no signed-in user."
     },
     "enum": {
       "pending": "pending",
@@ -496,7 +496,7 @@
       "internalNotes": "Internal Notes",
       "pricing": "Pricing",
       "priceList": "Price List",
-      "priceListNone": "None — use product defaults",
+      "priceListNone": "None (use product defaults)",
       "priceListHint": "Optional. Customer-specific prices still take precedence over the list.",
       "paymentDueDaysHint": "Number of days this customer has to pay. Leave empty to use the default term.",
       "enterCompanyName": "Enter company name",
@@ -511,7 +511,7 @@
       "emailExists": "A customer with this email address already exists",
       "saveError": "Failed to save customer",
       "saveChanges": "Save Changes",
-      "foreignHint": "Foreign customer — invoices will be issued at 0% VAT (reverse charge).",
+      "foreignHint": "Foreign customer: invoices will be issued at 0% VAT (reverse charge).",
       "vatRequired": "required for foreign customers"
     },
     "countries": {
@@ -597,7 +597,7 @@
     "title": "Products",
     "id": "ID",
     "downloadTemplate": "Download template",
-    "downloadTemplateWithData": "Download all products (.xlsx) — edit and re-import",
+    "downloadTemplateWithData": "Download all products (.xlsx), edit and re-import",
     "import": {
       "title": "Import products",
       "selectFile": "Choose file",
@@ -801,7 +801,7 @@
       "max": "Max",
       "date": "Refund date",
       "reason": "Reason",
-      "reasonPlaceholder": "Optional — e.g. return, damaged",
+      "reasonPlaceholder": "Optional, e.g. return, damaged",
       "restoreStock": "Restore stock",
       "restoreStockHint": "Add the refunded quantities back to stock (tracked products only).",
       "total": "Total to refund",
@@ -848,7 +848,7 @@
       "noProductsFound": "No products found",
       "addProducts": "Add Products",
       "searchAndAdd": "Search and add products",
-      "scopedToPriceList": "Only products on '{{name}}' — edit the price list to add more",
+      "scopedToPriceList": "Only products on '{{name}}'. Edit the price list to add more",
       "selectCustomerError": "Please select a customer",
       "addProductError": "Please add at least one product",
       "createError": "Failed to create order",
@@ -906,7 +906,7 @@
     },
     "vat": {
       "reverseChargeSuffix": "reverse-charged",
-      "reverseChargeBanner": "Customer in {{country}} — 0% VAT (reverse charge) applied. Customer VAT no.: {{vatNumber}}",
+      "reverseChargeBanner": "Customer in {{country}}: 0% VAT (reverse charge) applied. Customer VAT no.: {{vatNumber}}",
       "reverseChargeWarning": "Customer in {{country}} has no VAT number. A valid VAT number is legally required for 0% VAT (reverse charge).",
       "editCustomer": "Edit customer"
     }
@@ -997,7 +997,7 @@
       "sendCta": "Send {{count}}",
       "nothingToSend": "Nothing to send",
       "sendingTitle": "Sending...",
-      "sendingTo": "{{number}} — {{customer}}",
+      "sendingTo": "{{number}} · {{customer}}",
       "progress": "{{done}} of {{total}}",
       "cancel": "Cancel",
       "cancelling": "Stopping after the current invoice...",
@@ -1010,9 +1010,9 @@
         "unknown": "Unknown"
       },
       "notAttempted": "{{count}} not sent",
-      "failSend": "Send error — see Outbox",
-      "failRender": "Not sent — no Outbox entry",
-      "failUnknown": "Unknown — check the Outbox",
+      "failSend": "Send error, see Outbox",
+      "failRender": "Not sent, no Outbox entry",
+      "failUnknown": "Unknown, check the Outbox",
       "openOutbox": "View in Outbox"
     },
     "export": {
@@ -1287,7 +1287,7 @@
         "perUnit": "Per unit",
         "perUnitHint": "One row per price. A product with both a kg and a box price gets two rows.",
         "perProduct": "Per product",
-        "perProductHint": "One row per product, with a price column per unit — like the table."
+        "perProductHint": "One row per product, with a price column per unit, like the table."
       },
       "deletedProduct": "Deleted product",
       "inheritPrice": "default",
@@ -1326,7 +1326,7 @@
     "picker": {
       "title": "Add products to price list",
       "searchPlaceholder": "Search by name or product ID...",
-      "searchHint": "Showing first {{count}} results — refine your search.",
+      "searchHint": "Showing first {{count}} results. Refine your search.",
       "noResults": "No products found",
       "alreadyInList": "On list",
       "vat": "VAT",
@@ -1347,7 +1347,7 @@
       "confirmRemove": "Remove {{name}} from this price list?",
       "searchPlaceholder": "Search customers by name...",
       "noResults": "No customers found",
-      "willBeMoved": "On: {{name}} — will be moved",
+      "willBeMoved": "On: {{name}} (will be moved)",
       "confirmAdd": "Add ({{count}})"
     },
     "import": {
@@ -1391,6 +1391,8 @@
     "combined": "One combined PDF",
     "separate": "Separate files",
     "useRouteOrder": "Sort invoices by delivery route",
+    "routeExcludedNotice_one": "{{count}} order is not on the delivery route and has been unticked. Tick it if you do want the invoice.",
+    "routeExcludedNotice_other": "{{count}} orders are not on the delivery route and have been unticked. Tick them if you do want the invoices.",
     "copies": "Number of copies",
     "copiesHint": "Each invoice repeats N times in a row (1-1-2-2-3-3).",
     "copiesIncrease": "More copies",
@@ -1398,9 +1400,9 @@
     "selectAll": "Select all",
     "selectedCount": "{{n}}/{{total}} selected",
     "noOrders": "No orders in this range",
-    "bigBatchWarning": "{{n}} orders — generating may take a while.",
-    "cappedWarning": "Showing the first 1000 orders — pick a shorter date range for the rest.",
-    "errorIssued": "{{n}} invoices were already created — re-run to continue.",
+    "bigBatchWarning": "{{n}} orders. Generating may take a while.",
+    "cappedWarning": "Showing the first 1000 orders. Pick a shorter date range for the rest.",
+    "errorIssued": "{{n}} invoices were already created. Re-run to continue.",
     "generating": "Generating invoices…",
     "generate": "Generate"
   },
@@ -1478,16 +1480,16 @@
     "optimize": "Optimize route",
     "reoptimize": "Re-optimize",
     "applyOrder": "Apply order",
-    "staleHint": "Changes — re-optimize",
+    "staleHint": "Changes, re-optimize",
     "refreshEtas": "Refresh ETAs",
-    "etaStaleHint": "ETAs outdated — refresh optional",
-    "needsReoptimize": "New stop added — re-optimize to export",
+    "etaStaleHint": "ETAs outdated, refreshing is optional",
+    "needsReoptimize": "New stop added. Re-optimize to export.",
     "plan": {
       "save": "Save route",
       "loaded": "Saved route loaded ({{when}})",
-      "loadedBy": "Saved route loaded — by {{name}} ({{when}})",
+      "loadedBy": "Saved route loaded, by {{name}} ({{when}})",
       "unsavedChanges": "You changed the order. Save it so your colleagues see the same route.",
-      "notPlannedYet": "Not planned yet — this is the default order, not an arranged round. Optimize, or put the stops in order yourself and save.",
+      "notPlannedYet": "Not planned yet. This is the default order, not an arranged round. Optimize, or put the stops in order yourself and save.",
       "driftTitle": "Something changed since this route was saved",
       "driftAdded": "{{count}} new order(s)",
       "driftNewStops": "{{count}} new stop(s), appended at the end",
@@ -1530,7 +1532,9 @@
     "shareWithDriver": "Share with driver",
     "selectAtLeastOne": "Select at least one stop",
     "foreignOrder": "Foreign",
-    "foreignOrderHint": "Foreign order — excluded from the delivery route by default",
+    "includeForeign": "Include foreign ({{count}})",
+    "includeForeignHint": "Foreign orders are left off the delivery route by default. Turn this on for a cross-border run; your choice is remembered.",
+    "foreignOrderHint": "Foreign order, excluded from the delivery route by default",
     "printPdf": "Print PDF",
     "printInvoices": "Invoices (route order)",
     "printInvoicesAs": "Print invoices as:",
@@ -1648,7 +1652,7 @@
         "languageHint": "NL/BE customers receive the Dutch templates, all other customers the English ones.",
         "subjectLabel": "Subject",
         "bodyLabel": "Body",
-        "usingDefault": "Using default — leave blank to keep default",
+        "usingDefault": "Using default, leave blank to keep default",
         "types": {
           "invoice": "Invoice",
           "proforma": "Proforma",
@@ -1707,7 +1711,7 @@
         "dueDateNote": "Due date will be calculated from invoice date",
         "paymentTermsText": "Payment Terms Text",
         "paymentTermsPlaceholder": "Payment due within 14 days of invoice date.",
-        "paymentTermsTextHint": "Tip: use {days} as a placeholder for the number of days — it adapts automatically to each customer's payment term.",
+        "paymentTermsTextHint": "Tip: use {days} as a placeholder for the number of days. It adapts automatically to each customer's payment term.",
         "documentFooter": "Document Footer",
         "footerLabel": "Footer Text (appears at bottom of all documents)",
         "footerPlaceholder": "Thank you for your business! For questions, please contact us."
@@ -2208,7 +2212,7 @@
       "progress": "{{sent}} of {{total}} sent",
       "last": "Last: {{rel}}",
       "neverSent": "No reminder yet",
-      "aria": "{{sent}} of {{total}} reminders sent — view history"
+      "aria": "{{sent}} of {{total}} reminders sent, view history"
     },
     "rel": {
       "today": "today",
@@ -2228,7 +2232,7 @@
       "done": "Completed",
       "mayShift": "This date may shift if a manual reminder is sent or the schedule changes."
     },
-    "autoOffBanner": "Automatic reminders are off — sending is manual.",
+    "autoOffBanner": "Automatic reminders are off. Sending is manual.",
     "autoOffCta": "Settings",
     "history": {
       "title": "Sent reminders",
@@ -2257,7 +2261,7 @@
   },
   "paymentOverview": {
     "title": "Payment overview",
-    "intro": "Overview for {{period}}. By default this list shows the customers who automatically receive a statement on the 1st. Customers with no overdue invoice, no email address, or who opted out are skipped — pick “Will be skipped” or clear the filter to see them. Preview before you send.",
+    "intro": "Overview for {{period}}. By default this list shows the customers who automatically receive a statement on the 1st. Customers with no overdue invoice, no email address, or who opted out are skipped. Pick “Will be skipped” or clear the filter to see them. Preview before you send.",
     "notSent": "Not sent yet",
     "noEmail": "No email address",
     "openCount_one": "{{count}} outstanding invoice",

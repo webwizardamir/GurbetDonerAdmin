@@ -62,7 +62,7 @@ serve(async (req) => {
       .single()
     if (targetErr || !target) return json({ error: 'User not found' }, 404)
     if (target.role === 'customer') {
-      return json({ error: 'This is a customer/portal account — manage it from Portal Management.' }, 400)
+      return json({ error: 'This is a customer/portal account. Manage it from Portal Management.' }, 400)
     }
 
     // Never delete the last active owner

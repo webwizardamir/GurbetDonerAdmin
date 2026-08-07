@@ -49,7 +49,7 @@ function mapEvent(lastEvent: string): { status: string; reason: string | null } 
     case 'complained':
       return { status: 'complained', reason: 'Marked as spam by the recipient.' }
     case 'suppressed':
-      return { status: 'suppressed', reason: 'On the Resend account-level suppression list (a prior send to this address bounced or was marked spam) — not delivered.' }
+      return { status: 'suppressed', reason: 'On the Resend account-level suppression list (a prior send to this address bounced or was marked spam). Not delivered.' }
     case 'failed':
     case 'canceled':
       return { status: 'failed', reason: `Resend reported the email as ${lastEvent}.` }

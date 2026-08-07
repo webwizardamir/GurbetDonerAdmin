@@ -89,6 +89,9 @@ export default function SoldProducts() {
   // Last planned delivery-route order (order ids in sequence), so the day-close
   // modal can print invoices in route order.
   const [routeOrderedIds, setRouteOrderedIds] = useState<string[]>([])
+  // Orders taken off the round in the route panel — the day-close modal starts
+  // with these unticked, since planning and closing are one flow.
+  const [routeExcludedIds, setRouteExcludedIds] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
   const [showCustomDate, setShowCustomDate] = useState(false)
   const [customStart, setCustomStart] = useState('')
@@ -534,6 +537,7 @@ export default function SoldProducts() {
           onClose={() => setShowPDF(false)}
           groups={groupBy !== 'none' ? groups : undefined}
           groupByLabel={groupBy !== 'none' ? t(`soldProducts.groupBy.${groupBy}`) : undefined}
+          customerTypeFilter={customerTypeFilter.length ? customerTypeFilter : undefined}
         />
       )}
 
@@ -546,6 +550,7 @@ export default function SoldProducts() {
           cities={cityFilter.length ? cityFilter : undefined}
           customerType={customerTypeFilter.length ? customerTypeFilter : undefined}
           onRouteOrderChange={setRouteOrderedIds}
+          onExcludedOrdersChange={setRouteExcludedIds}
           onClose={() => setShowRoute(false)}
         />
       )}
@@ -561,9 +566,12 @@ export default function SoldProducts() {
             dateRange,
             groups: groupBy !== 'none' ? groups : undefined,
             groupByLabel: groupBy !== 'none' ? t(`soldProducts.groupBy.${groupBy}`) : undefined,
+            // The batch PDF is the same document, so it carries the same notice.
+            customerTypeFilter: customerTypeFilter.length ? customerTypeFilter : undefined,
           } : undefined}
           onOpenRoute={() => setShowRoute(true)}
           routeOrderedIds={routeOrderedIds}
+          excludedOrderIds={routeExcludedIds}
           onClose={() => setShowDayClose(false)}
         />
       )}

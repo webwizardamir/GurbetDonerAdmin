@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // outcome for an unreachable backend.
     const watchdog = setTimeout(() => {
       if (mounted) {
-        console.warn('[Auth] Initialization timed out — releasing the loading gate')
+        console.warn('[Auth] Initialization timed out, releasing the loading gate')
         setLoading(false)
       }
     }, INIT_TIMEOUT)
