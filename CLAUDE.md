@@ -490,6 +490,20 @@ by the sync — its `'sent'` checks are correct.
   substitutes `''` for unknown keys, so `{{iban}}` rendered blank until `SendDocumentModal` merged
   `document_settings.bank_iban` into the ctx. Add new such keys to `PLACEHOLDER_KEYS` too.
 
+### Settings → Reminders is grouped by WHO RECEIVES THE MAIL
+`components/settings/RemindersTab.tsx` configures four unrelated mails. They are grouped **Naar
+klanten** (invoice-on-creation · dunning ladder · monthly statement) and **Naar jezelf**
+(Klantactiviteit), with a status strip on top, one card per mail, and the long email-text editors
+behind a collapsible that badges itself "Aangepast" when a custom wording is stored.
+- 🚨 **`send_hour` / `working_days_only` are ONE clock for THREE customer mails** — steps 4, 6 and 7
+  of the cron all gate on them. They render as their own block above the cards; putting them back
+  inside the dunning card makes them read as a dunning setting and hides them (with that card's
+  toggle) while they still govern the invoice send and the statement. Klantactiviteit is the
+  exception: it has its **own** hour, weekday and frequency, because it is not customer mail.
+- 🚨 **A toggle governs AUTOMATIC sending only.** The escalation ladder, the tone copy and the
+  statement copy are also used by the **manual** send buttons on `/overdue`, so they stay visible and
+  editable when a toggle is off (the card says so). Do not "tidy" them behind the kill switch.
+
 ### Reminders page
 `/overdue` shows a `ReminderStatusCell` (escalation dots, last-sent, projected next date) and a
 history timeline drilling into the exact email via the shared `EmailViewModal`.

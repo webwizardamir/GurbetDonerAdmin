@@ -1794,7 +1794,8 @@
         "subtitle": "Hatırlatmaları aşağıdaki plana göre otomatik olarak e-posta ile gönder.",
         "warning": "Not: etkinleştirildiğinde e-postalar manuel onay olmadan müşterilere otomatik gönderilir.",
         "sendHour": "Gönderim saati (0-23)",
-        "workingDaysOnly": "Yalnızca iş günleri (Pzt-Cum)"
+        "workingDaysOnly": "Yalnızca iş günleri (Pzt-Cum)",
+        "offNote": "Otomatik gönderim kapalı. Aşağıdaki program ve metinler, Hatırlatmalar sayfasından elle gönderdiğiniz hatırlatmalar için geçerli olmayı sürdürür."
       },
       "schedule": {
         "title": "Plan ve kademeler",
@@ -1866,6 +1867,39 @@
           "5": "cuma",
           "6": "cumartesi"
         }
+      },
+      "sections": {
+        "toCustomers": "Müşterilere",
+        "toCustomersHint": "Müşterilerinizin aldığı e-postalar.",
+        "toYou": "Kendinize",
+        "toYouHint": "Dahili sinyaller. Müşteriler bunları görmez."
+      },
+      "status": {
+        "on": "Açık",
+        "off": "Kapalı",
+        "manualOnly": "Yalnızca elle"
+      },
+      "summary": {
+        "afterOrder": "Sipariş tarihinden bir gün sonra",
+        "atHour": "İş günleri {{hour}}",
+        "firstWorkingDay": "Ayın ilk iş günü",
+        "freq": {
+          "daily": "Her gün {{hour}}",
+          "weekly": "Her {{day}} {{hour}}",
+          "monthly": "İlk iş günü {{hour}}"
+        }
+      },
+      "groups": {
+        "when": "Ne zaman",
+        "ladder": "Program",
+        "copy": "E-posta metinleri",
+        "delivery": "Gönderim",
+        "rules": "Müşteri tipine göre kurallar"
+      },
+      "customised": "Özelleştirilmiş",
+      "sendWindow": {
+        "title": "Gönderim zamanı",
+        "subtitle": "Aşağıdaki tüm müşteri e-postaları için geçerlidir: fatura, ödeme hatırlatmaları ve ekstre."
       }
     }
   },

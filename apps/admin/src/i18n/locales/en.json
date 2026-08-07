@@ -1794,7 +1794,8 @@
         "subtitle": "Send reminders automatically by email on the schedule below.",
         "warning": "Note: when enabled, emails are sent to customers automatically without manual approval.",
         "sendHour": "Send hour (0-23)",
-        "workingDaysOnly": "Working days only (Mon-Fri)"
+        "workingDaysOnly": "Working days only (Mon-Fri)",
+        "offNote": "Automatic sending is off. The schedule and texts below still apply to reminders you send by hand from the Reminders page."
       },
       "schedule": {
         "title": "Schedule & escalation",
@@ -1866,6 +1867,39 @@
           "5": "Friday",
           "6": "Saturday"
         }
+      },
+      "sections": {
+        "toCustomers": "To customers",
+        "toCustomersHint": "Emails your customers receive.",
+        "toYou": "To yourself",
+        "toYouHint": "Internal signals. Customers never see these."
+      },
+      "status": {
+        "on": "On",
+        "off": "Off",
+        "manualOnly": "Manual only"
+      },
+      "summary": {
+        "afterOrder": "Day after the order date",
+        "atHour": "Working days at {{hour}}",
+        "firstWorkingDay": "1st working day of the month",
+        "freq": {
+          "daily": "Every day at {{hour}}",
+          "weekly": "Every {{day}} at {{hour}}",
+          "monthly": "1st working day at {{hour}}"
+        }
+      },
+      "groups": {
+        "when": "When",
+        "ladder": "Schedule",
+        "copy": "Email texts",
+        "delivery": "Delivery",
+        "rules": "Rules per customer type"
+      },
+      "customised": "Customised",
+      "sendWindow": {
+        "title": "Send window",
+        "subtitle": "Applies to every customer email below: invoice, payment reminders and statement."
       }
     }
   },

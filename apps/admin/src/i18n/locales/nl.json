@@ -1794,7 +1794,8 @@
         "subtitle": "Stuur herinneringen automatisch per e-mail volgens onderstaand schema.",
         "warning": "Let op: als dit aanstaat worden er automatisch e-mails naar klanten verstuurd zonder handmatige goedkeuring.",
         "sendHour": "Verzenduur (0-23)",
-        "workingDaysOnly": "Alleen op werkdagen (ma-vr)"
+        "workingDaysOnly": "Alleen op werkdagen (ma-vr)",
+        "offNote": "Automatisch verzenden staat uit. Het schema en de teksten hieronder gelden nog steeds voor herinneringen die je handmatig verstuurt vanaf de pagina Herinneringen."
       },
       "schedule": {
         "title": "Schema & escalatie",
@@ -1866,6 +1867,39 @@
           "5": "vrijdag",
           "6": "zaterdag"
         }
+      },
+      "sections": {
+        "toCustomers": "Naar klanten",
+        "toCustomersHint": "E-mails die je klanten ontvangen.",
+        "toYou": "Naar jezelf",
+        "toYouHint": "Interne signalen. Klanten zien hier niets van."
+      },
+      "status": {
+        "on": "Aan",
+        "off": "Uit",
+        "manualOnly": "Alleen handmatig"
+      },
+      "summary": {
+        "afterOrder": "Dag na de orderdatum",
+        "atHour": "Werkdagen om {{hour}}",
+        "firstWorkingDay": "1e werkdag van de maand",
+        "freq": {
+          "daily": "Elke dag om {{hour}}",
+          "weekly": "Elke {{day}} om {{hour}}",
+          "monthly": "1e werkdag om {{hour}}"
+        }
+      },
+      "groups": {
+        "when": "Wanneer",
+        "ladder": "Schema",
+        "copy": "E-mailteksten",
+        "delivery": "Bezorging",
+        "rules": "Regels per klanttype"
+      },
+      "customised": "Aangepast",
+      "sendWindow": {
+        "title": "Verzendmoment",
+        "subtitle": "Geldt voor alle e-mails naar klanten hieronder: factuur, betaalherinneringen en betaaloverzicht."
       }
     }
   },
