@@ -2015,8 +2015,37 @@
     "invalidPhone": "Geçersiz telefon numarası"
   },
   "header": {
-    "searchPlaceholder": "Sipariş, müşteri, ürün ara...",
-    "noResultsFound": "Sonuç bulunamadı",
+    "search": {
+      "placeholder": "Müşteri, sipariş, ürün ara",
+      "placeholderShort": "Ara",
+      "open": "Ara",
+      "clear": "Temizle",
+      "results": "Arama sonuçları",
+      "searching": "Aranıyor...",
+      "empty": "Firma adı, sipariş numarası, fatura numarası, SKU veya barkod ile arayın",
+      "minChars": "En az {{count}} karakter yazın",
+      "noResults": "\"{{query}}\" için sonuç yok",
+      "noResultsHint": "Firma adı, sipariş numarası, fatura numarası veya SKU deneyin.",
+      "error": "Arama başarısız oldu. Lütfen tekrar deneyin.",
+      "recent": "Son aramalar",
+      "clearRecent": "Temizle",
+      "archived": "Arşivlenmiş",
+      "groups": {
+        "customer": "Müşteriler",
+        "order": "Siparişler",
+        "product": "Ürünler"
+      },
+      "seeAll": {
+        "customer": "\"{{query}}\" ile eşleşen tüm müşteriler",
+        "order": "\"{{query}}\" ile eşleşen tüm siparişler",
+        "product": "\"{{query}}\" ile eşleşen tüm ürünler"
+      },
+      "hints": {
+        "navigate": "gezin",
+        "select": "aç",
+        "close": "kapat"
+      }
+    },
     "toggleTheme": "Temayı değiştir",
     "notifications": "Bildirimler",
     "changeLanguage": "Dili değiştir",

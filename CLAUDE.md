@@ -212,6 +212,30 @@ Invoices, Outbox). Detail/editor back buttons use **`useBackTo(fallback)`** — 
 3. Any "reset to page 1 when filters change" effect must **skip its first run** (`filtersInitRef`).
 4. Default-valued keys are omitted; writes use `{ replace: true }`.
 
+🚨 **The `?gs=` remount key is the one escape hatch.** Parsing once on mount means navigating to the
+page you are *already on* changes nothing but the address bar. `Layout.tsx` wraps `<Outlet/>` in a
+`<Fragment key={searchParams.get('gs')}>`, and the header search appends `gs=<n+1>` **only when the
+destination pathname equals the current one** (`withRemountKey` in `SearchBar.tsx`). Nothing else may
+write `gs`, or paging and typing would remount the page under the user.
+
+### Global search (header)
+`components/layout/SearchBar.tsx` + `hooks/useGlobalSearch.ts` + `services/search.ts`. Grouped
+Klanten / Bestellingen / Producten, debounced 250 ms, aborted + request-id guarded, 30 s result
+cache, Cmd/Ctrl+K, arrow-key navigation, recent picks in `localStorage`.
+- 🚨 **Desktop and mobile branch ONCE in JS** (`useIsMobile`), like every other portal-owning
+  component. The old CSS split (`hidden md:block` + a `md:hidden` overlay) bound the click-outside
+  handler to the desktop wrapper only, so on a phone a tap on a result counted as "outside": the list
+  unmounted on `mousedown` and the row's `onClick` never fired. Tapping a result did nothing.
+- The results container carries `onMouseDown={e => e.preventDefault()}` so the input keeps focus. Let
+  it blur and the mobile keyboard collapses mid-tap, the list slides up, and the finger lands on
+  another row.
+- 🚨 **Every result url must OPEN the entity**, never a bare list page: customer `/customers/:id`,
+  order `/orders?order=<id>` (the param `Orders.tsx` reads on mount), product
+  `/products?search=<sku>` (there is no product detail route). Order hits are matched by order
+  number, legacy `woo_invoice_number`, app-issued document number and customer name.
+- Trashed orders are excluded; archived customers rank last behind a "Gearchiveerd" pill.
+- The `.or()` term goes through the same `[%"\\]` strip as `services/orders.ts` / `utils/pgSearch.ts`.
+
 ### Strong-password policy
 Single source: **`utils/password.ts`** — min 12 chars + upper + lower + digit (`checkPassword`,
 `passwordProblemKey` → `auth.passwordPolicy.*`), UI `components/ui/PasswordRequirements.tsx`.

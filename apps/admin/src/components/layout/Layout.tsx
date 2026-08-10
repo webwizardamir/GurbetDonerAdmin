@@ -1,11 +1,28 @@
-import { useState, useEffect, Suspense } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { useState, useEffect, Fragment, Suspense } from 'react'
+import { Outlet, useLocation, useSearchParams } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+
+  /**
+   * Remount key for the global search.
+   *
+   * List pages parse the URL ONCE on mount (see hooks/useUrlListState) — that
+   * one-directional contract is what keeps an inbound `?status=` link from
+   * being stripped. The cost is that navigating to the page you are ALREADY on
+   * only rewrites the address bar: searching an order from the Orders page, or
+   * a product from the Products page, would silently do nothing.
+   *
+   * So the header search appends `?gs=<n>` when, and only when, the destination
+   * pathname equals the current one, and the keyed Fragment below turns that
+   * into a real remount. Nothing else ever writes `gs`, so paging, filtering
+   * and searching within a page never remount.
+   */
+  const globalSearchNav = searchParams.get('gs') ?? ''
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -47,7 +64,9 @@ export default function Layout() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
             </div>
           }>
-            <Outlet />
+            <Fragment key={globalSearchNav}>
+              <Outlet />
+            </Fragment>
           </Suspense>
         </main>
       </div>

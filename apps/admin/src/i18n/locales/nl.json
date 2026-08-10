@@ -2015,8 +2015,37 @@
     "invalidPhone": "Ongeldig telefoonnummer"
   },
   "header": {
-    "searchPlaceholder": "Zoek bestellingen, klanten, producten...",
-    "noResultsFound": "Geen resultaten gevonden",
+    "search": {
+      "placeholder": "Zoek klanten, bestellingen, producten",
+      "placeholderShort": "Zoeken",
+      "open": "Zoeken",
+      "clear": "Wissen",
+      "results": "Zoekresultaten",
+      "searching": "Zoeken...",
+      "empty": "Zoek op bedrijfsnaam, bestelnummer, factuurnummer, SKU of barcode",
+      "minChars": "Typ minimaal {{count}} tekens",
+      "noResults": "Geen resultaten voor \"{{query}}\"",
+      "noResultsHint": "Probeer een bedrijfsnaam, bestelnummer, factuurnummer of SKU.",
+      "error": "Zoeken is mislukt. Probeer het opnieuw.",
+      "recent": "Recent",
+      "clearRecent": "Wissen",
+      "archived": "Gearchiveerd",
+      "groups": {
+        "customer": "Klanten",
+        "order": "Bestellingen",
+        "product": "Producten"
+      },
+      "seeAll": {
+        "customer": "Alle klanten met \"{{query}}\"",
+        "order": "Alle bestellingen met \"{{query}}\"",
+        "product": "Alle producten met \"{{query}}\""
+      },
+      "hints": {
+        "navigate": "navigeren",
+        "select": "openen",
+        "close": "sluiten"
+      }
+    },
     "toggleTheme": "Thema wisselen",
     "notifications": "Meldingen",
     "changeLanguage": "Taal wijzigen",

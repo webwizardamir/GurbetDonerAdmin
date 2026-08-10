@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Sun, Moon, Bell, Menu } from 'lucide-react'
+import { Sun, Moon, Bell, Menu } from 'lucide-react'
 import { useReminders } from '../../hooks/useReminders'
 import LanguageSelector from '../LanguageSelector'
 import SearchBar from './SearchBar'
@@ -52,9 +52,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
   // Notification state
   const [showNotifications, setShowNotifications] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
-
-  // Mobile search state
-  const [showMobileSearch, setShowMobileSearch] = useState(false)
 
   // Reminders
   const { reminders, dueReminders, unreadCount, create, update, markRead, dismiss, remove } = useReminders()
@@ -122,14 +119,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
             flexbox shrinks these icons to make room for the title instead of
             the other way round, and they visually collide. */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Mobile Search Toggle */}
-          <button onClick={() => setShowMobileSearch(!showMobileSearch)}
-            className="md:hidden p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-            <Search className="w-5 h-5" />
-          </button>
-
-          {/* Global Search */}
-          <SearchBar showMobileSearch={showMobileSearch} onCloseMobileSearch={() => setShowMobileSearch(false)} />
+          {/* Global search. Owns its own mobile trigger + full-screen dialog:
+              the header used to hold that state and render a separate CSS-hidden
+              overlay, which is how the mobile results ended up unclickable. */}
+          <SearchBar />
 
           {/* Theme Toggle */}
           <button onClick={toggleDarkMode}

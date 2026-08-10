@@ -2015,8 +2015,37 @@
     "invalidPhone": "Invalid phone number"
   },
   "header": {
-    "searchPlaceholder": "Search orders, customers, products...",
-    "noResultsFound": "No results found",
+    "search": {
+      "placeholder": "Search customers, orders, products",
+      "placeholderShort": "Search",
+      "open": "Search",
+      "clear": "Clear",
+      "results": "Search results",
+      "searching": "Searching...",
+      "empty": "Search by company name, order number, invoice number, SKU or barcode",
+      "minChars": "Type at least {{count}} characters",
+      "noResults": "No results for \"{{query}}\"",
+      "noResultsHint": "Try a company name, order number, invoice number or SKU.",
+      "error": "Search failed. Please try again.",
+      "recent": "Recent",
+      "clearRecent": "Clear",
+      "archived": "Archived",
+      "groups": {
+        "customer": "Customers",
+        "order": "Orders",
+        "product": "Products"
+      },
+      "seeAll": {
+        "customer": "All customers matching \"{{query}}\"",
+        "order": "All orders matching \"{{query}}\"",
+        "product": "All products matching \"{{query}}\""
+      },
+      "hints": {
+        "navigate": "navigate",
+        "select": "open",
+        "close": "close"
+      }
+    },
     "toggleTheme": "Toggle theme",
     "notifications": "Notifications",
     "changeLanguage": "Change language",
