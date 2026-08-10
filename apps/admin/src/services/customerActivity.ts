@@ -126,54 +126,13 @@ export async function saveCustomerInactivityRule(
 
 // ---- shaping --------------------------------------------------------------
 
-export interface ActivityGroup {
-  key: CustomerTypeKey | 'never' | 'untagged'
-  label: string
-  thresholdLabel: string
-  rows: CustomerActivityRow[]
-}
-
-/**
- * Group the due rows the way the mail and the PDF present them: never-ordered
- * customers stand apart (a name with no history is a different job than a
- * regular who went quiet), the rest by customer type, longest quiet first.
- * 🚨 Kept in sync with groupForDigest() in the edge function.
- */
-export function groupActivityRows(rows: CustomerActivityRow[]): ActivityGroup[] {
-  const labels: Record<string, string> = {
-    horeca: 'Horeca', supermarkt: 'Supermarkt', other: 'Overig',
-    untagged: 'Zonder klanttype', never: 'Nog nooit besteld',
-  }
-  const buckets = new Map<string, CustomerActivityRow[]>()
-  for (const r of rows) {
-    const key = r.order_count === 0 ? 'never' : (r.customer_type ?? 'untagged')
-    const list = buckets.get(key) ?? []
-    list.push(r)
-    buckets.set(key, list)
-  }
-  const order = ['horeca', 'supermarkt', 'other', 'untagged', 'never']
-  return order
-    .filter(k => buckets.has(k))
-    .map(k => {
-      const list = buckets.get(k)!.sort((a, b) => b.days_since - a.days_since)
-      // Every row in a type bucket shares the type threshold unless it carries
-      // its own; show the common one in the heading and flag the exceptions.
-      const common = list.find(r => r.rule_source === 'type')?.threshold_days ?? null
-      return {
-        key: k as ActivityGroup['key'],
-        label: labels[k] ?? k,
-        thresholdLabel: k === 'never' ? '' : common != null ? `regel: ${common} dagen` : '',
-        rows: list,
-      }
-    })
-}
-
-/** "7 dagen · type Horeca" / "21 dagen · eigen regel" / "niet gemonitord" */
-export function ruleLabel(row: CustomerActivityRow): string {
-  if (row.threshold_days == null) return 'niet gemonitord'
-  const source =
-    row.rule_source === 'customer' ? 'eigen regel'
-    : row.rule_source === 'type' ? 'type-regel'
-    : 'standaard'
-  return `${row.threshold_days} dagen · ${source}`
-}
+// Moved to utils/customerActivity.ts (a DB-free module) because the PDF
+// template needs them and is bundled into the Vercel render function. Re-
+// exported here so existing imports keep working.
+// 🚨 Do not move them back, and do not import anything from this file into
+// components/documents/* — see the header of utils/customerActivity.ts.
+export {
+  groupActivityRows,
+  ruleLabel,
+  type ActivityGroup,
+} from '../utils/customerActivity'

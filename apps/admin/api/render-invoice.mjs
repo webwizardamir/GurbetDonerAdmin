@@ -1,5 +1,5 @@
 // api-src/render-invoice.tsx
-import { createClient as createClient2 } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { renderToBuffer } from "@react-pdf/renderer";
 
 // src/components/documents/InvoiceTemplate.tsx
@@ -3916,82 +3916,7 @@ function PaymentOverviewTemplate({ data }) {
 // src/components/documents/CustomerActivityTemplate.tsx
 import { Document as Document8, Page as Page8, View as View8, Text as Text8, StyleSheet as StyleSheet8 } from "@react-pdf/renderer";
 
-// src/services/supabase.ts
-import { createClient } from "@supabase/supabase-js";
-var supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-var supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-if (!supabaseUrl || !supabaseAnonKey) {
-  if (import.meta.env.DEV) {
-    console.error("Missing Supabase environment variables. Please check your .env file.");
-  }
-}
-var supabase = createClient(
-  supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder-key"
-);
-var PORTAL_REMEMBER_KEY = "sb-portal-remember";
-var portalAuthStorage = {
-  getItem: (key) => (
-    // The token may live in either store depending on the last remember choice.
-    window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key)
-  ),
-  setItem: (key, value) => {
-    const remember = window.localStorage.getItem(PORTAL_REMEMBER_KEY) === "true";
-    if (remember) {
-      window.localStorage.setItem(key, value);
-      window.sessionStorage.removeItem(key);
-    } else {
-      window.sessionStorage.setItem(key, value);
-      window.localStorage.removeItem(key);
-    }
-  },
-  removeItem: (key) => {
-    window.localStorage.removeItem(key);
-    window.sessionStorage.removeItem(key);
-  }
-};
-try {
-  if (window.localStorage.getItem("sb-portal-auth-token") && window.localStorage.getItem(PORTAL_REMEMBER_KEY) === null) {
-    window.localStorage.setItem(PORTAL_REMEMBER_KEY, "true");
-  }
-} catch {
-}
-var portalSupabase = createClient(
-  supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder-key",
-  {
-    auth: {
-      storageKey: "sb-portal-auth-token",
-      // Different key than admin
-      autoRefreshToken: true,
-      persistSession: true,
-      storage: portalAuthStorage,
-      // Both clients are created at module import, so both are live on every
-      // page — including the admin `/reset-password#access_token=...` screen.
-      // With this on, the portal client would race the admin client for that
-      // hash and could persist a STAFF token under sb-portal-auth-token. The
-      // portal's own login is OTP (verifyOtp), which never uses a URL hash, so
-      // it has no need for hash detection.
-      detectSessionInUrl: false
-    }
-  }
-);
-if (import.meta.env.PROD) {
-  Object.defineProperty(window, "supabase", {
-    get: () => void 0,
-    set: () => {
-    },
-    configurable: false
-  });
-  Object.defineProperty(window, "portalSupabase", {
-    get: () => void 0,
-    set: () => {
-    },
-    configurable: false
-  });
-}
-
-// src/services/customerActivity.ts
+// src/utils/customerActivity.ts
 function groupActivityRows(rows) {
   const labels = {
     horeca: "Horeca",
@@ -4200,7 +4125,7 @@ async function handler(req, res) {
     if (!SUPABASE_URL || !SERVICE_ROLE) {
       return res.status(500).json({ error: "supabase env not configured (need SUPABASE_SERVICE_ROLE_KEY + SUPABASE_URL/VITE_SUPABASE_URL)" });
     }
-    const admin = createClient2(SUPABASE_URL, SERVICE_ROLE);
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
     if (type === "payment_overview") {
       const overviewId = String(body.overviewId ?? "");
       if (!overviewId) return res.status(400).json({ error: "missing overviewId" });

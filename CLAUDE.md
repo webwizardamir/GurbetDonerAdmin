@@ -282,6 +282,18 @@ logo PNG imports die. Tenant comes from asset-free **`config/tenantId.ts`**, whi
 esbuild's `define` in `scripts/build-api.mjs` substitute. Optional chaining matches neither and
 throws in Node. Change one, change both.
 
+🚨 **A template cannot import from `src/services/*` either — same reason, worse blast radius.**
+Every service imports `services/supabase.ts`, which reads `import.meta.env.VITE_SUPABASE_URL` and
+touches `window` at **module scope**. Pull one into the template graph and the bundled Lambda throws
+while *loading*, so `/api/render-invoice` 500s for **every** caller at once: the 24h invoice mail
+(which skips the send when the PDF is null), the monthly Betaaloverzicht, and the Klantactiviteit
+attachment. There is no error surface anywhere — mail simply stops arriving. It shipped exactly
+once, on 2026-08-07, via a one-word import of `groupActivityRows`.
+Put anything a template needs in a **DB-free module** (`src/utils/customerActivity.ts` is the
+worked example, and `services/customerActivity.ts` re-exports it so call sites are unaffected).
+`scripts/build-api.mjs` now fails the build on any surviving `import.meta.env` in the bundle **and**
+`import()`s the output to prove it loads in Node. Keep both guards.
+
 **Known, not fixed:** Melek's `#16a34a` as *text* in `ibanCalloutIban`, `grandTotalValue` and the
 credit note amounts is 3.15:1 (below AA). One-token fix (`#166534` → 6.81:1), left alone because it
 repaints live invoices. Gurbet's blue is 5.6:1.

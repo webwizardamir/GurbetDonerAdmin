@@ -1,6 +1,9 @@
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import type { CustomerActivityRow } from '../../types'
-import { groupActivityRows } from '../../services/customerActivity'
+// 🚨 utils, never services/customerActivity: a service pulls in the browser
+// Supabase client, which throws at module load inside the Vercel render
+// function. See the header of utils/customerActivity.ts.
+import { groupActivityRows } from '../../utils/customerActivity'
 import { docBrand } from './brandPalette'
 
 // ===========================================================================
