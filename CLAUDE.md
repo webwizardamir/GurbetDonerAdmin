@@ -458,9 +458,20 @@ one). It is parallel, best-effort (never throws) and called **fire-and-forget** 
   the business-hours window, excludes drafts.
 - 🚨 **The window is keyed on `order_date`, not `created_at`** — an order entered 13 Jul for an
   `order_date` of 16 Jul must send on 17 Jul. `order_date` is a DATE, so the candidate window is
-  `order_date <= yesterday` with an `order_date >= 3 days ago` floor (≈3 daily retries, no rollout
-  blast). Send time = `send_hour` Europe/Amsterdam on a working day; a weekend rolls forward.
+  `order_date <= yesterday` with a floor of **3 SEND days back** (`sendWindowFloorISO`), no rollout
+  blast. Send time = `send_hour` Europe/Amsterdam on a working day; a weekend rolls forward.
   **Never revert to `created_at`.**
+- 🚨 **The floor counts SEND days, never calendar days.** With `working_days_only` the cron sends
+  Mon-Fri, so the old `-3 calendar days` gave a **Thursday or Friday order exactly ONE attempt** (the
+  weekend ate the other two) while Monday orders got three. Since Step 6 skips **without writing a
+  `document_sends` row** when the PDF is unavailable, one bad morning lost that invoice permanently
+  and left no trace: that is how FC-08734 and FC-08739 were never emailed on 2026-08-10. Reach is
+  bounded at 5 calendar days (a Monday run stops at the previous Wednesday), and
+  `!!cfg.working_days_only` must keep mirroring `dayOk` exactly — defaulting it to *true* would widen
+  the window on a tenant that sends daily, and a wider window is more mail.
+  **Widening this window is safe only because the dedup is exclusion-based** (`NOT IN
+  (pending,failed)`): an order already handed to Resend is skipped whatever its final status. Verify
+  that predicate before touching the floor again.
 - Owner env: Vercel (`SUPABASE_SERVICE_ROLE_KEY`, `RENDER_SECRET`; URL reuses `VITE_SUPABASE_URL`),
   edge fn (`RENDER_ENDPOINT_URL`, `RENDER_SECRET`). Gurbet has neither, so renderer-dependent steps
   self-skip there.

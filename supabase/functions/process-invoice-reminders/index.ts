@@ -177,6 +177,9 @@ function resolveTemplate(
  */
 const NOT_YET_SENT_STATUSES = '(pending,failed)'
 
+/** How many SEND days an unsent invoice stays a candidate. See sendWindowFloorISO. */
+const INVOICE_SEND_ATTEMPTS = 3
+
 const DEFAULT_CONFIG: ReminderConfig = {
   auto_send_enabled: false,
   send_hour: 8,
@@ -443,15 +446,22 @@ serve(async (req) => {
   //    16 Jul must send on 17 Jul (day after the order date), never 14 Jul.
   //    order_date is a DATE column, so compare against date strings. The send
   //    opens the day after order_date (order_date <= yesterday) and the floor
-  //    (order_date >= 3 days ago) keeps the band narrow: no rollout blast of old
-  //    orders, still ~3 daily retries. Drafts are excluded (an unfinalized order
+  //    (3 SEND days back, sendWindowFloorISO) keeps the band narrow: no rollout
+  //    blast of old orders, still 3 real retries on every weekday — a calendar
+  //    floor gave a Friday order only one. Drafts are excluded (an unfinalized order
   //    must not be auto-emailed); cancelled/refunded/trashed too. Idempotent on a
   //    SUCCESSFUL send only, so a transient failure retries next day instead of
   //    permanently blocking the invoice.
   const renderConfigured = !!Deno.env.get('RENDER_ENDPOINT_URL') && !!Deno.env.get('RENDER_SECRET')
   if (cfg.initial_invoice_send_enabled === true && renderConfigured && hourOk && dayOk) {
     const upperDate = dateOffsetISO(-1)   // yesterday — order_date on/before this
-    const lowerDate = dateOffsetISO(-3)   // 3 days ago — order_date on/after this
+    // Floor counted in SEND days, not calendar days. See sendWindowFloorISO.
+    // 🚨 `!!cfg.working_days_only` mirrors `dayOk` above EXACTLY. dayOk reads
+    // `!cfg.working_days_only`, so an absent flag means "send every day" and the
+    // floor must then stay calendar-based. Defaulting it to true here (as the
+    // Klantactiviteit block does with its own config) would widen the window on
+    // a tenant that sends daily, and a wider window is more mail.
+    const lowerDate = sendWindowFloorISO(INVOICE_SEND_ATTEMPTS, !!cfg.working_days_only)
     const { data: newOrders } = await admin
       .from('orders')
       .select('id, order_number, total, order_date, invoice_due_date, reminders_opted_out, customer:customers!customer_id(id, company_name, email, billing_country, reminders_opted_out)')
@@ -1284,6 +1294,48 @@ function todayISO(): string {
 // columns like order_date. Negative = past (e.g. -1 = yesterday).
 function dateOffsetISO(days: number): string {
   return new Date(Date.now() + days * 86400000).toISOString().split('T')[0]
+}
+
+/** Is `days` from now a day the cron would send on? Weekday read in Amsterdam. */
+function isSendDay(days: number): boolean {
+  const wd = new Date(Date.now() + days * 86400000)
+    .toLocaleDateString('en-US', { timeZone: 'Europe/Amsterdam', weekday: 'short' })
+  return wd !== 'Sat' && wd !== 'Sun'
+}
+
+/**
+ * Floor of the initial-invoice send window: the date `attempts` SEND days back.
+ *
+ * 🚨 Counting CALENDAR days here is what silently loses Thursday and Friday
+ * orders. With working_days_only on, the cron sends Mon-Fri only, so a calendar
+ * floor of 3 buys an order dated Friday exactly ONE attempt: Saturday and
+ * Sunday are skipped and by Tuesday it has already dropped out of the window.
+ * One bad morning then loses that invoice for good, and because Step 6 skips
+ * WITHOUT writing a document_sends row, there is nothing left to notice. That
+ * is precisely how FC-08734 and FC-08739 were never emailed (2026-08-10, the
+ * morning the PDF renderer was down).
+ *
+ * Walking back over send days makes "3" mean three real attempts on every day
+ * of the week. Reach is bounded at 5 calendar days: the widest case is a Monday
+ * run, which stops at the previous Wednesday.
+ *
+ * Widening a window is the one change here that can produce EXTRA mail, so note
+ * what stops it: the dedup above skips any order that already has an invoice
+ * `document_sends` row in a status other than pending/failed. Orders in the
+ * newly reachable band that were sent normally are therefore untouched; only a
+ * genuinely never-sent invoice is picked up, which is the whole point.
+ */
+function sendWindowFloorISO(attempts: number, workingDaysOnly: boolean): string {
+  if (!workingDaysOnly) return dateOffsetISO(-attempts)
+  let counted = 0
+  let offset = 0
+  // Bounded walk. If it ever fails to find enough send days it stops early,
+  // which NARROWS the window — the safe direction for a mail-sending loop.
+  while (counted < attempts && offset < attempts + 5) {
+    offset++
+    if (isSendDay(-offset)) counted++
+  }
+  return dateOffsetISO(-offset)
 }
 
 function daysBetween(dueISO: string): number {
