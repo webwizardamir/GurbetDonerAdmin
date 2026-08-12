@@ -57,6 +57,52 @@ export function resolveShippingAddress(c: Partial<Customer> | null | undefined):
   }
 }
 
+export interface DeliveryAddress extends AddressParts {
+  /** True when the goods go to the billing address, because no separate one is on file. */
+  sameAsBilling: boolean
+}
+
+/**
+ * Where the goods actually go. Unlike `resolveShippingAddress` above (which asks
+ * "is there a SEPARATE block worth printing?"), this always resolves to an
+ * address: the shipping one when it is filled in and flagged different, the
+ * billing one otherwise. Same rule as `services/route.ts → resolveDeliveryAddress`,
+ * which is the address the van drives to, so a customer reading their delivery
+ * address in the portal sees exactly where we deliver.
+ *
+ * Returns null only when neither address has a street or a city.
+ */
+export function resolveDeliveryAddressParts(
+  c: Partial<Customer> | null | undefined
+): DeliveryAddress | null {
+  if (!c) return null
+
+  // `true`/undefined both mean "same as billing" (the column defaults to true),
+  // and an empty shipping address is not a delivery address whatever the flag says.
+  const useShipping =
+    c.shipping_same_as_billing === false &&
+    !!((c.shipping_street ?? '').trim() || (c.shipping_city ?? '').trim())
+
+  const street = ((useShipping ? c.shipping_street : c.billing_street) ?? '').trim()
+  const city = ((useShipping ? c.shipping_city : c.billing_city) ?? '').trim()
+  if (!street && !city) return null
+
+  const postalCode = ((useShipping ? c.shipping_postal_code : c.billing_postal_code) ?? '').trim()
+  const country = (
+    (useShipping ? c.shipping_country : c.billing_country) ||
+    c.billing_country ||
+    ''
+  ).trim()
+
+  return {
+    street: street || undefined,
+    postalCode: postalCode || undefined,
+    city: city || undefined,
+    country: country || undefined,
+    sameAsBilling: !useShipping,
+  }
+}
+
 /**
  * Compact address lines for a PDF block: street, then "1234 AB Stad, NL".
  * Mirrors the country-merged-into-the-city-line convention used by every

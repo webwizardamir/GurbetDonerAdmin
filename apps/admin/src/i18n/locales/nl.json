@@ -2157,7 +2157,24 @@
       "quickActions": "Snelle acties",
       "viewOrders": "Bestellingen bekijken",
       "viewDocuments": "Documenten bekijken",
-      "manageAccount": "Account beheren"
+      "manageAccount": "Account beheren",
+      "openOrders": "Lopende bestellingen",
+      "openOrdersAmount": "Waarde {{amount}}",
+      "noOpenOrders": "Niets onderweg",
+      "outstanding": "Openstaand bedrag",
+      "invoiceCount_one": "{{count}} factuur",
+      "invoiceCount_other": "{{count}} facturen",
+      "nextDue": "vervalt {{date}}",
+      "nothingOutstanding": "Niets te betalen",
+      "overdue": "Verlopen",
+      "noOverdue": "Geen achterstand",
+      "overdueAlert_one": "U heeft {{count}} verlopen factuur van {{amount}}.",
+      "overdueAlert_other": "U heeft {{count}} verlopen facturen van in totaal {{amount}}.",
+      "viewInvoices": "Facturen bekijken",
+      "spentThisYear": "Besteed dit jaar",
+      "spentTotalHint": "Totaal {{amount}}",
+      "averageOrderValue": "Gemiddelde orderwaarde",
+      "lastOrder": "Laatste bestelling"
     },
     "orders": {
       "title": "Mijn bestellingen",
@@ -2236,7 +2253,8 @@
       "updatePassword": "Wachtwoord bijwerken",
       "passwordUpdated": "Wachtwoord succesvol bijgewerkt",
       "passwordMismatch": "Wachtwoorden komen niet overeen",
-      "lastLogin": "Laatste login"
+      "lastLogin": "Laatste login",
+      "dataChangeHint": "Kloppen uw gegevens niet? Neem contact met ons op, dan passen wij ze aan."
     },
     "access": {
       "title": "Portaal toegang",

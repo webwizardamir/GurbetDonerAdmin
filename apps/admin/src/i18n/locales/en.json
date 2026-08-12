@@ -2157,7 +2157,24 @@
       "quickActions": "Quick Actions",
       "viewOrders": "View Orders",
       "viewDocuments": "View Documents",
-      "manageAccount": "Manage Account"
+      "manageAccount": "Manage Account",
+      "openOrders": "Open orders",
+      "openOrdersAmount": "Worth {{amount}}",
+      "noOpenOrders": "Nothing on its way",
+      "outstanding": "Outstanding balance",
+      "invoiceCount_one": "{{count}} invoice",
+      "invoiceCount_other": "{{count}} invoices",
+      "nextDue": "due {{date}}",
+      "nothingOutstanding": "Nothing to pay",
+      "overdue": "Overdue",
+      "noOverdue": "No arrears",
+      "overdueAlert_one": "You have {{count}} overdue invoice of {{amount}}.",
+      "overdueAlert_other": "You have {{count}} overdue invoices totalling {{amount}}.",
+      "viewInvoices": "View invoices",
+      "spentThisYear": "Spent this year",
+      "spentTotalHint": "Total {{amount}}",
+      "averageOrderValue": "Average order value",
+      "lastOrder": "Last order"
     },
     "orders": {
       "title": "My Orders",
@@ -2236,7 +2253,8 @@
       "updatePassword": "Update Password",
       "passwordUpdated": "Password updated successfully",
       "passwordMismatch": "Passwords do not match",
-      "lastLogin": "Last login"
+      "lastLogin": "Last login",
+      "dataChangeHint": "Are your details incorrect? Contact us and we will update them."
     },
     "access": {
       "title": "Portal Access",

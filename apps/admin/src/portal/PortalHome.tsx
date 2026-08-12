@@ -6,9 +6,10 @@ import {
   FileText,
   User,
   Package,
-  Clock,
-  CheckCircle,
-  Euro,
+  Truck,
+  Wallet,
+  AlertTriangle,
+  TrendingUp,
   ArrowRight,
   Loader2,
 } from 'lucide-react'
@@ -25,6 +26,46 @@ const statusColors: Record<string, string> = {
   delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
   cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   refunded: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+}
+
+/** One dashboard KPI: a headline figure with an optional supporting line under it. */
+function StatCard({
+  icon,
+  tone,
+  value,
+  label,
+  hint,
+  valueClass,
+}: {
+  icon: React.ReactNode
+  tone: string
+  value: string
+  label: string
+  hint?: string
+  valueClass?: string
+}) {
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700">
+      <div className="flex items-start gap-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${tone}`}>
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p
+            className={`text-2xl font-bold truncate ${
+              valueClass || 'text-slate-900 dark:text-white'
+            }`}
+          >
+            {value}
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+          {hint && (
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{hint}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function PortalHome() {
@@ -63,6 +104,8 @@ export default function PortalHome() {
     })
   }
 
+  const overdueCount = stats?.overdueCount || 0
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -83,70 +126,129 @@ export default function PortalHome() {
         </p>
       </div>
 
+      {/* Overdue alert — the one thing worth interrupting for */}
+      {overdueCount > 0 && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-red-800 dark:text-red-300">
+              {t('portal.home.overdueAlert', {
+                count: overdueCount,
+                amount: formatPrice(stats?.overdueAmount || 0),
+              })}
+            </p>
+            <Link
+              to="/portal/documents"
+              className="text-sm text-red-700 dark:text-red-400 hover:underline"
+            >
+              {t('portal.home.viewInvoices')}
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-              <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {stats?.totalOrders || 0}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {t('portal.home.totalOrders')}
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={<Truck className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+          tone="bg-blue-100 dark:bg-blue-900/30"
+          value={String(stats?.pendingOrders || 0)}
+          label={t('portal.home.openOrders')}
+          hint={
+            stats?.pendingOrders
+              ? t('portal.home.openOrdersAmount', { amount: formatPrice(stats.pendingAmount) })
+              : t('portal.home.noOpenOrders')
+          }
+        />
 
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-              <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {stats?.pendingOrders || 0}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {t('portal.home.pendingOrders')}
-              </p>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          icon={<Wallet className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+          tone="bg-indigo-100 dark:bg-indigo-900/30"
+          value={formatPrice(stats?.outstandingAmount || 0)}
+          label={t('portal.home.outstanding')}
+          hint={
+            stats?.outstandingCount
+              ? [
+                  t('portal.home.invoiceCount', { count: stats.outstandingCount }),
+                  stats.nextDueDate
+                    ? t('portal.home.nextDue', { date: formatDate(stats.nextDueDate) })
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+              : t('portal.home.nothingOutstanding')
+          }
+        />
 
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {stats?.completedOrders || 0}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {t('portal.home.completedOrders')}
-              </p>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          icon={
+            <AlertTriangle
+              className={`w-5 h-5 ${
+                overdueCount > 0
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-green-600 dark:text-green-400'
+              }`}
+            />
+          }
+          tone={
+            overdueCount > 0
+              ? 'bg-red-100 dark:bg-red-900/30'
+              : 'bg-green-100 dark:bg-green-900/30'
+          }
+          value={formatPrice(stats?.overdueAmount || 0)}
+          valueClass={overdueCount > 0 ? 'text-red-600 dark:text-red-400' : undefined}
+          label={t('portal.home.overdue')}
+          hint={
+            overdueCount > 0
+              ? t('portal.home.invoiceCount', { count: overdueCount })
+              : t('portal.home.noOverdue')
+          }
+        />
 
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
-              <Euro className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {formatPrice(stats?.totalSpent || 0)}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {t('portal.home.totalSpent')}
-              </p>
-            </div>
-          </div>
+        <StatCard
+          icon={<TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
+          tone="bg-emerald-100 dark:bg-emerald-900/30"
+          value={formatPrice(stats?.spentThisYear || 0)}
+          label={t('portal.home.spentThisYear')}
+          hint={t('portal.home.spentTotalHint', {
+            amount: formatPrice(stats?.totalSpent || 0),
+          })}
+        />
+      </div>
+
+      {/* Secondary figures — context, not headlines */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t('portal.home.totalOrders')}
+          </p>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white">
+            {stats?.totalOrders || 0}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t('portal.home.completedOrders')}
+          </p>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white">
+            {stats?.completedOrders || 0}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t('portal.home.averageOrderValue')}
+          </p>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white">
+            {formatPrice(stats?.averageOrderValue || 0)}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t('portal.home.lastOrder')}
+          </p>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white">
+            {stats?.lastOrderDate ? formatDate(stats.lastOrderDate) : '—'}
+          </p>
         </div>
       </div>
 
@@ -265,8 +367,10 @@ export default function PortalHome() {
                           {order.order_number}
                         </span>
                       </td>
+                      {/* order_date is the business date on the invoice; created_at is
+                          just when the row was keyed in. */}
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                        {formatDate(order.created_at)}
+                        {formatDate(order.order_date || order.created_at)}
                       </td>
                       <td className="px-4 py-3">
                         <span

@@ -1067,6 +1067,30 @@ create/relink/delete/modify any auth user whose `profiles.role` is **staff** or 
 - Reusable `components/ui/DropdownMenu.tsx` (React portal + fixed positioning) is the pattern for row
   menus that must escape `overflow-hidden`.
 
+### Dashboard KPIs — `get_portal_stats` (00116)
+Open orders + their value, outstanding / overdue amounts, YTD and lifetime spend, average order value,
+last order date, next due date. `PortalHome` renders four headline tiles, a secondary figures strip and
+a red banner when anything is overdue.
+
+🚨 **The `payable` CTE is a verbatim copy of `get_payment_overview_orders`'s qualifying predicate**
+(`deleted_at IS NULL`, `status NOT IN (completed,cancelled,refunded,draft)`, an invoice number exists,
+`total − refund_amount > 0`; overdue is `invoice_due_date < CURRENT_DATE`). That RPC builds the monthly
+**Betaaloverzicht** PDF the same customer is emailed, so a divergence quotes them two different debts.
+**Change one, change both.** Amounts go through `ROUND(…)::bigint` because Gurbet's `orders.total` is
+`numeric` and Melek's is `integer`.
+
+`totalSpent` is net of refunds. The recent-orders table shows **`order_date`**, the date on the
+invoice, not `created_at`.
+
+### Profile addresses answer "where do we deliver?"
+`PortalAccount` renders the billing address, then the **delivery** address via
+**`resolveDeliveryAddressParts`** (`utils/address.ts`), which always resolves: the shipping address when
+it is filled in and flagged different, the billing one otherwise (badged *Zelfde als factuuradres*).
+Same rule as `services/route.ts → resolveDeliveryAddress`, so the customer reads the address the van
+drives to. It previously read the `shipping_*` columns raw, so every customer on the `true` default saw
+an empty "Verzendadres" card. **Do not confuse it with `resolveShippingAddress`** in the same file,
+which returns null when the addresses match because documents must not print the same block twice.
+
 ---
 
 ## Data Export (list pages)

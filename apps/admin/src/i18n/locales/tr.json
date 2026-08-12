@@ -2157,7 +2157,24 @@
       "quickActions": "Hızlı İşlemler",
       "viewOrders": "Siparişleri Gör",
       "viewDocuments": "Belgeleri Gör",
-      "manageAccount": "Hesabı Yönet"
+      "manageAccount": "Hesabı Yönet",
+      "openOrders": "Devam eden siparişler",
+      "openOrdersAmount": "Tutar {{amount}}",
+      "noOpenOrders": "Yolda sipariş yok",
+      "outstanding": "Ödenmemiş tutar",
+      "invoiceCount_one": "{{count}} fatura",
+      "invoiceCount_other": "{{count}} fatura",
+      "nextDue": "son ödeme {{date}}",
+      "nothingOutstanding": "Ödenecek tutar yok",
+      "overdue": "Vadesi geçmiş",
+      "noOverdue": "Gecikme yok",
+      "overdueAlert_one": "Vadesi geçmiş {{count}} faturanız var, tutar {{amount}}.",
+      "overdueAlert_other": "Vadesi geçmiş {{count}} faturanız var, toplam {{amount}}.",
+      "viewInvoices": "Faturaları görüntüle",
+      "spentThisYear": "Bu yıl harcanan",
+      "spentTotalHint": "Toplam {{amount}}",
+      "averageOrderValue": "Ortalama sipariş tutarı",
+      "lastOrder": "Son sipariş"
     },
     "orders": {
       "title": "Siparişlerim",
@@ -2236,7 +2253,8 @@
       "updatePassword": "Şifreyi Güncelle",
       "passwordUpdated": "Şifre başarıyla güncellendi",
       "passwordMismatch": "Şifreler eşleşmiyor",
-      "lastLogin": "Son giriş"
+      "lastLogin": "Son giriş",
+      "dataChangeHint": "Bilgileriniz doğru değil mi? Bizimle iletişime geçin, güncelleyelim."
     },
     "access": {
       "title": "Portal Erişimi",

@@ -9,6 +9,7 @@ import {
   Phone,
   FileText,
   MapPin,
+  Truck,
   Lock,
   Loader2,
   CheckCircle,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react'
 import { usePortalAuth } from '../context/PortalAuthContext'
 import { portalUpdatePassword } from '../services/portalAuth'
+import { buildAddressLines, resolveDeliveryAddressParts } from '../utils/address'
 
 export default function PortalAccount() {
   const { t } = useTranslation()
@@ -60,19 +62,18 @@ export default function PortalAccount() {
     }
   }
 
-  const formatAddress = (type: 'billing' | 'shipping') => {
-    const prefix = type === 'billing' ? 'billing_' : 'shipping_'
-    const street = customer?.[`${prefix}street` as keyof typeof customer]
-    const city = customer?.[`${prefix}city` as keyof typeof customer]
-    const postal = customer?.[`${prefix}postal_code` as keyof typeof customer]
-    const country = customer?.[`${prefix}country` as keyof typeof customer]
+  const billingLines = buildAddressLines({
+    street: customer?.billing_street,
+    postalCode: customer?.billing_postal_code,
+    city: customer?.billing_city,
+    country: customer?.billing_country,
+  })
 
-    if (!street && !city) return null
-
-    return [street, postal && city ? `${postal} ${city}` : city || postal, country]
-      .filter(Boolean)
-      .join(', ')
-  }
+  // Where we actually deliver. When no separate shipping address is on file this
+  // resolves to the billing address, exactly like the route planner, instead of
+  // leaving the card empty as if we had nowhere to drive to.
+  const delivery = resolveDeliveryAddressParts(customer)
+  const deliveryLines = buildAddressLines(delivery)
 
   const formatLastLogin = (dateString: string | null) => {
     if (!dateString) return '-'
@@ -209,10 +210,12 @@ export default function PortalAccount() {
             </h2>
           </div>
           <div className="p-4">
-            {formatAddress('billing') ? (
-              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-line">
-                {formatAddress('billing')}
-              </p>
+            {billingLines.length > 0 ? (
+              <div className="text-slate-700 dark:text-slate-300 space-y-0.5">
+                {billingLines.map((line, i) => (
+                  <p key={i}>{line}</p>
+                ))}
+              </div>
             ) : (
               <p className="text-slate-400 dark:text-slate-500 italic">
                 {t('customerDetail.noAddress')}
@@ -221,19 +224,26 @@ export default function PortalAccount() {
           </div>
         </div>
 
-        {/* Shipping Address */}
+        {/* Delivery Address — the billing address when no separate one is registered */}
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
             <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-slate-500" />
+              <Truck className="w-5 h-5 text-slate-500" />
               {t('portal.account.shippingAddress')}
             </h2>
+            {delivery?.sameAsBilling && (
+              <span className="shrink-0 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                {t('customers.sameAsBilling')}
+              </span>
+            )}
           </div>
           <div className="p-4">
-            {formatAddress('shipping') ? (
-              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-line">
-                {formatAddress('shipping')}
-              </p>
+            {deliveryLines.length > 0 ? (
+              <div className="text-slate-700 dark:text-slate-300 space-y-0.5">
+                {deliveryLines.map((line, i) => (
+                  <p key={i}>{line}</p>
+                ))}
+              </div>
             ) : (
               <p className="text-slate-400 dark:text-slate-500 italic">
                 {t('customerDetail.noAddress')}
@@ -242,6 +252,10 @@ export default function PortalAccount() {
           </div>
         </div>
       </div>
+
+      <p className="text-sm text-slate-500 dark:text-slate-400 -mt-2">
+        {t('portal.account.dataChangeHint')}
+      </p>
 
       {/* Change Password */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">

@@ -23,9 +23,43 @@ export interface PortalOrder {
 
 export interface PortalStats {
   totalOrders: number
+  /** Orders still on their way (pending / pending_payment / processing / on_hold). */
   pendingOrders: number
+  /** Combined value of those open orders, net of refunds, in cents. */
+  pendingAmount: number
   completedOrders: number
   totalSpent: number
+  spentThisYear: number
+  averageOrderValue: number
+  lastOrderDate: string | null
+  /**
+   * Invoiced but not yet settled. Mirrors `get_payment_overview_orders`, the same
+   * set the monthly Betaaloverzicht PDF bills, so the portal and that email can
+   * never quote the customer two different debts.
+   */
+  outstandingCount: number
+  outstandingAmount: number
+  /** The subset already past its due date (due today is not late). */
+  overdueCount: number
+  overdueAmount: number
+  /** Earliest due date that has not passed yet, or null when nothing is open. */
+  nextDueDate: string | null
+}
+
+const EMPTY_STATS: PortalStats = {
+  totalOrders: 0,
+  pendingOrders: 0,
+  pendingAmount: 0,
+  completedOrders: 0,
+  totalSpent: 0,
+  spentThisYear: 0,
+  averageOrderValue: 0,
+  lastOrderDate: null,
+  outstandingCount: 0,
+  outstandingAmount: 0,
+  overdueCount: 0,
+  overdueAmount: 0,
+  nextDueDate: null,
 }
 
 // All portal reads go through SECURITY DEFINER RPCs (migration 00071) that return
@@ -66,7 +100,7 @@ export async function fetchPortalDocuments(_customerId?: string): Promise<Docume
 export async function fetchPortalStats(_customerId?: string): Promise<PortalStats> {
   const { data, error } = await portalSupabase.rpc('get_portal_stats')
   if (error) throw error
-  return (data as PortalStats) || { totalOrders: 0, pendingOrders: 0, completedOrders: 0, totalSpent: 0 }
+  return { ...EMPTY_STATS, ...((data as Partial<PortalStats>) || {}) }
 }
 
 /**
