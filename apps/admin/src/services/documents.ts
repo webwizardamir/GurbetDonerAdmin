@@ -6,6 +6,7 @@ import { resolveShippingVat } from '../utils/discount'
 import { resolveShippingAddress, type AddressParts } from '../utils/address'
 import { EN_LABELS, DOC_TITLES_EN, type DocLang } from './documentLabels'
 import { sanitizeOrTerm } from '../utils/pgSearch'
+import { ymdInAms } from '../utils/dateRange'
 
 // =====================================================
 // Document Settings
@@ -670,7 +671,11 @@ export async function buildInvoiceData(
   const customer = order.customer || {}
   const globalDueDays = settings.payment_terms_days || 14
   const effectiveDueDays = Number(customer.payment_due_days ?? globalDueDays)
-  const orderDate = new Date(order.order_date || order.created_at)
+  // `order_date` is already a plain YYYY-MM-DD calendar date. The `created_at`
+  // fallback is a timestamptz, so it is reduced to an Amsterdam calendar date
+  // first: taking its UTC date would print yesterday on an invoice for an order
+  // entered just after midnight.
+  const orderDate = new Date(order.order_date || ymdInAms(new Date(order.created_at)))
   const dueDate = new Date(orderDate)
   dueDate.setDate(dueDate.getDate() + effectiveDueDays)
 

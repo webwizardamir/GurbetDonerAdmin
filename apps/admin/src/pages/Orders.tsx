@@ -38,6 +38,7 @@ import BulkActionsBar from '../components/orders/BulkActionsBar'
 import CustomerFilterSelect from '../components/orders/CustomerFilterSelect'
 import HiddenOrderBadge from '../components/orders/HiddenOrderBadge'
 import OrderRowIndicators from '../components/orders/OrderRowIndicators'
+import { ymdInAms } from '../utils/dateRange'
 import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
 import type { FilterDef } from '../components/ui/filterTypes'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
@@ -500,7 +501,7 @@ export default function Orders() {
             onSelectionExported={clearSelection}
             totalCount={totalCount}
             columns={orderExportColumnsGated as never}
-            filename={`orders-${new Date().toISOString().split('T')[0]}`}
+            filename={`orders-${ymdInAms()}`}
             pdfTitle="Bestellingen"
             storageKey="orders"
           />
@@ -517,7 +518,7 @@ export default function Orders() {
             onSelectionExported={clearSelection}
             totalCount={totalCount}
             columns={orderExportColumnsGated as never}
-            filename={`orders-${new Date().toISOString().split('T')[0]}`}
+            filename={`orders-${ymdInAms()}`}
             pdfTitle="Bestellingen"
             storageKey="orders"
           />

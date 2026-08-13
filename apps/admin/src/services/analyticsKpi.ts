@@ -2,6 +2,7 @@
 
 import { supabase } from './supabase'
 import { statusArg, entityArg, type AnalyticsFilters } from './analyticsHelpers'
+import { ymdInAms } from '../utils/dateRange'
 
 // --- New dashboard interfaces (today-focused) ---
 
@@ -143,7 +144,7 @@ export async function getKPIs(
 
 // Get today's orders for dashboard
 export async function getTodaysOrders(): Promise<TodayOrder[]> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = ymdInAms()
 
   const { data, error } = await supabase
     .from('orders')

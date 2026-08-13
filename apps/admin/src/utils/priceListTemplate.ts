@@ -12,6 +12,7 @@
 
 import { fetchAllProducts } from '../services/products'
 import { fetchPriceListItems } from '../services/priceLists'
+import { ymdInAms } from './dateRange'
 import {
   downloadProductTemplate,
   type PriceOverlay,
@@ -51,7 +52,7 @@ export async function downloadCurrentPriceList(
     }
   }
 
-  const dateStr = new Date().toISOString().split('T')[0]
+  const dateStr = ymdInAms()
   const safeName = listName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
   const overlay: PriceOverlay = {
     prices,

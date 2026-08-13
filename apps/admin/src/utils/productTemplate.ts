@@ -8,6 +8,7 @@
  */
 
 import type { Product, UnitType } from '../types'
+import { ymdInAms } from './dateRange'
 
 export type TemplateColumnKey =
   | 'ID'
@@ -249,7 +250,7 @@ export async function downloadProductTemplate(
   })
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)
-  const dateStr = new Date().toISOString().split('T')[0]
+  const dateStr = ymdInAms()
   link.download = overlay
     ? overlay.filename
     : (withData ? `products-${dateStr}.xlsx` : 'product-template.xlsx')

@@ -66,7 +66,10 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
   const [items, setItems] = useState<OrderLineItem[]>([])
   const [deliveryNotes, setDeliveryNotes] = useState('')
   const [internalNotes, setInternalNotes] = useState('')
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0])
+  // Amsterdam-pinned, never toISOString(): between midnight and 02:00 (summer)
+  // UTC is still yesterday, so a night shift entering an order at 00:30 got the
+  // previous day's date pre-filled.
+  const [orderDate, setOrderDate] = useState(ymdInAms())
   const [orderDiscountType, setOrderDiscountType] = useState<DiscountType | null>(null)
   const [orderDiscountValue, setOrderDiscountValue] = useState<number | null>(null)
   // Flat shipping fee (Verzendkosten), ex-BTW cents. null = none (row hidden).
@@ -205,7 +208,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     if (!editOrder || initialized || customersLoading || productsLoading) return
     const customer = customers.find(c => c.id === editOrder.customer_id)
     if (customer) setSelectedCustomer(customer)
-    setOrderDate(editOrder.order_date || new Date().toISOString().split('T')[0])
+    setOrderDate(editOrder.order_date || ymdInAms())
     setDeliveryNotes(editOrder.delivery_notes || '')
     setInternalNotes(editOrder.internal_notes || '')
     setOrderDiscountType(editOrder.discount_type ?? null)

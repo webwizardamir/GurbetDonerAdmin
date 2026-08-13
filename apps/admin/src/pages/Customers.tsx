@@ -30,6 +30,7 @@ import { useRowSelection } from '../hooks/useRowSelection'
 import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
 import type { FilterDef } from '../components/ui/filterTypes'
 import SortableTh from '../components/ui/SortableTh'
+import { ymdInAms } from '../utils/dateRange'
 import { useTableSort } from '../hooks/useTableSort'
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '../constants/customerType'
 import { useUrlListState } from '../hooks/useUrlListState'
@@ -276,7 +277,7 @@ export default function Customers() {
           onSelectionExported={clearSelection}
           totalCount={totalCount}
           columns={customerExportColumnsGated as never}
-          filename={`customers-${new Date().toISOString().split('T')[0]}`}
+          filename={`customers-${ymdInAms()}`}
           pdfTitle="Klanten"
           storageKey="customers"
         />
@@ -293,7 +294,7 @@ export default function Customers() {
           onSelectionExported={clearSelection}
           totalCount={totalCount}
           columns={customerExportColumnsGated as never}
-          filename={`customers-${new Date().toISOString().split('T')[0]}`}
+          filename={`customers-${ymdInAms()}`}
           pdfTitle="Klanten"
           storageKey="customers"
         />

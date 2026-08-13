@@ -17,6 +17,7 @@ import {
   type ActionRequired,
   type TodayOrdersByStatus,
 } from '../services/analytics'
+import { ymdInAms } from '../utils/dateRange'
 
 // --- Legacy interface (preserved for existing consumers) ---
 
@@ -39,7 +40,7 @@ export function useDashboard() {
       setLoading(true)
       setError(null)
 
-      const today = new Date().toISOString().split('T')[0]
+      const today = ymdInAms()
 
       // Fetch all data in parallel
       const [stats, todaysOrders, paymentBreakdown, lowStockProducts] = await Promise.all([

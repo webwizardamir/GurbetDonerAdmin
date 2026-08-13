@@ -25,6 +25,7 @@ import type { ComboOption } from '../components/ui/ComboPicker'
 import ListToolbar from '../components/ui/ListToolbar'
 import type { FilterDef } from '../components/ui/filterTypes'
 import { formatDateTime, formatRelativeTime } from '../utils/format'
+import { ymdInAms } from '../utils/dateRange'
 import {
   type TFn,
   type NameResolver,
@@ -391,7 +392,7 @@ export default function AuditLog() {
         <ExportMenu
           getAllData={fetchAllForExport}
           columns={exportColumns as never}
-          filename={`audit-log-${new Date().toISOString().split('T')[0]}`}
+          filename={`audit-log-${ymdInAms()}`}
           pdfTitle={t('auditLog.ui.title')}
           storageKey="audit"
           disabled={logs.length === 0}

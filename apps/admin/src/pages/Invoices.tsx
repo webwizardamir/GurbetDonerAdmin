@@ -39,6 +39,7 @@ import { shareOrDownloadBlob } from '../utils/shareBlob'
 import ExportMenu from '../components/ui/ExportMenu'
 import ListToolbar, { type ToolbarAction } from '../components/ui/ListToolbar'
 import type { FilterDef } from '../components/ui/filterTypes'
+import { ymdInAms, mondayOf, firstOfMonth } from '../utils/dateRange'
 
 // ─── Helpers ──────────────────────────────────────────
 
@@ -95,26 +96,19 @@ function getDateBounds(preset: DatePreset, customStart: string, customEnd: strin
     if (customStart && customEnd) return { start: customStart, end: customEnd }
     return null
   }
-  const now = new Date()
-  const todayStr = now.toISOString().split('T')[0]
+  // Amsterdam-pinned boundaries. Building a local midnight Date and then calling
+  // toISOString() shifted every start back a day on a UTC+1/+2 browser, so
+  // "Deze maand" began on the last day of the previous month.
+  const todayStr = ymdInAms()
   switch (preset) {
     case 'today':
       return { start: todayStr, end: todayStr }
-    case 'thisWeek': {
-      const d = new Date(now)
-      const dayOfWeek = d.getDay()
-      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-      d.setDate(d.getDate() - daysToMonday)
-      return { start: d.toISOString().split('T')[0], end: todayStr }
-    }
-    case 'thisMonth': {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1)
-      return { start: start.toISOString().split('T')[0], end: todayStr }
-    }
-    case 'thisYear': {
-      const start = new Date(now.getFullYear(), 0, 1)
-      return { start: start.toISOString().split('T')[0], end: todayStr }
-    }
+    case 'thisWeek':
+      return { start: mondayOf(todayStr), end: todayStr }
+    case 'thisMonth':
+      return { start: firstOfMonth(todayStr), end: todayStr }
+    case 'thisYear':
+      return { start: `${todayStr.slice(0, 4)}-01-01`, end: todayStr }
     default:
       return null
   }
@@ -440,7 +434,7 @@ export default function Invoices() {
         onSelectionExported={clearSelection}
         totalCount={total}
         columns={documentExportColumns as never}
-        filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
+        filename={`${t('documents.export.filename')}_${ymdInAms()}`}
         pdfTitle="Documenten"
         storageKey="documents"
       />
@@ -456,7 +450,7 @@ export default function Invoices() {
         onSelectionExported={clearSelection}
         totalCount={total}
         columns={documentExportColumns as never}
-        filename={`${t('documents.export.filename')}_${new Date().toISOString().split('T')[0]}`}
+        filename={`${t('documents.export.filename')}_${ymdInAms()}`}
         pdfTitle="Documenten"
         storageKey="documents"
       />

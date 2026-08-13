@@ -42,6 +42,7 @@ import { updateCustomer, type CustomerFormData } from '../services/customers'
 import { formatPrice, formatPercent, profitClass } from '../utils/format'
 import { isReverseChargeCountry } from '../utils/vat'
 import type { Customer } from '../types'
+import { ymdInAms } from '../utils/dateRange'
 
 type TabType = 'orders' | 'products' | 'details'
 type DateRangeKey = 'all' | 'today' | 'last7' | 'last30' | 'last90' | 'thisYear' | 'custom'
@@ -308,7 +309,7 @@ export default function CustomerDetail() {
 
   // Filter orders based on search and date range
   const filteredOrders = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = ymdInAms()
     return orders.filter(order => {
       // Search filter
       if (searchQuery) {

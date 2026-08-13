@@ -23,6 +23,7 @@ import SortableTh from '../components/ui/SortableTh'
 import ExportMenu from '../components/ui/ExportMenu'
 import ListToolbar from '../components/ui/ListToolbar'
 import type { FilterDef } from '../components/ui/filterTypes'
+import { ymdInAms } from '../utils/dateRange'
 import {
   priceListItemExportColumns,
   priceListWideExportColumns,
@@ -362,7 +363,7 @@ export default function PriceListDetail() {
               prices: exportRows.length,
               totalPrices: items.length,
             }) : undefined}
-            filename={`prijslijst-${(list?.name ?? 'lijst').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().split('T')[0]}`}
+            filename={`prijslijst-${(list?.name ?? 'lijst').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${ymdInAms()}`}
             pdfTitle={`Prijslijst · ${list?.name ?? ''}`}
             storageKey="price-list-items"
             size="sm"

@@ -2,6 +2,7 @@
 
 import { supabase } from './supabase'
 import { expandStatusFilter } from '../constants/orderStatus'
+import { ymdInAms, addDays, firstOfMonth } from '../utils/dateRange'
 
 /**
  * Build the optional `p_statuses` argument for the analytics RPCs.
@@ -119,51 +120,31 @@ export async function getOrderItemsCost(orderIds: string[]): Promise<number> {
  * Returns a period of the same duration immediately before the start date.
  */
 export function getPreviousPeriod(startDate: string, endDate: string) {
-  const startMs = new Date(startDate).getTime()
-  const endMs = new Date(endDate).getTime()
-  const duration = endMs - startMs
-  const prevStart = new Date(startMs - duration - 86400000).toISOString().split('T')[0]
-  const prevEnd = new Date(startMs - 86400000).toISOString().split('T')[0]
+  const days = Math.round((new Date(`${endDate}T12:00:00`).getTime() - new Date(`${startDate}T12:00:00`).getTime()) / 86400000)
+  const prevEnd = addDays(startDate, -1)
+  const prevStart = addDays(prevEnd, -days)
   return { prevStart, prevEnd }
 }
 
-// Get date range helpers
+// Get date range helpers.
+// Every boundary comes from the Amsterdam-pinned primitives in utils/dateRange.
+// This used to mix a UTC `todayStr` with locally-formatted starts, so between
+// midnight and 02:00 the end of each window was a day behind its start, and
+// `thisMonth` could begin on the last day of the previous month.
 export function getDateRanges() {
-  const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
-
-  // Last 7 days (7 days before today + today = 8 calendar days, matching WooCommerce)
-  const last7Start = new Date(today)
-  last7Start.setDate(last7Start.getDate() - 7)
-
-  // Last 30 days
-  const last30Start = new Date(today)
-  last30Start.setDate(last30Start.getDate() - 29)
-
-  // Last 90 days
-  const last90Start = new Date(today)
-  last90Start.setDate(last90Start.getDate() - 89)
-
-  // This month
-  const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-
-  // Last month
-  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
-  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-
-  // This year
-  const thisYearStart = new Date(today.getFullYear(), 0, 1)
-
-  // Helper to format date as YYYY-MM-DD in local timezone (not UTC)
-  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const todayStr = ymdInAms()
+  const thisMonthStart = firstOfMonth(todayStr)
+  // The day before this month's 1st is the last day of last month.
+  const lastMonthEnd = addDays(thisMonthStart, -1)
 
   return {
     today: { start: todayStr, end: todayStr, label: 'Today' },
-    last7Days: { start: fmt(last7Start), end: todayStr, label: 'Last 7 days' },
-    last30Days: { start: fmt(last30Start), end: todayStr, label: 'Last 30 days' },
-    last90Days: { start: fmt(last90Start), end: todayStr, label: 'Last 90 days' },
-    thisMonth: { start: fmt(thisMonthStart), end: todayStr, label: 'This month' },
-    lastMonth: { start: fmt(lastMonthStart), end: fmt(lastMonthEnd), label: 'Last month' },
-    thisYear: { start: fmt(thisYearStart), end: todayStr, label: 'This year' },
+    // 7 days before today + today = 8 calendar days, matching WooCommerce.
+    last7Days: { start: addDays(todayStr, -7), end: todayStr, label: 'Last 7 days' },
+    last30Days: { start: addDays(todayStr, -29), end: todayStr, label: 'Last 30 days' },
+    last90Days: { start: addDays(todayStr, -89), end: todayStr, label: 'Last 90 days' },
+    thisMonth: { start: thisMonthStart, end: todayStr, label: 'This month' },
+    lastMonth: { start: firstOfMonth(lastMonthEnd), end: lastMonthEnd, label: 'Last month' },
+    thisYear: { start: `${todayStr.slice(0, 4)}-01-01`, end: todayStr, label: 'This year' },
   }
 }

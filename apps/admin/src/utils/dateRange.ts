@@ -47,6 +47,20 @@ export function addDays(ymd: string, n: number): string {
   return out(d)
 }
 
+/**
+ * Shift by whole months. Postgres-style clamping: 31 March minus one month is
+ * 28/29 February, never 2 or 3 March (which is what `setMonth` alone gives).
+ */
+export function addMonths(ymd: string, n: number): string {
+  const d = at(ymd)
+  const day = d.getDate()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + n)
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+  d.setDate(Math.min(day, lastDay))
+  return out(d)
+}
+
 /** Monday of the ISO week containing `ymd`. Weeks start Monday (NL convention). */
 export function mondayOf(ymd: string): string {
   const dow = at(ymd).getDay() // 0 = Sunday

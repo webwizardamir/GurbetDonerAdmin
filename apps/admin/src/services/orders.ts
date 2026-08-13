@@ -3,6 +3,7 @@ import type { Order, OrderItem, OrderStatus, PaymentMethod, UnitType } from '../
 import { computeOrderTotals, resolveDiscountCents, resolveShippingVat, type DiscountType } from '../utils/discount'
 import { refreshOrderDocumentSnapshots } from './documents'
 import { canonicalStatus, expandStatusFilter } from '../constants/orderStatus'
+import { ymdInAms } from '../utils/dateRange'
 
 // Database row shapes for type-safe transformations
 interface DbOrderRow {
@@ -177,7 +178,7 @@ function transformOrderFromDb(dbOrder: DbOrderRow): OrderWithItems | null {
     tax_amount: Number(dbOrder.tax) || 0,
     delivery_fee: Number(dbOrder.delivery_fee) || 0,
     total: Number(dbOrder.total) || 0,
-    order_date: dbOrder.order_date || dbOrder.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+    order_date: dbOrder.order_date || dbOrder.created_at?.split('T')[0] || ymdInAms(),
     invoice_date: dbOrder.invoice_date,
     woo_invoice_number: dbOrder.woo_invoice_number ?? null,
     woo_invoice_date: dbOrder.woo_invoice_date ?? null,
@@ -529,7 +530,7 @@ export async function createOrder(
     .insert({
       order_number: orderNumber,
       customer_id: orderData.customer_id,
-      order_date: orderData.order_date || new Date().toISOString().split('T')[0],
+      order_date: orderData.order_date || ymdInAms(),
       delivery_notes: orderData.delivery_notes || '',
       internal_notes: orderData.internal_notes || '',
       ...header,

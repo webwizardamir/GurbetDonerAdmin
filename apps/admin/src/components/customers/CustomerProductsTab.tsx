@@ -14,6 +14,7 @@ import ExportMenu from '../ui/ExportMenu'
 import SortableTh from '../ui/SortableTh'
 import { useTableSort } from '../../hooks/useTableSort'
 import { customerItemsSummaryExportColumns, withoutOwnerOnlyColumns } from '../../utils/export'
+import { ymdInAms, addMonths } from '../../utils/dateRange'
 import { UNIT_TYPES, unitTypeUiLabel } from '../../constants/unitTypes'
 
 interface CustomerProductsTabProps {
@@ -31,22 +32,16 @@ const DATE_RANGES: Record<DateRangeKey, { labelKey: string; months: number | nul
   all:      { labelKey: 'customerDetail.products.ranges.all',    months: null },
 }
 
-function isoDate(d: Date): string {
-  return d.toISOString().split('T')[0]
-}
-
 function resolveRange(range: DateRangeKey): { start: string; end: string } {
-  const end = new Date()
+  const end = ymdInAms()
   if (range === 'all') {
     // Generous floor — covers all WC migration data and beyond.
-    return { start: '2000-01-01', end: isoDate(end) }
+    return { start: '2000-01-01', end }
   }
   if (range === 'thisYear') {
-    return { start: `${end.getFullYear()}-01-01`, end: isoDate(end) }
+    return { start: `${end.slice(0, 4)}-01-01`, end }
   }
-  const start = new Date(end)
-  start.setMonth(start.getMonth() - DATE_RANGES[range].months!)
-  return { start: isoDate(start), end: isoDate(end) }
+  return { start: addMonths(end, -DATE_RANGES[range].months!), end }
 }
 
 export default function CustomerProductsTab({ customerId, customerName }: CustomerProductsTabProps) {
@@ -209,7 +204,7 @@ export default function CustomerProductsTab({ customerId, customerName }: Custom
               ? customerItemsSummaryExportColumns
               : withoutOwnerOnlyColumns(customerItemsSummaryExportColumns)
             ) as never}
-            filename={`producten-${customerName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().split('T')[0]}`}
+            filename={`producten-${customerName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${ymdInAms()}`}
             pdfTitle={`Producten · ${customerName}`}
             storageKey="customer-products"
             size="sm"

@@ -4,6 +4,7 @@ import { fetchOrders, type OrderWithItems } from '../services/orders'
 import { fetchCustomerItemsSummary, fetchCustomerOrders, type CustomerItemSummary, type CustomerOrderProfit } from '../services/customers'
 import { useAuth } from '../context/AuthContext'
 import type { Customer } from '../types'
+import { ymdInAms } from '../utils/dateRange'
 
 // Per-order profit shape consumed by OrdersTable.getProfit (owner-only).
 export interface OrderProfitInfo {
@@ -75,7 +76,7 @@ export function useCustomerDetail(customerId: string | undefined) {
       // owner-only profit RPCs in parallel. The RPCs are server-gated (NULL profit
       // for non-owners) and skipped entirely for non-owners.
       const allTimeStart = '2000-01-01'
-      const allTimeEnd = new Date().toISOString().split('T')[0]
+      const allTimeEnd = ymdInAms()
       const [customerResult, orders, itemsSummary, orderProfits] = await Promise.all([
         supabase
           .from('customers')

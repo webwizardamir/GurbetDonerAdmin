@@ -5,6 +5,7 @@ import Modal from '../ui/Modal'
 import type { OrderWithItems } from '../../services/orders'
 import { createOrderRefund, fetchRefundedQuantities } from '../../services/orders'
 import { formatPrice, formatQuantity } from '../../utils/format'
+import { ymdInAms } from '../../utils/dateRange'
 
 interface RefundModalProps {
   order: OrderWithItems
@@ -27,7 +28,7 @@ export default function RefundModal({ order, onClose, onRefunded }: RefundModalP
   const [alreadyRefunded, setAlreadyRefunded] = useState<Record<string, number>>({})
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [reason, setReason] = useState('')
-  const [refundDate, setRefundDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [refundDate, setRefundDate] = useState(() => ymdInAms())
   const [restoreStock, setRestoreStock] = useState(true)
 
   useEffect(() => {

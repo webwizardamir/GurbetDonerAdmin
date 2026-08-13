@@ -28,6 +28,7 @@ import { useTableSort } from '../hooks/useTableSort'
 import { useUrlListState } from '../hooks/useUrlListState'
 import { downloadProductTemplate } from '../utils/productTemplate'
 import { fetchAllProducts } from '../services/products'
+import { ymdInAms } from '../utils/dateRange'
 import { formatPrice, formatPercent } from '../utils/format'
 
 // Format unit type for display
@@ -179,7 +180,7 @@ export default function Products() {
     onSelectionExported: clearSelection,
     totalCount,
     columns: exportColumns as never,
-    filename: `products-${new Date().toISOString().split('T')[0]}`,
+    filename: `products-${ymdInAms()}`,
     pdfTitle: 'Producten',
     storageKey: 'products',
   }), [toExportRow, filteredProducts, selectedProducts, totalCount, exportColumns, clearSelection])

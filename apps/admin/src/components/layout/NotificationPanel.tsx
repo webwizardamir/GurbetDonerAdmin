@@ -23,6 +23,7 @@ import type {
   CreateReminderData,
   UpdateReminderData,
 } from '../../services/reminders'
+import { ymdInAms } from '../../utils/dateRange'
 
 function formatRelativeTime(dateStr: string, t: (k: string, o?: Record<string, unknown>) => string): string {
   const date = new Date(dateStr)
@@ -44,11 +45,19 @@ function formatRelativeTime(dateStr: string, t: (k: string, o?: Record<string, u
   return past ? t('reminders.time.dayAgo', { n }) : t('reminders.time.inDay', { n })
 }
 
+// The date and the time must come from the SAME zone, or the pair contradicts
+// itself. This took the date from UTC and the time from the browser, so a
+// reminder set for 00:30 came back as the previous day at 00:30.
+const amsTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/Amsterdam',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
+
 function formatDateTimeForInput(dateStr: string): { date: string; time: string } {
   const d = new Date(dateStr)
-  const date = d.toISOString().split('T')[0]
-  const time = d.toTimeString().slice(0, 5)
-  return { date, time }
+  return { date: ymdInAms(d), time: amsTimeFormatter.format(d) }
 }
 
 const RECURRENCES: ReminderRecurrence[] = ['none', 'daily', 'weekly', 'monthly']
