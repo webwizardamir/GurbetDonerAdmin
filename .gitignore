@@ -45,3 +45,7 @@ temp-file.txt
 
 # Claude Code local settings (can embed secrets in allow-listed commands)
 .claude/settings.local.json
+
+# Holds a Supabase personal access token (account-wide). Kept local only.
+# Copy .mcp.json.example and paste your own token in.
+.mcp.json
