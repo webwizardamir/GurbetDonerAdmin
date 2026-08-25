@@ -57,7 +57,7 @@ function join(parts: Array<string | null | undefined>, sep: string): string {
 }
 
 export function buildBrandedEmailHtml(body: string, s: EmailBrandSettings = {}): string {
-  const company = (s.company_name || '').trim() || 'Melek Halal Food'
+  const company = (s.company_name || '').trim() || 'Gurbet Doner'
 
   // Header: logo if we have one, otherwise the company name in white.
   //

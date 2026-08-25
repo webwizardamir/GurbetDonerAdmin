@@ -1,0 +1,5 @@
+# The CSP hash in apps/admin/vercel.json is computed over the inline theme
+# bootstrap in index.html. Vercel builds on Linux (LF), so a Windows checkout
+# with CRLF makes `npm run build` fail check-csp.mjs with a hash that is WRONG
+# for production. Pinning this file to LF makes local builds match Vercel.
+apps/admin/index.html text eol=lf

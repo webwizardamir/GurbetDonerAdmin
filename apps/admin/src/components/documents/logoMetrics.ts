@@ -1,5 +1,3 @@
-import { tenantId } from '../../config/tenantId'
-
 /**
  * How the company logo is sized in the PDF header, per tenant.
  *
@@ -45,16 +43,9 @@ export interface DocLogoMetrics {
   marginRight: number
 }
 
-const MELEK: DocLogoMetrics = {
-  height: 36,
+export const docLogo: DocLogoMetrics = {
+  height: 44,
   maxWidth: 120,
   objectFit: 'contain',
   marginRight: 10,
 }
-
-const FATHER: DocLogoMetrics = {
-  ...MELEK,
-  height: 44,
-}
-
-export const docLogo: DocLogoMetrics = tenantId === 'father' ? FATHER : MELEK

@@ -1211,7 +1211,7 @@ function joinParts(parts: Array<string | null | undefined>, sep: string): string
 
 function buildBrandedEmailHtml(body: string, s: EmailBrandSettings = {}): string {
   const BRAND = '#16a34a', BRAND_DARK = '#166534', INK = '#1e293b', MUTED = '#64748b', LINE = '#e2e8f0', CANVAS = '#f1f5f9'
-  const company = (s.company_name || '').trim() || 'Melek Halal Food'
+  const company = (s.company_name || '').trim() || 'Gurbet Doner'
 
   // Height-first, capped on both axes so a SQUARE logo does not render as a
   // 150x142 tile in the header band. `height` attribute = Outlook desktop (it

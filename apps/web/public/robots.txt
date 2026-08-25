@@ -1,5 +1,0 @@
-# Production: allow crawling.
-User-agent: *
-Allow: /
-
-Sitemap: https://melekhalalfood.nl/sitemap-index.xml

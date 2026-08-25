@@ -9,7 +9,7 @@ import './index.css'
 import { i18nReady } from './i18n'
 import { applyTenant } from './config/tenant'
 
-// Stamp data-tenant on <html> before first paint so the brand palette in
+// Set the tab title before first paint. The brand palette in
 // index.css applies without a flash of the default (green) theme.
 applyTenant()
 

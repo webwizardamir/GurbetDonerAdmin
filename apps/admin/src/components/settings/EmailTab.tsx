@@ -62,7 +62,7 @@ export default function EmailTab({ formData, onChange, onTemplatesChange }: Emai
           type="email"
           value={formData.email_bcc ?? ''}
           onChange={e => onChange('email_bcc', e.target.value)}
-          placeholder="archive@melekhalalfood.com"
+          placeholder="archief@voorbeeld.nl"
           className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
         />
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">

@@ -1,28 +1,27 @@
-import logoMelek from '../assets/images/logo-melek.png'
-import logoGurbet from '../assets/images/Gurbet-Doner-Logo.png'
-import { tenantId, type TenantId } from './tenantId'
+import logo from '../assets/images/Gurbet-Doner-Logo.png'
 
 /**
- * Multi-tenant config.
+ * App identity and feature switches for Gurbet Doner.
  *
- * The same `apps/admin` source is deployed twice (one Vercel project each,
- * pointing at its OWN Supabase project -- no shared data). Everything that
- * differs between the two lives here, driven by `VITE_TENANT`. Do NOT branch on
- * the tenant inside components: add a field here instead, otherwise we recreate
- * the double-maintenance problem this whole setup exists to avoid.
+ * This file used to be a two-tenant map keyed on `VITE_TENANT`, because the same
+ * `apps/admin` source was deployed twice (Melek Halal Food and Gurbet Doner) from
+ * one repo. The two were split into separate repositories on 2026-08-26, so this
+ * is now a plain config object. The shape was kept identical on purpose: every
+ * call site (`tenant.name`, `tenant.logo`, `isFeatureEnabled(...)`) still reads
+ * exactly as it did, so the split touched no components.
  *
- * See SECOND-TENANT-PLAN.md.
+ * The brand blue is applied by redefining Tailwind's `green` ramp in index.css,
+ * and the PDF templates read their colours from `components/documents/brandPalette.ts`
+ * (@react-pdf never sees a stylesheet, so the CSS remap cannot reach them).
  */
-
-export type { TenantId }
 
 /** Every locale that ships in the bundle (`i18n/locales/*.json`). */
 export type AppLanguage = 'nl' | 'en' | 'tr'
 
 /**
- * The customer portal is CUSTOMER-facing and stays NL/EN for both tenants, so it
- * does not follow `TenantConfig.languages` -- Turkish was requested for the admin
- * dashboard only. Pass `scope="portal"` to LanguageSelector to get this list.
+ * The customer portal is CUSTOMER-facing and stays NL/EN, so it does not follow
+ * `tenant.languages` -- Turkish was requested for the admin dashboard only. Pass
+ * `scope="portal"` to LanguageSelector to get this list.
  *
  * Caveat worth knowing: i18next's active language is global to the origin. Staff
  * who pick Turkish in the admin and then open the portal in the SAME browser see
@@ -32,19 +31,15 @@ export type AppLanguage = 'nl' | 'en' | 'tr'
 export const PORTAL_LANGUAGES: readonly AppLanguage[] = ['nl', 'en']
 
 export interface TenantConfig {
-  id: TenantId
   /** Product name shown in the UI + browser tab. */
   name: string
   /** Sidebar / login logo. */
   logo: string
   /** `alt` text for the logo. */
   logoAlt: string
-  /** Path to the favicon in /public. Swapped onto <link rel="icon"> at runtime. */
-  favicon: string
   /**
-   * Support address on the admin login screen. Optional: when a tenant has no
-   * support mailbox we render plain text instead of a mailto, rather than
-   * pointing their staff at ANOTHER tenant's inbox.
+   * Support address on the admin login screen. Optional: with no support mailbox
+   * we render plain text instead of a mailto.
    */
   supportEmail?: string
   /** Same idea for the customer portal's "no account?" contact line. */
@@ -52,16 +47,16 @@ export interface TenantConfig {
   /** Phone shown next to portalContactEmail. Omitted when unset. */
   portalContactPhone?: string
   /**
-   * Dial string for portalContactPhone's tel: link. Kept separate because the
-   * displayed national format ("071 200 1287") is not dialable internationally
-   * -- stripping its spaces would drop the country code.
+   * Dial string for portalContactPhone's tel: link. Kept separate because a
+   * displayed national format is not dialable internationally -- stripping its
+   * spaces would drop the country code.
    */
   portalContactPhoneHref?: string
   /**
    * Languages offered in the ADMIN language switcher, in menu order. The first
    * entry is NOT a default -- `i18n` falls back to `nl` and the detector only
-   * ever picks a language from this list, so a Turkish-language BROWSER on Melek
-   * still gets Dutch. Staff opt in via the switcher, and it is remembered.
+   * ever picks a language from this list. Staff opt in via the switcher, and it
+   * is remembered.
    */
   languages: readonly AppLanguage[]
   /**
@@ -74,64 +69,25 @@ export interface TenantConfig {
   }
 }
 
-const TENANTS: Record<TenantId, TenantConfig> = {
-  melek: {
-    id: 'melek',
-    name: 'Melek Halal Food',
-    logo: logoMelek,
-    logoAlt: 'Melek Halal Food',
-    favicon: '/favicon.png',
-    supportEmail: 'support@melekhalalfood.com',
-    portalContactEmail: 'info@melekhalalfood.nl',
-    portalContactPhone: '071 200 1287',
-    portalContactPhoneHref: '+31712001287',
-    languages: ['nl', 'en'],
-    features: {
-      analytics: true,
-    },
-  },
-  father: {
-    id: 'father',
-    name: 'Gurbet Doner',
-    logo: logoGurbet,
-    logoAlt: 'Gurbet Doner',
-    favicon: '/favicon-father.png',
-    // No support/contact mailbox yet -- deliberately left unset so the UI omits
-    // the link rather than sending his people to Melek's inbox. Fill in when he
-    // has a business address.
-    // Turkish is offered here ONLY. Documents and emails are unaffected: those
-    // pick their language from the CUSTOMER's country (resolveDocumentLang), not
-    // from the app language, so a Turkish admin session still invoices in NL/EN.
-    languages: ['nl', 'en', 'tr'],
-    features: {
-      // Hidden at launch by client request. Owner-gated server-side regardless.
-      analytics: false,
-    },
+export const tenant: TenantConfig = {
+  name: 'Gurbet Doner',
+  logo,
+  logoAlt: 'Gurbet Doner',
+  // No support/contact mailbox yet -- deliberately unset so the UI omits the
+  // link rather than showing a dead address. Fill in when there is one.
+  languages: ['nl', 'en', 'tr'],
+  features: {
+    // Hidden at launch by client request. Owner-gated server-side regardless.
+    analytics: false,
   },
 }
-
-// Resolution lives in `./tenantId` — the PDF templates need it too, and they
-// cannot import this module (it pulls in the logo PNGs). See that file.
-export const tenant: TenantConfig = TENANTS[tenantId]
 
 /** Convenience: `isFeatureEnabled('analytics')`. */
 export function isFeatureEnabled(feature: keyof TenantConfig['features']): boolean {
   return tenant.features[feature]
 }
 
-/**
- * Stamps the tenant onto <html> so the CSS in index.css can repaint the brand
- * palette, and sets the tab title. Called once from main.tsx, before render.
- */
+/** Sets the tab title. Called once from main.tsx, before render. */
 export function applyTenant(): void {
-  document.documentElement.setAttribute('data-tenant', tenant.id)
   document.title = tenant.name
-
-  // index.html is shared by both builds, so the favicon is swapped here rather
-  // than in the markup. Covers the apple-touch-icon too.
-  document
-    .querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]')
-    .forEach((link) => {
-      link.href = tenant.favicon
-    })
 }

@@ -31,18 +31,9 @@ await build({
     'react/jsx-runtime',
     'react/jsx-dev-runtime',
   ],
-  // The templates read the tenant for their brand palette (src/config/tenantId.ts).
-  // Node has no `import.meta.env`, so without this define the bundled function
-  // throws on the first render — and the 24h auto-send would email an invoice in
-  // the WRONG TENANT'S COLOURS if it silently fell back instead. Vercel exposes
-  // VITE_TENANT to the build, which is when this runs.
-  define: {
-    'import.meta.env.VITE_TENANT': JSON.stringify(process.env.VITE_TENANT ?? 'melek'),
-  },
   logLevel: 'info',
 })
 
-console.log(`  tenant: ${process.env.VITE_TENANT ?? 'melek (VITE_TENANT unset)'}`)
 
 // ---------------------------------------------------------------------------
 // Guards. This function has no UI: when it breaks, the only symptom is mail

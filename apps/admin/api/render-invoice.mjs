@@ -351,98 +351,8 @@ function buildAddressLines(a) {
   return lines;
 }
 
-// src/config/tenantId.ts
-function resolveTenantId() {
-  const raw = "melek";
-  return raw === "father" ? "father" : "melek";
-}
-var tenantId = resolveTenantId();
-
 // src/components/documents/brandPalette.ts
-var MELEK = {
-  invoice: {
-    primary: "#16a34a",
-    dark: "#166534",
-    accent: "#22c55e",
-    tint: "#dcfce7",
-    tintSoft: "#f0fdf4"
-  },
-  proforma: {
-    primary: "#3b82f6",
-    dark: "#1e40af",
-    tint: "#dbeafe"
-  },
-  creditNote: {
-    primary: "#7c3aed",
-    dark: "#6d28d9",
-    deep: "#5b21b6",
-    accent: "#6b21a8",
-    tint: "#ede9fe",
-    tintSoft: "#faf5ff"
-  },
-  orderConfirmation: {
-    primary: "#0891b2",
-    dark: "#0e7490",
-    tint: "#cffafe",
-    tintSoft: "#f0fdfa"
-  },
-  paymentReminder: {
-    primary: "#dc2626",
-    dark: "#991b1b",
-    accent: "#fca5a5",
-    tint: "#fecaca",
-    tintSoft: "#fef2f2"
-  },
-  /**
-   * Monthly Betaaloverzicht (statement of account). Indigo, deliberately unused
-   * elsewhere in either tenant's family.
-   *
-   * It must not read as the INVOICE (that is the payable document, and on Gurbet
-   * the "darkest navy band = money is due" rule is load-bearing), nor as the
-   * PAYMENT REMINDER — a statement is a courtesy summary that also goes to
-   * customers who are perfectly within terms, so the dunning red would be a lie.
-   * Indigo is far from both, and identical on both tenants because the document
-   * is a summary, not a branding surface.
-   */
-  paymentOverview: {
-    primary: "#4338ca",
-    dark: "#312e81",
-    // 12.3:1 on white
-    accent: "#6366f1",
-    tint: "#e0e7ff",
-    tintSoft: "#eef2ff"
-  },
-  packingSlip: {
-    primary: "#1e293b",
-    dark: "#1e293b",
-    accent: "#3b82f6"
-  },
-  soldProducts: {
-    primary: "#16a34a",
-    dark: "#166534",
-    badgeTint: "#dbeafe",
-    badgeText: "#2563eb"
-  },
-  dataExport: {
-    primary: "#16a34a",
-    dark: "#166534"
-  },
-  deliveryRoute: {
-    primary: "#0891b2",
-    dark: "#0e7490"
-  },
-  // Klantactiviteit — amber, and identical on both tenants on purpose. This is
-  // an internal attention list, not a document a customer ever sees, and amber
-  // is what "look at this" already means everywhere else in the app. It must not
-  // read as money (green/blue) or as a failure (red).
-  customerActivity: {
-    primary: "#b45309",
-    dark: "#78350f",
-    tint: "#fef3c7",
-    tintSoft: "#fffbeb"
-  }
-};
-var FATHER = {
+var GURBET = {
   invoice: {
     primary: "#0a62b4",
     dark: "#07406f",
@@ -487,7 +397,7 @@ var FATHER = {
     tintSoft: "#fef2f2"
   },
   paymentOverview: {
-    // Same indigo as Melek — see the note on the MELEK entry. It has to stay clear
+    // Indigo, deliberately off the brand hue. It has to stay clear
     // of the brand blue here too, which the invoice owns.
     primary: "#4338ca",
     dark: "#312e81",
@@ -529,20 +439,15 @@ var FATHER = {
     tintSoft: "#fffbeb"
   }
 };
-var docBrand = tenantId === "father" ? FATHER : MELEK;
+var docBrand = GURBET;
 
 // src/components/documents/logoMetrics.ts
-var MELEK2 = {
-  height: 36,
+var docLogo = {
+  height: 44,
   maxWidth: 120,
   objectFit: "contain",
   marginRight: 10
 };
-var FATHER2 = {
-  ...MELEK2,
-  height: 44
-};
-var docLogo = tenantId === "father" ? FATHER2 : MELEK2;
 
 // src/components/documents/InvoiceTemplate.tsx
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";

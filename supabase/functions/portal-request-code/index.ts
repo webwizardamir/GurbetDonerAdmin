@@ -145,7 +145,7 @@ async function sendCodeEmail(admin: any, recipient: string, companyName: string,
     .select('company_name, company_logo_url, company_address, company_postal_code, company_city, company_country, company_phone, company_email, company_website, company_vat_number, company_kvk_number, bank_iban, bank_account_holder')
     .limit(1).maybeSingle()
   const brand = (settings ?? {}) as Record<string, unknown>
-  const company = String(brand.company_name || '').trim() || 'Melek Halal Food'
+  const company = String(brand.company_name || '').trim() || 'Gurbet Doner'
 
   const lang = resolveLang(billingCountry)
   const name = companyName || ''
@@ -185,7 +185,7 @@ function joinParts(parts: Array<unknown>, sep: string): string {
 }
 function buildBrandedEmailHtml(body: string, s: Record<string, unknown>): string {
   const BRAND = '#16a34a', BRAND_DARK = '#166534', INK = '#1e293b', MUTED = '#64748b', LINE = '#e2e8f0', CANVAS = '#f1f5f9'
-  const company = String(s.company_name || '').trim() || 'Melek Halal Food'
+  const company = String(s.company_name || '').trim() || 'Gurbet Doner'
   // Height-first, capped on both axes so a SQUARE logo does not render as a
   // 150x142 tile in the header band. `height` attribute = Outlook desktop (it
   // ignores max-*); never add a `width` attribute beside it. Kept identical to
