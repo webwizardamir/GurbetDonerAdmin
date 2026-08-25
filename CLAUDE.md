@@ -1,9 +1,8 @@
-# MelekHalalFood — B2B Halal Food Wholesale Management System
+# Gurbet Doner — B2B Halal Food Wholesale Management System
 
 **This file holds rules and traps, not history.** Incident write-ups, verification transcripts and
-past fixes live in `BUGS_AND_FIXES.md`, the migration headers and git. Multi-tenant procedures live
-in `MULTI-TENANT.md`. Keep this file that way when you add to it: if a paragraph only records *what
-happened*, it belongs elsewhere.
+past fixes live in `BUGS_AND_FIXES.md`, the migration headers and git. Keep this file that way when
+you add to it: if a paragraph only records *what happened*, it belongs elsewhere.
 
 Unless stated otherwise, every `src/...` path refers to the **admin app** at `apps/admin/`.
 
@@ -17,44 +16,57 @@ Unless stated otherwise, every `src/...` path refers to the **admin app** at `ap
 
 ---
 
-## Monorepo Layout
+## Layout
 
-Three independently-deployed Vercel apps, **two** Supabase databases:
+One Vercel app, one Supabase database:
 
 | App | Path | Live URL | Database |
 |-----|------|----------|----------|
-| Admin / management UI | `apps/admin` | `app.melekhalalfood.nl` | `pnimvwconhhmcwxcuxcz` |
-| **Gurbet Doner admin** ("father") | `apps/admin` ← *same source* | `gurbet-doner-admin.vercel.app` | `dvpnvulxkccurqkpqqnx` |
-| Public website (Astro) | `apps/web` | `melekhalalfood.nl` + `www` | — |
+| Admin / management UI | `apps/admin` | `gurbet-doner-admin.vercel.app` | `dvpnvulxkccurqkpqqnx` |
 
-- `supabase/` (migrations + edge functions) and project docs live at the **repo root** and are
-  **shared source for BOTH databases**.
+- `supabase/` (migrations + edge functions) and project docs live at the **repo root**.
 - Run admin scripts from **inside `apps/admin`** (paths are cwd-relative).
-- `apps/web` has its own `CLAUDE.md` and `apps/web/docs/`.
 
-### 🚨 Two tenants — read `MULTI-TENANT.md` before finishing any change
+### 🚨 `supabase/` does not deploy on push
 
-One codebase, two deployments, two databases. Differences are config-driven via
-`src/config/tenant.ts` (`VITE_TENANT=melek|father`) — **never code branches**.
+A push to `main` rebuilds the Vercel project. **Vercel never deploys `supabase/`.** Committing a
+migration is not applying it, and committing an edge function is not deploying it. Apply migrations
+with the Supabase MCP `apply_migration`; deploy functions from the **repo root**:
+`npx supabase functions deploy <fn> --project-ref dvpnvulxkccurqkpqqnx --no-verify-jwt`.
+`--no-verify-jwt` is **mandatory** for the cron-secret / public functions
+(`plan-delivery-route`, `process-invoice-reminders`, `portal-request-code`, `sync-email-status`) —
+MCP and the CLI default it to true and 401 the cron.
 
-**App code propagates on push. Everything server-side does not.** Whenever you fix something for
-Melek, ask: does Gurbet need a second action? Anything touching `supabase/` (migration, RPC, RLS,
-edge function), a Vercel env var, an edge secret, a cron/Vault entry or a dashboard setting must be
-applied to `dvpnvulxkccurqkpqqnx` as a **separate step**. Committing a migration is not applying it;
-Vercel never deploys `supabase/`. The failure is silent — Melek looks fine, Gurbet is broken.
+### 🚨 Current state of this deployment
 
-**The repo-root Supabase CLI is linked to Melek**, so a bare `db push` hits production. Always pass
-an explicit `--project-ref` / `--db-url`.
+Not yet fully live. Check these before assuming a feature works:
+- **Both `pg_cron` jobs are `active = false`** (`process-invoice-reminders`, `sync-email-status`).
+  They read `project_url` + `reminder_cron_secret` from **Vault, which is empty**. Do not enable
+  until the secrets exist — a half-configured dunning job mails real customers.
+- **No edge secrets set** (no `RESEND_API_KEY`, `RESEND_FROM_ADDRESS`, `GOOGLE_MAPS_API_KEY`,
+  `RENDER_ENDPOINT_URL`/`RENDER_SECRET`). Email and route planning cannot work yet, and
+  renderer-dependent steps **self-skip silently**.
+- 🚨 **`document_settings` still carries MELEK's BTW / KvK / IBAN as placeholders.** Invoices
+  auto-generate on order save (`ensureOrderInvoice`), so anyone paying one wires money to the wrong
+  account. **Replace before real invoicing.** Documents already issued render from a frozen
+  `snapshot` and will not heal.
+- **No custom domain** (free `*.vercel.app`). Portal login links carry that hostname.
+- **Analytics hidden** (`features.analytics = false` in `config/tenant.ts`).
 
-**The two databases diverge.** Repo migrations ≠ Melek's live state (00035 was never applied there),
-and some live function bodies differ between projects. Always query `pg_policies` / `pg_proc` on
-**each** project rather than assuming a fix applies twice.
+### Forked from a shared repo (2026-08-26)
 
-**Edge-function deploys:** the Supabase MCP `deploy_edge_function` fails for these projects
-(proxy/"fetch failed"). Deploy from the **repo root**:
-`npx supabase functions deploy <fn> --project-ref <ref> --no-verify-jwt`.
-`--no-verify-jwt` is **mandatory** for the cron-secret functions (`process-invoice-reminders`,
-`portal-request-code`, `sync-email-status`) — MCP defaults it to true and 401s the cron.
+This app was one source deployed twice, for Melek Halal Food and Gurbet Doner, keyed on
+`VITE_TENANT`. **The two now live in separate repositories** with separate Supabase projects, and
+nothing is shared. `config/tenant.ts` deliberately kept its object shape through the split, so call
+sites still read `tenant.name` / `isFeatureEnabled(...)`.
+
+Consequences worth knowing:
+- Both repos still carry the same 117 migration files and both number from `00117`, so the same
+  number means different things per repo. Prefix new ones if that ever needs disambiguating.
+- **Repo migrations ≠ live state**, and this schema was built from a partially-applied history.
+  Never assume the migration folder produces the right schema: query `pg_policies` / `pg_proc` and
+  verify the specific object.
+- A fix made in the Melek repo does **not** reach here. There is no propagation, in either direction.
 
 ---
 
@@ -105,8 +117,8 @@ and stays: a hyphen there reads as a minus sign in a price column.)
 
 ### Internationalization
 
-- Admin: **NL** default, **EN** secondary, **TR** on the Gurbet tenant only. Portal: NL/EN both
-  tenants. Locales in `src/i18n/locales/{nl,en,tr}.json`.
+- Admin: **NL** default, **EN** and **TR** secondary. Portal: **NL/EN only** (`PORTAL_LANGUAGES`).
+  Locales in `src/i18n/locales/{nl,en,tr}.json`.
 - **Add keys to all three files** (NL first). A missing `tr` key silently renders Dutch; a dropped
   `{{placeholder}}` renders an **empty string** into live UI. Run **`node scripts/check-locales.mjs`**
   (from `apps/admin`) after touching any locale — it diffs keys *and* placeholder sets against
@@ -116,13 +128,12 @@ and stays: a hyphen there reads as a minus sign in a price column.)
 
 ---
 
-## Turkish (Gurbet only)
+## Turkish
 
-- `TenantConfig.languages` (`config/tenant.ts`) lists what the switcher offers: melek `['nl','en']`,
-  father `['nl','en','tr']`. Language names are **never translated**.
-- **`supportedLngs: tenant.languages` gates the DETECTOR**, not just the switcher — otherwise a
-  Turkish-language browser gets a Turkish UI on **Melek** too. `load: 'languageOnly'` normalises
-  `nl-NL` → `nl`.
+- `tenant.languages` (`config/tenant.ts`) lists what the admin switcher offers: `['nl','en','tr']`.
+  Language names are **never translated**. The portal stays NL/EN via `PORTAL_LANGUAGES`.
+- **`supportedLngs: tenant.languages` gates the DETECTOR**, not just the switcher.
+  `load: 'languageOnly'` normalises `nl-NL` → `nl`.
 - **Turkish is opt-in, never inferred**: `i18n/index.ts` demotes a browser-inferred `tr` back to `nl`,
   and reads `localStorage` **before `init()`** (the detector's `caches:['localStorage']` writes the
   guess back, after which an explicit choice is indistinguishable from it).
@@ -249,38 +260,37 @@ Enforced at every **set-password** site (never at login) and **mirrored server-s
 All in `src/components/documents/`, `@react-pdf/renderer`. The compact ruleset below is tuned to fit
 **15–16 line items on one A4 page**. Do not enlarge values "for readability".
 
-### Brand colors — per tenant, `brandPalette.ts`
+### Brand colors — `brandPalette.ts`
 
 **Never hardcode a brand hex in a template.** Colors come from `docBrand.<docType>.<slot>`.
 
-| Template | Melek primary / dark | Gurbet primary / dark |
-|---|---|---|
-| Invoice | `#16a34a` / `#166534` | `#0a62b4` **brand blue** / `#07406f` |
-| Proforma | `#3b82f6` / `#1e40af` | `#b45309` amber / `#92400e` |
-| Credit Note | `#7c3aed` / `#6d28d9` | `#9333ea` / `#7e22ce` |
-| Order Confirmation | `#0891b2` / `#0e7490` | `#0f766e` teal / `#115e59` |
-| Payment Overview | `#4338ca` / `#312e81` | same (indigo on both) |
-| Payment Reminder | `#dc2626` / `#991b1b` | unchanged |
-| Packing Slip | `#1e293b` | unchanged |
-| Sold Products / Data Export | `#16a34a` | `#0a62b4` |
-| Delivery Route | `#0891b2` / `#0e7490` | unchanged |
+| Template | primary / dark |
+|---|---|
+| Invoice | `#0a62b4` **brand blue** / `#07406f` |
+| Proforma | `#b45309` amber / `#92400e` |
+| Credit Note | `#9333ea` / `#7e22ce` |
+| Order Confirmation | `#0f766e` teal / `#115e59` |
+| Payment Overview | `#4338ca` / `#312e81` |
+| Payment Reminder | `#dc2626` / `#991b1b` |
+| Packing Slip | `#1e293b` |
+| Sold Products / Data Export | `#0a62b4` |
+| Delivery Route | `#0891b2` / `#0e7490` |
 
-Gurbet's whole family moved because the invoice took the brand blue and Melek's *proforma* blue then
-read as the invoice — a proforma is **not payable**. The rule that survives a photocopy: **darkest
-navy band = money is due**.
+The whole family is spaced around the brand blue so the **invoice** keeps it: a proforma wearing the
+invoice colour reads as payable when it is not. The rule that survives a photocopy: **darkest navy
+band = money is due**.
 
-🚨 **BRAND ≠ SEMANTIC — do not sweep the remaining hexes out of the templates.** Identical on every
-tenant: the amber `verlegd` notice, the red due-date, the green in `CreditNoteTemplate` (money coming
+🚨 **BRAND ≠ SEMANTIC — do not sweep the remaining hexes out of the templates.** These are not
+branding and must stay put: the amber `verlegd` notice, the red due-date, the green in `CreditNoteTemplate` (money coming
 back) and in `PaymentReminderTemplate`'s bank block (pay here), and `SoldProductsTemplate`'s
 critical/low/ok badges. Same reason `index.css` refuses to remap `emerald`.
 
-🚨 **A template cannot import `config/tenant.ts`.** PDFs never see a stylesheet (so the dashboard's
-CSS-variable recolour doesn't reach them), and `InvoiceTemplate` is **also bundled into the Vercel
-Node function** (`api-src/render-invoice.tsx` → `api/render-invoice.mjs`), where the full config's
-logo PNG imports die. Tenant comes from asset-free **`config/tenantId.ts`**, which references
-`import.meta.env.VITE_TENANT` as a **plain member expression** — the exact shape both Vite and
-esbuild's `define` in `scripts/build-api.mjs` substitute. Optional chaining matches neither and
-throws in Node. Change one, change both.
+🚨 **A template cannot import `config/tenant.ts`.** PDFs never see a stylesheet, so the dashboard's
+CSS-variable recolour of the `green` ramp does **not** reach them — that is exactly why
+`brandPalette.ts` exists. `InvoiceTemplate` is **also bundled into the Vercel Node function**
+(`api-src/render-invoice.tsx` → `api/render-invoice.mjs`), where the config's logo PNG import dies.
+Templates must stay asset-free. (Before the repo split this went through a `config/tenantId.ts` shim
+plus an esbuild `define`; both are gone, the constraint is not.)
 
 🚨 **A template cannot import from `src/services/*` either — same reason, worse blast radius.**
 Every service imports `services/supabase.ts`, which reads `import.meta.env.VITE_SUPABASE_URL` and
@@ -294,18 +304,16 @@ worked example, and `services/customerActivity.ts` re-exports it so call sites a
 `scripts/build-api.mjs` now fails the build on any surviving `import.meta.env` in the bundle **and**
 `import()`s the output to prove it loads in Node. Keep both guards.
 
-**Known, not fixed:** Melek's `#16a34a` as *text* in `ibanCalloutIban`, `grandTotalValue` and the
-credit note amounts is 3.15:1 (below AA). One-token fix (`#166534` → 6.81:1), left alone because it
-repaints live invoices. Gurbet's blue is 5.6:1.
+**Contrast:** the brand blue is 5.6:1 on white, above AA.
 
 ### Logo sizing is height-driven — `logoMetrics.ts`
 
 Give the `<Image>` a **height and no width**; `@react-pdf` derives width from the aspect ratio, so
 any logo shape fills the slot. All nine templates use `logo: { ...docLogo }` — **never an inline
-width/height**. A fixed-width box is a *wide* slot: Gurbet's square 720×682 mark rendered 38×36 with
-~21pt of white on each side.
-- **`height` is the only tenant-dependent value** (melek 36, father 44). **44 is the ceiling** — the
-  height of the 4-line company block beside it, so the header never grows.
+width/height**. A fixed-width box is a *wide* slot: this square 720×682 mark rendered 38×36 inside
+one, with ~21pt of white on each side.
+- **`height` is 44**, which is also the **ceiling** — the height of the 4-line company block beside
+  it, so the header never grows.
 - **`objectFit: 'contain'` must stay** — `maxWidth: 120` is a safety valve for a future ultra-wide
   upload, and `contain` is what makes that clamp letterbox instead of **stretch**.
 - The branded **email** shell has the same rule — see *Email → branded shell*.
@@ -396,8 +404,8 @@ PDF-cosmetic.
 - **Notitie column auto-hides** when no line has a note (`hasNotes`), so Omschrijving reclaims the
   width. Invoice only.
 - Sequential numbering and price snapshots are enforced server-side; templates only render.
-- New template = copy `InvoiceTemplate.tsx`, add a doc type to `brandPalette.ts` (**both** tenant
-  maps), point styles at it — never at a literal hex.
+- New template = copy `InvoiceTemplate.tsx`, add a doc type to `brandPalette.ts`, point styles at it
+  — never at a literal hex.
 
 ---
 
@@ -485,7 +493,10 @@ Two edge functions via Resend: `send-document-email` (manual, PDF attached) and
 
 ### Sender
 `from` = the project-wide **`RESEND_FROM_ADDRESS`** edge secret, read by both functions; it overrides
-the code fallback (`debiteuren@melekhalalfood.nl`). `melekhalalfood.nl` is domain-verified in Resend.
+the code fallback. 🚨 **The hardcoded fallback is still `debiteuren@melekhalalfood.nl`**, left over
+from the shared repo and pointing at a domain this project does not own. Resend will refuse it, so it
+fails closed rather than impersonating — but `RESEND_FROM_ADDRESS` **must** be set as an edge secret
+(on a domain verified in this Resend account) before any mail can go out.
 Public-site forms only expose `info@` mailto links; those POSTs are logged, not emailed.
 
 ### Branded HTML shell
@@ -898,7 +909,8 @@ definitions and Supabase daily backups age out.
 **How to apply the next one:** 14 of the 16 were edited by a **targeted replace over each project's own
 live body** (the 00089 precedent), preserving local text and predicates; only two were hand-written.
 **Every replace asserts** — a missing target `RAISE`s, so a silent miss on money is impossible. Copy
-that shape rather than pasting one body into both projects.
+that shape rather than hand-authoring a replacement body: the live body is the source of truth, and a
+paste silently discards whatever local predicates it had picked up.
 
 ### Known, NOT fixed
 - **`get_monthly_comparison` returns `profit` with no `is_owner()` gate** on either project (powers
@@ -906,11 +918,13 @@ that shape rather than pasting one body into both projects.
   so no screen a manager can open shows it, but the RPC is callable with their token. **Consciously
   accepted by the owner (2026-08-02)** as a direct-API gap. Fix = wrap `profit` only, per-project via
   an asserted replace (this is one of the two functions whose bodies diverge between databases).
-- **Gurbet's `orders.subtotal/discount/tax/total` are `numeric`; Melek's are `integer`.**
-  🚨 This breaks any RPC declaring `RETURNS TABLE(… total integer …)` — plpgsql will not coerce NUMERIC
-  into an INTEGER OUT column, so PostgREST returns a **400 on Gurbet only** (it killed `/overdue`
-  until 00110). **Cast in the body (`o.total::INTEGER`), never widen the signature to `numeric`** —
-  PostgREST serialises numeric as a JSON *string*, which breaks Melek's client types.
+- 🚨 **`orders.subtotal/discount/tax/total` are `numeric` in this database**, not `integer`.
+  This breaks any RPC declaring `RETURNS TABLE(… total integer …)` — plpgsql will not coerce NUMERIC
+  into an INTEGER OUT column, so PostgREST returns a **400** (it killed `/overdue` until 00110).
+  **Cast in the body (`o.total::INTEGER`), never widen the signature to `numeric`** — PostgREST
+  serialises numeric as a JSON *string*, which breaks the client types. The JSON therefore also
+  carries decimals (`"2583618.00"`); the app's `Number()` absorbs it, but a `::bigint` cast in a
+  verification query will not.
 
 ### Granular analytics filters
 Slice every tab by **customer / product / payment method / unit type / customer type** via
@@ -951,9 +965,9 @@ opposite. Use the SECURITY DEFINER helpers `order_is_hidden(order_id)` / `refund
 **Any new table hanging off `orders` needs the same treatment — never hand-roll a NOT EXISTS.**
 
 Other invariants:
-- **Replace the entire policy set per table, never patch by name.** Policies are OR'd, and both
-  databases carried leftover permissive policies (`orders_all` `FOR ALL` on Melek, two overlapping
-  SELECTs on Gurbet) that would defeat the feature alone.
+- **Replace the entire policy set per table, never patch by name.** Policies are OR'd, and this
+  database carried two overlapping permissive SELECT policies that would have defeated the feature on
+  their own.
 - The predicate goes on INSERT `WITH CHECK`, UPDATE `USING` **and** `WITH CHECK`, and DELETE `USING` —
   that is what stops a manager setting or clearing the flag.
 - 15 SECURITY DEFINER RPCs carry the predicate explicitly (they bypass RLS), as do
@@ -1007,6 +1021,15 @@ request; a module script is deferred — both reintroduce the dark-mode flash).
 the new hash to paste (`scripts/check-csp.mjs` hashes every inline script in `dist/`). Note
 `vercel.json` header entries accept only `key`/`value` — an extra `_comment` fails Vercel's schema and
 breaks the deploy.
+
+🚨 **The committed hash is the LF hash, and a Windows build prints a DIFFERENT one.** Vercel builds on
+Linux; with `core.autocrlf=true` the local working copy is CRLF, so `check-csp.mjs` fails and prints a
+hash that **looks exactly like the fix and is wrong for production** — paste it and the theme script is
+CSP-blocked, bringing back the dark-mode flash it exists to prevent. Verified 2026-08-26: the same
+byte-identical file hashes `+PnfBDXwl4O4Ui0XmVd5/jBkZnvMQrPVnYB48BBaJcI=` (LF, correct) and
+`6+Q2omgsuL/m0jSDktKHSN59wJsY+1rX4pBuwjrKJ2E=` (CRLF, local-only). `.gitattributes` pins
+`apps/admin/index.html` to `eol=lf` so local builds match Vercel — **keep that line**. If the check
+ever fails again, confirm you actually changed the script before touching `vercel.json`.
 
 ### Caching headers
 `apps/admin/vercel.json`: HTML `no-cache`, `/assets/*` immutable. Without the HTML rule a hashed chunk
@@ -1076,8 +1099,8 @@ a red banner when anything is overdue.
 (`deleted_at IS NULL`, `status NOT IN (completed,cancelled,refunded,draft)`, an invoice number exists,
 `total − refund_amount > 0`; overdue is `invoice_due_date < CURRENT_DATE`). That RPC builds the monthly
 **Betaaloverzicht** PDF the same customer is emailed, so a divergence quotes them two different debts.
-**Change one, change both.** Amounts go through `ROUND(…)::bigint` because Gurbet's `orders.total` is
-`numeric` and Melek's is `integer`.
+**Change one, change both.** Amounts go through `ROUND(…)::bigint` because `orders.total` is
+`numeric` here — see the note under *Known, NOT fixed*.
 
 `totalSpent` is net of refunds. The recent-orders table shows **`order_date`**, the date on the
 invoice, not `created_at`.
@@ -1346,9 +1369,8 @@ filter `is_active` — keep them in sync.**
 ```env
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_ANON_KEY=your_anon_key
-VITE_TENANT=melek|father
 
-VITE_APP_NAME=MelekHalalFood
+VITE_APP_NAME=GurbetDoner
 VITE_DEFAULT_CURRENCY=EUR
 VITE_DEFAULT_LOCALE=nl-NL
 VITE_DEFAULT_TIMEZONE=Europe/Amsterdam
@@ -1389,7 +1411,7 @@ static imports.** List pages paginate server-side.
 
 Feature branch → **migration first** → types → services → components → verify on a mobile viewport.
 A migration in `main` is **not** a migration applied; apply via the Supabase MCP `apply_migration` (or
-the CLI with an explicit `--project-ref`) **on both projects**, and still commit the `.sql`.
+the CLI with an explicit `--project-ref`), and still commit the `.sql`.
 
 ---
 
