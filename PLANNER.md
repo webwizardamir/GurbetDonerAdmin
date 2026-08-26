@@ -32,6 +32,63 @@
 | 2026-06-28 | Portal: document downloads | Portal re-renders PDFs on demand from `documents.snapshot` (none were ever stored); per-row Download + desktop Preview; amount uses the document's own total |
 | 2026-06-28 | Portal: login discoverability | Public site header CTA → "Inloggen" (portal); login page "Klantenportaal" heading + contact block + password reveal |
 | 2026-06-28 | Portal: RLS lockdown (migration 00071) | Closed broad `USING(true)` SELECT policies (cross-customer + COGS/internal_notes leak); portal reads now via column-safe `get_portal_*` SECURITY DEFINER RPCs; base tables admin-only |
+| 2026-08-26 | Catch-weight order lines (migration 00117) | Goods counted in pieces, priced per kilo (`stuk (kg) × aantal × prijs/kg`). `quantity` stays the KILOS, so no money path changed. See **Catch weight** below and in `CLAUDE.md` |
+
+---
+
+## 🟡 Catch weight — shipped, awaiting client feedback (2026-08-26)
+
+Gurbet sent a four-row spreadsheet (`voorbeeld (3).xlsx`, gitignored) modelling an order line as
+three factors instead of two:
+
+| # OMSCHRIJVING | stuk (kg) | AANTAL | | EENHEIDPRIJS | EXCL. BTW |
+|---|---|---|---|---|---|
+| kip doner | 7 | 35 | kg | 4,70 | 1151,50 |
+
+Döner spits, packs and trays are **counted in pieces but priced per kilo**. The app was strictly
+two-factor (`quantity × unit_price`), so the only way to enter that was "245 kg", losing the count the
+warehouse, the driver and the customer all work in.
+
+**What shipped** (commit `6226ec9`, migration 00117 applied to `dvpnvulxkccurqkpqqnx`):
+`order_items.piece_count` + `piece_weight_kg` as **descriptive** columns beside an unchanged
+`quantity` (kilos) and `unit_price` (€/kg). The weight is snapshotted **per line**, because the piece
+weight is a range that moves per delivery; `products.default_piece_weight_kg` is a prefill only.
+A "Stuk (kg)" column in the order form is the switch, with no mode toggle. Surfaced on order detail,
+the refund modal, invoice / proforma / order confirmation / packing slip, the customer portal, the
+route stop + loading lists and the driver's route PDF. Full invariants in `CLAUDE.md`
+→ *Key Business Rules → Catch weight*.
+
+**Nothing behaves differently until someone fills in a weight** — every existing product has
+`default_piece_weight_kg` NULL — so the feature can be demonstrated on one product without
+disturbing live data.
+
+### ⏳ Open with the client — answers change the next step
+
+The spreadsheet is a partial spec (line block only: no customer, date, totals, discount or shipping).
+These were assumed to keep the build reversible; confirm before extending:
+
+1. **Which column is the piece count?** "7 kg per spit × 35 spits" and "7 spits of 35 kg" give the
+   same money, so his sheet cannot distinguish them. **Assumed:** `stuk (kg)` is the weight of one
+   piece, `AANTAL` the number of pieces. (The bare "kg" sitting in the unlabelled column D beside
+   AANTAL is what makes this ambiguous.)
+2. **Is the piece weight fixed per product, or weighed per delivery?** **Assumed:** it varies, which
+   is why the line carries its own weight. If pieces are individually weighed on the van, this becomes
+   a true catch-weight invoice and each line needs an *actual* weight captured at delivery — a bigger
+   change than what shipped.
+3. **Does this replace kg lines, or sit alongside kg / stuk / zak / doos?** **Assumed:** alongside.
+4. **Should stock count pieces or kilos?** **Assumed:** kilos (unchanged). Switching to pieces means
+   changing what the stock triggers subtract.
+5. **Is the price always per kg for these?** **Assumed:** yes; the DB CHECK restricts catch weight to
+   `unit_type = 'kg'`.
+6. **Will he keep sending this spreadsheet?** If so it could become an import format; not built.
+
+**Deliberately excluded, raise if he asks for them:** credit notes print kilos only (a partial refund
+need not land on a whole piece); Sold Products still aggregates in kilos (summing pieces of differing
+weights is meaningless); the product Excel import does not carry the default weight (it would change
+the template).
+
+**Note on his BTW column:** the sheet's `INCL. BTW` is unrounded (1255,135). The app rounds VAT to the
+cent per line, as a Dutch invoice must, so row 1 reads 1255,14. The other three rows match exactly.
 
 ---
 
