@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { PackageCheck } from 'lucide-react'
 import type { PlannedStop } from '../../services/route'
 import { formatQuantityWithUnit } from '../../utils/format'
+import { formatPieceBreakdown } from '../../utils/catchWeight'
 
 interface Props {
   loadingOrder: PlannedStop[]   // already reversed (last delivery first)
@@ -49,6 +50,9 @@ export default function LoadingOrderList({ loadingOrder }: Props) {
                 <span className="text-sm text-slate-900 dark:text-white truncate">{it.productName}</span>
                 <span className="text-sm tabular-nums text-right text-slate-700 dark:text-slate-300">
                   {formatQuantityWithUnit(it.quantity, it.unitType, t)}
+                  {formatPieceBreakdown(it) && (
+                    <span className="ml-1 text-slate-400 dark:text-slate-500">({formatPieceBreakdown(it)})</span>
+                  )}
                 </span>
               </li>
             ))}

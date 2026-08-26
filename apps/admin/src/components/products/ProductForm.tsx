@@ -28,6 +28,7 @@ export interface ProductFormData {
   cost_cents?: number // Cost of goods in cents (Owner only)
   tax_rate: number
   stock_quantity: number
+  default_piece_weight_kg?: number | null
   stock_unit_type?: UnitType
   track_stock: boolean
   description?: string
@@ -73,6 +74,10 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
   const [stockQuantity, setStockQuantity] = useState(0)
   const [stockUnitType, setStockUnitType] = useState<UnitType>('doos')
   const [trackStock, setTrackStock] = useState(true)
+  // Typical kg per piece for catch-weight goods (a doner spit). Kept as the
+  // raw typed string so the field can be emptied — empty means "no typical
+  // weight" and saves NULL, which is different from 0.
+  const [defaultPieceWeight, setDefaultPieceWeight] = useState('')
   const [description, setDescription] = useState('')
 
   // Multi-unit pricing state
@@ -91,6 +96,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
       setBarcode(product.barcode || '')
       setTaxRate(product.tax_rate)
       setStockQuantity(product.stock_quantity || 0)
+      setDefaultPieceWeight(product.default_piece_weight_kg ? String(product.default_piece_weight_kg) : '')
       setStockUnitType(product.stock_unit_type || product.unit_type)
       setTrackStock(product.track_stock ?? true)
       setDescription(product.description || '')
@@ -243,6 +249,12 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
         base_price: defaultPrice,
         tax_rate: taxRate,
         stock_quantity: stockQuantity,
+        // Empty stays NULL: "no typical piece weight" is a real answer, and a 0
+        // would trip the CHECK. Order lines snapshot their own weight, so
+        // changing this never reaches an order that already exists.
+        default_piece_weight_kg: defaultPieceWeight.trim() === ''
+          ? null
+          : Math.round(parseFloat(defaultPieceWeight.replace(',', '.')) * 1000) / 1000,
         stock_unit_type: stockUnitType,
         track_stock: trackStock,
         description: description.trim() || undefined,
@@ -490,6 +502,28 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                   )}
                 </select>
               </div>
+            </div>
+
+            {/* Catch weight: typical kg per piece.
+                A PREFILL for the order form and nothing more — every order line
+                snapshots its own weight, because a spit is a range and moves per
+                delivery, so editing this never touches an existing order or a
+                re-printed invoice. */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t('products.form.defaultPieceWeight')}
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={defaultPieceWeight}
+                onChange={e => setDefaultPieceWeight(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder={t('products.form.defaultPieceWeightPlaceholder')}
+              />
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {t('products.form.defaultPieceWeightHelp')}
+              </p>
             </div>
 
             {/* Track Stock Checkbox */}

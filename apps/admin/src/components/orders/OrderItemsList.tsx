@@ -7,8 +7,9 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Minus, Trash2, Package, MessageSquare, X } from 'lucide-react'
 import type { UnitType } from '../../types'
-import { formatPrice, formatPercent, profitClass } from '../../utils/format'
+import { formatPrice, formatPercent, profitClass, formatQuantity } from '../../utils/format'
 import { resolveDiscountCents, type DiscountType } from '../../utils/discount'
+import { isCatchWeight, formatPieceBreakdown } from '../../utils/catchWeight'
 import { useAuth } from '../../context/AuthContext'
 
 export interface OrderLineItem {
@@ -18,7 +19,12 @@ export interface OrderLineItem {
     name: string
   }
   selectedUnitType: UnitType
+  /** Quantity in the line's own unit — kilos on a catch-weight line. */
   quantity: number
+  // Catch weight (00117): pieces counted, kilos priced. Set together or not at
+  // all; a filled pieceWeightKg is what makes the Aantal field mean pieces.
+  pieceCount?: number | null
+  pieceWeightKg?: number | null
   unit_price: number
   tax_rate: number
   // Per-unit cost of goods, supplied by the parent for owner-only display.
@@ -40,7 +46,10 @@ interface OrderItemsListProps {
   orderDiscountType?: DiscountType | null
   orderDiscountValue?: number | null
   onUpdateQuantity: (lineId: string, delta: number) => void
+  /** Commits the Aantal field: the PIECE COUNT on a catch-weight line, the raw quantity otherwise. */
   onSetQuantity: (lineId: string, quantity: number) => void
+  /** Set/clear kg-per-piece. Absent = the Stuk (kg) column is not offered. */
+  onSetPieceWeight?: (lineId: string, weightKg: number | null) => void
   onRemoveItem: (lineId: string) => void
   onChangeUnitType: (lineId: string, unitType: UnitType) => void
   onSetPrice?: (lineId: string, priceInCents: number) => void
@@ -284,6 +293,56 @@ function QtyInput({
   )
 }
 
+// Kg-per-piece input for catch-weight lines ("stuk (kg)" on the customer's own
+// sheet). Empty is the meaningful default: it means this line is an ordinary
+// one, so the field shows a placeholder rather than a 0. Mirrors PriceInput's
+// keep-draft-while-focused / commit-on-blur so decimals type cleanly.
+function PieceWeightInput({
+  weightKg,
+  onCommit,
+  className = '',
+}: {
+  weightKg: number | null | undefined
+  onCommit: (kg: number | null) => void
+  className?: string
+}) {
+  const display = weightKg == null || weightKg <= 0 ? '' : String(weightKg)
+  const [draft, setDraft] = useState(display)
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) setDraft(display)
+  }, [display, focused])
+
+  const commit = () => {
+    const normalized = draft.replace(',', '.').trim()
+    if (normalized === '') { onCommit(null); return }
+    const n = parseFloat(normalized)
+    if (Number.isFinite(n) && n > 0) onCommit(Math.round(n * 1000) / 1000)
+    // Unparseable input reverts and commits NOTHING. Only a deliberately
+    // EMPTIED field clears the catch weight — a typo must not silently restate
+    // the line as an ordinary kg line.
+    else setDraft(display)
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={draft}
+      placeholder="-"
+      onFocus={e => { setFocused(true); e.target.select() }}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => { setFocused(false); commit() }}
+      onKeyDown={e => {
+        if (e.key === 'Enter') { e.currentTarget.blur() }
+        if (e.key === 'Escape') { setDraft(display); e.currentTarget.blur() }
+      }}
+      className={`text-sm px-2 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-right text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-green-500 ${className}`}
+    />
+  )
+}
+
 // Notes icon button. Coloured when notes exist, neutral when empty.
 // Click opens the shared notes editor modal (managed at the list level).
 function NotesButton({
@@ -407,6 +466,7 @@ export default function OrderItemsList({
   orderDiscountValue,
   onUpdateQuantity,
   onSetQuantity,
+  onSetPieceWeight,
   onRemoveItem,
   onChangeUnitType,
   onSetPrice,
@@ -459,13 +519,16 @@ export default function OrderItemsList({
           {/* Desktop: dense table */}
           <div className="hidden lg:block bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="px-2 py-2 text-left w-8">#</th>
                   <th className="px-2 py-2 text-left max-w-[200px]">{t('orders.itemsTable.product')}</th>
                   <th className="px-2 py-2 text-left">{t('orders.itemsTable.unit')}</th>
                   <th className="px-2 py-2 text-right w-32">{t('orders.itemsTable.price')}</th>
+                  {onSetPieceWeight && (
+                    <th className="px-2 py-2 text-right w-24">{t('orders.itemsTable.pieceWeight')}</th>
+                  )}
                   <th className="px-2 py-2 text-center w-28">{t('orders.itemsTable.qty')}</th>
                   {onSetLineDiscount && (
                     <th className="px-2 py-2 text-right w-28">{t('orders.itemsTable.discount')}</th>
@@ -476,6 +539,7 @@ export default function OrderItemsList({
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {items.map((item, idx) => {
+                  const catchWeight = isCatchWeight(item)
                   const lineGross = item.unit_price * item.quantity
                   const lineDiscount = resolveDiscountCents(item.discount_type, item.discount_value, Math.round(lineGross))
                   const lineTotal = lineGross - lineDiscount
@@ -540,6 +604,22 @@ export default function OrderItemsList({
                           )
                         })()}
                       </td>
+                      {onSetPieceWeight && (
+                        <td className="px-2 py-2 align-middle text-right">
+                          {/* Only offered on kg lines: the derived number IS the
+                              kilos, so a piece weight on a doos line has nothing
+                              to multiply into (the DB CHECK agrees). */}
+                          {item.selectedUnitType === 'kg' ? (
+                            <PieceWeightInput
+                              weightKg={item.pieceWeightKg}
+                              onCommit={kg => onSetPieceWeight(item.lineId, kg)}
+                              className="w-16"
+                            />
+                          ) : (
+                            <span className="text-slate-300 dark:text-slate-600">-</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-2 py-2 align-middle">
                         <div className="flex items-center justify-center gap-0.5">
                           <button
@@ -551,7 +631,7 @@ export default function OrderItemsList({
                             <Minus className="w-3.5 h-3.5" />
                           </button>
                           <QtyInput
-                            quantity={item.quantity}
+                            quantity={catchWeight ? item.pieceCount! : item.quantity}
                             onCommit={qty => onSetQuantity(item.lineId, qty)}
                             onRemove={() => onRemoveItem(item.lineId)}
                             className="w-14 text-center text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-green-500"
@@ -565,6 +645,14 @@ export default function OrderItemsList({
                             <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
+                        {/* The kilos the line is actually priced on. Shown
+                            because the Aantal field above now counts pieces, and
+                            the total would otherwise look unexplainable. */}
+                        {catchWeight && (
+                          <div className="mt-0.5 text-center text-[10px] leading-tight text-slate-500 dark:text-slate-400 tabular-nums">
+                            = {formatQuantity(item.quantity)} kg
+                          </div>
+                        )}
                       </td>
                       {onSetLineDiscount && (
                         <td className="px-2 py-2 align-middle text-right">
@@ -614,6 +702,7 @@ export default function OrderItemsList({
           {/* Mobile: compact cards */}
           <div className="lg:hidden space-y-2">
             {items.map((item, idx) => {
+              const catchWeight = isCatchWeight(item)
               const lineGross = item.unit_price * item.quantity
               const lineDiscount = resolveDiscountCents(item.discount_type, item.discount_value, Math.round(lineGross))
               const lineTotal = lineGross - lineDiscount
@@ -672,7 +761,7 @@ export default function OrderItemsList({
                         <Minus className="w-4 h-4" />
                       </button>
                       <QtyInput
-                        quantity={item.quantity}
+                        quantity={catchWeight ? item.pieceCount! : item.quantity}
                         onCommit={qty => onSetQuantity(item.lineId, qty)}
                         onRemove={() => onRemoveItem(item.lineId)}
                         className="w-14 text-center text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-green-500"
@@ -686,6 +775,24 @@ export default function OrderItemsList({
                       </button>
                     </div>
                   </div>
+
+                  {onSetPieceWeight && item.selectedUnitType === 'kg' && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">{t('orders.itemsTable.pieceWeight')}</span>
+                      <div className="flex items-center gap-2">
+                        {catchWeight && (
+                          <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                            {formatPieceBreakdown(item)} = {formatQuantity(item.quantity)} kg
+                          </span>
+                        )}
+                        <PieceWeightInput
+                          weightKg={item.pieceWeightKg}
+                          onCommit={kg => onSetPieceWeight(item.lineId, kg)}
+                          className="w-16"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {onSetLineDiscount && (
                     <div className="flex items-center justify-between text-sm">

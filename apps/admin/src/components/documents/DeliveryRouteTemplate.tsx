@@ -10,6 +10,7 @@ import { formatQuantityWithUnit } from '../../utils/format'
 import { tenant } from '../../config/tenant'
 import { docBrand } from './brandPalette'
 import { docLogo } from './logoMetrics'
+import { formatPieceBreakdown } from '../../utils/catchWeight'
 
 // Delivery-route sheet. Dutch only (operational/legal consistency). Brand colour
 // comes from the tenant's document palette so the driver sheet matches the rest
@@ -91,7 +92,12 @@ const styles = StyleSheet.create({
 
 function manifestText(stop: PlannedStop): string {
   return stop.items
-    .map(i => `${formatQuantityWithUnit(i.quantity, i.unitType)} ${i.productName}`)
+    // "35 x 7 kg" beats "245 kg" on paper: the driver counts pieces, not kilos.
+    .map(i => {
+      const breakdown = formatPieceBreakdown(i)
+      const qty = formatQuantityWithUnit(i.quantity, i.unitType)
+      return `${breakdown ? `${breakdown} = ${qty}` : qty} ${i.productName}`
+    })
     .join('\n')
 }
 

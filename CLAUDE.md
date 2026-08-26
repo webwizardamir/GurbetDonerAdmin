@@ -669,6 +669,42 @@ whole policy with an explicit `document_type <> 'payment_overview'` term. **Any 
    - Accepted limitation: with one product+unit split across lines at *different* edited prices, only
      the first is remembered for next time.
 
+### Catch weight — counted in pieces, priced per kilo (00117)
+Döner spits, packs and trays are counted as pieces but sold by the kilo. One line is three factors:
+`stuk (kg) × aantal × prijs per kg` (7 × 35 × €4,70 = €1.151,50).
+
+🚨 **`quantity` STAYS THE KILOS. `piece_count` / `piece_weight_kg` are DESCRIPTIVE and never a second
+source of truth for money.** That is the whole reason the feature costs no SQL anywhere else:
+`computeOrderTotals`, the stock triggers (they subtract `NEW.quantity`, i.e. kilos), `create_order_refund`'s
+server-side recompute, every analytics RPC, the 00109 net-revenue rules and the price chain are all
+untouched, and `customer_prices` keeps holding the **€/kg the customer actually negotiated**.
+**Never "simplify" this to `quantity = 35` + a derived per-piece `unit_price`** — that stores a number
+nobody typed and poisons remembered prices and price lists.
+
+- **The weight lives on the LINE**, snapshotted immutably beside `unit_price`/`cost_cents`, because a
+  spit is a *range* and moves per delivery. `products.default_piece_weight_kg` is a **prefill only**;
+  editing it must never reach an order that already exists.
+- Three CHECKs, all load-bearing: both columns or neither, both `> 0`, and `unit_type = 'kg'` (the
+  derived number *is* the kilos, so there is nothing for a weight on a `doos` line to multiply into).
+  `changeUnitType` and the reprice fallback clear the pair on the way out of kg.
+- **Filling "Stuk (kg)" is the switch** — no mode toggle. The Aantal field then edits `pieceCount` and
+  `quantity` follows; clearing the weight **keeps the kilos**, never the piece count, because the kilos
+  are what the line is priced on. `+/-` and the barcode scanner step **pieces**, not kilos.
+- Rounded **once**, in `catchWeightQuantity` (`utils/catchWeight.ts`), to 3 decimals — matching
+  `order_items.quantity` NUMERIC(10,3) and the form's own free-typed rounding. Round at display time
+  only and an invoice shows 244,999 kg beside a total priced on 245.
+- **`utils/catchWeight.ts` is imported by the PDF templates, so it must stay DB-free and asset-free**
+  (it may import `utils/format.ts` and nothing else). Same rule as everything else in a template graph.
+- `InvoiceData.items[].pieceCount/pieceWeightKg` are **optional on purpose**, like
+  `customer.deliveryAddress` — snapshots frozen before 00117 omit them and every template falls back
+  to the plain quantity, so the portal keeps rendering old invoices.
+- Surfaces: order form, order detail, refund modal (as **context**, not a second input), invoice /
+  proforma / order confirmation / packing slip, portal order detail, the route stop + loading lists and
+  the driver's route PDF. **The credit note deliberately prints kilos only** — a partial refund need not
+  land on a whole piece, so a breakdown there would be a claim the refund rows do not support.
+- **Sold Products is deliberately untouched**: it aggregates per product+unit across customers, and
+  summing pieces whose weights differ per line is meaningless. Kilos are the right unit for that report.
+
 ### VAT (BTW) — reverse charge
 1. NL customer → the product's `tax_rate` (9% food / 21% non-food / 0%).
 2. Non-NL customer (rule is `country !== 'NL'`) → **0% BTW forced on every line** at create/edit, and

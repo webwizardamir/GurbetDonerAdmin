@@ -5,6 +5,7 @@ import Modal from '../ui/Modal'
 import type { OrderWithItems } from '../../services/orders'
 import { createOrderRefund, fetchRefundedQuantities } from '../../services/orders'
 import { formatPrice, formatQuantity } from '../../utils/format'
+import { formatPieceBreakdown } from '../../utils/catchWeight'
 import { ymdInAms } from '../../utils/dateRange'
 
 interface RefundModalProps {
@@ -184,6 +185,14 @@ export default function RefundModal({ order, onClose, onRefunded }: RefundModalP
                           <p className="font-medium text-slate-900 dark:text-white truncate">{item.product_name}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             {formatPrice(item.unit_price)} · {t('orders.refund.ordered')} {formatQuantity(item.quantity)}
+                            {/* A refund is entered and recomputed server-side in
+                                the line's OWN unit (kilos here), and a partial
+                                refund need not land on a whole piece. So the
+                                breakdown is shown as context, never as a second
+                                input: the operator can see that one piece is
+                                7 kg before typing the kilos back. */}
+                            {formatPieceBreakdown({ pieceCount: item.piece_count, pieceWeightKg: item.piece_weight_kg })
+                              && ` · ${formatPieceBreakdown({ pieceCount: item.piece_count, pieceWeightKg: item.piece_weight_kg })}`}
                             {refunded > 0 && (
                               <> · {t('orders.refund.alreadyRefunded')} {formatQuantity(refunded)}</>
                             )}

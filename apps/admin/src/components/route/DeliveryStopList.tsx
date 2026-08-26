@@ -9,6 +9,7 @@ import type { LockPosition } from '../../services/route'
 import { formatQuantityWithUnit } from '../../utils/format'
 import { formatDistance, etaClock } from '../../utils/route'
 import DropdownMenu from '../ui/DropdownMenu'
+import { formatPieceBreakdown } from '../../utils/catchWeight'
 
 interface Props {
   included: DisplayStop[]
@@ -234,6 +235,9 @@ export default function DeliveryStopList({
                     </span>
                     <span className="text-sm tabular-nums text-right text-slate-700 dark:text-slate-300">
                       {formatQuantityWithUnit(it.quantity, it.unitType, t)}
+                      {formatPieceBreakdown(it) && (
+                        <span className="ml-1 text-slate-400 dark:text-slate-500">({formatPieceBreakdown(it)})</span>
+                      )}
                     </span>
                   </li>
                 ))}

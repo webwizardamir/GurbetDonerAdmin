@@ -31,6 +31,7 @@ import PaymentMethodModal from './PaymentMethodModal'
 import StatusBadge from '../ui/StatusBadge'
 import OrderStatusPicker from './OrderStatusPicker'
 import { formatQuantity, formatPrice, formatDateTime, formatPercent, profitClass } from '../../utils/format'
+import { formatPieceBreakdown } from '../../utils/catchWeight'
 import { computeOrderProfit } from '../../utils/orderProfit'
 import Modal from '../ui/Modal'
 import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
@@ -415,6 +416,14 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       {formatPrice(item.unit_price)} × {formatQuantity(item.quantity)} {formatUnitDutch(item.unit_type, item.quantity, t)}
                     </p>
+                    {/* Catch weight: the price line above stays the kilos (what
+                        the line is billed on); this says how they were counted.
+                        Renders nothing for an ordinary line. */}
+                    {formatPieceBreakdown({ pieceCount: item.piece_count, pieceWeightKg: item.piece_weight_kg }) && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                        {formatPieceBreakdown({ pieceCount: item.piece_count, pieceWeightKg: item.piece_weight_kg })}
+                      </p>
+                    )}
                     {isOwner && (item.cost_cents ?? 0) > 0 && (() => {
                       // Per-unit difference: sold unit price − unit cost (both ex-VAT).
                       const perUnit = item.unit_price - (item.cost_cents ?? 0)

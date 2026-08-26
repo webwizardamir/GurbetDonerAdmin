@@ -16,6 +16,7 @@ import { isReverseChargeCountry, isImportedOrder } from '../../utils/vat'
 import { computeOrderTotals, resolveShippingVat, type DiscountType } from '../../utils/discount'
 import { setCustomerPrice, clearCustomerPrice } from '../../services/pricing'
 import { ymdInAms } from '../../utils/dateRange'
+import { catchWeightQuantity, isCatchWeight } from '../../utils/catchWeight'
 import { ensureOrderInvoice } from '../../services/documents'
 
 interface OrderFormProps {
@@ -28,7 +29,15 @@ interface OrderLineItem {
   lineId: string
   product: Product
   selectedUnitType: UnitType
+  // Always the quantity in the line's own unit — kilos for a catch-weight line.
+  // DERIVED (pieceCount x pieceWeightKg) whenever the two below are set.
   quantity: number
+  // Catch weight (migration 00117): goods counted in pieces, priced per kg.
+  // Filling pieceWeightKg is what turns the line into one; the Aantal input then
+  // edits pieceCount and `quantity` follows. kg lines only — the DB CHECK
+  // enforces that, and changeUnitType clears them on the way out.
+  pieceCount?: number | null
+  pieceWeightKg?: number | null
   unit_price: number
   tax_rate: number
   notes?: string
@@ -239,6 +248,8 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
           },
           selectedUnitType: item.unit_type as UnitType,
           quantity: item.quantity,
+          pieceCount: item.piece_count ?? null,
+          pieceWeightKg: item.piece_weight_kg ?? null,
           unit_price: item.unit_price,
           tax_rate: item.tax_rate,
           notes: item.notes || '',
@@ -270,11 +281,33 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
         if (items[idx].product.id === product.id && items[idx].selectedUnitType === unitType) { existingIndex = idx; break }
       }
       if (existingIndex >= 0) {
-        setItems(items.map((i, idx) => idx === existingIndex ? { ...i, quantity: i.quantity + 1 } : i))
+        // One scan = one more PIECE on a catch-weight line (scanning a 7 kg spit
+        // must not add 1 kg), and one more unit on any other line.
+        setItems(items.map((i, idx) => {
+          if (idx !== existingIndex) return i
+          if (isCatchWeight(i)) {
+            const pieces = (i.pieceCount ?? 0) + 1
+            return { ...i, pieceCount: pieces, quantity: catchWeightQuantity(pieces, i.pieceWeightKg!) }
+          }
+          return { ...i, quantity: i.quantity + 1 }
+        }))
         return
       }
     }
-    setItems([...items, { lineId: generateLineId(), product, selectedUnitType: unitType, quantity: 1, unit_price: price, tax_rate: product.tax_rate, availableUnitTypes }])
+    // Prefill the piece weight from the catalog default, but ONLY on a kg line
+    // (the unit the kilos belong to) and only when the product carries one. The
+    // line owns its copy from here on: editing the product later never reaches
+    // back into this order.
+    const prefillWeight = unitType === 'kg' && (product.default_piece_weight_kg ?? 0) > 0
+      ? Number(product.default_piece_weight_kg)
+      : null
+    setItems([...items, {
+      lineId: generateLineId(), product, selectedUnitType: unitType,
+      quantity: prefillWeight ? catchWeightQuantity(1, prefillWeight) : 1,
+      pieceCount: prefillWeight ? 1 : null,
+      pieceWeightKg: prefillWeight,
+      unit_price: price, tax_rate: product.tax_rate, availableUnitTypes,
+    }])
   }
 
   // Adding is never interrupted by a unit-type prompt: the product's default
@@ -297,12 +330,28 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
     if (!unitTypeInfo) return
     // Duplicate product+unit lines are allowed to coexist, so just switch this
     // line's unit type — never merge it into another matching line.
-    setItems(items.map(i => i.lineId === lineId ? { ...i, selectedUnitType: newUnitType, unit_price: unitTypeInfo.price } : i))
+    setItems(items.map(i => {
+      if (i.lineId !== lineId) return i
+      const next: OrderLineItem = { ...i, selectedUnitType: newUnitType, unit_price: unitTypeInfo.price }
+      // A catch-weight line's `quantity` IS its kilos, so the breakdown only
+      // means anything on a kg line (and the DB CHECK says so too). Leaving kg
+      // drops the breakdown and keeps the number the user can already see.
+      if (newUnitType !== 'kg') { next.pieceCount = null; next.pieceWeightKg = null }
+      return next
+    }))
   }
 
+  // The +/- buttons and the Aantal field both step the PIECE COUNT on a
+  // catch-weight line and the raw quantity everywhere else, so "+1" is one more
+  // spit and never one more kilo. `quantity` is re-derived either way and stays
+  // the single number the totals are priced on.
   const updateQuantity = (lineId: string, delta: number) => {
     setItems(items.map(i => {
       if (i.lineId !== lineId) return i
+      if (isCatchWeight(i)) {
+        const pieces = Math.round(Math.max(0, (i.pieceCount ?? 0) + delta) * 1000) / 1000
+        return { ...i, pieceCount: pieces, quantity: catchWeightQuantity(pieces, i.pieceWeightKg!) }
+      }
       const newQty = Math.round(Math.max(0, i.quantity + delta) * 1000) / 1000
       return { ...i, quantity: newQty }
     }).filter(i => i.quantity > 0))
@@ -310,8 +359,31 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
 
   const setQuantity = (lineId: string, quantity: number) => {
     if (quantity <= 0) { removeItem(lineId); return }
-    const roundedQty = Math.round(quantity * 1000) / 1000
-    setItems(items.map(i => i.lineId === lineId ? { ...i, quantity: roundedQty } : i))
+    const rounded = Math.round(quantity * 1000) / 1000
+    setItems(items.map(i => {
+      if (i.lineId !== lineId) return i
+      if (isCatchWeight(i)) return { ...i, pieceCount: rounded, quantity: catchWeightQuantity(rounded, i.pieceWeightKg!) }
+      return { ...i, quantity: rounded }
+    }))
+  }
+
+  /**
+   * Set (or clear) the kg-per-piece on a line. This is the switch: a weight
+   * turns the line into a catch-weight line, an empty field turns it back.
+   *
+   * Turning it ON seeds the piece count from the number already in the Aantal
+   * field, because that is what the user just counted ("35", then "7 kg", reads
+   * as 35 spits of 7 kg). Turning it OFF keeps the KILOS rather than the piece
+   * count: the kilos are what the line is priced on, so dropping the breakdown
+   * must never silently restate the order.
+   */
+  const setPieceWeight = (lineId: string, weightKg: number | null) => {
+    setItems(items.map(i => {
+      if (i.lineId !== lineId) return i
+      if (weightKg == null || weightKg <= 0) return { ...i, pieceCount: null, pieceWeightKg: null }
+      const pieces = i.pieceCount ?? i.quantity
+      return { ...i, pieceCount: pieces, pieceWeightKg: weightKg, quantity: catchWeightQuantity(pieces, weightKg) }
+    }))
   }
 
   const removeItem = (lineId: string) => setItems(items.filter(i => i.lineId !== lineId))
@@ -330,7 +402,9 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       const currentUnit = available.find(ut => ut.unitType === item.selectedUnitType)
       if (currentUnit) return { ...item, unit_price: currentUnit.price, availableUnitTypes: available }
       const defaultUnit = available.find(ut => ut.isDefault) || available[0]
-      return { ...item, selectedUnitType: defaultUnit.unitType, unit_price: defaultUnit.price, availableUnitTypes: available }
+      // Same rule as changeUnitType: the piece breakdown only holds on a kg line.
+      const dropped = defaultUnit.unitType === 'kg' ? {} : { pieceCount: null, pieceWeightKg: null }
+      return { ...item, selectedUnitType: defaultUnit.unitType, unit_price: defaultUnit.price, availableUnitTypes: available, ...dropped }
     })
     // Re-price in place (1:1) — never merge duplicate product+unit lines; the
     // customer may deliberately keep the same item on several separate lines.
@@ -401,6 +475,10 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
       const itemsData = items.map(i => ({
         product_id: i.product.id, product_name: i.product.name, product_sku: i.product.sku,
         unit_type: i.selectedUnitType, quantity: i.quantity, unit_price: i.unit_price,
+        // Both or neither (DB CHECK). isCatchWeight is the same guard the UI
+        // renders on, so a half-filled row can never reach the insert.
+        piece_count: isCatchWeight(i) ? i.pieceCount! : null,
+        piece_weight_kg: isCatchWeight(i) ? i.pieceWeightKg! : null,
         cost_cents: resolveLineCostCents(i.product, i.selectedUnitType), tax_rate: effectiveTaxRate(i.tax_rate),
         discount_type: i.discount_type ?? null, discount_value: i.discount_value ?? null,
         notes: i.notes?.trim() || undefined,
@@ -754,6 +832,7 @@ export default function OrderForm({ onCancel, onSuccess, editOrder }: OrderFormP
               orderDiscountValue={orderDiscountValue}
               onUpdateQuantity={updateQuantity}
               onSetQuantity={setQuantity}
+              onSetPieceWeight={setPieceWeight}
               onRemoveItem={removeItem}
               onChangeUnitType={changeUnitType}
               onSetPrice={(lineId, priceInCents) => {

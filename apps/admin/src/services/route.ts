@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { fetchDocumentSettings, updateDocumentSettings } from './documents'
 import type { Customer } from '../types'
+import { catchWeightPartsOf } from '../utils/catchWeight'
 
 // ===========================================================================
 // Delivery Route (Bezorgroute) service
@@ -34,6 +35,11 @@ export interface RouteManifestItem {
   productName: string
   quantity: number
   unitType: string
+  // Catch weight (00117). The van is loaded by the PIECE, not the kilo — "35
+  // spiesen" is what the driver counts off the tail lift — so the manifest and
+  // the loading list carry the breakdown beside the kilos.
+  pieceCount?: number | null
+  pieceWeightKg?: number | null
   notes?: string | null
 }
 
@@ -166,6 +172,8 @@ export function resolveDeliveryAddress(c: Partial<Customer>): DeliveryAddress {
 interface OrderItemRow {
   product_name: string
   quantity: number | string
+  piece_count?: number | string | null
+  piece_weight_kg?: number | string | null
   unit_type: string
   notes: string | null
 }
@@ -206,7 +214,7 @@ export async function fetchRouteOrders(args: { day: string; endDay?: string; cit
         shipping_same_as_billing, shipping_street, shipping_postal_code, shipping_city, shipping_country,
         latitude, longitude, geocode_status
       ),
-      items:order_items(product_name, quantity, unit_type, notes)
+      items:order_items(product_name, quantity, unit_type, piece_count, piece_weight_kg, notes)
     `)
     .gte('order_date', args.day)
     .lte('order_date', args.endDay || args.day)
@@ -259,10 +267,13 @@ export async function fetchRouteOrders(args: { day: string; endDay?: string; cit
     stop.orderIds.push(row.id)
     stop.orderNumbers.push(row.order_number)
     for (const it of row.items ?? []) {
+      const cw = catchWeightPartsOf(it)
       stop.items.push({
         productName: it.product_name,
         quantity: Number(it.quantity) || 0,
         unitType: it.unit_type,
+        pieceCount: cw.pieceCount,
+        pieceWeightKg: cw.pieceWeightKg,
         notes: it.notes,
       })
     }

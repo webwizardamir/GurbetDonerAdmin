@@ -62,6 +62,8 @@ interface DbOrderItemRow {
   unit_type?: string
   quantity: number
   unit_price: number
+  piece_count?: number | string | null
+  piece_weight_kg?: number | string | null
   cost_cents?: number
   discount_amount?: number
   discount_type?: string | null
@@ -144,6 +146,11 @@ export interface CreateOrderItemData {
   unit_type: string
   quantity: number
   unit_price: number // cents
+  // Catch-weight line (00117): `quantity` is still the KILOS and `unit_price`
+  // still the price per kg — these record how those kilos were counted. Send
+  // both or neither (a CHECK constraint enforces the pair).
+  piece_count?: number | null
+  piece_weight_kg?: number | null
   cost_cents?: number // cents - cost at time of sale
   // Per-line discount input. percentage -> basis points; fixed -> cents.
   discount_type?: DiscountType | null
@@ -209,6 +216,11 @@ function transformOrderItemFromDb(dbItem: DbOrderItemRow): OrderItem {
     quantity: Number(dbItem.quantity) || 0,
     // Values are already in cents (INTEGER)
     unit_price: Number(dbItem.unit_price) || 0,
+    // Catch weight (00117). PostgREST serialises NUMERIC as a string, and both
+    // columns are NULL on every ordinary line, so coerce and keep null — a 0
+    // here would read as "counted in pieces, zero of them".
+    piece_count: dbItem.piece_count == null ? null : Number(dbItem.piece_count),
+    piece_weight_kg: dbItem.piece_weight_kg == null ? null : Number(dbItem.piece_weight_kg),
     cost_cents: Number(dbItem.cost_cents) || 0,
     discount_amount: Number(dbItem.discount_amount) || 0,
     discount_type: (dbItem.discount_type as 'percentage' | 'fixed' | null) ?? null,
@@ -487,6 +499,11 @@ function buildOrderRows(
       unit_type: item.unit_type,
       quantity: item.quantity,
       unit_price: item.unit_price,
+      // Descriptive only — the money above is untouched by them. Normalised to
+      // an explicit null so an edit that clears the piece breakdown actually
+      // clears the columns instead of leaving the previous values behind.
+      piece_count: item.piece_count ?? null,
+      piece_weight_kg: item.piece_weight_kg ?? null,
       cost_cents: item.cost_cents || 0,
       discount_amount: line.lineDiscount,
       discount_type: item.discount_type ?? null,

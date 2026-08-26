@@ -205,6 +205,10 @@ export interface Product {
   stock_quantity: number
   stock_unit_type?: UnitType // What unit the stock quantity represents
   track_stock: boolean // Whether stock management is enabled
+  // Typical kg per piece for catch-weight goods (a 7 kg doner spit). PREFILL
+  // ONLY — the order line snapshots its own weight, so editing this never
+  // changes an existing order or a re-printed invoice. See migration 00117.
+  default_piece_weight_kg?: number | null
   description?: string
   created_by?: string
   created_at: string
@@ -361,6 +365,12 @@ export interface OrderItem {
   unit_type: UnitType
   quantity: number
   unit_price: number // cents - price at time of sale
+  // Catch-weight line (migration 00117): goods counted in pieces, priced per kg.
+  // `quantity` above stays the KILOS and `unit_price` the price per kg — these
+  // two only record what those kilos were counted as. Both set or both null; the
+  // weight is snapshotted per line because a spit is a range, not a fixed 7 kg.
+  piece_count?: number | null
+  piece_weight_kg?: number | null
   cost_cents?: number // cents - cost at time of sale, for profit calculation
   discount_amount: number // cents — resolved LINE discount only (not the order-level share)
   // Echo of the line discount input, so edit round-trips. percentage -> basis

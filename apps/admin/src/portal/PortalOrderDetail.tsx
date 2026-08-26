@@ -14,6 +14,7 @@ import { usePortalAuth } from '../context/PortalAuthContext'
 import { fetchPortalOrder, type PortalOrder } from '../services/portalOrders'
 import { formatQuantityWithUnit, formatPrice } from '../utils/format'
 import PortalDocumentActions from './components/PortalDocumentActions'
+import { catchWeightPartsOf, formatPieceBreakdown } from '../utils/catchWeight'
 interface PortalDocument {
   id: string
   document_number: string
@@ -28,6 +29,11 @@ interface PortalOrderItem {
   id: string
   product_name?: string
   quantity: number
+  // Catch weight (00117), whitelisted into get_portal_order. Present only on
+  // lines counted in pieces; the customer must read the same "35 x 7 kg" here
+  // as on the invoice PDF they were emailed.
+  piece_count?: number | string | null
+  piece_weight_kg?: number | string | null
   unit_price_cents: number
   line_total_cents: number
   product?: { name: string; unit_type: string }
@@ -254,6 +260,11 @@ export default function PortalOrderDetail() {
                       item.quantity,
                       item.product?.unit_type || 'piece',
                       t
+                    )}
+                    {formatPieceBreakdown(catchWeightPartsOf(item)) && (
+                      <div className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+                        {formatPieceBreakdown(catchWeightPartsOf(item))}
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">

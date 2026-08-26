@@ -331,11 +331,48 @@ var timeShortFormatter = new Intl.DateTimeFormat("nl-NL", {
 var countFormatter = new Intl.NumberFormat("nl-NL", {
   maximumFractionDigits: 0
 });
+var decimalCache = /* @__PURE__ */ new Map();
+function getDecimalFormatter(decimals) {
+  let f = decimalCache.get(decimals);
+  if (!f) {
+    f = new Intl.NumberFormat("nl-NL", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+    decimalCache.set(decimals, f);
+  }
+  return f;
+}
 function formatPrice(cents) {
   return eurFormatter.format(cents / 100);
 }
 function formatDate(dateString) {
   return dateFormatter.format(new Date(dateString));
+}
+function formatQuantity(qty) {
+  const rounded = Math.round(qty * 100) / 100;
+  if (Number.isInteger(rounded)) {
+    return countFormatter.format(rounded);
+  }
+  return getDecimalFormatter(2).format(rounded).replace(/,?0+$/, "");
+}
+
+// src/utils/catchWeight.ts
+var weightFormatter = null;
+function formatWeight(kg) {
+  if (!weightFormatter) {
+    weightFormatter = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+  }
+  return weightFormatter.format(kg);
+}
+function isCatchWeight(parts) {
+  if (!parts) return false;
+  const { pieceCount, pieceWeightKg } = parts;
+  return typeof pieceCount === "number" && pieceCount > 0 && typeof pieceWeightKg === "number" && pieceWeightKg > 0;
+}
+function formatPieceBreakdown(parts) {
+  if (!isCatchWeight(parts)) return null;
+  return `${formatQuantity(parts.pieceCount)} x ${formatWeight(parts.pieceWeightKg)} kg`;
 }
 
 // src/utils/address.ts
@@ -639,6 +676,10 @@ var styles = StyleSheet.create({
   colPiecePrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colBoxPrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colQty: { width: 52, textAlign: "left", paddingLeft: 4 },
+  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
+  // small and grey: the kilos above are what the line is priced on, this only
+  // says how they were counted.
+  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colExclVat: { width: 66, textAlign: "right", paddingRight: 6 },
   colVatAmt: { width: 50, textAlign: "right", paddingRight: 6 },
   colInclVat: { width: 66, textAlign: "right" },
@@ -952,7 +993,11 @@ function InvoicePage({ data }) {
               /* @__PURE__ */ jsxs(Text, { style: [styles.td, styles.colQty], children: [
                 item.quantity,
                 " ",
-                item.unit.toLowerCase()
+                item.unit.toLowerCase(),
+                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs(Text, { style: styles.qtyBreakdown, children: [
+                  "\n",
+                  formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
+                ] })
               ] }),
               /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colExclVat], children: formatPrice(priceExclVat) }),
               /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colVatAmt], children: formatPrice(vatAmount) }),
@@ -1259,6 +1304,10 @@ var styles2 = StyleSheet2.create({
   colPiecePrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colBoxPrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colQty: { width: 55, textAlign: "left", paddingLeft: 4 },
+  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
+  // small and grey: the kilos above are what the line is priced on, this only
+  // says how they were counted.
+  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colExclVat: { width: 70, textAlign: "right", paddingRight: 6 },
   colVatAmt: { width: 55, textAlign: "right", paddingRight: 6 },
   colInclVat: { width: 70, textAlign: "right" },
@@ -1471,7 +1520,11 @@ function ProformaTemplate({ data }) {
               /* @__PURE__ */ jsxs2(Text2, { style: [styles2.td, styles2.colQty], children: [
                 item.quantity,
                 " ",
-                item.unit.toLowerCase()
+                item.unit.toLowerCase(),
+                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs2(Text2, { style: styles2.qtyBreakdown, children: [
+                  "\n",
+                  formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
+                ] })
               ] }),
               /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colExclVat], children: formatPrice(priceExclVat) }),
               /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colVatAmt], children: formatPrice(vatAmount) }),
@@ -1758,6 +1811,10 @@ var styles3 = StyleSheet3.create({
   colIdx: { width: 25, textAlign: "center" },
   colDesc: { flex: 1, paddingRight: 8 },
   colQty: { width: 70, textAlign: "center" },
+  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
+  // small and grey: the kilos above are what the line is priced on, this only
+  // says how they were counted.
+  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colUnitPrice: { width: 70, textAlign: "right" },
   colBoxPrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colTotal: { width: 70, textAlign: "right" },
@@ -1998,7 +2055,11 @@ function OrderConfirmationTemplate({ data }) {
               /* @__PURE__ */ jsxs3(Text3, { style: [styles3.tdBold, styles3.colQty], children: [
                 item.quantity,
                 " ",
-                item.unit.toLowerCase()
+                item.unit.toLowerCase(),
+                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs3(Text3, { style: styles3.qtyBreakdown, children: [
+                  "\n",
+                  formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
+                ] })
               ] }),
               /* @__PURE__ */ jsx3(Text3, { style: [styles3.td, styles3.colUnitPrice], children: isBoxLine ? item.piecePrice != null ? formatPrice(item.piecePrice) : "\u2014" : formatPrice(item.unitPrice) }),
               hasBox && /* @__PURE__ */ jsx3(Text3, { style: [styles3.td, styles3.colBoxPrice], children: isBoxLine ? formatPrice(item.unitPrice) : "\u2014" }),
@@ -2710,6 +2771,10 @@ var styles5 = StyleSheet5.create({
   colPiecePrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colBoxPrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colQty: { width: 55, textAlign: "left", paddingLeft: 4 },
+  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
+  // small and grey: the kilos above are what the line is priced on, this only
+  // says how they were counted.
+  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colExclVat: { width: 70, textAlign: "right", paddingRight: 6 },
   colVatAmt: { width: 55, textAlign: "right", paddingRight: 6 },
   colCredit: { width: 70, textAlign: "right" },
@@ -2948,7 +3013,11 @@ function CreditNoteTemplate({ data }) {
               /* @__PURE__ */ jsxs5(Text5, { style: [styles5.td, styles5.colQty], children: [
                 item.quantity,
                 " ",
-                item.unit.toLowerCase()
+                item.unit.toLowerCase(),
+                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs5(Text5, { style: styles5.qtyBreakdown, children: [
+                  "\n",
+                  formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
+                ] })
               ] }),
               /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colExclVat], children: formatPrice(priceExclVat) }),
               /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colVatAmt], children: formatPrice(vatAmount) }),
@@ -3176,6 +3245,10 @@ var styles6 = StyleSheet6.create({
   colIdx: { width: 28, textAlign: "center" },
   colDesc: { flex: 1, paddingRight: 6 },
   colQty: { width: 70, textAlign: "center" },
+  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
+  // small and grey: the kilos above are what the line is priced on, this only
+  // says how they were counted.
+  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colCheck: { width: 40, textAlign: "center" },
   checkbox: {
     width: 11,
@@ -3419,7 +3492,11 @@ function PackingSlipTemplate({ data }) {
             /* @__PURE__ */ jsxs6(Text6, { style: [styles6.tdBold, styles6.colQty], children: [
               item.quantity,
               " ",
-              item.unit.toLowerCase()
+              item.unit.toLowerCase(),
+              formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs6(Text6, { style: styles6.qtyBreakdown, children: [
+                "\n",
+                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
+              ] })
             ] }),
             /* @__PURE__ */ jsx6(View6, { style: styles6.colCheck, children: /* @__PURE__ */ jsx6(View6, { style: styles6.checkbox }) })
           ]

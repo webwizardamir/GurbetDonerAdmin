@@ -167,6 +167,9 @@ export async function createProduct(product: {
   stock_unit_type?: UnitType
   track_stock?: boolean
   description?: string
+  // Typical kg per piece for catch-weight goods (00117). PREFILL ONLY: order
+  // lines snapshot their own weight, so this never reaches an existing order.
+  default_piece_weight_kg?: number | null
 }): Promise<Product> {
   const { data: userData } = await supabase.auth.getUser()
   const userId = userData?.user?.id
@@ -183,6 +186,9 @@ export async function createProduct(product: {
     stock_unit_type: product.stock_unit_type || product.unit_type,
     track_stock: product.track_stock ?? true,
     description: product.description || null,
+    // Explicit null when absent: the CHECK rejects 0, and NULL is the real
+    // "this product is not counted in pieces".
+    default_piece_weight_kg: product.default_piece_weight_kg ?? null,
     created_by: userId,
   }
 
@@ -229,6 +235,7 @@ export async function updateProduct(
     stock_unit_type?: UnitType
     track_stock?: boolean
     description?: string
+    default_piece_weight_kg?: number | null
   }
 ): Promise<Product> {
   // Try with unit_prices first

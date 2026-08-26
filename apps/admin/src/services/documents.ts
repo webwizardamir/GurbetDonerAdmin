@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import type { DocumentSettings, DocumentType, Document } from '../types'
 import { resolveDocumentLang } from '../utils/documentLang'
 import { isImportedOrder } from '../utils/vat'
+import { catchWeightPartsOf, isCatchWeight } from '../utils/catchWeight'
 import { resolveShippingVat } from '../utils/discount'
 import { resolveShippingAddress, type AddressParts } from '../utils/address'
 import { EN_LABELS, DOC_TITLES_EN, type DocLang } from './documentLabels'
@@ -504,6 +505,17 @@ export interface InvoiceData {
     unitType: string // raw unit type (kg/piece/zak/doos) — drives the box dual-price columns
     unitPrice: number // cents
     piecePrice?: number // cents — the product's per-piece price, only set for doos lines
+    /**
+     * Catch-weight breakdown (migration 00117): how the `quantity` kilos were
+     * counted, e.g. 35 pieces of 7 kg = 245 kg. Both set or both absent.
+     *
+     * Optional on purpose, exactly like `customer.deliveryAddress` — snapshots
+     * frozen before these fields existed simply omit them and every template
+     * falls back to printing the plain quantity, so the portal keeps rendering
+     * old invoices correctly.
+     */
+    pieceCount?: number
+    pieceWeightKg?: number
     vatRate: number
     total: number // cents
   }>
@@ -768,6 +780,14 @@ export async function buildInvoiceData(
       unitType,
       unitPrice: Number(item.unit_price) || 0,
       piecePrice: unitType === 'doos' ? resolveDisplayPiecePrice(productId, Number(item.unit_price) || 0) : undefined,
+      // Catch weight — descriptive only. `quantity` above is still the kilos and
+      // `unitPrice` still the price per kilo, so no total anywhere changes.
+      ...(() => {
+        const cw = catchWeightPartsOf(item as { piece_count?: number | string | null; piece_weight_kg?: number | string | null })
+        return isCatchWeight(cw)
+          ? { pieceCount: cw.pieceCount!, pieceWeightKg: cw.pieceWeightKg! }
+          : {}
+      })(),
       vatRate: Number(item.tax_rate) || 0,
       total: Number(item.total) || 0,
     }
@@ -852,6 +872,11 @@ export async function buildInvoiceData(
         // order, so its product is already in the piece/doos default maps built
         // above from order.items.
         piecePrice: l.unitType === 'doos' ? resolveDisplayPiecePrice(l.productId, l.unitPrice) : undefined,
+        // No catch-weight breakdown here ON PURPOSE. A refund is recorded in the
+        // line's own unit (kilos), and a partial refund need not be a whole
+        // number of pieces, so "35 x 7 kg" would be a claim the refund rows do
+        // not support. The credit note states the kilos actually credited.
+
         vatRate: l.vatRate,
         total: l.amount + l.taxAmount,
       }))

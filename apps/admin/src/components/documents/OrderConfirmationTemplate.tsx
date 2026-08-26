@@ -8,6 +8,7 @@ import {
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
+import { formatPieceBreakdown } from '../../utils/catchWeight'
 import { formatPrice, formatDate } from '../../utils/format'
 import { buildAddressLines } from '../../utils/address'
 import { docBrand } from './brandPalette'
@@ -222,6 +223,10 @@ const styles = StyleSheet.create({
   colIdx: { width: 25, textAlign: 'center' },
   colDesc: { flex: 1, paddingRight: 8 },
   colQty: { width: 70, textAlign: 'center' },
+  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
+  // small and grey: the kilos above are what the line is priced on, this only
+  // says how they were counted.
+  qtyBreakdown: { fontSize: 6.5, color: '#64748b' },
   colUnitPrice: { width: 70, textAlign: 'right' },
   colBoxPrice: { width: 54, textAlign: 'right', paddingRight: 6 },
   colTotal: { width: 70, textAlign: 'right' },
@@ -505,7 +510,16 @@ export function OrderConfirmationTemplate({ data }: OrderConfirmationTemplatePro
               >
                 <Text style={[styles.td, styles.colIdx]}>{item.index}</Text>
                 <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
-                <Text style={[styles.tdBold, styles.colQty]}>{item.quantity} {item.unit.toLowerCase()}</Text>
+                <Text style={[styles.tdBold, styles.colQty]}>
+                  {item.quantity} {item.unit.toLowerCase()}
+                  {/* Catch weight: the kilos stay the headline figure and the
+                      piece breakdown sits under it, so the customer reads the
+                      same "35 x 7 kg" they counted onto the van. Renders
+                      nothing on an ordinary line, and on a snapshot frozen
+                      before 00117 (the fields are simply absent). */}
+                  {formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
+                    && <Text style={styles.qtyBreakdown}>{'\n'}{formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })}</Text>}
+                </Text>
                 <Text style={[styles.td, styles.colUnitPrice]}>
                   {isBoxLine
                     ? (item.piecePrice != null ? formatPrice(item.piecePrice) : '—')
