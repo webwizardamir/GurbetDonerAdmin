@@ -231,6 +231,10 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
   // has its own Restore action; this panel is read-only for those.
   const isTrashed = !!order.deleted_at
 
+  // Gates the payment badge below. A trashed order carries status='cancelled',
+  // so this is false for the bin whatever it was before.
+  const isCompleted = order.status === 'completed'
+
   // Available status transitions
   // "Concept" (draft) parks an order: no invoice, no auto-email, out of analytics
   // revenue. It is offered for early/live statuses AND for cancelled — reviving a
@@ -311,22 +315,17 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                 busy={updatingStatus}
               />
             )}
-            {/* The payment badge IS the picker, mirroring the status pill.
-                Editable in any live status: cash-then-actually-bank is a normal
-                correction, and until this existed the only writer was the
-                → completed transition, so it could not be undone. Trashed orders
-                stay read-only, like their status. */}
-            {isTrashed ? (
-              order.payment_method && order.payment_method !== 'none' && (
-                <span className={paymentBadgeClass(order.payment_method)}>
-                  {order.payment_method === 'cash' ? (
-                    <><Banknote className="w-3 h-3" /> {t('orders.payment.cash')}</>
-                  ) : (
-                    <><Building2 className="w-3 h-3" /> {t('orders.payment.bank')}</>
-                  )}
-                </span>
-              )
-            ) : (
+            {/* The payment badge IS the picker, mirroring the status pill, but
+                it belongs to the COMPLETED status: it records how this order was
+                paid, and 00118 clears the column on the way out of completed
+                (invoice_paid_at always worked that way). So it is editable on a
+                completed order — cash-then-actually-bank is a normal correction,
+                and the → completed transition used to be its only writer — and a
+                read-only badge on refunded / trashed, which keep their method and
+                are read-only anyway. Anywhere else it is absent: offering it on an
+                order that is still waiting for payment recreates the
+                "Wacht op betaling + Bank" pair this fixes, one tap later. */}
+            {isCompleted && !isTrashed ? (
               <button
                 type="button"
                 onClick={() => setShowPaymentEdit(true)}
@@ -349,6 +348,16 @@ export default function OrderDetail({ order, onClose, onStatusChange, onDocGener
                     ? t('orders.payment.bank')
                     : t('orders.payment.notSet')}
               </button>
+            ) : (
+              order.payment_method && order.payment_method !== 'none' && (
+                <span className={paymentBadgeClass(order.payment_method)}>
+                  {order.payment_method === 'cash' ? (
+                    <><Banknote className="w-3 h-3" /> {t('orders.payment.cash')}</>
+                  ) : (
+                    <><Building2 className="w-3 h-3" /> {t('orders.payment.bank')}</>
+                  )}
+                </span>
+              )
             )}
             {isRefunded && refundAmount < order.total && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">

@@ -887,14 +887,33 @@ in a legal source status (`legalFrom`). Without both, ticking a `pending_payment
 from the detail panel, then bulk-completing wrote `cancelled → completed` and **re-deducted its stock**
 silently.
 
-### Payment method is editable in any status
+### The payment method belongs to `completed` — and is corrected there (00118)
 `orders.payment_method` used to have exactly one writer (the `→ completed` transition), which cannot
 be re-run on a completed order — so cash could never be corrected to bank. The payment badge in
-`OrderDetail` is now the picker (`PaymentMethodModal` `mode="edit"`), writing through
+`OrderDetail` is the picker (`PaymentMethodModal` `mode="edit"`), writing through
 **`updateOrderPaymentMethod`**, deliberately separate from `updateOrderStatus`: it fires neither the
-stock trigger nor `set_invoice_due_and_paid`. **Do not "fix" this by relaxing the guard in
+stock trigger nor a status transition. **Do not "fix" this by relaxing the guard in
 `updateOrderStatus`** — and note the old workaround (bounce to pending, complete again) silently loses
 `invoice_paid_at`.
+
+🚨 **Leaving `completed` CLEARS the method** (`set_invoice_due_and_paid`, 00118) — the same rule
+that has always nulled `invoice_paid_at`. Without it the badge survived the status change, so an
+order read "Wacht op betaling · Bank", and `get_revenue_by_payment_method` (which filters
+`payment_method IS NOT NULL` and includes `pending_payment`) booked an unpaid order as cash or bank
+revenue. It lives in the trigger, not in `updateOrderStatus`, so the detail picker, the order form's
+Concept tick and any future writer are covered at once. Two guards:
+- `NEW.payment_method IS NOT DISTINCT FROM OLD.payment_method` — an explicit method sent in the same
+  statement wins (mirrors the `order_date` guard above it in the same function).
+- **`refunded` is excluded**: the money really arrived and has to travel back the same way. Refunded is
+  terminal, so that value can never go stale again, and a *partial* refund keeps the order `completed`
+  and never reaches this branch. Cancelling a completed order does clear it.
+- The trash path is unaffected: `trash_order` refuses anything but draft/pending/on_hold/cancelled, so
+  `OLD.status = 'completed'` never happens there.
+
+**The badge follows the same rule in the UI.** `OrderDetail` renders it as the picker only while the
+order is `completed`, read-only on refunded/trashed, and **not at all otherwise** — offering it on an
+order that is still waiting for payment just recreates the same misleading pair one tap later. The
+list pages need no gate: `PaymentBadge` renders null for a null method.
 
 ---
 
