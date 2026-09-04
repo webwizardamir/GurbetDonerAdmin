@@ -82,6 +82,10 @@ const NL = {
   // kg row in a mixed order.
   thPiecePrice: 'Eenheidprijs',
   thBoxPrice: 'Doosprijs',
+  // Catch weight: the weight of ONE piece, mirroring the customer's own sheet
+  // where a line reads "stuk (kg) x aantal x prijs per kg". Blank on every
+  // ordinary line, which is why the column can stay permanently mounted.
+  thPieceWeight: 'Stuk (kg)',
   thQty: 'Aantal',
   thExclVat: 'Excl. BTW',
   thVat: 'BTW',
@@ -230,6 +234,7 @@ const EN: typeof NL = {
   thUnitPrice: 'Unit price',
   thPiecePrice: 'Unit price',
   thBoxPrice: 'Box price',
+  thPieceWeight: 'Piece (kg)',
   thQty: 'Quantity',
   thExclVat: 'Excl. VAT',
   thVat: 'VAT',

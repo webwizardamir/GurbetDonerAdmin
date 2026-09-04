@@ -8,7 +8,11 @@ import {
 } from '@react-pdf/renderer'
 import type { InvoiceData } from '../../services/documents'
 import { getDocText } from '../../services/documentLabels'
-import { formatPieceBreakdown } from '../../utils/catchWeight'
+import {
+  formatPieceWeight,
+  formatPieceCountCell,
+  withCatchWeightUnit,
+} from '../../utils/catchWeight'
 import { formatPrice, formatDate } from '../../utils/format'
 import { buildAddressLines } from '../../utils/address'
 import { docBrand } from './brandPalette'
@@ -207,16 +211,14 @@ const styles = StyleSheet.create({
   },
   colNum: { width: 18, textAlign: 'right', paddingRight: 6 },
   colDesc: { flex: 1, paddingRight: 8 },
+  // Catch weight: the weight of one piece. Permanently mounted (an "—" on every
+  // ordinary line) so a mixed order does not shuffle its columns.
+  colPieceWeight: { width: 44, textAlign: 'right', paddingRight: 6 },
   colUnitPrice: { width: 70, textAlign: 'right', paddingRight: 6 },
   colPiecePrice: { width: 54, textAlign: 'right', paddingRight: 6 },
   colBoxPrice: { width: 54, textAlign: 'right', paddingRight: 6 },
   colQty: { width: 55, textAlign: 'left', paddingLeft: 4 },
-  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
-  // small and grey: the kilos above are what the line is priced on, this only
-  // says how they were counted.
-  qtyBreakdown: { fontSize: 6.5, color: '#64748b' },
   colExclVat: { width: 70, textAlign: 'right', paddingRight: 6 },
-  colVatAmt: { width: 55, textAlign: 'right', paddingRight: 6 },
   colInclVat: { width: 70, textAlign: 'right' },
 
   totalsSection: {
@@ -447,6 +449,8 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colNum]}>#</Text>
             <Text style={[styles.th, styles.colDesc]}>{T.thDescription}</Text>
+            <Text style={[styles.th, styles.colPieceWeight]}>{T.thPieceWeight}</Text>
+            <Text style={[styles.th, styles.colQty]}>{T.thQty}</Text>
             {hasBox ? (
               <>
                 <Text style={[styles.th, styles.colPiecePrice]}>{T.thPiecePrice}</Text>
@@ -455,9 +459,7 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
             ) : (
               <Text style={[styles.th, styles.colUnitPrice]}>{T.thUnitPrice}</Text>
             )}
-            <Text style={[styles.th, styles.colQty]}>{T.thQty}</Text>
             <Text style={[styles.th, styles.colExclVat]}>{T.thExclVat}</Text>
-            <Text style={[styles.th, styles.colVatAmt]}>{T.thVat}</Text>
             <Text style={[styles.th, styles.colInclVat]}>{T.thInclVat}</Text>
           </View>
           {data.items.map((item, idx) => {
@@ -477,32 +479,27 @@ export function ProformaTemplate({ data }: ProformaTemplateProps) {
               >
                 <Text style={[styles.tdBold, styles.colNum]}>{idx + 1}</Text>
                 <Text style={[styles.td, styles.colDesc]}>{item.description}</Text>
+                <Text style={[styles.td, styles.colPieceWeight]}>{formatPieceWeight(item) ?? '—'}</Text>
+                <Text style={[styles.td, styles.colQty]}>
+                  {formatPieceCountCell(item) ?? `${item.quantity} ${item.unit.toLowerCase()}`}
+                </Text>
                 {hasBox ? (
                   <>
                     <Text style={[styles.td, styles.colPiecePrice]}>
                       {isBoxLine
                         ? (item.piecePrice != null ? formatPrice(item.piecePrice) : '—')
-                        : formatPrice(item.unitPrice)}
+                        : withCatchWeightUnit(formatPrice(item.unitPrice), item)}
                     </Text>
                     <Text style={[styles.td, styles.colBoxPrice]}>
                       {isBoxLine ? formatPrice(item.unitPrice) : '—'}
                     </Text>
                   </>
                 ) : (
-                  <Text style={[styles.td, styles.colUnitPrice]}>{formatPrice(item.unitPrice)}</Text>
+                  <Text style={[styles.td, styles.colUnitPrice]}>
+                    {withCatchWeightUnit(formatPrice(item.unitPrice), item)}
+                  </Text>
                 )}
-                <Text style={[styles.td, styles.colQty]}>
-                  {item.quantity} {item.unit.toLowerCase()}
-                  {/* Catch weight: the kilos stay the headline figure and the
-                      piece breakdown sits under it, so the customer reads the
-                      same "35 x 7 kg" they counted onto the van. Renders
-                      nothing on an ordinary line, and on a snapshot frozen
-                      before 00117 (the fields are simply absent). */}
-                  {formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
-                    && <Text style={styles.qtyBreakdown}>{'\n'}{formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })}</Text>}
-                </Text>
                 <Text style={[styles.td, styles.colExclVat]}>{formatPrice(priceExclVat)}</Text>
-                <Text style={[styles.td, styles.colVatAmt]}>{formatPrice(vatAmount)}</Text>
                 <Text style={[styles.tdBold, styles.colInclVat]}>{formatPrice(priceInclVat)}</Text>
               </View>
             )

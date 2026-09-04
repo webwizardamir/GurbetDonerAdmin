@@ -698,12 +698,46 @@ nobody typed and poisons remembered prices and price lists.
 - `InvoiceData.items[].pieceCount/pieceWeightKg` are **optional on purpose**, like
   `customer.deliveryAddress` — snapshots frozen before 00117 omit them and every template falls back
   to the plain quantity, so the portal keeps rendering old invoices.
-- Surfaces: order form, order detail, refund modal (as **context**, not a second input), invoice /
-  proforma / order confirmation / packing slip, portal order detail, the route stop + loading lists and
-  the driver's route PDF. **The credit note deliberately prints kilos only** — a partial refund need not
-  land on a whole piece, so a breakdown there would be a claim the refund rows do not support.
+- Surfaces: order form, order detail, refund modal (as **context**, not a second input), the five
+  customer documents (see *Catch weight on the documents* below), portal order detail, the route stop +
+  loading lists and the driver's route PDF.
 - **Sold Products is deliberately untouched**: it aggregates per product+unit across customers, and
   summing pieces whose weights differ per line is meaningless. Kilos are the right unit for that report.
+
+### Catch weight on the documents — the customer's three columns
+
+The customer models a line as **three factors**, not two, and asked for his documents to read that way:
+`stuk (kg) × aantal × prijs per kg` (his `voorbeeld (3).xlsx`, gitignored at the repo root). The five
+customer documents print exactly that:
+
+`# | Omschrijving | [Notitie] | Stuk (kg) | Aantal | Eenheidprijs [| Doosprijs] | Excl. BTW | Incl. BTW`
+
+- 🚨 **On a catch-weight line `Aantal` is the PIECE COUNT (35), not the kilos.** The kilos are absent
+  from the row by design: they are the product of the three printed factors, and a fourth number
+  invites the reader to check the wrong pair. `quantity` is of course still the kilos in the data and
+  still what `priceExclVat` is computed from — nothing about money moved.
+- 🚨 **The row states its unit exactly ONCE.** Ordinary line: in `Aantal` ("245 kg", "10 doos").
+  Catch-weight line: in the price, via **`withCatchWeightUnit`** → "€ 4,70 / kg". Drop that suffix and
+  a bare 4,70 beside "35" reads as the price of one spit (35 × 4,70 = 164,50, while the line says
+  1.151,50). His sheet only escapes this because of a loose "kg" parked in an unlabelled column.
+- The three cell rules live in **`utils/catchWeight.ts`** (`formatPieceWeight`,
+  `formatPieceCountCell`, `withCatchWeightUnit`) so the five templates cannot drift. `Stuk (kg)` is
+  **permanently mounted**, an em-dash on every ordinary line, so a mixed order does not shuffle its
+  columns. `formatPieceBreakdown` (the old "35 x 7 kg" sub-line) survives for the **route PDF**, the
+  **portal** and `OrderItemsList`, which are not laid out in columns.
+- **The per-line BTW column was dropped** to match his sheet and to buy the width. This stays
+  compliant: the totals block already breaks VAT out per rate, which is what the law asks for. Putting
+  it back means re-widening `colDesc`.
+- **His sheet's `INCL. BTW` is unrounded** (1255,135). The app rounds VAT per line and prints 1.255,14.
+  Keep the rounding.
+- **Credit note: same columns, cells usually empty.** Its lines are rebuilt from `order_refund_items`,
+  which carry no piece fields (a partial refund need not land on a whole spit), so `Stuk (kg)` is a
+  dash and `Aantal` shows kilos — the old "kilos only" behaviour, now expressed as a blank column
+  rather than a missing one. They fill in only on the full-order fallback (a plain cancellation),
+  where the credit note does mirror the invoice line for line. **Do not gate the column away**: parity
+  with the invoice is the point.
+- **Packing slip** shows pieces for the same reason the route list does: that is what the person
+  loading the van counts. Its "Totaal per eenheid" footer still sums kilos.
 
 ### VAT (BTW) — reverse charge
 1. NL customer → the product's `tax_rate` (9% food / 21% non-food / 0%).

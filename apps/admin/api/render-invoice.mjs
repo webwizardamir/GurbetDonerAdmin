@@ -42,6 +42,10 @@ var NL = {
   // kg row in a mixed order.
   thPiecePrice: "Eenheidprijs",
   thBoxPrice: "Doosprijs",
+  // Catch weight: the weight of ONE piece, mirroring the customer's own sheet
+  // where a line reads "stuk (kg) x aantal x prijs per kg". Blank on every
+  // ordinary line, which is why the column can stay permanently mounted.
+  thPieceWeight: "Stuk (kg)",
   thQty: "Aantal",
   thExclVat: "Excl. BTW",
   thVat: "BTW",
@@ -184,6 +188,7 @@ var EN = {
   thUnitPrice: "Unit price",
   thPiecePrice: "Unit price",
   thBoxPrice: "Box price",
+  thPieceWeight: "Piece (kg)",
   thQty: "Quantity",
   thExclVat: "Excl. VAT",
   thVat: "VAT",
@@ -370,9 +375,16 @@ function isCatchWeight(parts) {
   const { pieceCount, pieceWeightKg } = parts;
   return typeof pieceCount === "number" && pieceCount > 0 && typeof pieceWeightKg === "number" && pieceWeightKg > 0;
 }
-function formatPieceBreakdown(parts) {
+function formatPieceWeight(parts) {
   if (!isCatchWeight(parts)) return null;
-  return `${formatQuantity(parts.pieceCount)} x ${formatWeight(parts.pieceWeightKg)} kg`;
+  return formatWeight(parts.pieceWeightKg);
+}
+function formatPieceCountCell(parts) {
+  if (!isCatchWeight(parts)) return null;
+  return formatQuantity(parts.pieceCount);
+}
+function withCatchWeightUnit(formattedPrice, parts) {
+  return isCatchWeight(parts) ? `${formattedPrice} / kg` : formattedPrice;
 }
 
 // src/utils/address.ts
@@ -671,17 +683,16 @@ var styles = StyleSheet.create({
   colNum: { width: 18, textAlign: "right", paddingRight: 6 },
   colDesc: { flex: 1, paddingRight: 8 },
   colNote: { width: 62, paddingRight: 6 },
+  // Catch weight: the weight of one piece. Permanently mounted (an "—" on every
+  // ordinary line) rather than gated on the order containing a catch-weight row,
+  // so the invoice for a mixed order does not shuffle its columns.
+  colPieceWeight: { width: 44, textAlign: "right", paddingRight: 6 },
   colUnitPrice: { width: 62, textAlign: "right", paddingRight: 6 },
   // Box (doos) dual-price columns — used only when the order has a box line.
   colPiecePrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colBoxPrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colQty: { width: 52, textAlign: "left", paddingLeft: 4 },
-  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
-  // small and grey: the kilos above are what the line is priced on, this only
-  // says how they were counted.
-  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colExclVat: { width: 66, textAlign: "right", paddingRight: 6 },
-  colVatAmt: { width: 50, textAlign: "right", paddingRight: 6 },
   colInclVat: { width: 66, textAlign: "right" },
   // ===========================================
   // BOTTOM SECTION
@@ -960,13 +971,13 @@ function InvoicePage({ data }) {
         /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colNum], children: "#" }),
         /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colDesc], children: T.thDescription }),
         hasNotes && /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colNote], children: T.thNote }),
+        /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colPieceWeight], children: T.thPieceWeight }),
+        /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colQty], children: T.thQty }),
         hasBox ? /* @__PURE__ */ jsxs(Fragment, { children: [
           /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colPiecePrice], children: T.thPiecePrice }),
           /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colBoxPrice], children: T.thBoxPrice })
         ] }) : /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colUnitPrice], children: T.thUnitPrice }),
-        /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colQty], children: T.thQty }),
         /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colExclVat], children: T.thExclVat }),
-        /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colVatAmt], children: T.thVat }),
         /* @__PURE__ */ jsx(Text, { style: [styles.th, styles.colInclVat], children: T.thInclVat })
       ] }),
       data.items.map((item, idx) => {
@@ -974,6 +985,8 @@ function InvoicePage({ data }) {
         const vatAmount = Math.round(priceExclVat * (item.vatRate / 100));
         const priceInclVat = priceExclVat + vatAmount;
         const isBoxLine = item.unitType === "doos";
+        const pieceWeight = formatPieceWeight(item);
+        const pieceCount = formatPieceCountCell(item);
         return /* @__PURE__ */ jsxs(
           View,
           {
@@ -986,21 +999,13 @@ function InvoicePage({ data }) {
               /* @__PURE__ */ jsx(Text, { style: [styles.tdBold, styles.colNum], children: idx + 1 }),
               /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colDesc], children: item.description }),
               hasNotes && /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colNote], children: item.note || "" }),
+              /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colPieceWeight], children: pieceWeight ?? "\u2014" }),
+              /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colQty], children: pieceCount ?? `${item.quantity} ${item.unit.toLowerCase()}` }),
               hasBox ? /* @__PURE__ */ jsxs(Fragment, { children: [
-                /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colPiecePrice], children: isBoxLine ? item.piecePrice != null ? formatPrice(item.piecePrice) : "\u2014" : formatPrice(item.unitPrice) }),
+                /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colPiecePrice], children: isBoxLine ? item.piecePrice != null ? formatPrice(item.piecePrice) : "\u2014" : withCatchWeightUnit(formatPrice(item.unitPrice), item) }),
                 /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colBoxPrice], children: isBoxLine ? formatPrice(item.unitPrice) : "\u2014" })
-              ] }) : /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colUnitPrice], children: formatPrice(item.unitPrice) }),
-              /* @__PURE__ */ jsxs(Text, { style: [styles.td, styles.colQty], children: [
-                item.quantity,
-                " ",
-                item.unit.toLowerCase(),
-                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs(Text, { style: styles.qtyBreakdown, children: [
-                  "\n",
-                  formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
-                ] })
-              ] }),
+              ] }) : /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colUnitPrice], children: withCatchWeightUnit(formatPrice(item.unitPrice), item) }),
               /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colExclVat], children: formatPrice(priceExclVat) }),
-              /* @__PURE__ */ jsx(Text, { style: [styles.td, styles.colVatAmt], children: formatPrice(vatAmount) }),
               /* @__PURE__ */ jsx(Text, { style: [styles.tdBold, styles.colInclVat], children: formatPrice(priceInclVat) })
             ]
           },
@@ -1300,16 +1305,14 @@ var styles2 = StyleSheet2.create({
   },
   colNum: { width: 18, textAlign: "right", paddingRight: 6 },
   colDesc: { flex: 1, paddingRight: 8 },
+  // Catch weight: the weight of one piece. Permanently mounted (an "—" on every
+  // ordinary line) so a mixed order does not shuffle its columns.
+  colPieceWeight: { width: 44, textAlign: "right", paddingRight: 6 },
   colUnitPrice: { width: 70, textAlign: "right", paddingRight: 6 },
   colPiecePrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colBoxPrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colQty: { width: 55, textAlign: "left", paddingLeft: 4 },
-  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
-  // small and grey: the kilos above are what the line is priced on, this only
-  // says how they were counted.
-  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colExclVat: { width: 70, textAlign: "right", paddingRight: 6 },
-  colVatAmt: { width: 55, textAlign: "right", paddingRight: 6 },
   colInclVat: { width: 70, textAlign: "right" },
   totalsSection: {
     flexDirection: "row",
@@ -1488,13 +1491,13 @@ function ProformaTemplate({ data }) {
       /* @__PURE__ */ jsxs2(View2, { style: styles2.tableHeader, children: [
         /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colNum], children: "#" }),
         /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colDesc], children: T.thDescription }),
+        /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colPieceWeight], children: T.thPieceWeight }),
+        /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colQty], children: T.thQty }),
         hasBox ? /* @__PURE__ */ jsxs2(Fragment2, { children: [
           /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colPiecePrice], children: T.thPiecePrice }),
           /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colBoxPrice], children: T.thBoxPrice })
         ] }) : /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colUnitPrice], children: T.thUnitPrice }),
-        /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colQty], children: T.thQty }),
         /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colExclVat], children: T.thExclVat }),
-        /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colVatAmt], children: T.thVat }),
         /* @__PURE__ */ jsx2(Text2, { style: [styles2.th, styles2.colInclVat], children: T.thInclVat })
       ] }),
       data.items.map((item, idx) => {
@@ -1513,21 +1516,13 @@ function ProformaTemplate({ data }) {
             children: [
               /* @__PURE__ */ jsx2(Text2, { style: [styles2.tdBold, styles2.colNum], children: idx + 1 }),
               /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colDesc], children: item.description }),
+              /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colPieceWeight], children: formatPieceWeight(item) ?? "\u2014" }),
+              /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colQty], children: formatPieceCountCell(item) ?? `${item.quantity} ${item.unit.toLowerCase()}` }),
               hasBox ? /* @__PURE__ */ jsxs2(Fragment2, { children: [
-                /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colPiecePrice], children: isBoxLine ? item.piecePrice != null ? formatPrice(item.piecePrice) : "\u2014" : formatPrice(item.unitPrice) }),
+                /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colPiecePrice], children: isBoxLine ? item.piecePrice != null ? formatPrice(item.piecePrice) : "\u2014" : withCatchWeightUnit(formatPrice(item.unitPrice), item) }),
                 /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colBoxPrice], children: isBoxLine ? formatPrice(item.unitPrice) : "\u2014" })
-              ] }) : /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colUnitPrice], children: formatPrice(item.unitPrice) }),
-              /* @__PURE__ */ jsxs2(Text2, { style: [styles2.td, styles2.colQty], children: [
-                item.quantity,
-                " ",
-                item.unit.toLowerCase(),
-                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs2(Text2, { style: styles2.qtyBreakdown, children: [
-                  "\n",
-                  formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
-                ] })
-              ] }),
+              ] }) : /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colUnitPrice], children: withCatchWeightUnit(formatPrice(item.unitPrice), item) }),
               /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colExclVat], children: formatPrice(priceExclVat) }),
-              /* @__PURE__ */ jsx2(Text2, { style: [styles2.td, styles2.colVatAmt], children: formatPrice(vatAmount) }),
               /* @__PURE__ */ jsx2(Text2, { style: [styles2.tdBold, styles2.colInclVat], children: formatPrice(priceInclVat) })
             ]
           },
@@ -1810,11 +1805,10 @@ var styles3 = StyleSheet3.create({
   },
   colIdx: { width: 25, textAlign: "center" },
   colDesc: { flex: 1, paddingRight: 8 },
+  // Catch weight: the weight of one piece. Permanently mounted (an em-dash on
+  // every ordinary line) so a mixed order does not shuffle its columns.
+  colPieceWeight: { width: 44, textAlign: "right", paddingRight: 6 },
   colQty: { width: 70, textAlign: "center" },
-  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
-  // small and grey: the kilos above are what the line is priced on, this only
-  // says how they were counted.
-  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colUnitPrice: { width: 70, textAlign: "right" },
   colBoxPrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colTotal: { width: 70, textAlign: "right" },
@@ -2034,6 +2028,7 @@ function OrderConfirmationTemplate({ data }) {
       /* @__PURE__ */ jsxs3(View3, { style: styles3.tableHeader, children: [
         /* @__PURE__ */ jsx3(Text3, { style: [styles3.th, styles3.colIdx], children: "#" }),
         /* @__PURE__ */ jsx3(Text3, { style: [styles3.th, styles3.colDesc], children: T.thProduct }),
+        /* @__PURE__ */ jsx3(Text3, { style: [styles3.th, styles3.colPieceWeight], children: T.thPieceWeight }),
         /* @__PURE__ */ jsx3(Text3, { style: [styles3.th, styles3.colQty], children: T.thQty }),
         /* @__PURE__ */ jsx3(Text3, { style: [styles3.th, styles3.colUnitPrice], children: T.thPiecePrice }),
         hasBox && /* @__PURE__ */ jsx3(Text3, { style: [styles3.th, styles3.colBoxPrice], children: T.thBoxPrice }),
@@ -2052,16 +2047,9 @@ function OrderConfirmationTemplate({ data }) {
             children: [
               /* @__PURE__ */ jsx3(Text3, { style: [styles3.td, styles3.colIdx], children: item.index }),
               /* @__PURE__ */ jsx3(Text3, { style: [styles3.td, styles3.colDesc], children: item.description }),
-              /* @__PURE__ */ jsxs3(Text3, { style: [styles3.tdBold, styles3.colQty], children: [
-                item.quantity,
-                " ",
-                item.unit.toLowerCase(),
-                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs3(Text3, { style: styles3.qtyBreakdown, children: [
-                  "\n",
-                  formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
-                ] })
-              ] }),
-              /* @__PURE__ */ jsx3(Text3, { style: [styles3.td, styles3.colUnitPrice], children: isBoxLine ? item.piecePrice != null ? formatPrice(item.piecePrice) : "\u2014" : formatPrice(item.unitPrice) }),
+              /* @__PURE__ */ jsx3(Text3, { style: [styles3.td, styles3.colPieceWeight], children: formatPieceWeight(item) ?? "\u2014" }),
+              /* @__PURE__ */ jsx3(Text3, { style: [styles3.tdBold, styles3.colQty], children: formatPieceCountCell(item) ?? `${item.quantity} ${item.unit.toLowerCase()}` }),
+              /* @__PURE__ */ jsx3(Text3, { style: [styles3.td, styles3.colUnitPrice], children: isBoxLine ? item.piecePrice != null ? formatPrice(item.piecePrice) : "\u2014" : withCatchWeightUnit(formatPrice(item.unitPrice), item) }),
               hasBox && /* @__PURE__ */ jsx3(Text3, { style: [styles3.td, styles3.colBoxPrice], children: isBoxLine ? formatPrice(item.unitPrice) : "\u2014" }),
               /* @__PURE__ */ jsx3(Text3, { style: [styles3.tdBold, styles3.colTotal], children: formatPrice(item.total) })
             ]
@@ -2767,16 +2755,14 @@ var styles5 = StyleSheet5.create({
   },
   colNum: { width: 18, textAlign: "right", paddingRight: 6 },
   colDesc: { flex: 1, paddingRight: 8 },
+  // Catch weight: the weight of one piece, permanently mounted so the credit
+  // note keeps the invoice's column set.
+  colPieceWeight: { width: 44, textAlign: "right", paddingRight: 6 },
   colUnitPrice: { width: 70, textAlign: "right", paddingRight: 6 },
   colPiecePrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colBoxPrice: { width: 54, textAlign: "right", paddingRight: 6 },
   colQty: { width: 55, textAlign: "left", paddingLeft: 4 },
-  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
-  // small and grey: the kilos above are what the line is priced on, this only
-  // says how they were counted.
-  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colExclVat: { width: 70, textAlign: "right", paddingRight: 6 },
-  colVatAmt: { width: 55, textAlign: "right", paddingRight: 6 },
   colCredit: { width: 70, textAlign: "right" },
   // Bottom section
   bottomSection: {
@@ -2981,13 +2967,13 @@ function CreditNoteTemplate({ data }) {
       /* @__PURE__ */ jsxs5(View5, { style: styles5.tableHeader, children: [
         /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colNum], children: "#" }),
         /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colDesc], children: T.thDescription }),
+        /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colPieceWeight], children: T.thPieceWeight }),
+        /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colQty], children: T.thQty }),
         hasBox ? /* @__PURE__ */ jsxs5(Fragment3, { children: [
           /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colPiecePrice], children: T.thPiecePrice }),
           /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colBoxPrice], children: T.thBoxPrice })
         ] }) : /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colUnitPrice], children: T.thUnitPrice }),
-        /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colQty], children: T.thQty }),
         /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colExclVat], children: T.thExclVat }),
-        /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colVatAmt], children: T.thVat }),
         /* @__PURE__ */ jsx5(Text5, { style: [styles5.th, styles5.colCredit], children: T.thCredit })
       ] }),
       data.items.map((item, idx) => {
@@ -3006,21 +2992,13 @@ function CreditNoteTemplate({ data }) {
             children: [
               /* @__PURE__ */ jsx5(Text5, { style: [styles5.tdBold, styles5.colNum], children: idx + 1 }),
               /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colDesc], children: item.description }),
+              /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colPieceWeight], children: formatPieceWeight(item) ?? "\u2014" }),
+              /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colQty], children: formatPieceCountCell(item) ?? `${item.quantity} ${item.unit.toLowerCase()}` }),
               hasBox ? /* @__PURE__ */ jsxs5(Fragment3, { children: [
-                /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colPiecePrice], children: isBoxLine ? item.piecePrice != null ? formatPrice(item.piecePrice) : "\u2014" : formatPrice(item.unitPrice) }),
+                /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colPiecePrice], children: isBoxLine ? item.piecePrice != null ? formatPrice(item.piecePrice) : "\u2014" : withCatchWeightUnit(formatPrice(item.unitPrice), item) }),
                 /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colBoxPrice], children: isBoxLine ? formatPrice(item.unitPrice) : "\u2014" })
-              ] }) : /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colUnitPrice], children: formatPrice(item.unitPrice) }),
-              /* @__PURE__ */ jsxs5(Text5, { style: [styles5.td, styles5.colQty], children: [
-                item.quantity,
-                " ",
-                item.unit.toLowerCase(),
-                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs5(Text5, { style: styles5.qtyBreakdown, children: [
-                  "\n",
-                  formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
-                ] })
-              ] }),
+              ] }) : /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colUnitPrice], children: withCatchWeightUnit(formatPrice(item.unitPrice), item) }),
               /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colExclVat], children: formatPrice(priceExclVat) }),
-              /* @__PURE__ */ jsx5(Text5, { style: [styles5.td, styles5.colVatAmt], children: formatPrice(vatAmount) }),
               /* @__PURE__ */ jsxs5(Text5, { style: [styles5.tdCredit, styles5.colCredit], children: [
                 "-",
                 formatPrice(priceInclVat)
@@ -3244,11 +3222,10 @@ var styles6 = StyleSheet6.create({
   // Column widths
   colIdx: { width: 28, textAlign: "center" },
   colDesc: { flex: 1, paddingRight: 6 },
+  // Catch weight: the weight of one piece, permanently mounted so a mixed
+  // order does not shuffle its columns.
+  colPieceWeight: { width: 44, textAlign: "right", paddingRight: 6 },
   colQty: { width: 70, textAlign: "center" },
-  // Sub-line under the quantity on a catch-weight row ("35 x 7 kg"). Deliberately
-  // small and grey: the kilos above are what the line is priced on, this only
-  // says how they were counted.
-  qtyBreakdown: { fontSize: 6.5, color: "#64748b" },
   colCheck: { width: 40, textAlign: "center" },
   checkbox: {
     width: 11,
@@ -3475,6 +3452,7 @@ function PackingSlipTemplate({ data }) {
       /* @__PURE__ */ jsxs6(View6, { style: styles6.tableHeader, children: [
         /* @__PURE__ */ jsx6(Text6, { style: [styles6.th, styles6.colIdx], children: "#" }),
         /* @__PURE__ */ jsx6(Text6, { style: [styles6.th, styles6.colDesc], children: T.thDescription }),
+        /* @__PURE__ */ jsx6(Text6, { style: [styles6.th, styles6.colPieceWeight], children: T.thPieceWeight }),
         /* @__PURE__ */ jsx6(Text6, { style: [styles6.th, styles6.colQty], children: T.thQty }),
         /* @__PURE__ */ jsx6(Text6, { style: [styles6.th, styles6.colCheck], children: T.thCheck })
       ] }),
@@ -3489,15 +3467,8 @@ function PackingSlipTemplate({ data }) {
           children: [
             /* @__PURE__ */ jsx6(Text6, { style: [styles6.td, styles6.colIdx], children: item.index }),
             /* @__PURE__ */ jsx6(Text6, { style: [styles6.td, styles6.colDesc], children: item.description }),
-            /* @__PURE__ */ jsxs6(Text6, { style: [styles6.tdBold, styles6.colQty], children: [
-              item.quantity,
-              " ",
-              item.unit.toLowerCase(),
-              formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg }) && /* @__PURE__ */ jsxs6(Text6, { style: styles6.qtyBreakdown, children: [
-                "\n",
-                formatPieceBreakdown({ pieceCount: item.pieceCount, pieceWeightKg: item.pieceWeightKg })
-              ] })
-            ] }),
+            /* @__PURE__ */ jsx6(Text6, { style: [styles6.td, styles6.colPieceWeight], children: formatPieceWeight(item) ?? "\u2014" }),
+            /* @__PURE__ */ jsx6(Text6, { style: [styles6.tdBold, styles6.colQty], children: formatPieceCountCell(item) ?? `${item.quantity} ${item.unit.toLowerCase()}` }),
             /* @__PURE__ */ jsx6(View6, { style: styles6.colCheck, children: /* @__PURE__ */ jsx6(View6, { style: styles6.checkbox }) })
           ]
         },

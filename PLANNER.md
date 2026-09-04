@@ -33,6 +33,7 @@
 | 2026-06-28 | Portal: login discoverability | Public site header CTA → "Inloggen" (portal); login page "Klantenportaal" heading + contact block + password reveal |
 | 2026-06-28 | Portal: RLS lockdown (migration 00071) | Closed broad `USING(true)` SELECT policies (cross-customer + COGS/internal_notes leak); portal reads now via column-safe `get_portal_*` SECURITY DEFINER RPCs; base tables admin-only |
 | 2026-08-26 | Catch-weight order lines (migration 00117) | Goods counted in pieces, priced per kilo (`stuk (kg) × aantal × prijs/kg`). `quantity` stays the KILOS, so no money path changed. See **Catch weight** below and in `CLAUDE.md` |
+| 2026-09-04 | Documents adopt his three columns | Invoice, proforma, order confirmation, packing slip and credit note now print `Stuk (kg)` + `Aantal` (pieces) + `Eenheidprijs`, per-line BTW column dropped. Code only, no migration |
 
 ---
 
@@ -82,13 +83,41 @@ These were assumed to keep the build reversible; confirm before extending:
    `unit_type = 'kg'`.
 6. **Will he keep sending this spreadsheet?** If so it could become an import format; not built.
 
-**Deliberately excluded, raise if he asks for them:** credit notes print kilos only (a partial refund
-need not land on a whole piece); Sold Products still aggregates in kilos (summing pieces of differing
-weights is meaningless); the product Excel import does not carry the default weight (it would change
-the template).
+**Deliberately excluded, raise if he asks for them:** credit notes carry the columns but usually leave
+them empty (their lines come from `order_refund_items`, which hold no piece fields, because a partial
+refund need not land on a whole piece); Sold Products still aggregates in kilos (summing pieces of
+differing weights is meaningless); the product Excel import does not carry the default weight (it
+would change the template).
 
 **Note on his BTW column:** the sheet's `INCL. BTW` is unrounded (1255,135). The app rounds VAT to the
 cent per line, as a Dutch invoice must, so row 1 reads 1255,14. The other three rows match exactly.
+
+### 2026-09-04 — the documents now carry his columns
+
+He asked for the invoice to read like his sheet, so the three factors became three real columns
+instead of the "35 x 7 kg" sub-line under the quantity:
+
+`# | Omschrijving | [Notitie] | Stuk (kg) | Aantal | Eenheidprijs [| Doosprijs] | Excl. BTW | Incl. BTW`
+
+Applied to **all five** customer documents (invoice, proforma, order confirmation, packing slip,
+credit note) rather than the invoice alone, so one order never looks like two different companies.
+Invariants in `CLAUDE.md` → *Key Business Rules → Catch weight on the documents*. Verified by
+rendering his own four rows through every template: all five fit one A4 page and row 1 comes out at
+€1.151,50, matching his sheet.
+
+Three decisions he should see, because each is visible and each is reversible:
+1. **`Aantal` shows 35, not 245 kg.** The kilos are gone from the row — they are the product of the
+   three printed factors. Exactly his sheet.
+2. **The per-line BTW column was dropped**, again per his sheet. Still compliant (the totals block
+   breaks VAT out per rate). This is what paid for the new column's width.
+3. **The price now reads "€ 4,70 / kg".** Not in his sheet, and not decoration: once `Aantal` says 35,
+   a bare 4,70 reads as the price of one spit. His sheet dodges this with a loose "kg" in an
+   unlabelled column D, which is also the source of open question 1 below.
+
+**Left alone on purpose, raise if he asks:** the **portal** order detail and the in-app order screens
+still show the "35 x 7 kg" sub-line rather than columns (they are not column layouts), so a customer
+comparing the portal with the invoice sees the same facts in a different shape. The **route/driver
+PDF** already led with pieces and is unchanged. **Sold Products** still aggregates in kilos.
 
 ---
 
